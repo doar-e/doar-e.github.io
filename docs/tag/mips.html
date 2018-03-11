@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Diary of a reverse-engineer - MIPS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+
+    <!-- Le styles -->
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet">
+        <link href="/theme/css/font-awesome.css" rel="stylesheet">
+
+    <link href="/theme/css/pygments.css" rel="stylesheet">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="/theme/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/theme/images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/theme/images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/theme/images/apple-touch-icon-114x114.png">
+
+    <link href="/" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+        <div class="article">
+                <h1><a href="/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">Taming a wild nanomite-protected MIPS binary with symbolic execution: No Such Crackme</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2014-10-11T21:35:00-07:00">
+        <i class="icon-calendar"></i>Sat 11 October 2014
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet-emilien-tr4nce-girault.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet & Emilien "tr4nce" Girault</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>.
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/z3py.html"><i class="icon-tag"></i>z3py</a>
+	<a href="/tag/z3.html"><i class="icon-tag"></i>z3</a>
+	<a href="/tag/symbolic-execution.html"><i class="icon-tag"></i>symbolic execution</a>
+	<a href="/tag/mips.html"><i class="icon-tag"></i>MIPS</a>
+	<a href="/tag/nosuchcon.html"><i class="icon-tag"></i>NoSuchCon</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><p>As last year, the French conference <a href="http://www.nosuchcon.org/#challenge">No Such Con</a> returns for its second edition in Paris from the 19th of November until the 21th of November. And again, the brilliant <a href="https://twitter.com/elvanderb">Eloi Vanderbeken</a> &amp; his mates at <a href="http://synacktiv.fr/en/index.html">Synacktiv</a> put together a series of three security challenges especially for this occasion.
+Apparently, the three tasks have already been <a href="https://twitter.com/Synacktiv/status/515174845844582401">solved</a> by awesome <a href="https://twitter.com/0xf4b">@0xfab</a> which won the competition, hats off :).</p>
+<p>To be honest I couldn't resist to try at least the first step, as I know that <a href="https://twitter.com/elvanderb">Eloi</a> always builds <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=253">really twisted</a> and <a href="http://www.nosuchcon.org/2013/#challenge">nice binaries</a> ; so I figured I should just give it a go!</p>
+<p>But this time we are trying something different though: this post has been co-authored by both <em>Emilien Girault</em> (<a href="https://twitter.com/emiliengirault">@emiliengirault</a>) and I. As we have slightly different solutions, we figured it would be a good idea to write those up inside a single post. This article starts with an introduction to the challenge and will then fork, presenting my solution and his.</p>
+<p>As the article is quite long, here is the complete table of contents:</p>
+
+                        <a class="btn primary xsmall" href="/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">more ...</a>
+                </div>
+        </div>
+        <hr />
+
+                <section id="content" class="body">
+                <h1>Pages</h1>
+                        <li><a href="/pages/about.html">About</a></li>
+                        <li><a href="/pages/presentations.html">Presentations</a></li>
+                </section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+
+    <!-- Le javascript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>
