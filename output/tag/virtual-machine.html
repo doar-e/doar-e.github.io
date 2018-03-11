@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Diary of a reverse-engineer - virtual machine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+
+    <!-- Le styles -->
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet">
+        <link href="/theme/css/font-awesome.css" rel="stylesheet">
+
+    <link href="/theme/css/pygments.css" rel="stylesheet">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="/theme/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/theme/images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/theme/images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/theme/images/apple-touch-icon-114x114.png">
+
+    <link href="/" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+        <div class="article">
+                <h1><a href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">Dissection of Quarkslab's 2014 security challenge</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2014-09-06T20:37:00-07:00">
+        <i class="icon-calendar"></i>Sat 06 September 2014
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>.
+
+
+<span class="label">Tags</span>
+	<a href="/tag/python.html"><i class="icon-tag"></i>python</a>
+	<a href="/tag/virtual-machine.html"><i class="icon-tag"></i>virtual machine</a>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>As the blog was a bit silent for quite some time, I figured it would be cool to put together a post ; so here it is folks, dig in!</p>
+<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference in Kuala Lumpur from the 13th of October until the 16th.</p>
+<p>The challenge has been written by <a href="http://blog.quarkslab.com/author/serge-guelton.html">Serge Guelton</a>, a R&amp;D engineer specialized in compilers/parallel computations. At the time of writing, already eight different people manage to solve the challenge, and one of the ticket seems to have been won by <code>hackedd</code>, so congrats to him!</p>
+<p><center><img alt="woot.png" src="/images/dissection_of_quarkslab_s_2014_security_challenge/woot.png"></center>
+According to the description of the challenge Python is heavily involved, which is a good thing for at least two reasons:</p>
+<ul>
+<li>first because I already had <a href="https://doar-e.github.io/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">the occasion</a> to look at its source code in the past,</li>
+<li>and because I so am a <a href="https://github.com/0vercl0k/stuffz/tree/master/Python's%20internals">big fan of Python</a>.</li>
+</ul>
+<p>In this post I will describe how I tackled this problem, how I managed to solve it. And to make up for me being slow at solving it I tried to make it fairly detailed. </p>
+<p>At first it was supposed to be quite short though, but well..I decided to analyze fully the challenge even if it wasn't needed to find the key unfortunately, so it is a bit longer than expected :-).</p>
+<p>Anyway, sit down, make yourself at home and let me pour you a cup of tea before we begin :-).</p>
+
+                        <a class="btn primary xsmall" href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
+                <h1><a href="/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">Deep dive into Python's VM: Story of LOAD_CONST bug</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2014-04-17T23:22:00-07:00">
+        <i class="icon-calendar"></i>Thu 17 April 2014
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>.
+
+
+<span class="label">Tags</span>
+	<a href="/tag/python.html"><i class="icon-tag"></i>python</a>
+	<a href="/tag/virtual-machine.html"><i class="icon-tag"></i>virtual machine</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>A year ago, I've written a Python script to leverage a bug in Python's virtual machine: the idea was to fully control the Python virtual processor and after that to instrument the VM to execute native codes. The <a href="https://github.com/0vercl0k/stuffz/blob/master/Python's%20internals/python27_abuse_vm_to_execute_x86_code.py">python27_abuse_vm_to_execute_x86_code.py</a> script wasn't really self-explanatory, so I believe only a few people actually took some time to understood what happened under the hood. The purpose of this post is to give you an explanation of the bug, how you can control the VM and how you can turn the bug into something that can be more useful. It's also a cool occasion to see how works the Python virtual machine from a low-level perspective: what we love so much right?</p>
+<p>But before going further, I just would like to clarify a couple of things:</p>
+<ul>
+<li>I haven't found this bug, this is quite old and <strong>known</strong> by the Python developers (trading safety for performance), so don't panic this is <strong>not</strong> a 0day or a new bug ; can be a cool CTF trick though</li>
+<li>Obviously, YES I know we can also "escape" the virtual machine with the <a href="http://docs.python.org/2/library/ctypes.html">ctypes</a> module ; but this is a feature not a bug. In addition, ctypes is always "removed"  from sandbox implementation in Python</li>
+</ul>
+<p>Also, keep in mind I will focus Python 2.7.5 x86 on Windows ; but obviously this is adaptable for other systems and architectures, so this is left as an exercise to the interested readers.
+All right, let's move on to the first part: this one will focus the essentials about the VM, and Python objects.</p>
+
+                        <a class="btn primary xsmall" href="/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">more ...</a>
+                </div>
+        </div>
+        <hr />
+
+                <section id="content" class="body">
+                <h1>Pages</h1>
+                        <li><a href="/pages/about.html">About</a></li>
+                        <li><a href="/pages/presentations.html">Presentations</a></li>
+                </section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+
+    <!-- Le javascript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>
