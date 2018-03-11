@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Diary of a reverse-engineer - rumpkernel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+
+    <!-- Le styles -->
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet">
+        <link href="/theme/css/font-awesome.css" rel="stylesheet">
+
+    <link href="/theme/css/pygments.css" rel="stylesheet">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="/theme/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/theme/images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/theme/images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/theme/images/apple-touch-icon-114x114.png">
+
+    <link href="/" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+        <div class="article">
+                <h1><a href="/blog/2016/12/21/happy-unikernels/">happy unikernels</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2016-12-21T18:59:00-08:00">
+        <i class="icon-calendar"></i>Wed 21 December 2016
+</abbr>
+<span class="label">By</span>
+<a href="/author/yrp.html"><i class="icon-user"></i>yrp</a>
+<span class="label">Category</span>
+<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>.
+
+
+<span class="label">Tags</span>
+	<a href="/tag/unikernel.html"><i class="icon-tag"></i>unikernel</a>
+	<a href="/tag/rumpkernel.html"><i class="icon-tag"></i>rumpkernel</a>
+	<a href="/tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="intro">Intro</h1>
+<p>Below is a collection of notes regarding unikernels. I had originally prepared this stuff to submit to EkoParty’s CFP, but ended up not wanting to devote time to stabilizing PHP7’s heap structures and I lost interest in the rest of the project before it was complete. However, there are still some cool takeaways I figured I could write down. Maybe they’ll come in handy? If so, please let let me know.</p>
+<p>Unikernels are a continuation of turning everything into a container or VM. Basically, as many VMs currently just run one userland application, the idea is that we can simplify our entire software stack by removing the userland/kernelland barrier and essentially compiling our usermode process into the kernel. This is, in the implementation I looked at, done with a NetBSD kernel and a variety of either <a href="https://github.com/rumpkernel/rumprun-packages">native or lightly-patched POSIX applications</a>  (bonus: there is significant lag time between upstream fixes and rump package fixes, just like every other containerized solution).</p>
+<p>While I don’t necessarily think that conceptually unikernels are a good idea (attack surface reduction vs mitigation removal), I do think people will start more widely deploying them shortly and I was curious what memory corruption exploitation would look like inside of them, and more generally what your payload options are like.</p>
+<p>All of the following is based off of two unikernel programs, nginx and php5 and only makes use of public vulnerabilities. I am happy to provide all referenced code (in varying states of incompleteness), on request.</p>
+
+                        <a class="btn primary xsmall" href="/blog/2016/12/21/happy-unikernels/">more ...</a>
+                </div>
+        </div>
+        <hr />
+
+                <section id="content" class="body">
+                <h1>Pages</h1>
+                        <li><a href="/pages/about.html">About</a></li>
+                        <li><a href="/pages/presentations.html">Presentations</a></li>
+                </section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+
+    <!-- Le javascript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>
