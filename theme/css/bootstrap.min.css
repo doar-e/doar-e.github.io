@@ -1,4 +1,4 @@
-.icon-calendar, .icon-user, .icon-folder-open, .icon-tag {padding-right:4px; text-decoration:initial !important;}
+.icon-calendar, .icon-user, .icon-folder-open, .icon-tag {padding-right:2px; text-decoration:initial !important;}
 article,aside,details,figcaption,figure,footer,header,hgroup,nav,section{display:block;font-size:14px;}
 audio,canvas,video{display:inline-block;*display:inline;*zoom:1;}
 audio:not([controls]){display:none;}
