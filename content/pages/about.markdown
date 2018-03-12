@@ -21,17 +21,35 @@ We are also hanging out on IRC ([#doar-e@irc.w3challs.com](irc://#doar-e@irc.w3c
 
 # Wall of fame
 
-* Awesome **Amat Cama** for his [Corrupting the ARM Exception Vector Table](https://doar-e.github.io/blog/2014/04/30/corrupting-arm-evt/) article:
-    * Personal blog: [acez.re](http://acez.re/)
-    * Twitter account: [@amatcama](https://twitter.com/amatcama)
-    * Github account: [acama](https://github.com/acama)
-* Brilliant **Emilien Girault** for co-authoring [Taming a wild nanomite-protected MIPS binary with symbolic execution: No Such Crackme](https://doar-e.github.io/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/):
-    * Personal blog: [segmentationfault.fr](http://www.segmentationfault.fr/)
-    * Twitter account: [@emiliengirault](https://twitter.com/emiliengirault)
-    * Github account: [egirault](https://github.com/egirault)
-* Symbolic-keygenner **Michele Bertasi** for his [Keygenning With KLEE](https://doar-e.github.io/blog/2015/08/18/keygenning-with-klee/):
-    * Twitter account: [@brt_device](https://twitter.com/brt_device)
-    * Github account: [mbrt](https://github.com/mbrt)
-* Chabroni **yrp** for his [Happy unikernels](https://doar-e.github.io/blog/2016/12/21/happy-unikernels/):
-    * Twitter account: [@yrp604](https://twitter.com/yrp604)
-    * Github account: [yrp604](https://github.com/yrp604)
+<ul>
+  <li>Awesome <strong>Amat Cama</strong> for his "<a href="https://doar-e.github.io/blog/2014/04/30/corrupting-arm-evt/">Corrupting the ARM Exception Vector Table</a>" article:
+    <ul>
+      <li>Personal blog: <a href="http://acez.re/">acez.re</a></li>
+      <li>Twitter account: <a href="https://twitter.com/amatcama">@amatcama</a></li>
+      <li>Github account: <a href="https://github.com/acama">acama</a></li>
+    </ul>
+  </li>
+  <br/>
+  <li>Brilliant <strong>Emilien Girault</strong> for co-authoring "<a href="https://doar-e.github.io/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">Taming a wild nanomite-protected MIPS binary with symbolic execution: No Such Crackme</a>":
+    <ul>
+      <li>Personal blog: <a href="http://www.segmentationfault.fr/">segmentationfault.fr</a></li>
+      <li>Twitter account: <a href="https://twitter.com/emiliengirault">@emiliengirault</a></li>
+      <li>Github account: <a href="https://github.com/egirault">egirault</a></li>
+    </ul>
+  </li>
+  <br/>
+  <li>
+    Symbolic-keygenner <strong>Michele Bertasi</strong> for his "<a href="https://doar-e.github.io/blog/2015/08/18/keygenning-with-klee/">Keygenning With KLEE</a>":
+    <ul>
+      <li>Twitter account: <a href="https://twitter.com/brt_device">@brt_device</a></li>
+      <li>Github account: <a href="https://github.com/mbrt">mbrt</a></li>
+    </ul>
+  </li>
+  <br/>
+  <li>Chabroni <strong>yrp</strong> for his "<a href="https://doar-e.github.io/blog/2016/12/21/happy-unikernels/">Happy unikernels</a>":
+    <ul>
+      <li>Twitter account: <a href="https://twitter.com/yrp604">@yrp604</a></li>
+      <li>Github account: <a href="https://github.com/yrp604">yrp604</a></li>
+    </ul>
+  </li>
+</ul>
