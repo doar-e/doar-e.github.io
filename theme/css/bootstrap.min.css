@@ -1,3 +1,4 @@
+section li{margin-top: 10px; margin-bottom: 10px;}
 .icon-calendar, .icon-user, .icon-folder-open, .icon-tag {padding-right:2px; text-decoration:initial !important;}
 footer{display:block;font-size:14px;}
 #content{font-size:16px;}
