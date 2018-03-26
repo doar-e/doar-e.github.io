@@ -97,6 +97,33 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">beVX challenge on the operation table</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-03-11T17:22:00-07:00">
+        <i class="icon-calendar"></i>Sun 11 March 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/bevx.html"><i class="icon-tag"></i>beVX</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original tweet</a> advertising it.</p>
+<p>With this challenge, you are tasked to reverse-engineer a binary providing some sort of encryption service, and there is supposedly a private key (aka the flag) to retrieve. A remote server with the challenge running is also available for you to carry out your attack. This looked pretty interesting as it was different than the usual keygen-me type of reverse-engineering challenge.</p>
+<p>Unfortunately, I didn't get a chance to play with this while the remote server was up (the organizers took it down once they received the solutions of the three winners). However, cool thing is that you can easily manufacture your own server to play at home.. which is what I ended up doing.</p>
+<p>As I thought the challenge was cute enough, and that I would also like to write on a more regular basis, so here is a small write-up describing how I abused the server to get the private key out. Hope you don't find it too boring :-).</p>
+
+                        <a class="btn primary xsmall" href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2017/12/01/debugger-data-model/">Debugger data model, Javascript & x64 exception handling</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
@@ -407,33 +434,6 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
 <p>In this post, I will show you how I've manage to pinpoint where the bug was, using <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff549561(v=vs.85).aspx">GFlags, PageHeap</a> and <a href="http://www.windbg.info/">WinDbg</a>. Then, we will reverse-engineer the buggy code in order to understand why the bug is happening, and how we can code a clean trigger.</p>
 
                         <a class="btn primary xsmall" href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">Some thoughts about code-coverage measurement with Pin</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2013-08-31T18:57:00-07:00">
-        <i class="icon-calendar"></i>Sat 31 August 2013
-</abbr>
-<span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="/category/misc.html"><i class="icon-folder-open"></i>misc</a>
-
-
-<span class="label">Tags</span>
-	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
-	<a href="/tag/dynamic-binary-instrumentation.html"><i class="icon-tag"></i>dynamic-binary-instrumentation</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic, anything) and you want to have the same coverage with only a subset of them. Or maybe, you are not really interested in the measure, but only with the coverage differences between two executions of your target: to locate where your program is handling a specific feature for example.</p>
-<p>But it's not a trivial problem, usually you don't have the source-code of the target, and you want it to be quick. The other thing, is that you don't have an input that covers the whole code base, you don't even know if it's possible ; so you can't compare your analysis to that "ideal one". Long story short, you can't say to the user "OK, this input covers 10% of your binary". But you can clearly register what your program is doing with input A, what it is doing with input B and then analyzing the differences. With that way you can have a (more precise?) idea about which input seems to have better coverage than another.</p>
-<p>Note also, this is a perfect occasion to play with Pin :-)).</p>
-<p>In this post, I will explain briefly how you can build that kind of tool using Pin, and how it can be used for reverse-engineer purposes.</p>
-
-                        <a class="btn primary xsmall" href="/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">more ...</a>
                 </div>
         </div>
         <hr />

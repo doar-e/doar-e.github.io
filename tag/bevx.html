@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Diary of a reverse-engineer</title>
+    <title>Diary of a reverse-engineer - beVX</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="Axel '0vercl0k' Souchet">
@@ -96,63 +96,39 @@
     <div class="container-fluid">
       <div class="row">
         <div class="span9" id="content">
-<section id="content">
-<h1>Archives</h1>
+        <div class="article">
+                <h1><a href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">beVX challenge on the operation table</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-03-11T17:22:00-07:00">
+        <i class="icon-calendar"></i>Sun 11 March 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
 
-<dl>
-	<dt>Sun 11 March 2018</dt>
-	<dd><a href='blog/2018/03/11/bevx-challenge-on-the-operation-table/'>beVX challenge on the operation table</a></dd>
-    <br/>
-	<dt>Fri 01 December 2017</dt>
-	<dd><a href='blog/2017/12/01/debugger-data-model/'>Debugger data model, Javascript & x64 exception handling</a></dd>
-    <br/>
-	<dt>Sat 05 August 2017</dt>
-	<dd><a href='blog/2017/08/05/binary-rewriting-with-syzygy/'>Binary rewriting with syzygy, Pt. I</a></dd>
-    <br/>
-	<dt>Wed 21 December 2016</dt>
-	<dd><a href='blog/2016/12/21/happy-unikernels/'>happy unikernels</a></dd>
-    <br/>
-	<dt>Sun 27 November 2016</dt>
-	<dd><a href='blog/2016/11/27/clang-and-passes/'>Token capture via an llvm-based analysis pass</a></dd>
-    <br/>
-	<dt>Tue 18 August 2015</dt>
-	<dd><a href='blog/2015/08/18/keygenning-with-klee/'>Keygenning with KLEE</a></dd>
-    <br/>
-	<dt>Sun 08 February 2015</dt>
-	<dd><a href='blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/'>Spotlight on an unprotected AES128 white-box implementation</a></dd>
-    <br/>
-	<dt>Sat 11 October 2014</dt>
-	<dd><a href='blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/'>Taming a wild nanomite-protected MIPS binary with symbolic execution: No Such Crackme</a></dd>
-    <br/>
-	<dt>Sat 06 September 2014</dt>
-	<dd><a href='blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/'>Dissection of Quarkslab's 2014 security challenge</a></dd>
-    <br/>
-	<dt>Wed 30 April 2014</dt>
-	<dd><a href='blog/2014/04/30/corrupting-arm-evt/'>Corrupting the ARM Exception Vector Table</a></dd>
-    <br/>
-	<dt>Thu 17 April 2014</dt>
-	<dd><a href='blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/'>Deep dive into Python's VM: Story of LOAD_CONST bug</a></dd>
-    <br/>
-	<dt>Tue 11 March 2014</dt>
-	<dd><a href='blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/'>First dip into the kernel pool : MS10-058</a></dd>
-    <br/>
-	<dt>Sat 12 October 2013</dt>
-	<dd><a href='blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/'>Having a look at the Windows' User/Kernel exceptions dispatcher</a></dd>
-    <br/>
-	<dt>Mon 16 September 2013</dt>
-	<dd><a href='blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/'>Breaking Kryptonite's obfuscation: a static analysis approach relying on symbolic execution</a></dd>
-    <br/>
-	<dt>Mon 09 September 2013</dt>
-	<dd><a href='blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/'>Pinpointing heap-related issues: OllyDbg2 off-by-one story</a></dd>
-    <br/>
-	<dt>Sat 31 August 2013</dt>
-	<dd><a href='blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/'>Some thoughts about code-coverage measurement with Pin</a></dd>
-    <br/>
-	<dt>Sat 24 August 2013</dt>
-	<dd><a href='blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/'>Regular expressions obfuscation under the microscope</a></dd>
-    <br/>
-</dl>
-</section>
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/bevx.html"><i class="icon-tag"></i>beVX</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original tweet</a> advertising it.</p>
+<p>With this challenge, you are tasked to reverse-engineer a binary providing some sort of encryption service, and there is supposedly a private key (aka the flag) to retrieve. A remote server with the challenge running is also available for you to carry out your attack. This looked pretty interesting as it was different than the usual keygen-me type of reverse-engineering challenge.</p>
+<p>Unfortunately, I didn't get a chance to play with this while the remote server was up (the organizers took it down once they received the solutions of the three winners). However, cool thing is that you can easily manufacture your own server to play at home.. which is what I ended up doing.</p>
+<p>As I thought the challenge was cute enough, and that I would also like to write on a more regular basis, so here is a small write-up describing how I abused the server to get the private key out. Hope you don't find it too boring :-).</p>
+
+                        <a class="btn primary xsmall" href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">more ...</a>
+                </div>
+        </div>
+        <hr />
+
+                <section id="content" class="body">
+                <h1>Pages</h1>
+                        <li><a href="/pages/about.html">About</a></li>
+                        <li><a href="/pages/presentations.html">Presentations</a></li>
+                </section>
         </div><!--/span-->
       </div><!--/row-->
       <hr>

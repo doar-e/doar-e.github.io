@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>beVX challenge on the operation table</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="/theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="/theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="/feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to beVX challenge on the operation table">
+                                        beVX challenge on the operation table
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-03-11T17:22:00-07:00">
+        <i class="icon-calendar"></i>Sun 11 March 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/bevx.html"><i class="icon-tag"></i>beVX</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original tweet</a> advertising it.</p>
+<p>With this challenge, you are tasked to reverse-engineer a binary providing some sort of encryption service, and there is supposedly a private key (aka the flag) to retrieve. A remote server with the challenge running is also available for you to carry out your attack. This looked pretty interesting as it was different than the usual keygen-me type of reverse-engineering challenge.</p>
+<p>Unfortunately, I didn't get a chance to play with this while the remote server was up (the organizers took it down once they received the solutions of the three winners). However, cool thing is that you can easily manufacture your own server to play at home.. which is what I ended up doing.</p>
+<p>As I thought the challenge was cute enough, and that I would also like to write on a more regular basis, so here is a small write-up describing how I abused the server to get the private key out. Hope you don't find it too boring :-).</p>
+
+
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#playing-at-home">Playing at home</a></li>
+<li><a href="#recon">Recon</a></li>
+<li><a href="#finding-the-needle-getting-access-to-the-key-material">Finding the needle: getting access to the key material</a></li>
+<li><a href="#bending-the-needle-building-an-oracle">Bending the needle: building an oracle</a></li>
+<li><a href="#leaking-it-like-its-hot">Leaking it like it's hot</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+</div>
+<h1 id="playing-at-home">Playing at home</h1>
+<p>Before I start walking you through my solution, here is a very simple way for you to set it up at home. You just have to download a copy of the binary <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a>, and create a fake <em>encryption</em> library that exports the <code>encrypt</code>/<code>decrypt</code> routines as well as the key material (<code>private_key</code> / <code>private_key_length</code>):</p>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;stdint.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;inttypes.h&gt;</span><span class="cp"></span>
+
+<span class="kt">uint32_t</span> <span class="n">number_of_rows</span> <span class="o">=</span> <span class="mi">16</span><span class="p">;</span>
+<span class="kt">uint32_t</span> <span class="n">private_key_length</span> <span class="o">=</span> <span class="mi">32</span><span class="p">;</span>
+<span class="kt">uint8_t</span> <span class="n">private_key</span><span class="p">[</span><span class="mi">32</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span> <span class="p">};</span>
+
+<span class="k">const</span> <span class="kt">uint64_t</span> <span class="n">k</span> <span class="o">=</span> <span class="mh">0xba0bab</span><span class="p">;</span>
+
+<span class="kt">uint64_t</span> <span class="nf">decrypt</span><span class="p">(</span><span class="kt">uint64_t</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;decrypt(%&quot;</span> <span class="n">PRIx64</span> <span class="s">&quot;) = %&quot;</span> <span class="n">PRIx64</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">^</span> <span class="n">k</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">^</span> <span class="n">k</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">uint64_t</span> <span class="nf">encrypt</span><span class="p">(</span><span class="kt">uint64_t</span> <span class="n">y</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;encrypt(%&quot;</span> <span class="n">PRIx64</span> <span class="s">&quot;) = %&quot;</span> <span class="n">PRIx64</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y</span> <span class="o">^</span> <span class="n">k</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">y</span> <span class="o">^</span> <span class="n">k</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>The above file can be compiled with the below command:</p>
+<div class="highlight"><pre><span></span>$ clang++ -shared -o lib.so -fPIC lib.cc
+</pre></div>
+
+
+<p>Dropping the resulting <code>lib.so</code> shared library file inside the same directory as the challenge should be enough to have it properly run. You can even hook it up to a socket via <a href="https://linux.die.net/man/1/socat">socat</a> to simulate a remote server you have to attack:</p>
+<div class="highlight"><pre><span></span>$ socat -vvv TCP-LISTEN:31337,fork,reuseaddr EXEC:./cha1
+</pre></div>
+
+
+<p>If everything worked as advertised, you should now be able to interact with the challenge remotely and be greeted by the below menu when connected to it:</p>
+<div class="highlight"><pre><span></span>Please choose your option:
+0. Store Number
+1. Get Number
+2. Add
+3. Subtract
+4. Multiply
+5. Divide
+6. Private Key Encryption
+7. Binary Representation
+8. Exit
+</pre></div>
+
+
+<p>Off you go have fun now :)</p>
+<h1 id="recon">Recon</h1>
+<p>When I start looking at a challenge I always spend time to understand a bit more of the <em>story</em> around it. This both gives me direction as well as helps me identify pitfalls. For example here, the story tells me that we have a secret to exfiltrate and focusing the analysis on the code interacting / managing this secret sounds like a good idea. The challenge was also advertised as a <em>reverse-engineering</em> task so I didn't really expect any <em>pwning</em>. A logical flaw, design issue or a very constrained memory corruption type of issue is what I was looking for.</p>
+<p><center><img alt="recon.png" src="/images/bevx-challenge-on-the-operation-table/recon.png"></center></p>
+<p>Once base64-decoded, the binary is a 10KB (small) unprotected ELF64. The binary is PIE and imports a bunch of data / functions from a file named <em>lib.so</em> that we don't have access to. Based on the story we have been given, we can expect both the key materials and the encryption / decryption routines stored there.</p>
+<div class="highlight"><pre><span></span>extern:0000000000202798 ; _QWORD __cdecl decrypt(unsigned __int64)
+extern:0000000000202798                 extrn _Z7decryptm:near  ; DATA XREF: .got.plt:off_202020↑o
+extern:00000000002027A0 ; _QWORD __cdecl encrypt(unsigned __int64)
+extern:00000000002027A0                 extrn _Z7encryptm:near  ; DATA XREF: .got.plt:off_202028↑o
+</pre></div>
+
+
+<p>Even though the challenge seems to use C++ and the <a href="https://en.wikipedia.org/wiki/Standard_Template_Library">STL</a>, the disassembled / decompiled code is very easy to read so it doesn't take a whole lot of time to understand a bit more what this thing is doing.</p>
+<p>According to what the menu says, it looks like a store of numbers; whatever that means. Quick reverse-engineering of the getter and setter functions we learn a bit more of what is a number. First, every number (<code>number_t</code>) being stored is encrypted when inserted into the store, and decrypted when retrieved out of the store.</p>
+<div class="highlight"><pre><span></span><span class="kt">uint64_t</span> <span class="nf">write_number_to_store</span><span class="p">(</span><span class="n">number_t</span> <span class="o">*</span><span class="n">number2write</span><span class="p">,</span> <span class="kt">uint64_t</span> <span class="n">value</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">encrypted</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">uint64_t</span> <span class="n">encrypted_val</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">encrypted</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">encrypted_val</span> <span class="o">=</span> <span class="n">encrypt</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">size_t</span> <span class="n">bitidx</span> <span class="o">=</span> <span class="mi">31LL</span><span class="p">;</span>
+  <span class="k">do</span>
+  <span class="p">{</span>
+    <span class="kt">uint8_t</span> <span class="n">curr_encrypted_val</span> <span class="o">=</span> <span class="n">encrypted_val</span><span class="p">;</span>
+    <span class="n">encrypted_val</span> <span class="o">&gt;&gt;=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">number2write</span><span class="o">-&gt;</span><span class="n">bytes</span><span class="p">[</span><span class="n">bitidx</span><span class="o">--</span><span class="p">]</span> <span class="o">=</span> <span class="n">curr_encrypted_val</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span> <span class="n">bitidx</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="p">);</span>
+  <span class="k">return</span> <span class="n">encrypted_val</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Interestingly, the third argument of the function allows you to write a clear-text number into the store but it is apparently not used anywhere in the challenge.. oh well :)</p>
+<p>Once the numbers are encrypted, they also get <em>encoded</em> with a very simple transformation: every bit is written to a byte (0 or 1). As the numbers being stored are 32 bits integers, naturally the store needs 32 bytes per number.</p>
+<div class="highlight"><pre><span></span>00000000 number_t        struc ; (sizeof=0x20)
+00000000 bytes           db 32 dup(?)
+00000020 number_t        ends
+</pre></div>
+
+
+<p>After looking a bit more at the other options, and with the above in mind, it is pretty straightforward to recover part of the structure that keeps the global state of the store (<code>state_t</code>). The store has a maximum capacity of 32 slots, the current size of the store is stored in the lower 5 bits (<code>2**5 = 32</code>) of some sort of status variable. At this point I started drafting the structure <code>state_t</code>:</p>
+<div class="highlight"><pre><span></span>00000000 state_t         struc ; (sizeof=0x440, align=0x8)
+00000000 numbers         number_t 32 dup(?)
+00000400 pkey            dq ?
+00000408 size            db ?
+00000409                 db ? ; undefined
+0000040A                 db ? ; undefined
+0000040B                 db ? ; undefined
+0000040C                 db ? ; undefined
+0000040D                 db ? ; undefined
+0000040E                 db ? ; undefined
+0000040F                 db ? ; undefined
+00000410 x               dw ?
+00000412 xx              db 38 dup(?)
+00000438 xxx             dq ?
+00000440 state_t         ends
+</pre></div>
+
+
+<p>The <em>Private Key Encryption</em> function is the one that looked a bit more involved than the others. But as far as I was concerned, it was doing ""arithmetic"" on numbers that you previously had stored: one called the message and one called the key.</p>
+<p>Before actually starting to look for issues, I needed to answer two questions:</p>
+<ol>
+<li>Where is the key stored?</li>
+<li>What prevents me from accessing it?</li>
+</ol>
+<p>By looking at the store initialization code we can answer the first question. The content of <code>private_key</code> is put inside the store in the slot <code>number_of_rows + 2</code>. Right after, the size of the store is set to <code>number_of_rows</code>. The net result of this operation being - assuming proper bounds-checking from all the commands interacting with the store - that the user cannot access the key directly.</p>
+<h1 id="finding-the-needle-getting-access-to-the-key-material">Finding the needle: getting access to the key material</h1>
+<p>Fortunately for us there's not that much code, so auditing every command is easy enough. All the commands actually do a good job at sanitizing things at first sight. Every time the application asks for a slot index, it is bounds-checked against the store size before getting used. It even throws an <em>out-of-range</em> exception if you are trying to access an out-of-bounds slot. Here is an example with the <em>divide</em> operation (<code>number_store</code> is the global state, <code>NumberOfNumbers</code> is a mask extracting the lower 5 bits of the <em>size</em> field to compute the current size of the store):</p>
+<div class="highlight"><pre><span></span><span class="k">const</span> <span class="kt">uint32_t</span> <span class="n">NumberOfNumbers</span> <span class="o">=</span> <span class="mh">0x1F</span><span class="p">;</span>
+<span class="k">case</span> <span class="nl">Divide</span><span class="p">:</span>
+   <span class="n">arg1_row</span> <span class="o">=</span> <span class="mi">0LL</span><span class="p">;</span>
+   <span class="n">arg2_row</span> <span class="o">=</span> <span class="mi">0LL</span><span class="p">;</span>
+   <span class="n">result_row</span> <span class="o">=</span> <span class="mi">0LL</span><span class="p">;</span>
+   <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Enter row of arg1, row of arg2 and row of result&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+   <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">arg1_row</span><span class="p">;</span>
+   <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">arg2_row</span><span class="p">;</span>
+   <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">result_row</span><span class="p">;</span>
+   <span class="n">store_size</span> <span class="o">=</span> <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="n">NumberOfNumbers</span><span class="p">;</span>
+   <span class="k">if</span><span class="p">(</span><span class="n">arg1_row</span> <span class="o">&gt;=</span> <span class="n">store_size</span> <span class="o">||</span> <span class="n">arg2_row</span> <span class="o">&gt;=</span> <span class="n">store_size</span> <span class="o">||</span> <span class="n">result_row</span> <span class="o">&gt;=</span> <span class="n">store_size</span><span class="p">)</span>
+     <span class="k">goto</span> <span class="n">OutOfRange</span><span class="p">;</span>
+</pre></div>
+
+
+<p>There's a catch though. If we look closer at every instance of code that interacts with the <code>size</code> field of the store there is something a bit weird going on.</p>
+<p><center><img alt="catchme.png" src="/images/bevx-challenge-on-the-operation-table/catchme.png"></center></p>
+<p>In the above screenshot you can see that the highlighted cross-reference looks a bit odd as it is actually changing the size by setting the bit number three (<code>0b1000</code>). If we pull the code for this function we can see the below:</p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="nl">PrivateKeyEncryption</span><span class="p">:</span>
+  <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">|=</span> <span class="mi">8u</span><span class="p">;</span>
+  <span class="n">msg_row</span> <span class="o">=</span> <span class="mi">0uLL</span><span class="p">;</span>
+  <span class="n">key_row</span> <span class="o">=</span> <span class="mi">0uLL</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Enter row of message, row of key&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">msg_row</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">key_row</span><span class="p">;</span>
+  <span class="n">store_size</span> <span class="o">=</span> <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="n">NumberOfNumbers</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">msg_row</span> <span class="o">&gt;=</span> <span class="n">store_size</span> <span class="o">||</span> <span class="n">key_row</span> <span class="o">&gt;=</span> <span class="n">store_size</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;=</span> <span class="mh">0xF7u</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Row number is out of range&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">;</span>
+</pre></div>
+
+
+<p>I completely overlooked this detail at first as this bit is properly cleared out on error (with the <code>0xF7</code> mask). This bit also sounded to be used as a switch to start or stop the encryption process. I could clearly see it used in the encryption loop like in the below:</p>
+<div class="highlight"><pre><span></span><span class="k">while</span><span class="p">(</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// do stuff</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Continue Encryption? (y/n)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">continue_enc</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;Y&#39;</span> <span class="o">||</span> <span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;y&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// do encryption..stuff</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;n&#39;</span> <span class="o">||</span> <span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;N&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;=</span> <span class="mh">0xF7u</span><span class="p">;</span>
+  <span class="p">}</span>
+</pre></div>
+
+
+<p>The thing is, as this bit overlaps with the 5th bit of the store size, setting it also means that we can now access slots from index 0 up to slot <code>0x10|8=0x18</code>. If the previous is a bit confusing, consider the following C structure:</p>
+<div class="highlight"><pre><span></span><span class="k">union</span> <span class="p">{</span>
+    <span class="k">struct</span> <span class="p">{</span>
+        <span class="kt">size_t</span> <span class="nl">x</span> <span class="p">:</span> <span class="mi">3</span><span class="p">;</span>
+        <span class="kt">size_t</span> <span class="nl">bit3</span> <span class="p">:</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">s1</span><span class="p">;</span>
+    <span class="kt">size_t</span> <span class="nl">store_size</span> <span class="p">:</span> <span class="mi">5</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">size</span> <span class="o">=</span> <span class="p">{};</span>
+</pre></div>
+
+
+<p>And as we said a bit earlier the key material is stored in the slot <code>number_of_rows + 2 = 0n18</code>.</p>
+<div class="highlight"><pre><span></span><span class="kr">__int64</span> <span class="nf">realmain</span><span class="p">(</span><span class="n">struct_buffer</span> <span class="o">*</span><span class="n">number_store</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">nrows</span> <span class="o">=</span> <span class="n">number_of_rows</span><span class="p">;</span>
+  <span class="n">pkey_length</span> <span class="o">=</span> <span class="n">private_key_length</span><span class="p">;</span>
+  <span class="n">pkey</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">numbers</span><span class="p">[</span><span class="n">number_of_rows</span> <span class="o">+</span> <span class="mi">2</span><span class="p">];</span>
+  <span class="n">is_pkey_empty</span> <span class="o">=</span> <span class="n">private_key_length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">pkey</span> <span class="o">=</span> <span class="n">pkey</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">is_pkey_empty</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">memmove</span><span class="p">(</span><span class="n">pkey</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">private_key</span><span class="p">,</span> <span class="n">pkey_length</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">pkey</span><span class="o">-&gt;</span><span class="n">bytes</span><span class="p">[</span><span class="n">pkey_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">|=</span> <span class="mi">1u</span><span class="p">;</span>
+  <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">=</span> <span class="n">nrows</span> <span class="o">&amp;</span> <span class="mh">0x1F</span> <span class="o">|</span> <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="mh">0xE0</span><span class="p">;</span>
+  <span class="c1">// ...</span>
+</pre></div>
+
+
+<p>Cool beans, I guess we now have a way to have the application interact with the slot containing the private key which sounds like... progress, right? </p>
+<h1 id="bending-the-needle-building-an-oracle">Bending the needle: building an oracle</h1>
+<p>Being able to access the key through the <em>private key encryption</em> feature is great, but it also doesn't give us much just yet. We need to understand a bit more what this feature is doing before coming up with a way to abuse it. After spending a bit of time reverse-engineering and debugging it, I've broken down its logic into the below steps:</p>
+<ol>
+<li>The user enters the slot of the message and the slot of the key (either or both of these slots can be the private key slot),</li>
+<li>The number stored into the key slot is copied into the global state; in a field I called <code>keycpy</code>,</li>
+<li>Another field in the global state is initialized to <code>1</code>; I called this one <code>magicnumber</code>,</li>
+<li>The actual encryption process consists of: multiplying the <code>magicnumer</code> by itself and multiplying it by the number in the slot of the message (that you previously entered) if the current byte of the key is a one. If the current key byte is a zero then nothing extra happens (see below),</li>
+<li>Once the encryption is done or stopped by the user, the resulting <code>magicnumber</code> is stored back inside the message slot (overwriting its previous content). </li>
+</ol>
+<p>The prettified code looks like this:</p>
+<div class="highlight"><pre><span></span><span class="k">while</span><span class="p">(</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// do stuff</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Continue Encryption? (y/n)&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cin</span> <span class="o">&gt;&gt;</span> <span class="n">continue_enc</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;Y&#39;</span> <span class="o">||</span> <span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;y&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">magicnumber</span> <span class="o">*=</span> <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">magicnumber</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">keycpy</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kt">uint64_t</span> <span class="n">msg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="n">read_number_from_store</span><span class="p">(</span><span class="o">&amp;</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">numbers</span><span class="p">[</span><span class="n">msg_slot</span> <span class="o">&amp;</span> <span class="mh">0x7F</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">msg</span><span class="p">);</span>
+      <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">magicnumber</span> <span class="o">*=</span> <span class="n">msg</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;n&#39;</span> <span class="o">||</span> <span class="n">continue_enc</span> <span class="o">==</span> <span class="sc">&#39;N&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;=</span> <span class="mh">0xF7u</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>As you might have figured, we have basically two avenues (technically three I guess.. but one is clearly useless :-D). Either we load the private key as the message, or we load it as the key parameter.</p>
+<p>If we do the former - based on the encryption logic - we end up with no real control over the way the <code>magicnumber</code> is going to be computed. Keep in mind the numbers in the store are all encrypted with the <code>encrypt</code> function and when the key is retrieved out of the store, it isn't decrypted (it is not a normal <em>get</em> operation) but just <code>memcpy</code>'d to the <code>keycpy</code> field like in the below:</p>
+<div class="highlight"><pre><span></span><span class="n">memmove</span><span class="p">(</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">keycpy</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">numbers</span><span class="p">[</span><span class="n">keyslot</span><span class="p">],</span> <span class="mi">32</span><span class="p">);</span>
+</pre></div>
+
+
+<p>So even if we can insert a known value in the store, we wouldn't really know what it would look like once encrypted.</p>
+<p>If we load the private key as the key though, we now have.. an oracle! As the user can stop the decryption process whenever wanted, the attack could work as follows (assuming you would like to leak one byte of the private key):</p>
+<ol>
+<li>Load the value <code>3</code> in the slot <code>0</code>,</li>
+<li>Use the <em>private key encryption</em> feature with key slot <code>18</code> (where the private key is written at) and message slot <code>0</code> (where we loaded the value <code>3</code>),</li>
+<li>Depending on the value of the current byte of the key the value of <code>magicnumber</code> could be either be <code>(1*1)*3=3</code> or <code>(1*1)=1</code>. If the user stops the encryption then this number is written into the store in the slot <code>0</code>,</li>
+<li>Get the value in slot <code>0</code>. If the value is <code>3</code> then the key byte was a <code>1</code>, else it was a <code>0</code>.</li>
+</ol>
+<p>Following this little recipe allows us to leak the bit <code>n</code>, which once done allows you to push the encryption one round further and leak bit <code>n + 1</code>.. and so on and so forth.</p>
+<p>This is great, but there are still two small details we need to iron out before carrying the attack properly.</p>
+<p>The code that runs before the actual encryption scans the <code>keycpy</code> and skips any leading zeros. This means that if the key were <code>0b00010101</code> for example, the actual encryption logic we described above would start after skipping the first three leading zeros. In order to know how many of those exists, we can just trigger the private key encryption feature and encrypt... until you cannot anymore (there are only 32 bytes per number so at most you get 32 rounds). You just have to count how many rounds you went through and the difference to 32 is the number of leading zeros.</p>
+<p>The second small detail is that we technically don't know in which slot the private key is stored in on the remote server (remember, the shared library isn't provided to us). Which means we need to find that out somehow. Here is what we know:</p>
+<ol>
+<li>the key is stored at <code>number_of_rows + 2</code>,</li>
+<li>the size of the store is initialized to <code>number_of_rows</code>.</li>
+</ol>
+<p>If we combine those two facts we can try to read every single slot from the first one until the latest one. First time, it stops with an 'out of range' exception you have your <code>number_of_rows</code> :-)</p>
+<p>Oh yeah by the way, remember this third stupid possibility I mentioned earlier? Using the private key as the slot of both the message and the key would basically end-up in.. overwriting the private key itself so not so useful.</p>
+<h1 id="leaking-it-like-its-hot">Leaking it like it's hot</h1>
+<p>Here is my ugly python implementation of the attack:</p>
+<div class="highlight"><pre><span></span><span class="c1"># Axel &#39;0vercl0k&#39; Souchet - 3-March-2018</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+
+<span class="n">host</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;192.168.1.41&#39;</span><span class="p">,</span> <span class="mi">31337</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="n">buff</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">buff</span> <span class="o">+=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">buff</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">buff</span>
+
+    <span class="k">return</span> <span class="bp">None</span>
+
+<span class="k">def</span> <span class="nf">addn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">r_n</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;8. Exit</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;0</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">r_n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">readn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">r_n</span><span class="p">):</span>
+    <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;8. Exit</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;1</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">r_n</span><span class="p">)</span>
+    <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;Result is &#39;</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">10</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">r_key</span> <span class="o">=</span> <span class="mi">18</span>
+    <span class="n">r_oracle</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># first step is to find out how many 0&#39;s the key starts with,</span>
+    <span class="c1"># to do so we ask for an encryption where the key is the pkey,</span>
+    <span class="c1"># and we encrypt until we cannot and we count the number of</span>
+    <span class="c1"># &#39;Continue Encryption?&#39;. 32 - this number should give us the</span>
+    <span class="c1"># number of 0s</span>
+    <span class="n">n_zeros</span> <span class="o">=</span> <span class="mi">32</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+    <span class="n">addn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">r_oracle</span><span class="p">,</span> <span class="mi">1337</span><span class="p">)</span>
+    <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;8. Exit</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;6</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">r_oracle</span><span class="p">,</span> <span class="n">r_key</span><span class="p">))</span>
+    <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;Continue Encryption? (y/n)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;y</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">n_zeros</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="s1">&#39;Continue Encryption? (y/n)&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">):</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">n_zeros</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s1">&#39;Found&#39;</span><span class="p">,</span> <span class="n">n_zeros</span><span class="p">,</span> <span class="s1">&#39;0s at the start of the key&#39;</span>
+
+    <span class="n">leaked_key</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">0</span> <span class="p">]</span> <span class="o">*</span> <span class="n">n_zeros</span>
+    <span class="n">v_oracle</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="c1"># now we can go ahead and leak the key bit by bit (each byte is a bit)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span> <span class="o">-</span> <span class="n">n_zeros</span><span class="p">):</span>
+        <span class="n">which_bit</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">leaked_key</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">bit_idx</span> <span class="o">=</span> <span class="n">which_bit</span> <span class="o">-</span> <span class="n">n_zeros</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">create_connection</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+        <span class="n">addn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">r_oracle</span><span class="p">,</span> <span class="n">v_oracle</span><span class="p">)</span>
+        <span class="c1"># private key encryption</span>
+        <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;8. Exit</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;6</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="si">%d</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">r_oracle</span><span class="p">,</span> <span class="n">r_key</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bit_idx</span><span class="p">):</span>
+            <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;Continue Encryption? (y/n)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;y</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">which_bit</span> <span class="o">&lt;</span> <span class="mi">32</span><span class="p">:</span>
+            <span class="n">recv_until</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s1">&#39;Continue Encryption? (y/n)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;n</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">magic_number</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">leaked_key</span><span class="p">[</span><span class="n">n_zeros</span> <span class="p">:]:</span>
+            <span class="n">magic_number</span> <span class="o">&amp;=</span> <span class="mh">0xffffffff</span>
+            <span class="n">magic_number</span> <span class="o">*=</span> <span class="n">magic_number</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">magic_number</span> <span class="o">*=</span> <span class="n">v_oracle</span>
+
+        <span class="n">magic_number</span> <span class="o">*=</span> <span class="n">magic_number</span>
+        <span class="n">magic_number</span> <span class="o">&amp;=</span> <span class="mh">0xffffffff</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">readn</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">r_oracle</span><span class="p">)</span>
+        <span class="n">bit</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">magic_number</span> <span class="o">==</span> <span class="n">n</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">leaked_key</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bit</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">print</span> <span class="s1">&#39;Leaked key: </span><span class="si">%08x</span><span class="se">\r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="n">leaked_key</span><span class="p">),</span>
+
+<span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+
+<p>Which should result in something like below:</p>
+<p><center><img alt="leakit.gif" src="/images/bevx-challenge-on-the-operation-table/leakit.gif"></center></p>
+<h1 id="conclusion">Conclusion</h1>
+<p>If you enjoyed this write-up you should also have a look at this post authored by the organizers (there's even source code!): <a href="https://blogs.securiteam.com/index.php/archives/3672">beVX Conference Challenge</a>. A funny twist for me was that the encryption and decryption routines called <em>sleep</em> to simulate a delay that could be timed over the network and used as a side-channel. As every time you have a non-zero byte in the key, the message slot has to get read out of the store which... calls into the <code>decrypt</code> function.</p>
+<p>I thought this was pretty fun - even if I were to have played the challenge in time I probably wouldn't have noticed the delay as I would have been working with my own dummy implementations of <code>encrypt</code> and <code>decrypt</code> :-)</p>
+<p>Totally unrelated but I also have migrated the blog to <a href="https://github.com/getpelican/pelican">pelican</a> as I am basically done using <a href="http://octopress.org/">octopress</a> and ruby. I think I did an OK job at making it look not too shitty but if you see something that looks ugly as hell feel free to ping me and I'll try my best to fix it up!</p>
+<p>Last but not least, special thanks to my mates <a href="https://twitter.com/mongobug">mongo</a> and <a href="https://twitter.com/yrp604">yrp604</a> for proofreading and edits :)</p>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>

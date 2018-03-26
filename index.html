@@ -97,6 +97,33 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">beVX challenge on the operation table</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-03-11T17:22:00-07:00">
+        <i class="icon-calendar"></i>Sun 11 March 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/bevx.html"><i class="icon-tag"></i>beVX</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original tweet</a> advertising it.</p>
+<p>With this challenge, you are tasked to reverse-engineer a binary providing some sort of encryption service, and there is supposedly a private key (aka the flag) to retrieve. A remote server with the challenge running is also available for you to carry out your attack. This looked pretty interesting as it was different than the usual keygen-me type of reverse-engineering challenge.</p>
+<p>Unfortunately, I didn't get a chance to play with this while the remote server was up (the organizers took it down once they received the solutions of the three winners). However, cool thing is that you can easily manufacture your own server to play at home.. which is what I ended up doing.</p>
+<p>As I thought the challenge was cute enough, and that I would also like to write on a more regular basis, so here is a small write-up describing how I abused the server to get the private key out. Hope you don't find it too boring :-).</p>
+
+                        <a class="btn primary xsmall" href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2017/12/01/debugger-data-model/">Debugger data model, Javascript & x64 exception handling</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
@@ -368,37 +395,6 @@ According to the description of the challenge Python is heavily involved, which 
 <p>I am assuming the reader is familiar with Linux kernel exploitation and knows some ARM assembly (seriously).</p>
 
                         <a class="btn primary xsmall" href="/blog/2014/04/30/corrupting-arm-evt/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">Deep dive into Python's VM: Story of LOAD_CONST bug</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2014-04-17T23:22:00-07:00">
-        <i class="icon-calendar"></i>Thu 17 April 2014
-</abbr>
-<span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
-
-
-<span class="label">Tags</span>
-	<a href="/tag/python.html"><i class="icon-tag"></i>python</a>
-	<a href="/tag/virtual-machine.html"><i class="icon-tag"></i>virtual machine</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>A year ago, I've written a Python script to leverage a bug in Python's virtual machine: the idea was to fully control the Python virtual processor and after that to instrument the VM to execute native codes. The <a href="https://github.com/0vercl0k/stuffz/blob/master/Python's%20internals/python27_abuse_vm_to_execute_x86_code.py">python27_abuse_vm_to_execute_x86_code.py</a> script wasn't really self-explanatory, so I believe only a few people actually took some time to understood what happened under the hood. The purpose of this post is to give you an explanation of the bug, how you can control the VM and how you can turn the bug into something that can be more useful. It's also a cool occasion to see how works the Python virtual machine from a low-level perspective: what we love so much right?</p>
-<p>But before going further, I just would like to clarify a couple of things:</p>
-<ul>
-<li>I haven't found this bug, this is quite old and <strong>known</strong> by the Python developers (trading safety for performance), so don't panic this is <strong>not</strong> a 0day or a new bug ; can be a cool CTF trick though</li>
-<li>Obviously, YES I know we can also "escape" the virtual machine with the <a href="http://docs.python.org/2/library/ctypes.html">ctypes</a> module ; but this is a feature not a bug. In addition, ctypes is always "removed"  from sandbox implementation in Python</li>
-</ul>
-<p>Also, keep in mind I will focus Python 2.7.5 x86 on Windows ; but obviously this is adaptable for other systems and architectures, so this is left as an exercise to the interested readers.
-All right, let's move on to the first part: this one will focus the essentials about the VM, and Python objects.</p>
-
-                        <a class="btn primary xsmall" href="/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">more ...</a>
                 </div>
         </div>
         <hr />
