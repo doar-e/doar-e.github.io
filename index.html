@@ -97,6 +97,33 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">Breaking ledgerctf's AES white-box challenge</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-05-17T11:52:00-07:00">
+        <i class="icon-calendar"></i>Thu 17 May 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/ledgerctf.html"><i class="icon-tag"></i>ledgerctf</a>
+	<a href="/tag/whitebox.html"><i class="icon-tag"></i>whitebox</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.</p>
+<p><a href="https://www.ledger.fr/">ledger</a> is a french security company funded in 2014 that is specialized in cryptography, cryptocurrencies and hardware. They recently put up online three different puzzles to celebrate the official launch of their <a href="https://www.ledger.fr/bounty-program/">bug bounty program</a>. The second challenge called <em>ctf2</em> is the one we will be discussing today. <em>ctf2</em> is an ELF64 binary that is available <a href="https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao">here</a> for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.</p>
+<p>Let's do it!</p>
+
+                        <a class="btn primary xsmall" href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">beVX challenge on the operation table</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
@@ -369,32 +396,6 @@ According to the description of the challenge Python is heavily involved, which 
 <p>Anyway, sit down, make yourself at home and let me pour you a cup of tea before we begin :-).</p>
 
                         <a class="btn primary xsmall" href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="/blog/2014/04/30/corrupting-arm-evt/">Corrupting the ARM Exception Vector Table</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2014-04-30T21:01:00-07:00">
-        <i class="icon-calendar"></i>Wed 30 April 2014
-</abbr>
-<span class="label">By</span>
-<a href="/author/amat-acez-cama.html"><i class="icon-user"></i>Amat "acez" Cama</a>
-<span class="label">Category</span>
-<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
-
-
-<span class="label">Tags</span>
-	<a href="/tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
-	<a href="/tag/kernel.html"><i class="icon-tag"></i>kernel</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>A few months ago, I was writing a Linux kernel exploitation challenge on ARM in an attempt to learn about kernel exploitation and I thought I'd explore things a little. I chose the ARM architecture mainly because I thought it would be fun to look at. This article is going to describe how the ARM Exception Vector Table (EVT) can aid in kernel exploitation in case an attacker has a write what-where primitive. It will be covering a local exploit scenario as well as a remote exploit scenario. Please note that corrupting the EVT has been mentioned in the paper "Vector Rewrite Attack"<a href="http://cansecwest.com/slides07/Vector-Rewrite-Attack.pdf">[1]</a>, which briefly talks about how it can be used in NULL pointer dereference vulnerabilities on an ARM RTOS.</p>
-<p>The article is broken down into two main sections. First a brief description of the ARM EVT and its implications from an exploitation point of view (please note that a number of things about the EVT will be omitted to keep this article relatively short). We will go over two examples showing how we can abuse the EVT.</p>
-<p>I am assuming the reader is familiar with Linux kernel exploitation and knows some ARM assembly (seriously).</p>
-
-                        <a class="btn primary xsmall" href="/blog/2014/04/30/corrupting-arm-evt/">more ...</a>
                 </div>
         </div>
         <hr />
