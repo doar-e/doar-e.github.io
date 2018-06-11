@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Breaking ledgerctf's ctf2 AES white-box challenge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="/theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="/theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="/feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Breaking ledgerctf's ctf2 AES white-box challenge">
+                                        Breaking ledgerctf's ctf2 AES white-box challenge
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-05-17T11:52:00-07:00">
+        <i class="icon-calendar"></i>Thu 17 May 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/ledgerctf.html"><i class="icon-tag"></i>ledgerctf</a>
+	<a href="/tag/whitebox.html"><i class="icon-tag"></i>whitebox</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.</p>
+<p><a href="https://www.ledger.fr/">ledger</a> is a french security company started in 2014 that is specialized in cryptography, cryptocurrencies and hardware. They recently put up online three different puzzles to celebrate the official launch of their <a href="https://www.ledger.fr/bounty-program/">bug bounty program</a>. The second challenge called 'ctf2' is the one we will be discussing today. <em>ctf2</em> is an ELF64 binary that is available <a href="https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao">here</a> for download; for you to follow at home :). The binary is about 11MB, written in C++ and even has symbols; great.</p>
+<p>Let's do it!</p>
+
+
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#the-big-picture">The big picture</a><ul>
+<li><a href="#recon">Recon</a></li>
+<li><a href="#diffusion">Diffusion</a></li>
+<li><a href="#confusion">Confusion</a></li>
+<li><a href="#generation">Generation</a></li>
+</ul>
+</li>
+<li><a href="#zooming-in">Zooming in</a><ul>
+<li><a href="#schedule">schedule</a><ul>
+<li><a href="#case-0-encoding">case 0: encoding</a></li>
+<li><a href="#case-1-5-9-13-17-21-25-29-33-37-subbytes">case 1, 5, 9, 13, 17, 21, 25, 29, 33, 37: SubBytes</a></li>
+<li><a href="#case-2-6-10-14-18-22-26-30-34-38-shiftrows">case 2, 6, 10, 14, 18, 22, 26, 30, 34, 38: ShiftRows</a></li>
+<li><a href="#case-3-7-11-15-19-23-27-31-35-mixcolumns">case 3, 7, 11, 15, 19, 23, 27, 31, 35: MixColumns</a></li>
+<li><a href="#case-4-8-12-16-20-24-28-32-36-addroundkey">case 4, 8, 12, 16, 20, 24, 28, 32, 36: AddRoundKey</a></li>
+<li><a href="#case-39-decoding">case 39: decoding</a></li>
+</ul>
+</li>
+<li><a href="#unround">unround</a></li>
+<li><a href="#how-do-i-win-now">How do I win now?</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<h1 id="the-big-picture">The big picture</h1>
+<h2 id="recon">Recon</h2>
+<p>The very first thing I'm sure you've seen is how much data is in the binary as seen in the below picture. It means that either the binary is packed and IDA is struggling to recognize pieces of the binary as code, or it is actually real data.</p>
+<p><center><img alt="ida.png" src="/images/breaking_ledgerctfs_ctf2_aes_whitebox_challenge/ida.png"></center></p>
+<p>As we also already know that the binary hasn't been stripped, the first hypothesis is most likely wrong. By skimming through the code in the disassembler, nothing really stands out; everything looks healthy. Can't see any obvious obfuscation or anti-Xs. Pretty sure we are looking at a pure reverse-engineering challenge at this point, smooth sailing!</p>
+<h2 id="diffusion">Diffusion</h2>
+<p>The binary expects a serial as input which is a string composed of 32 hex characters, like this one: <code>00112233445566778899AABBCCDDEEFF</code>. Then, there is a 16 rounds loop that walks character by character the serial and builds 15 blobs of 16 bytes long each; I call them <code>i0</code>, <code>i1</code>, .., <code>i14</code> (as it's very self explanatory). Each round of this loop initializes one byte of every <code>i</code>'s (hence the 16 rounds). The current input serial byte is sent into a <em>rolling</em> substitution box (that I called <code>sbx</code>; note that it is 11534336 bytes long D:). This basically diffuses the input serial in those blobs. If the explanation above wasn't clear enough or something; here is what it looks like in prettyfied C code:</p>
+<div class="highlight"><pre><span></span><span class="k">while</span><span class="p">(</span><span class="n">Idx</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">sbx</span><span class="o">++</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">CurrentByteString</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Serial</span><span class="p">[</span><span class="n">Idx</span><span class="p">],</span>
+    <span class="n">Serial</span><span class="p">[</span><span class="n">Idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="mi">0</span>
+  <span class="p">};</span>
+  <span class="n">Idx</span> <span class="o">+=</span> <span class="mi">2LL</span><span class="p">;</span>
+  <span class="kt">uint8_t</span> <span class="n">CurrentByte</span> <span class="o">=</span> <span class="n">strtol</span><span class="p">(</span><span class="n">CurrentByteString</span><span class="p">,</span> <span class="mi">0LL</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+  <span class="n">i0</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i1</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">15</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i2</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">31</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i3</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">47</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i4</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">63</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i5</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">79</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i6</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">95</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i7</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">111</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i8</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">127</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i9</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">143</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i10</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">159</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i11</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">175</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i12</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">191</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i13</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">207</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+  <span class="n">i14</span><span class="p">[</span><span class="n">sbx</span><span class="p">[</span><span class="mi">223</span><span class="p">]]</span> <span class="o">=</span> <span class="n">CurrentByte</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h2 id="confusion">Confusion</h2>
+<p>After the above, there is now a bunch of stuff happening that don't necessarily make a whole lot of sense at the time of reverse-engineering. As far as I am concerned though, it also doesn't sound too concerning either as I can't see a clear relationship yet with the input serial bytes or the <code>i</code>s. As those two are the only user-input derived data, those are the only ones I care about for now.</p>
+<p>What I learned from this part though is that there are new players in town. Basically, three blobs of 16 bytes, respectively called <code>mask</code>, <code>mask3</code> and <code>shiftedmask</code>, get initialized with values derived from <code>rand()</code>. At first, it sure is a bit confusing to see pseudo-randomized values getting involved but we can assume those operations will get canceled out by some others. It wouldn't make sense to have some crypto looking algorithm producing non deterministic results. The PRNG is seeded with <code>time(NULL)</code>.</p>
+<div class="highlight"><pre><span></span><span class="k">do</span>
+<span class="p">{</span>
+  <span class="n">v16</span> <span class="o">=</span> <span class="n">v15</span> <span class="o">+</span> <span class="mi">4</span><span class="p">;</span>
+  <span class="k">do</span>
+  <span class="p">{</span>
+    <span class="n">rd</span> <span class="o">=</span> <span class="n">rand</span><span class="p">();</span>
+    <span class="n">v18</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)(((</span><span class="kt">unsigned</span> <span class="kr">__int64</span><span class="p">)</span><span class="n">rd</span> <span class="o">&gt;&gt;</span> <span class="mi">56</span><span class="p">)</span> <span class="o">+</span> <span class="n">rd</span><span class="p">)</span> <span class="o">-</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)(</span><span class="n">rd</span> <span class="o">&gt;&gt;</span> <span class="mi">31</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span><span class="p">);</span>
+    <span class="n">mask</span><span class="p">[</span><span class="n">v15</span><span class="p">]</span> <span class="o">=</span> <span class="n">v18</span><span class="p">;</span>
+    <span class="n">mask3</span><span class="p">[</span><span class="n">v15</span><span class="p">]</span> <span class="o">=</span> <span class="n">v18</span><span class="p">;</span>
+    <span class="n">shiftedmask</span><span class="p">[</span><span class="n">v15</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">v18</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">while</span> <span class="p">(</span> <span class="n">v15</span> <span class="o">!=</span> <span class="n">v16</span> <span class="p">);</span>
+<span class="p">}</span>
+<span class="k">while</span> <span class="p">(</span> <span class="n">v15</span> <span class="o">!=</span> <span class="mi">16</span> <span class="p">);</span>
+</pre></div>
+
+
+<p>After this, there are a bunch of other operations that we don't care about. Really, you can see those as black boxes that generate deterministic outputs. It means we will be able to conveniently dump the generated values whenever needed. For what it's worth, it basically mixes a bunch of values inside <code>mask3</code>.</p>
+<div class="highlight"><pre><span></span><span class="n">shiftrows</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="p">(</span><span class="o">*</span><span class="p">)[</span><span class="mi">4</span><span class="p">])</span><span class="n">shiftedmask</span><span class="p">);</span>
+<span class="n">shiftrows</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="p">(</span><span class="o">*</span><span class="p">)[</span><span class="mi">4</span><span class="p">])</span><span class="n">mask3</span><span class="p">);</span>
+<span class="n">v19</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03774</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">^</span> <span class="n">byte_D03778</span> <span class="o">^</span> <span class="n">byte_D0377C</span><span class="p">;</span>
+<span class="n">v20</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377C</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03778</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D03774</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+<span class="n">v21</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377C</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D03778</span> <span class="o">^</span> <span class="n">byte_D03774</span><span class="p">;</span>
+<span class="n">byte_D03774</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03778</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03774</span><span class="p">]</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D0377C</span><span class="p">;</span>
+<span class="n">mask3</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v19</span><span class="p">;</span>
+<span class="n">byte_D03778</span> <span class="o">=</span> <span class="n">v20</span><span class="p">;</span>
+<span class="n">byte_D0377C</span> <span class="o">=</span> <span class="n">v21</span><span class="p">;</span>
+<span class="n">v22</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377D</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03779</span><span class="p">]</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D03775</span><span class="p">;</span>
+<span class="n">v23</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03775</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">^</span> <span class="n">byte_D03779</span> <span class="o">^</span> <span class="n">byte_D0377D</span><span class="p">;</span>
+<span class="n">v24</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377D</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D03779</span> <span class="o">^</span> <span class="n">byte_D03775</span><span class="p">;</span>
+<span class="n">byte_D03775</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03779</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03775</span><span class="p">]</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D0377D</span><span class="p">;</span>
+<span class="n">mask3</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">v23</span><span class="p">;</span>
+<span class="n">byte_D03779</span> <span class="o">=</span> <span class="n">v22</span><span class="p">;</span>
+<span class="n">byte_D0377D</span> <span class="o">=</span> <span class="n">v24</span><span class="p">;</span>
+<span class="n">v25</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377E</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377A</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D03776</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+<span class="n">v26</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377E</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D0377A</span> <span class="o">^</span> <span class="n">byte_D03776</span><span class="p">;</span>
+<span class="n">v27</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03776</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">^</span> <span class="n">byte_D0377E</span> <span class="o">^</span> <span class="n">byte_D0377A</span><span class="p">;</span>
+<span class="n">byte_D03776</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377A</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03776</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D0377E</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+<span class="n">byte_D0377A</span> <span class="o">=</span> <span class="n">v25</span><span class="p">;</span>
+<span class="n">byte_D0377E</span> <span class="o">=</span> <span class="n">v26</span><span class="p">;</span>
+<span class="n">mask3</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">v27</span><span class="p">;</span>
+<span class="n">v28</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03777</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="o">^</span> <span class="n">byte_D0377F</span> <span class="o">^</span> <span class="n">byte_D0377B</span><span class="p">;</span>
+<span class="n">v29</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377F</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377B</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D03777</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+<span class="n">v30</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">mask3</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377F</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D0377B</span> <span class="o">^</span> <span class="n">byte_D03777</span><span class="p">;</span>
+<span class="n">byte_D03777</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D0377B</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)</span><span class="n">byte_D03777</span><span class="p">]</span> <span class="o">^</span> <span class="n">byte_D0377F</span> <span class="o">^</span> <span class="n">mask3</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+<span class="n">mask3</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">v28</span><span class="p">;</span>
+<span class="n">byte_D0377B</span> <span class="o">=</span> <span class="n">v29</span><span class="p">;</span>
+<span class="n">byte_D0377F</span> <span class="o">=</span> <span class="n">v30</span><span class="p">;</span>
+<span class="o">*</span><span class="p">(</span><span class="kr">__m128i</span> <span class="o">*</span><span class="p">)</span><span class="n">mask3</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">((</span><span class="k">const</span> <span class="kr">__m128i</span> <span class="o">*</span><span class="p">)</span><span class="n">mask</span><span class="p">),</span> <span class="o">*</span><span class="p">(</span><span class="kr">__m128i</span> <span class="o">*</span><span class="p">)</span><span class="n">mask3</span><span class="p">);</span>
+</pre></div>
+
+
+<p><code>mul3</code> and <code>mul2</code> are basically arrays that have been constructed like the following: <code>mul2[idx] = idx * 2</code> and <code>mul3[idx] = idx * 3</code>.</p>
+<div class="highlight"><pre><span></span><span class="k">const</span> <span class="kt">uint8_t</span> <span class="n">mul2</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="p">{</span>
+    <span class="mh">0x00</span><span class="p">,</span> <span class="mh">0x02</span><span class="p">,</span> <span class="mh">0x04</span><span class="p">,</span> <span class="mh">0x06</span><span class="p">,</span> <span class="mh">0x08</span><span class="p">,</span> <span class="mh">0x0a</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span> <span class="mh">0x0e</span><span class="p">,</span>
+    <span class="mh">0x10</span><span class="p">,</span> <span class="mh">0x12</span><span class="p">,</span> <span class="mh">0x14</span><span class="p">,</span> <span class="mh">0x16</span><span class="p">,</span> <span class="mh">0x18</span><span class="p">,</span> <span class="mh">0x1a</span><span class="p">,</span> <span class="mh">0x1c</span><span class="p">,</span> <span class="mh">0x1e</span><span class="p">,</span>
+    <span class="mh">0x20</span><span class="p">,</span> <span class="mh">0x22</span><span class="p">,</span> <span class="mh">0x24</span><span class="p">,</span> <span class="mh">0x26</span><span class="p">,</span> <span class="mh">0x28</span><span class="p">,</span> <span class="mh">0x2a</span><span class="p">,</span> <span class="mh">0x2c</span><span class="p">,</span> <span class="mh">0x2e</span><span class="p">,</span>
+    <span class="mh">0x30</span><span class="p">,</span> <span class="mh">0x32</span><span class="p">,</span> <span class="mh">0x34</span><span class="p">,</span> <span class="mh">0x36</span><span class="p">,</span> <span class="mh">0x38</span><span class="p">,</span> <span class="mh">0x3a</span><span class="p">,</span> <span class="mh">0x3c</span><span class="p">,</span> <span class="mh">0x3e</span><span class="p">,</span>
+    <span class="mh">0x40</span><span class="p">,</span> <span class="mh">0x42</span><span class="p">,</span> <span class="mh">0x44</span><span class="p">,</span> <span class="mh">0x46</span><span class="p">,</span> <span class="mh">0x48</span><span class="p">,</span> <span class="mh">0x4a</span><span class="p">,</span> <span class="mh">0x4c</span><span class="p">,</span> <span class="mh">0x4e</span><span class="p">,</span>
+    <span class="mh">0x50</span><span class="p">,</span> <span class="mh">0x52</span><span class="p">,</span> <span class="mh">0x54</span><span class="p">,</span> <span class="mh">0x56</span><span class="p">,</span> <span class="mh">0x58</span><span class="p">,</span> <span class="mh">0x5a</span><span class="p">,</span> <span class="mh">0x5c</span><span class="p">,</span> <span class="mh">0x5e</span><span class="p">,</span>
+    <span class="mh">0x60</span><span class="p">,</span> <span class="mh">0x62</span><span class="p">,</span> <span class="mh">0x64</span><span class="p">,</span> <span class="mh">0x66</span><span class="p">,</span> <span class="mh">0x68</span><span class="p">,</span> <span class="mh">0x6a</span><span class="p">,</span> <span class="mh">0x6c</span><span class="p">,</span> <span class="mh">0x6e</span><span class="p">,</span>
+    <span class="mh">0x70</span><span class="p">,</span> <span class="mh">0x72</span><span class="p">,</span> <span class="mh">0x74</span><span class="p">,</span> <span class="mh">0x76</span><span class="p">,</span> <span class="mh">0x78</span><span class="p">,</span> <span class="mh">0x7a</span><span class="p">,</span> <span class="mh">0x7c</span><span class="p">,</span> <span class="mh">0x7e</span><span class="p">,</span>
+    <span class="mh">0x80</span><span class="p">,</span> <span class="mh">0x82</span><span class="p">,</span> <span class="mh">0x84</span><span class="p">,</span> <span class="mh">0x86</span><span class="p">,</span> <span class="mh">0x88</span><span class="p">,</span> <span class="mh">0x8a</span><span class="p">,</span> <span class="mh">0x8c</span><span class="p">,</span> <span class="mh">0x8e</span><span class="p">,</span>
+    <span class="mh">0x90</span><span class="p">,</span> <span class="mh">0x92</span><span class="p">,</span> <span class="mh">0x94</span><span class="p">,</span> <span class="mh">0x96</span><span class="p">,</span> <span class="mh">0x98</span><span class="p">,</span> <span class="mh">0x9a</span><span class="p">,</span> <span class="mh">0x9c</span><span class="p">,</span> <span class="mh">0x9e</span><span class="p">,</span>
+    <span class="mh">0xa0</span><span class="p">,</span> <span class="mh">0xa2</span><span class="p">,</span> <span class="mh">0xa4</span><span class="p">,</span> <span class="mh">0xa6</span><span class="p">,</span> <span class="mh">0xa8</span><span class="p">,</span> <span class="mh">0xaa</span><span class="p">,</span> <span class="mh">0xac</span><span class="p">,</span> <span class="mh">0xae</span><span class="p">,</span>
+    <span class="mh">0xb0</span><span class="p">,</span> <span class="mh">0xb2</span><span class="p">,</span> <span class="mh">0xb4</span><span class="p">,</span> <span class="mh">0xb6</span><span class="p">,</span> <span class="mh">0xb8</span><span class="p">,</span> <span class="mh">0xba</span><span class="p">,</span> <span class="mh">0xbc</span><span class="p">,</span> <span class="mh">0xbe</span><span class="p">,</span>
+    <span class="mh">0xc0</span><span class="p">,</span> <span class="mh">0xc2</span><span class="p">,</span> <span class="mh">0xc4</span><span class="p">,</span> <span class="mh">0xc6</span><span class="p">,</span> <span class="mh">0xc8</span><span class="p">,</span> <span class="mh">0xca</span><span class="p">,</span> <span class="mh">0xcc</span><span class="p">,</span> <span class="mh">0xce</span><span class="p">,</span>
+    <span class="mh">0xd0</span><span class="p">,</span> <span class="mh">0xd2</span><span class="p">,</span> <span class="mh">0xd4</span><span class="p">,</span> <span class="mh">0xd6</span><span class="p">,</span> <span class="mh">0xd8</span><span class="p">,</span> <span class="mh">0xda</span><span class="p">,</span> <span class="mh">0xdc</span><span class="p">,</span> <span class="mh">0xde</span><span class="p">,</span>
+    <span class="mh">0xe0</span><span class="p">,</span> <span class="mh">0xe2</span><span class="p">,</span> <span class="mh">0xe4</span><span class="p">,</span> <span class="mh">0xe6</span><span class="p">,</span> <span class="mh">0xe8</span><span class="p">,</span> <span class="mh">0xea</span><span class="p">,</span> <span class="mh">0xec</span><span class="p">,</span> <span class="mh">0xee</span><span class="p">,</span>
+    <span class="mh">0xf0</span><span class="p">,</span> <span class="mh">0xf2</span><span class="p">,</span> <span class="mh">0xf4</span><span class="p">,</span> <span class="mh">0xf6</span><span class="p">,</span> <span class="mh">0xf8</span><span class="p">,</span> <span class="mh">0xfa</span><span class="p">,</span> <span class="mh">0xfc</span><span class="p">,</span> <span class="mh">0xfe</span><span class="p">,</span>
+    <span class="mh">0x1b</span><span class="p">,</span> <span class="mh">0x19</span><span class="p">,</span> <span class="mh">0x1f</span><span class="p">,</span> <span class="mh">0x1d</span><span class="p">,</span> <span class="mh">0x13</span><span class="p">,</span> <span class="mh">0x11</span><span class="p">,</span> <span class="mh">0x17</span><span class="p">,</span> <span class="mh">0x15</span><span class="p">,</span>
+    <span class="mh">0x0b</span><span class="p">,</span> <span class="mh">0x09</span><span class="p">,</span> <span class="mh">0x0f</span><span class="p">,</span> <span class="mh">0x0d</span><span class="p">,</span> <span class="mh">0x03</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span> <span class="mh">0x07</span><span class="p">,</span> <span class="mh">0x05</span><span class="p">,</span>
+    <span class="mh">0x3b</span><span class="p">,</span> <span class="mh">0x39</span><span class="p">,</span> <span class="mh">0x3f</span><span class="p">,</span> <span class="mh">0x3d</span><span class="p">,</span> <span class="mh">0x33</span><span class="p">,</span> <span class="mh">0x31</span><span class="p">,</span> <span class="mh">0x37</span><span class="p">,</span> <span class="mh">0x35</span><span class="p">,</span>
+    <span class="mh">0x2b</span><span class="p">,</span> <span class="mh">0x29</span><span class="p">,</span> <span class="mh">0x2f</span><span class="p">,</span> <span class="mh">0x2d</span><span class="p">,</span> <span class="mh">0x23</span><span class="p">,</span> <span class="mh">0x21</span><span class="p">,</span> <span class="mh">0x27</span><span class="p">,</span> <span class="mh">0x25</span><span class="p">,</span>
+    <span class="mh">0x5b</span><span class="p">,</span> <span class="mh">0x59</span><span class="p">,</span> <span class="mh">0x5f</span><span class="p">,</span> <span class="mh">0x5d</span><span class="p">,</span> <span class="mh">0x53</span><span class="p">,</span> <span class="mh">0x51</span><span class="p">,</span> <span class="mh">0x57</span><span class="p">,</span> <span class="mh">0x55</span><span class="p">,</span>
+    <span class="mh">0x4b</span><span class="p">,</span> <span class="mh">0x49</span><span class="p">,</span> <span class="mh">0x4f</span><span class="p">,</span> <span class="mh">0x4d</span><span class="p">,</span> <span class="mh">0x43</span><span class="p">,</span> <span class="mh">0x41</span><span class="p">,</span> <span class="mh">0x47</span><span class="p">,</span> <span class="mh">0x45</span><span class="p">,</span>
+    <span class="mh">0x7b</span><span class="p">,</span> <span class="mh">0x79</span><span class="p">,</span> <span class="mh">0x7f</span><span class="p">,</span> <span class="mh">0x7d</span><span class="p">,</span> <span class="mh">0x73</span><span class="p">,</span> <span class="mh">0x71</span><span class="p">,</span> <span class="mh">0x77</span><span class="p">,</span> <span class="mh">0x75</span><span class="p">,</span>
+    <span class="mh">0x6b</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x6f</span><span class="p">,</span> <span class="mh">0x6d</span><span class="p">,</span> <span class="mh">0x63</span><span class="p">,</span> <span class="mh">0x61</span><span class="p">,</span> <span class="mh">0x67</span><span class="p">,</span> <span class="mh">0x65</span><span class="p">,</span>
+    <span class="mh">0x9b</span><span class="p">,</span> <span class="mh">0x99</span><span class="p">,</span> <span class="mh">0x9f</span><span class="p">,</span> <span class="mh">0x9d</span><span class="p">,</span> <span class="mh">0x93</span><span class="p">,</span> <span class="mh">0x91</span><span class="p">,</span> <span class="mh">0x97</span><span class="p">,</span> <span class="mh">0x95</span><span class="p">,</span>
+    <span class="mh">0x8b</span><span class="p">,</span> <span class="mh">0x89</span><span class="p">,</span> <span class="mh">0x8f</span><span class="p">,</span> <span class="mh">0x8d</span><span class="p">,</span> <span class="mh">0x83</span><span class="p">,</span> <span class="mh">0x81</span><span class="p">,</span> <span class="mh">0x87</span><span class="p">,</span> <span class="mh">0x85</span><span class="p">,</span>
+    <span class="mh">0xbb</span><span class="p">,</span> <span class="mh">0xb9</span><span class="p">,</span> <span class="mh">0xbf</span><span class="p">,</span> <span class="mh">0xbd</span><span class="p">,</span> <span class="mh">0xb3</span><span class="p">,</span> <span class="mh">0xb1</span><span class="p">,</span> <span class="mh">0xb7</span><span class="p">,</span> <span class="mh">0xb5</span><span class="p">,</span>
+    <span class="mh">0xab</span><span class="p">,</span> <span class="mh">0xa9</span><span class="p">,</span> <span class="mh">0xaf</span><span class="p">,</span> <span class="mh">0xad</span><span class="p">,</span> <span class="mh">0xa3</span><span class="p">,</span> <span class="mh">0xa1</span><span class="p">,</span> <span class="mh">0xa7</span><span class="p">,</span> <span class="mh">0xa5</span><span class="p">,</span>
+    <span class="mh">0xdb</span><span class="p">,</span> <span class="mh">0xd9</span><span class="p">,</span> <span class="mh">0xdf</span><span class="p">,</span> <span class="mh">0xdd</span><span class="p">,</span> <span class="mh">0xd3</span><span class="p">,</span> <span class="mh">0xd1</span><span class="p">,</span> <span class="mh">0xd7</span><span class="p">,</span> <span class="mh">0xd5</span><span class="p">,</span>
+    <span class="mh">0xcb</span><span class="p">,</span> <span class="mh">0xc9</span><span class="p">,</span> <span class="mh">0xcf</span><span class="p">,</span> <span class="mh">0xcd</span><span class="p">,</span> <span class="mh">0xc3</span><span class="p">,</span> <span class="mh">0xc1</span><span class="p">,</span> <span class="mh">0xc7</span><span class="p">,</span> <span class="mh">0xc5</span><span class="p">,</span>
+    <span class="mh">0xfb</span><span class="p">,</span> <span class="mh">0xf9</span><span class="p">,</span> <span class="mh">0xff</span><span class="p">,</span> <span class="mh">0xfd</span><span class="p">,</span> <span class="mh">0xf3</span><span class="p">,</span> <span class="mh">0xf1</span><span class="p">,</span> <span class="mh">0xf7</span><span class="p">,</span> <span class="mh">0xf5</span><span class="p">,</span>
+    <span class="mh">0xeb</span><span class="p">,</span> <span class="mh">0xe9</span><span class="p">,</span> <span class="mh">0xef</span><span class="p">,</span> <span class="mh">0xed</span><span class="p">,</span> <span class="mh">0xe3</span><span class="p">,</span> <span class="mh">0xe1</span><span class="p">,</span> <span class="mh">0xe7</span><span class="p">,</span> <span class="mh">0xe5</span><span class="p">,</span>
+<span class="p">};</span>
+</pre></div>
+
+
+<p>One thing of interest - maybe - is that there is a small anti-debug in there. The file is opened and read using one of <code>std::vector</code>'s constructor that takes an <code>std::ifstreambuf_iterator</code> as input. Some sort of sum of control is generated and will be used later in the <code>schedule</code> routine. What this means is that if you were about to patch the binary, the algorithm would end up generating <em>wrong</em> values. Again, this is barely an inconvenience as we can just dump it out and carry on with our lives.</p>
+<div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">basic_ifstream</span><span class="o">&lt;</span><span class="kt">char</span><span class="p">,</span><span class="n">std</span><span class="o">::</span><span class="n">char_traits</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;&gt;::</span><span class="n">basic_ifstream</span><span class="p">(</span><span class="o">&amp;</span><span class="n">v63</span><span class="p">,</span> <span class="o">*</span><span class="n">v3</span><span class="p">,</span> <span class="mi">4LL</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="p">,</span><span class="n">std</span><span class="o">::</span><span class="n">allocator</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">&gt;&gt;::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">istreambuf_iterator</span><span class="o">&lt;</span><span class="kt">char</span><span class="p">,</span><span class="n">std</span><span class="o">::</span><span class="n">char_traits</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">v46</span><span class="p">,</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">_QWORD</span> <span class="o">**</span><span class="p">)((</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">v64</span> <span class="o">+</span> <span class="o">*</span><span class="p">(</span><span class="n">_QWORD</span> <span class="o">*</span><span class="p">)(</span><span class="n">v63</span> <span class="o">-</span> <span class="mi">24</span><span class="p">)),</span>
+  <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+  <span class="mi">0LL</span><span class="p">,</span>
+  <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">v31</span> <span class="o">=</span> <span class="n">v46</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="kt">signed</span> <span class="kt">int</span><span class="p">)</span><span class="n">v47</span> <span class="o">-</span> <span class="p">(</span><span class="kt">signed</span> <span class="kt">int</span><span class="p">)</span><span class="n">v46</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">v32</span> <span class="o">=</span> <span class="mi">0LL</span><span class="p">;</span>
+  <span class="n">v33</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)(</span><span class="n">v47</span> <span class="o">-</span> <span class="p">(</span><span class="n">_DWORD</span><span class="p">)</span><span class="n">v46</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1LL</span><span class="p">;</span>
+  <span class="k">do</span>
+  <span class="p">{</span>
+    <span class="n">v34</span> <span class="o">=</span> <span class="n">v32</span> <span class="o">&amp;</span> <span class="mh">0xF</span><span class="p">;</span>
+    <span class="n">v35</span> <span class="o">=</span> <span class="n">v31</span><span class="p">[</span><span class="n">v32</span><span class="o">++</span><span class="p">]</span> <span class="o">^</span> <span class="o">*</span><span class="p">((</span><span class="n">_BYTE</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">crc</span> <span class="o">+</span> <span class="n">v34</span><span class="p">);</span>
+    <span class="o">*</span><span class="p">((</span><span class="n">_BYTE</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">crc</span> <span class="o">+</span> <span class="n">v34</span><span class="p">)</span> <span class="o">=</span> <span class="n">v35</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">while</span> <span class="p">(</span> <span class="n">v32</span> <span class="o">!=</span> <span class="n">v33</span> <span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h2 id="generation">Generation</h2>
+<p>At this point, the 15 <code>i</code>'s from above are used to initialize what I called <code>s0</code>, <code>s1</code>, ..., <code>s14</code>. Again, it is 15 blobs of 16 bytes each. They are then passed to the <code>schedule</code> function that will do a lot of arithmetic operations on this array of <code>s</code>'s. Again, no need to understand <code>schedule</code> just yet; as far as we are concerned it is a black box that takes <code>s</code>'s in input and gives us back different <code>s</code>'s in output, period.</p>
+<p>Each of those 16 bytes (xmmwords) (<code>s0</code>, ..., <code>s14</code>) are XOR'ed together, and if the resulting <em>xmmword</em> obeys a bunch of constraints then you get the good boy message.</p>
+<p>The constraints look like this:</p>
+<div class="highlight"><pre><span></span><span class="n">h1</span> <span class="o">=</span> <span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kr">__int64</span><span class="p">)</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">);</span>
+<span class="n">h2</span> <span class="o">=</span> <span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kr">__int64</span><span class="p">)</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span> <span class="n">BYTE6</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span> <span class="o">==</span> <span class="sc">&#39;i&#39;</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE5</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span> <span class="o">==</span> <span class="sc">&#39;7&#39;</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE4</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span> <span class="o">==</span> <span class="sc">&#39;\x13&#39;</span>
+  <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span> <span class="o">==</span> <span class="mi">66</span>
+  <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">==</span> <span class="mi">105</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE1</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">55</span>
+  <span class="o">&amp;&amp;</span> <span class="n">mxor</span><span class="p">.</span><span class="n">m128i_i8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">19</span>
+  <span class="o">&amp;&amp;</span> <span class="n">HIBYTE</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">66</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE6</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">105</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE5</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">55</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE4</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">19</span>
+  <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span> <span class="o">==</span> <span class="mi">66</span>
+  <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span><span class="p">)((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">|</span> <span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">mxor</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">))</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">==</span> <span class="mi">105</span>
+  <span class="o">&amp;&amp;</span> <span class="n">BYTE1</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">55</span>
+  <span class="o">&amp;&amp;</span> <span class="n">mxor</span><span class="p">.</span><span class="n">m128i_i8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">19</span>
+  <span class="o">&amp;&amp;</span> <span class="n">h2</span> <span class="o">&gt;&gt;</span> <span class="mi">56</span> <span class="o">==</span> <span class="mi">66</span> <span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">puts</span><span class="p">(</span><span class="s">&quot;**** Login Successful ****&quot;</span><span class="p">);</span>
+  <span class="n">v42</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">else</span>
+<span class="p">{</span>
+  <span class="n">puts</span><span class="p">(</span><span class="s">&quot;**** Login Failed ****&quot;</span><span class="p">);</span>
+  <span class="n">v42</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>This garbage simply translates to <code>win = (mxor == 0x42424242696969693737373713131313ULL) ? true : false</code> :).</p>
+<h1 id="zooming-in">Zooming in</h1>
+<p>It is now a good time to zoom in and get our hands dirty a little. We sort of know what we need to achieve, but we need to know how to get there now. We know we have some dumping to do: <code>mask</code>, <code>mask3</code>, <code>shiftedmask</code>, <code>crc</code>, <code>sbx</code>, <code>mul2</code> and <code>mul3</code>. Easy. Mechanical. The most important part though is to understand a bit more <code>schedule</code>. You can consider it as the heart of the challenge.</p>
+<h2 id="schedule">schedule</h2>
+<p>At first sight, the function doesn't look too bad which is always nice. The first part of the function is randomly selecting one of the <code>s</code>'s variable.</p>
+<div class="highlight"><pre><span></span><span class="k">for</span><span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="n">rand</span><span class="p">()</span> <span class="o">%</span> <span class="mi">15</span><span class="p">;</span> <span class="n">scheduling</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">40</span><span class="p">;</span> <span class="n">i</span> <span class="o">=</span> <span class="n">rand</span><span class="p">()</span> <span class="o">%</span> <span class="mi">15</span><span class="p">);</span>
+<span class="n">nround</span> <span class="o">=</span> <span class="n">scheduling</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</pre></div>
+
+
+<p>The switch case that follows applies one type of transformation (arithmetic ones) on the chosen <code>s</code> variable. In order to track the number of <em>rounds</em> already applied to each <code>s</code>'s variables, an array called <code>scheduling</code> is used. The algorithm stops when 40 rounds has been applied to every <code>s</code>'s. It's also worth to point out that there's a small anti-debugging here; a timer is started at the beginning (<code>t1</code>) of the round and stopped at the end (<code>t2</code>). If any abnormal delay between <code>t1</code> and <code>t2</code> is discovered the later computations will produce <em>wrong</em> results.</p>
+<p>We can observe 6 different type of operations in the switch case. Some of them look very easily invertible and some others would need some more work. But at this point, it reminds me a lot of this AES whitebox I analyzed back in <a href="https://github.com/0vercl0k/articles/blob/master/AES%20Whitebox%20Unboxing%20No%20Such%20Problem.pdf">2013</a>. This one doesn't have any obfuscation which makes it much easier to deal with. What I did was pretty simple: divide and conquer. I broke down each round in four pieces. Each of those <em>quarter</em> round worked as a black box function that took 4 bytes of input and generated 4 bytes of output (as a result each round would generate 16 bytes/128bits). I needed to find the 4 bytes of input that would give me the 4 bytes of output I wanted. Solving those quarters could be done simultaneously and starting from the desired output you could go walk back from round <code>N</code> to round <code>N-1</code>. That was basically my plan for <code>ctf2</code>.</p>
+<p>Note that at this point I already had ripped out the <code>schedule</code> function in my own program. I cleaned-up the code and made sure it produced the same results that the program itself (always fun to debug). In other words, I was ready to go forward with the analysis of all the arithmetic boxes.</p>
+<h3 id="case-0-encoding">case 0: encoding</h3>
+<p>This case is as simple as it gets as you can see below:</p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="mi">0</span><span class="o">:</span>
+  <span class="n">s0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">(</span><span class="o">&amp;</span><span class="n">s0</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="o">*</span><span class="p">(</span><span class="kr">__m128i</span> <span class="o">*</span><span class="p">)</span><span class="n">mask</span><span class="p">);</span>
+  <span class="k">break</span><span class="p">;</span>
+</pre></div>
+
+
+<p>As a result, inverting it is a simple XOR operation:</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">reverse_0</span><span class="p">(</span><span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Input</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Output</span><span class="p">),</span> <span class="n">mask</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h3 id="case-1-5-9-13-17-21-25-29-33-37-subbytes">case 1, 5, 9, 13, 17, 21, 25, 29, 33, 37: SubBytes</h3>
+<p>This case can look a bit more intimidating compared to the previous one (lol). Here is how it looks like once I have cleaned and prettified it a bit:</p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="mi">1</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">5</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">9</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">13</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">17</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">21</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">25</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">29</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">33</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">37</span><span class="o">:</span> <span class="p">{</span>
+    <span class="n">v54</span> <span class="o">=</span> <span class="n">nround</span> <span class="o">&gt;&gt;</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="n">v55</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">v77</span><span class="p">.</span><span class="n">m128i_u64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">v56</span> <span class="o">=</span> <span class="n">v54</span><span class="p">;</span>
+    <span class="n">v54</span> <span class="o">&lt;&lt;=</span> <span class="mi">20</span><span class="p">;</span>
+    <span class="n">v79</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">v81</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">v57</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="p">(</span><span class="n">v55</span> <span class="o">+</span> <span class="p">(</span><span class="n">v56</span> <span class="o">&lt;&lt;</span> <span class="mi">12</span><span class="p">))];</span>
+    <span class="n">v58</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">v80</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v58</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v60</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">v61</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v60</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v62</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="n">v83</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v62</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v64</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="n">v84</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v64</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v65</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
+    <span class="n">v85</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="kt">uint64_t</span><span class="p">(</span><span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v66</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v65</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v67</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">];</span>
+    <span class="n">v68</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v67</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v69</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="n">v88</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="n">v89</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v69</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v90</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>
+    <span class="n">v70</span> <span class="o">=</span> <span class="n">v54</span> <span class="o">+</span> <span class="p">(</span><span class="kt">uint64_t</span><span class="p">(</span><span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">);</span>
+    <span class="n">v92</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+    <span class="n">v91</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="n">v70</span><span class="p">];</span>
+    <span class="n">v71</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+    <span class="n">v94</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+    <span class="n">v96</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>
+    <span class="n">v93</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v71</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v72</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+    <span class="n">v98</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">];</span>
+    <span class="n">v95</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v72</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v73</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>
+    <span class="n">v100</span> <span class="o">=</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>
+    <span class="n">v97</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="n">v73</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v99</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="kt">uint64_t</span><span class="p">(</span><span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">])</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">v101</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="kt">uint64_t</span><span class="p">(</span><span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">])</span> <span class="o">+</span> <span class="n">v54</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v57</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">v80</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mh">0x10000</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">v61</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mh">0x20000</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">v83</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="mi">196608</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">v84</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="mh">0x40000</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">v85</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">+</span> <span class="mi">327680</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">v66</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">+</span> <span class="mi">393216</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">v68</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="mi">458752</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="n">v89</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">+</span> <span class="mh">0x80000</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="n">v91</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">+</span> <span class="mi">589824</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="n">v93</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">+</span> <span class="mi">655360</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">v95</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">+</span> <span class="mi">720896</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="n">v97</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">+</span> <span class="mi">786432</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">v99</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">+</span> <span class="mi">851968</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="n">v101</span><span class="p">[</span><span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">+</span> <span class="mi">917504</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">sboxes</span><span class="p">[</span><span class="mi">256</span> <span class="o">*</span> <span class="kt">uint64_t</span><span class="p">(</span><span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">])</span> <span class="o">+</span> <span class="mi">983040</span> <span class="o">+</span> <span class="n">v54</span> <span class="o">+</span> <span class="n">mask</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]];</span>
+    <span class="o">*</span><span class="n">Slot</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="o">*</span><span class="n">Slot</span><span class="p">,</span> <span class="n">crc</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>The thing I always focus on is the relationship between the input and output bytes. Remember that each round works as a function that takes a 16 bytes blob in input (a <code>Slot_t</code> in my code) and returns another 16 bytes blob as output. As we are interested to write a function that can find an input that generates a specific output it is very important to identify how the output is built and what bytes of the input are used to build it.</p>
+<p>Let's have a closer look at how the first byte of the output is generated. We start from the end of the function and we follow back the references until we encounter a byte from the input state. In this case we trace back where <code>v57</code> is coming from, and then <code>v55</code> and <code>v56</code>. <code>v55</code> is the first byte of the input state, great. <code>v56</code> is a 
+a number encoding the number of the round. We don't necessarily care about it as of now, but it's good to realize that the number of the round is a parameter of this function; and not exclusively the inputs bytes. OK so we know that the first byte of the output is built via the first byte of the input, easy. Simpler than I first expected when looking at the Hex-Rays' output to be honest. But I'll take simple :).</p>
+<p>If you repeat the above steps for every bytes you basically realize that each bytes of the output is dependent on one single byte of input. They are all independent one from another which is even nicer. What this means is that we can very easily brute-force an input value to generate a specific output value. That's super nice because it is ... very cheap to compute; it is so cheap that we don't even need to bother more and we can move on to the next case.</p>
+<p>In theory we could even parallelize the below but I am personally not convinced it is worth doing.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">reverse_37</span><span class="p">(</span><span class="k">const</span> <span class="kt">uint32_t</span> <span class="n">nround</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">uint8_t</span> <span class="n">is</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">uint32_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">uint32_t</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+            <span class="n">round</span><span class="p">(</span><span class="n">nround</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
+                <span class="n">is</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">is</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Funny enough, if you patched the challenge binary this is yet another spot where things would go wrong. The <code>crc</code> value is used at the end of the function to XOR the output state and would pollute your results here too, sneaky :). </p>
+<h3 id="case-2-6-10-14-18-22-26-30-34-38-shiftrows">case 2, 6, 10, 14, 18, 22, 26, 30, 34, 38: ShiftRows</h3>
+<p>Not bad, we already figured out two cases out of the six. This case doesn't look too bad either, it is pretty short and writing an inverse looks easy enough:</p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="mi">2</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">6</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">10</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">14</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">18</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">22</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">26</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">30</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">34</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">38</span><span class="o">:</span> <span class="p">{</span>
+    <span class="n">v42</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
+    <span class="n">v43</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="n">v44</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">v42</span><span class="p">;</span>
+    <span class="n">v45</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="n">v46</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">v44</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">v43</span><span class="p">;</span>
+    <span class="n">v47</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+    <span class="n">v48</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="n">v45</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="n">v46</span><span class="p">;</span>
+    <span class="n">v49</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">];</span>
+    <span class="n">v50</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="n">v47</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">v48</span><span class="p">;</span>
+    <span class="n">v51</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">];</span>
+    <span class="n">v52</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">v50</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="n">v49</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="n">v51</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">v52</span><span class="p">;</span>
+    <span class="k">break</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Clearly just by quickly looking at this function you understand that it is some sort of shuffle operation. For whatever reason, this is the type of brain-gymnastic that I am not good at; the trick I usually use is to give it an input that looks like this: <code>\x00\x01\x02\x03...</code> and observe the result.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">test_reverse38</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="n">Input</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="p">{</span>
+        <span class="mh">0x00</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span> <span class="mh">0x02</span><span class="p">,</span> <span class="mh">0x03</span><span class="p">,</span> <span class="mh">0x04</span><span class="p">,</span> <span class="mh">0x05</span><span class="p">,</span> <span class="mh">0x06</span><span class="p">,</span> <span class="mh">0x07</span><span class="p">,</span>
+        <span class="mh">0x08</span><span class="p">,</span> <span class="mh">0x09</span><span class="p">,</span> <span class="mh">0x0a</span><span class="p">,</span> <span class="mh">0x0b</span><span class="p">,</span> <span class="mh">0x0c</span><span class="p">,</span> <span class="mh">0x0d</span><span class="p">,</span> <span class="mh">0x0e</span><span class="p">,</span> <span class="mh">0x0f</span>
+    <span class="p">};</span>
+    <span class="n">Slot_t</span> <span class="n">InputSlot</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">InputSlot</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="n">round</span><span class="p">(</span><span class="mi">38</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">InputSlot</span><span class="p">);</span>
+    <span class="n">hexdump</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">InputSlot</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>This is what we get if we apply the above trick:</p>
+<div class="highlight"><pre><span></span>0000:   00 01 02 03 05 06 07 04   0A 0B 08 09 0F 0C 0D 0E    ................
+</pre></div>
+
+
+<p>From here, it's much easier (for me at least) to figure out the effect of the shuffling. For example, we already know we have nothing to do with the first four bytes as they haven't been shuffled. We know we need to take <code>Output[7]</code> and put it inside <code>Input[4]</code>, <code>Output[4]</code> in <code>Input[5]</code>, so on and so forth. After a bit of mental gymnastics I end-up with this routine:</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">reverse_38</span><span class="p">(</span><span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">uint8_t</span> <span class="n">s4</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">s5</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">s4</span><span class="p">;</span>
+    <span class="kt">uint8_t</span> <span class="n">s6</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">s5</span><span class="p">;</span>
+    <span class="kt">uint8_t</span> <span class="n">s7</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">s6</span><span class="p">;</span>
+    <span class="kt">uint8_t</span> <span class="n">s8</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">s9</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="n">s8</span><span class="p">;</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">s9</span><span class="p">;</span>
+    <span class="kt">uint8_t</span> <span class="n">s12</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">s13</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">];</span>
+    <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">s12</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Next one!</p>
+<h3 id="case-3-7-11-15-19-23-27-31-35-mixcolumns">case 3, 7, 11, 15, 19, 23, 27, 31, 35: MixColumns</h3>
+<p>This case is the most annoying one basically. At first sight, it looks very similar as the <code>case 1</code> we analyzed earlier, but ... not quite. </p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="mi">3</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">7</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">11</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">15</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">19</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">23</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">27</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">31</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">35</span><span class="o">:</span> <span class="p">{</span>
+    <span class="n">v7</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">v8</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="n">v9</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">v10</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+    <span class="n">v11</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+    <span class="n">v12</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v8</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v7</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="n">v81</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v78x</span> <span class="o">=</span> <span class="n">v12</span><span class="p">;</span>
+    <span class="kt">uint8_t</span> <span class="n">v79x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v10</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v9</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>
+    <span class="n">v77</span><span class="p">.</span><span class="n">m128i_u64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="n">v13</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v77</span><span class="p">.</span><span class="n">m128i_u64</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">^</span> <span class="n">v11</span><span class="p">;</span>
+    <span class="n">v14</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v80x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v14</span><span class="p">]</span> <span class="o">^</span> <span class="n">v13</span><span class="p">;</span>
+    <span class="n">v15</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v82x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v15</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v81</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+    <span class="n">v16</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v8</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">v17</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v83x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v17</span><span class="p">]</span> <span class="o">^</span> <span class="n">v16</span><span class="p">;</span>
+    <span class="n">v18</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v10</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">v19</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">];</span>
+    <span class="n">v20</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v84x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v19</span><span class="p">]</span> <span class="o">^</span> <span class="n">v18</span><span class="p">;</span>
+    <span class="n">v21</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v14</span><span class="p">]</span> <span class="o">^</span> <span class="n">v20</span><span class="p">;</span>
+    <span class="n">v22</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+    <span class="n">v23</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v85x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v22</span><span class="p">]</span> <span class="o">^</span> <span class="n">v21</span><span class="p">;</span>
+    <span class="n">v24</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v15</span><span class="p">]</span> <span class="o">^</span> <span class="n">v23</span><span class="p">;</span>
+    <span class="n">v25</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">];</span>
+    <span class="n">v26</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v86x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v25</span><span class="p">]</span> <span class="o">^</span> <span class="n">v24</span><span class="p">;</span>
+    <span class="n">v27</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v17</span><span class="p">]</span> <span class="o">^</span> <span class="n">v26</span><span class="p">;</span>
+    <span class="n">v28</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>
+    <span class="n">v29</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v87x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v28</span><span class="p">]</span> <span class="o">^</span> <span class="n">v27</span><span class="p">;</span>
+    <span class="n">v30</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v19</span><span class="p">]</span> <span class="o">^</span> <span class="n">v29</span><span class="p">;</span>
+    <span class="n">v31</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">];</span>
+    <span class="n">v32</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v88x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v31</span><span class="p">]</span> <span class="o">^</span> <span class="n">v30</span><span class="p">;</span>
+    <span class="n">v33</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v22</span><span class="p">]</span> <span class="o">^</span> <span class="n">v32</span><span class="p">;</span>
+    <span class="n">v34</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>
+    <span class="n">v35</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v89x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v34</span><span class="p">]</span> <span class="o">^</span> <span class="n">v33</span><span class="p">;</span>
+    <span class="n">v36</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v25</span><span class="p">]</span> <span class="o">^</span> <span class="n">v35</span><span class="p">;</span>
+    <span class="n">v37</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">];</span>
+    <span class="n">v38</span> <span class="o">=</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="kt">uint8_t</span> <span class="n">v90x</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v37</span><span class="p">]</span> <span class="o">^</span> <span class="n">v36</span><span class="p">;</span>
+    <span class="kt">uint8_t</span> <span class="n">v7x</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v28</span><span class="p">]</span> <span class="o">^</span> <span class="n">v38</span> <span class="o">^</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v7</span><span class="p">];</span>
+    <span class="n">v9</span> <span class="o">=</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v31</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v9</span><span class="p">];</span>
+    <span class="n">v39</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v77</span><span class="p">.</span><span class="n">m128i_u64</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v34</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
+    <span class="n">v40</span> <span class="o">=</span> <span class="n">mul3</span><span class="p">[</span><span class="n">v81</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">^</span> <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">^</span> <span class="n">mul2</span><span class="p">[</span><span class="n">v37</span><span class="p">];</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v78x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">v79x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">v80x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">v82x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">v83x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">v84x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">v85x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">v86x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="n">v87x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="n">v88x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="n">v89x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">v90x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="n">v7x</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">v9</span><span class="p">);</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="n">v39</span><span class="p">;</span>
+    <span class="n">Slot</span><span class="o">-&gt;</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">v40</span><span class="p">;</span>
+    <span class="k">break</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>This time if you take a closer look, we notice that each group of four bytes of output depends of four bytes of input. And each byte of output depends on those four input bytes.</p>
+<p>This means that you cannot brute force byte by byte like earlier. But directly four bytes... which is much more costly compared to the other cases we have seen so far. The only thing going for us is that we can brute-force those four groups in parallel as they are independent from each other. A thread for each should do the work.</p>
+<p>At this stage I already wasted a bunch of time on various bugs or stupid things; so I decided to write this very simple naive brute force (it's not pretty nor fast... but I've made peace with it at this point):</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">reverse_35</span><span class="p">(</span><span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">uint8_t</span> <span class="n">final_result</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
+    <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t0</span><span class="p">([</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">final_result</span><span class="p">]()</span> <span class="n">mutable</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                        <span class="n">round</span><span class="p">(</span><span class="mi">35</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">);</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">&amp;&amp;</span>
+                            <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span> <span class="p">{</span>
+
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                            <span class="k">return</span><span class="p">;</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+    <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t1</span><span class="p">([</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">final_result</span><span class="p">]()</span> <span class="n">mutable</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                        <span class="n">round</span><span class="p">(</span><span class="mi">35</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">);</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">&amp;&amp;</span>
+                            <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">13</span><span class="p">])</span> <span class="p">{</span>
+
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                            <span class="k">return</span><span class="p">;</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+    <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t2</span><span class="p">([</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">final_result</span><span class="p">]()</span> <span class="n">mutable</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                        <span class="n">round</span><span class="p">(</span><span class="mi">35</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">);</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">&amp;&amp;</span>
+                            <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">14</span><span class="p">])</span> <span class="p">{</span>
+
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                            <span class="k">return</span><span class="p">;</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+    <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t3</span><span class="p">([</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">final_result</span><span class="p">]()</span> <span class="n">mutable</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">a</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">++</span><span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                        <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                        <span class="n">round</span><span class="p">(</span><span class="mi">35</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">);</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">&amp;&amp;</span>
+                            <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">==</span> <span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">[</span><span class="mi">15</span><span class="p">])</span> <span class="p">{</span>
+
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+                            <span class="n">final_result</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="kt">uint8_t</span><span class="p">(</span><span class="n">d</span><span class="p">);</span>
+                            <span class="k">return</span><span class="p">;</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="n">t0</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+    <span class="n">t1</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+    <span class="n">t2</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+    <span class="n">t3</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">final_result</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Each thread recovers four bytes and the results are aggregated in <code>final_result</code>. </p>
+<h3 id="case-4-8-12-16-20-24-28-32-36-addroundkey">case 4, 8, 12, 16, 20, 24, 28, 32, 36: AddRoundKey</h3>
+<p>This case is another trivial one where a simple XOR does the job to invert the operation:</p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="mi">4</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">8</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">12</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">16</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">20</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">24</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">28</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">32</span><span class="o">:</span>
+<span class="k">case</span> <span class="mi">36</span><span class="o">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="n">Slot</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">(</span><span class="n">Slot</span><span class="p">),</span> <span class="n">mask3</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Note that <code>mask3</code> is one of the array that gets modified when you introduce an abnormal delay in a round; like if you're debugging for example. Yet another spot where there's potential for wrong results to be produced, sneaky again :).</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">reverse_36</span><span class="p">(</span><span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Input</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Output</span><span class="p">),</span> <span class="n">mask3</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h3 id="case-39-decoding">case 39: decoding</h3>
+<p>And finally our last case is another very simple one:</p>
+<div class="highlight"><pre><span></span><span class="k">case</span> <span class="mi">39</span><span class="o">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="n">Slot</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">(</span><span class="n">Slot</span><span class="p">),</span> <span class="n">shiftedmask</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Inverted with the below:</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">reverse_39</span><span class="p">(</span><span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Input</span> <span class="o">=</span> <span class="n">_mm_xor_si128</span><span class="p">(</span><span class="n">_mm_load_si128</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Output</span><span class="p">),</span> <span class="n">shiftedmask</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h2 id="unround">unround</h2>
+<p>At this stage we have all the small blocks we need to find an input state that generates a specific output state. We simply combine all the <code>reverse_</code> routines we wrote into a function that acts as the opposite of <code>schedule</code>. We also create a utility function that applies forty <code>unround</code> to a state in order to fully invert it: from bottom to top.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">recover_state</span><span class="p">(</span><span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Output</span><span class="p">,</span> <span class="n">Slot_t</span> <span class="o">&amp;</span><span class="n">Input</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int32_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">39</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="o">--</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">unround</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">Input</span><span class="p">);</span>
+        <span class="n">memcpy</span><span class="p">(</span><span class="n">Output</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Once we have that available we can use it in order to do try to - let's say - find the input bytes that generates the following output <code>'doar-e.github.io'.encode('hex')</code>.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">recover_doare</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="n">WantedOutputBytes</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="p">{</span>
+        <span class="c1">// In [17]: &#39;, &#39;.join(&#39;0x%2x&#39; % ord(c) for c in &#39;doar-e.github.io&#39;)</span>
+        <span class="c1">// Out[17]: &#39;0x64, 0x6f, 0x61, 0x72, 0x2d, 0x65, 0x2e, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x69, 0x6f&#39;</span>
+        <span class="mh">0x64</span><span class="p">,</span> <span class="mh">0x6f</span><span class="p">,</span> <span class="mh">0x61</span><span class="p">,</span> <span class="mh">0x72</span><span class="p">,</span> <span class="mh">0x2d</span><span class="p">,</span> <span class="mh">0x65</span><span class="p">,</span> <span class="mh">0x2e</span><span class="p">,</span> <span class="mh">0x67</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x74</span><span class="p">,</span> <span class="mh">0x68</span><span class="p">,</span> <span class="mh">0x75</span><span class="p">,</span> <span class="mh">0x62</span><span class="p">,</span> <span class="mh">0x2e</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x6f</span>
+    <span class="p">};</span>
+    <span class="n">Slot_t</span> <span class="n">WantedOutput</span><span class="p">,</span> <span class="n">Input</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">WantedOutput</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">WantedOutputBytes</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="n">recover_state</span><span class="p">(</span><span class="n">WantedOutput</span><span class="p">,</span> <span class="n">Input</span><span class="p">);</span>
+    <span class="n">hexdump</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>This gives us back the following (it takes about 7 min on my machine (versus 13 min without the multi threaded version)):</p>
+<div class="highlight"><pre><span></span><span class="mo">0000</span><span class="o">:</span>   <span class="mi">0</span><span class="n">D</span> <span class="n">CC</span> <span class="mi">49</span> <span class="n">C2</span> <span class="n">F8</span> <span class="n">E1</span> <span class="mi">6</span><span class="n">A</span> <span class="mi">78</span>   <span class="mi">1</span><span class="n">D</span> <span class="mi">57</span> <span class="mi">26</span> <span class="n">F7</span> <span class="mi">45</span> <span class="n">AB</span> <span class="mi">3</span><span class="n">E</span> <span class="mi">13</span>    <span class="p">..</span><span class="n">I</span><span class="p">...</span><span class="n">jx</span><span class="p">.</span><span class="n">W</span><span class="o">&amp;</span><span class="p">.</span><span class="n">E</span><span class="p">.</span><span class="o">&gt;</span><span class="p">.</span>
+</pre></div>
+
+
+<p>Now to check that it works properly we can fire up <em>gdb</em> and inject this state right before the scheduling phase like in the below:</p>
+<div class="highlight"><pre><span></span>gef➤  pie breakpoint *0x114c
+gef➤  pie run
+[...]
+gef➤  eb &amp;states 0x0D 0xCC 0x49 0xC2 0xF8 0xE1 0x6A 0x78 0x1D 0x57 0x26 0xF7 0x45 0xAB 0x3E 0x13
+gef➤  x/16bx &amp;states
+0x555556257660 &lt;states&gt;:        0x0d    0xcc    0x49    0xc2    0xf8    0xe1    0x6a    0x78
+0x555556257668 &lt;states+8&gt;:      0x1d    0x57    0x26    0xf7    0x45    0xab    0x3e    0x13
+g
+gef➤  x/i $rip
+=&gt; 0x55555555514c &lt;main+1276&gt;:  call   0x555555555660 &lt;_Z8schedulev&gt;
+gef➤  n
+gef➤  x/i $rip
+=&gt; 0x555555555151 &lt;main+1281&gt;:  movdqa xmm0,XMMWORD PTR [rip+0xd02517]        # 0x555556257670 &lt;states+16&gt;
+gef➤  x/16bx &amp;states
+0x555556257660 &lt;states&gt;:        0x64    0x6f    0x61    0x72    0x2d    0x65    0x2e    0x67
+0x555556257668 &lt;states+8&gt;:      0x69    0x74    0x68    0x75    0x62    0x2e    0x69    0x6f
+gef➤  x/1s &amp;states
+0x555556257660 &lt;states&gt;:        &quot;doar-e.github.iovطL:2\204\274\006\&quot;A\377+ⴄ\256^\264)\220\024\307\356dO\377a\003Q}\317+\352\064\303I\300\254\256\271\061\306\004\327\033\375\307B\357\375m\027u\024\060\315t\a\034\247\224\027\005\202\021oK\366\267&gt;\373X`?\027\071*\333\301\357\a\260\256\063k}u\232f\212\212\246&#39;\303j\027\201\061@\246\336\304mۡ\bSi\214\034\210D\327.hQ\310\302I,\225zF\263안vطL:2\204\274\006\&quot;A\377+ⴄ\256^\264)\220\024\307\356dO\377a\003Q}\317+\352\064\303I\300\254\256\271\061\306\004\327\033\375\307B\357\375m\027u\024\060\315t\a\034\247\224\027\005\202\021oK\366\267&gt;\373X`?\027\071*\333\301\357\a\260\256\063k}u\232f\212\212\246&#39;\303j\233\004WD\345\037\360\371\350JT\332h\340R\270\223\256\247\356͚C\211\374\327=\022&gt;\222\301\346 \031\313]\272\274=t\302&gt;:\245qZ\363[\223\256\247\356\211͚C=\022\374ג\301\346&gt;&quot;
+</pre></div>
+
+
+<p>All right, awesome. Sounds like we are done with schedule for now :).</p>
+<h2 id="how-do-i-win-now">How do I win now?</h2>
+<p>From previously, we already established that the 15 <code>s</code>'s blobs get XOR'ed together and if the result is <code>0x42424242696969693737373713131313ULL</code> then it's a win, great. We also know that the input serial is diffused in those 15 blobs. In each blobs, there are all the bytes of the serial input. They are just mixed in differently depending on which blob it is.</p>
+<p>What this means is that when we give the good serial to the program, we can fully control only one of those blob. And as they are XOR'ed together it's unclear at first sight how we can get resulting XOR equal to the magic value.</p>
+<p>After being stuck a bit on this (and still being mad at myself for it D:), my friend <a href="https://twitter.com/mongobug">mongo</a> asked me if I <strong>really</strong> took a look at what the 15 blobs look like. Ugh, I guess I kinda did? At this point I fired up my debugger and saw the below fifteen blobs (for the following serial <code>00112233445566778899AABBCCDDEEFF</code>):</p>
+<div class="highlight"><pre><span></span>gef➤  pie breakpoint *0x0000000000001144c
+gef➤  pie run
+gef➤  x/240bx &amp;states
+0x555556257660 &lt;states&gt;:        0x66    0xcc    0x33    0x55    0x88    0xee    0x77    0x00
+0x555556257668 &lt;states+8&gt;:      0xdd    0x22    0x99    0x11    0xff    0xbb    0x44    0xaa
+0x555556257670 &lt;states+16&gt;:     0xff    0xcc    0x66    0xaa    0x99    0x55    0x22    0x00
+0x555556257678 &lt;states+24&gt;:     0x77    0x11    0x88    0xbb    0xdd    0x33    0xee    0x44
+0x555556257680 &lt;states+32&gt;:     0xaa    0x33    0xdd    0xcc    0x66    0xee    0x11    0x44
+0x555556257688 &lt;states+40&gt;:     0xbb    0x55    0x77    0xff    0x22    0x00    0x88    0x99
+0x555556257690 &lt;states+48&gt;:     0xaa    0x55    0x33    0x11    0xbb    0xdd    0x66    0xcc
+0x555556257698 &lt;states+56&gt;:     0x22    0xff    0x44    0x88    0xee    0x77    0x99    0x00
+0x5555562576a0 &lt;states+64&gt;:     0x00    0x66    0xbb    0x77    0xff    0x55    0x88    0x33
+0x5555562576a8 &lt;states+72&gt;:     0x11    0x44    0x99    0x22    0xcc    0xdd    0xaa    0xee
+0x5555562576b0 &lt;states+80&gt;:     0x22    0x00    0x33    0xbb    0xcc    0x88    0x44    0xdd
+0x5555562576b8 &lt;states+88&gt;:     0x77    0x55    0xaa    0x11    0x66    0xff    0xee    0x99
+0x5555562576c0 &lt;states+96&gt;:     0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11
+0x5555562576c8 &lt;states+104&gt;:    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
+0x5555562576d0 &lt;states+112&gt;:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd
+0x5555562576d8 &lt;states+120&gt;:    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
+0x5555562576e0 &lt;states+128&gt;:    0x66    0xcc    0x33    0x55    0x88    0xee    0x77    0x00
+0x5555562576e8 &lt;states+136&gt;:    0xdd    0x22    0x99    0x11    0xff    0xbb    0x44    0xaa
+0x5555562576f0 &lt;states+144&gt;:    0xff    0xcc    0x66    0xaa    0x99    0x55    0x22    0x00
+0x5555562576f8 &lt;states+152&gt;:    0x77    0x11    0x88    0xbb    0xdd    0x33    0xee    0x44
+0x555556257700 &lt;states+160&gt;:    0xaa    0x33    0xdd    0xcc    0x66    0xee    0x11    0x44
+0x555556257708 &lt;states+168&gt;:    0xbb    0x55    0x77    0xff    0x22    0x00    0x88    0x99
+0x555556257710 &lt;states+176&gt;:    0xaa    0x55    0x33    0x11    0xbb    0xdd    0x66    0xcc
+0x555556257718 &lt;states+184&gt;:    0x22    0xff    0x44    0x88    0xee    0x77    0x99    0x00
+0x555556257720 &lt;states+192&gt;:    0x00    0x66    0xbb    0x77    0xff    0x55    0x88    0x33
+0x555556257728 &lt;states+200&gt;:    0x11    0x44    0x99    0x22    0xcc    0xdd    0xaa    0xee
+0x555556257730 &lt;states+208&gt;:    0x22    0x00    0x33    0xbb    0xcc    0x88    0x44    0xdd
+0x555556257738 &lt;states+216&gt;:    0x77    0x55    0xaa    0x11    0x66    0xff    0xee    0x99
+0x555556257740 &lt;states+224&gt;:    0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11
+0x555556257748 &lt;states+232&gt;:    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
+</pre></div>
+
+
+<p>Do you see it now? If you look closely, you can see that <code>states[0] = states[8]</code>, <code>states[1] = states[9]</code>, <code>states[2] = states[10]</code>, etc. Which means that XORing them together cancel them out.. leaving the one blob in the middle: <code>states[7]</code>.</p>
+<div class="highlight"><pre><span></span>0x5555562576d0 &lt;states+112&gt;:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd
+0x5555562576d8 &lt;states+120&gt;:    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
+</pre></div>
+
+
+<p>So now we just have to invoke <code>recover_state</code> in order to find an input state that generates this output state: <code>42424242696969693737373713131313</code>, and study the diffusion algorithm a little to be able to construct an input serial that will generate the <code>states[7]</code> of our choice (<code>slot2password</code>), easy.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">pwn</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">uint8_t</span> <span class="n">WantedOutputBytes</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="p">{</span>
+        <span class="mh">0x13</span><span class="p">,</span> <span class="mh">0x13</span><span class="p">,</span> <span class="mh">0x13</span><span class="p">,</span> <span class="mh">0x13</span><span class="p">,</span> <span class="mh">0x37</span><span class="p">,</span> <span class="mh">0x37</span><span class="p">,</span> <span class="mh">0x37</span><span class="p">,</span> <span class="mh">0x37</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x69</span><span class="p">,</span> <span class="mh">0x42</span><span class="p">,</span> <span class="mh">0x42</span><span class="p">,</span> <span class="mh">0x42</span><span class="p">,</span> <span class="mh">0x42</span><span class="p">,</span>
+    <span class="p">};</span>
+    <span class="n">Slot_t</span> <span class="n">WantedOutput</span><span class="p">,</span> <span class="n">Input</span><span class="p">;</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">WantedOutput</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">WantedOutputBytes</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="n">recover_state</span><span class="p">(</span><span class="n">WantedOutput</span><span class="p">,</span> <span class="n">Input</span><span class="p">);</span>
+    <span class="n">hexdump</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="kt">uint8_t</span> <span class="n">Password</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>
+    <span class="n">slot2password</span><span class="p">(</span><span class="n">Input</span><span class="p">.</span><span class="n">m128i_u8</span><span class="p">,</span> <span class="n">Password</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">16</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%.2X&quot;</span><span class="p">,</span> <span class="n">Password</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="p">}</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>And after running this for a bit of time we get the below output:</p>
+<div class="highlight"><pre><span></span>c:\work&gt;C:\work\unboxin-ctf2.exe
+0000:   0A 0E C2 74 B7 C6 41 70   98 5F 2D D7 2C C9 52 68    ...t..Ap._-.,.Rh
+0AB7982C0EC65FC9C2412D527470D768
+e min elapsed
+</pre></div>
+
+
+<p>Mandatory final check now..:</p>
+<div class="highlight"><pre><span></span>over@bubuntu:~/workz$ ./ctf2 0AB7982C0EC65FC9C2412D527470D768
+**** Login Successful ****
+</pre></div>
+
+
+<p>Job done :-).</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Interestingly, while I was writing up this article, <a href="https://www.ledger.fr/">ledger</a> posted one describing the puzzles and some of the solutions they have received. You should definitely check it out: <a href="https://www.ledger.fr/2018/06/01/ctf-complete-hw-bounty-still-ongoing-2-337-btc/">CTF complete – HW bounty still ongoing</a>. The other interesting thing is, as usual, there are many ways leading to victory.</p>
+<p>What's fascinating about it, is that in this specific case, studying the cryptography closer have allowed some people to directly extract the AES key. At what point writing a solution becomes trivial: decrypt a blob with AES and the extracted key. No need for any reimplementing any of the program's logic. Very clean! At the same time, depending on the implementation, this could have been harder too. It still is mind-blowing to see the full spectrum of solutions: fault injections, side channel attacks, reverse-engineering, etc.</p>
+<p>In any case, I've uploaded my solution file <a href="https://github.com/0vercl0k/stuffz/blob/master/ledgerctf2018/unboxin-ctf2.cc">unboxin-ctf2.cc</a> on my <a href="https://github.com/0vercl0k/">github</a> as usual, enjoy!</p>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>

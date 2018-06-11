@@ -97,6 +97,33 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">Breaking ledgerctf's AES white-box challenge</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-05-17T11:52:00-07:00">
+        <i class="icon-calendar"></i>Thu 17 May 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="/tag/ledgerctf.html"><i class="icon-tag"></i>ledgerctf</a>
+	<a href="/tag/whitebox.html"><i class="icon-tag"></i>whitebox</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.</p>
+<p><a href="https://www.ledger.fr/">ledger</a> is a french security company funded in 2014 that is specialized in cryptography, cryptocurrencies and hardware. They recently put up online three different puzzles to celebrate the official launch of their <a href="https://www.ledger.fr/bounty-program/">bug bounty program</a>. The second challenge called <em>ctf2</em> is the one we will be discussing today. <em>ctf2</em> is an ELF64 binary that is available <a href="https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao">here</a> for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.</p>
+<p>Let's do it!</p>
+
+                        <a class="btn primary xsmall" href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">beVX challenge on the operation table</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
@@ -400,40 +427,6 @@ Disassembly:
 <p>In this post I wanted to show you how we can manage to break that obfuscation with symbolic execution. We are going to write a really tiny symbolic execution engine with IDAPy, and we will use Z3Py to simplify all our equations. Note that a friend of mine <a href="https://twitter.com/elvanderb">@elvanderb</a> used a similar approach (more generic though) to simplify some parts of the <a href="http://download.tuxfamily.org/overclokblog/Obfuscation%20of%20steel%3a%20meet%20my%20Kryptonite/binaries/">crackme</a> ; but he didn't wanted to publish it, so here is my blog post about it!</p>
 
                         <a class="btn primary xsmall" href="/blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">Pinpointing heap-related issues: OllyDbg2 off-by-one story</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2013-09-09T09:53:00-07:00">
-        <i class="icon-calendar"></i>Mon 09 September 2013
-</abbr>
-<span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="/category/debugging.html"><i class="icon-folder-open"></i>debugging</a>
-
-
-<span class="label">Tags</span>
-	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
-	<a href="/tag/debugging.html"><i class="icon-tag"></i>debugging</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Yesterday afternoon, I was peacefully coding some stuff you know but I couldn't make my code working.
-As usual, in those type of situations you fire up your debugger in order to understand what is going on under the hood.
-That was a bit weird, to give you a bit of context I was doing some inline x86 assembly, and I've put on purpose an <em>int3</em> just
-before the piece of assembly code I thought was buggy. Once my file loaded in <a href="http://ollydbg.de/version2.html">OllyDbg2</a>, I hit <em>F9</em> in order to reach quickly the <em>int3</em> I've slipped into the inline assembly code. A bit of single-stepping, and <strong>BOOM</strong> I got a nasty crash. It happens sometimes, and that's uncool.
-Then, I relaunch my binary and try to reproduce the bug: same actions and <strong>BOOM</strong> again. OK, this time it's cool, I got a reproducible crash in OllyDbg2.</p>
-<p>I like when things like that happens to me (remember the crashes I've found in OllyDbg/IDA here: <a href="http://download.tuxfamily.org/overclokblog/PDB%20ain%27t%20PDD/0vercl0k_pdb_aint_pdd.pdf">PDB Ain't PDD</a>), it's always a nice exercise for me where I've to:</p>
-<ul>
-<li>pinpoint the bug in the application: usually not trivial when it's a real/big application</li>
-<li>reverse-engineer the codes involved in the bug in order to figure out why it's happening (sometimes I got the sources, sometimes I don't like this time)</li>
-</ul>
-<p>In this post, I will show you how I've manage to pinpoint where the bug was, using <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff549561(v=vs.85).aspx">GFlags, PageHeap</a> and <a href="http://www.windbg.info/">WinDbg</a>. Then, we will reverse-engineer the buggy code in order to understand why the bug is happening, and how we can code a clean trigger.</p>
-
-                        <a class="btn primary xsmall" href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">more ...</a>
                 </div>
         </div>
         <hr />
