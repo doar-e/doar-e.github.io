@@ -7,7 +7,7 @@ Authors: Axel "0vercl0k" Souchet
 
 About a month ago, my mate [b0n0n](https://twitter.com/b0n0n) was working on the [ledgerctf](https://www.ledger.fr/ctf2018/) puzzles and challenged me to have a look at the *ctf2* binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.
 
-[ledger](https://www.ledger.fr/) is a french security company funded in 2014 that is specialized in cryptography, cryptocurrencies and hardware. They recently put up online three different puzzles to celebrate the official launch of their [bug bounty program](https://www.ledger.fr/bounty-program/). The second challenge called *ctf2* is the one we will be discussing today. *ctf2* is an ELF64 binary that is available [here](https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao) for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.
+[ledger](https://www.ledger.fr/) is a french security company founded in 2014 that is specialized in cryptography, cryptocurrencies, and hardware. They recently put up online three different puzzles to celebrate the official launch of their [bug bounty program](https://www.ledger.fr/bounty-program/). The second challenge called *ctf2* is the one we will be discussing today. *ctf2* is an ELF64 binary that is available [here](https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao) for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.
 
 Let's do it!
 
@@ -19,15 +19,15 @@ Let's do it!
 
 ## Recon
 
-The very first thing I'm sure you've seen is how much data is in the binary as seen in the below picture. It means that either the binary is packed and IDA is struggling to recognize pieces of the binary as code, or it is actually real data.
+The very first thing I'm sure you've noticed how much data is in the binary as seen in the picture below. It means that either the binary is packed and IDA is struggling to recognize pieces of the binary as code, or it is actually real data.
 
 <center>![ida.png](/images/breaking_ledgerctfs_ctf2_aes_whitebox_challenge/ida.png)</center>
 
-As we also already know that the binary hasn't been stripped, the first hypothesis is most likely wrong. By skimming through the code in the disassembler, nothing really stands out; everything looks healthy. No sign of obfuscation, code-encryption or packing of any sorts. Pretty sure we are looking at a pure reverse-engineering challenge at this point, smooth sailing!
+As we also already know that the binary hasn't been stripped, the first hypothesis is most likely wrong. By skimming through the code in the disassembler, nothing really stands out; everything looks healthy. No sign of obfuscation, code-encryption or packing of any sorts. At this point we are pretty sure we are looking at a pure reverse-engineering challenge, smooth sailing!
 
 ## Diffusion
 
-The binary expects a serial as input which is a string composed of 32 hex characters, like this one: `00112233445566778899AABBCCDDEEFF`. Then, there is a 16 rounds loop that walks the serial character by character and builds 15 blobs of 16 bytes long each; I call them `i0`, `i1`, .., `i14` (as it's very self explanatory). Each round of this loop initializes one byte of every `i`'s (hence the 16 rounds). The current input serial byte is sent through a huge substitution box (that I called `sbx` and that it is 11534336 bytes long). This basically diffuses the input serial in those blobs. If the explanation above wasn't clear enough or something; here is what it looks like in prettyfied C code:
+The binary expects a serial as input which is a string composed of 32 hex characters, like this one: `00112233445566778899AABBCCDDEEFF`. Then, there is a loop containing 16 rounds that walks the serial character by character and builds 15 blobs, each 16 bytes long; I call them `i0`, `i1`, .., `i14` (as it's very self explanatory). Each round of this loop initializes one byte of every `i`'s (hence the 16 rounds). The current input serial byte is sent through a huge substitution box (that I called `sbx` and that it is 11534336 bytes long). This basically diffuses the input serial in those blobs. If the explanation above wasn't clear enough, here is what it looks like in prettyfied C code:
 
 ```C
 while(Idx < 16) {
@@ -59,9 +59,9 @@ while(Idx < 16) {
 
 ## Confusion
 
-After the above, there is now a bunch of stuff happening that don't necessarily make a whole lot of sense at the time of reverse-engineering. As far as I am concerned though, it also doesn't sound too concerning either as I can't see a clear relationship yet with the input serial bytes or the `i`s. As those two are the only user-input derived data, those are the only ones I care about for now.
+After the above, there is now a bunch of stuff happening that doesn't necessarily make a whole lot of sense at the moment. As far as I am concerned though, this doesn't concern me yet as I can't see a clear relationship yet with the input serial bytes or the `i`s. As those two are the only user-input derived data, those are the only ones I care about for now.
 
-What I learned from this part though is that there are new players in town. Basically, three blobs of 16 bytes, respectively called `mask`, `mask3` and `shiftedmask`, get initialized with values derived from `rand()`. At first, it sure is a bit confusing to see pseudo-randomized values getting involved but we can assume those operations will get canceled out by some others. It wouldn't make sense to have some crypto looking algorithm producing non deterministic results. The PRNG is seeded with `time(NULL)`.
+Next, we hit this code:
 
 ```C
 do
@@ -80,7 +80,9 @@ do
 while ( v15 != 16 );
 ```
 
-After this, there are a bunch of other operations that we don't care about. Really, you can see those as black boxes that generate deterministic outputs. It means we will be able to conveniently dump the generated values whenever needed. For what it's worth, it basically mixes a bunch of values inside `mask3`.
+What I learned from this part is that there are new players in town. Basically, three blobs of 16 bytes, respectively called `mask`, `mask3` and `shiftedmask`, get initialized with values derived from `rand()`. At first it sure is a bit confusing to see pseudo-randomized values getting involved but we can assume those operations will get canceled out by some others later. It wouldn't make sense to have some crypto looking algorithm producing non deterministic results. The PRNG is seeded with `time(NULL)`.
+
+After this there are a bunch of other operations that we don't care about. You can just see those as black boxes that generate deterministic outputs. It means we will be able to conveniently dump the generated values whenever needed. For what it's worth, it basically mixes a bunch of values inside `mask3`.
 
 ```C
 shiftrows((unsigned __int8 (*)[4])shiftedmask);
@@ -116,7 +118,7 @@ byte_D0377F = v30;
 *(__m128i *)mask3 = _mm_xor_si128(_mm_load_si128((const __m128i *)mask), *(__m128i *)mask3);
 ```
 
-`mul3` and `mul2` are basically arrays that have been constructed such as `mul2[idx] = idx * 2` and `mul3[idx] = idx * 3`.
+`mul3` and `mul2` are basically arrays that have been constructed such as `mul2[idx] = idx * 2` and `mul3[idx] = idx * 3` within [GF(2**8)](https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael%27s_finite_field).
 
 ```C
 const uint8_t mul2[256] {
@@ -155,7 +157,7 @@ const uint8_t mul2[256] {
 };
 ```
 
-One thing of interest - maybe - is that there is a small anti-debug in there. The file is opened and read using one of `std::vector`'s constructor that takes an `std::ifstreambuf_iterator` as input. Some sort of sum of control is generated and will be used later in the `schedule` routine. What this means is that if you were about to patch the binary, the algorithm would end up generating *wrong* values. Again, this is barely an inconvenience as we can just dump it out and carry on with our lives.
+One thing of interest - maybe - is that there is a small anti-debug in there. The file is opened and read using one of `std::vector`'s constructor that takes an `std::ifstreambuf_iterator` as input. Some sort of checksum is generated and will be used later in the `schedule` routine. What this means is that if you were about to patch the binary, the algorithm would end up generating *wrong* values. Again, this is barely an inconvenience as we can just dump it out and carry on with our lives.
 
 ```C
 std::basic_ifstream<char,std::char_traits<char>>::basic_ifstream(&v63, *v3, 4LL);
@@ -184,7 +186,7 @@ if ( (signed int)v47 - (signed int)v46 > 0 )
 
 At this point, the 15 `i`'s from above are used to initialize what I called `s0`, `s1`, ..., `s14`. Again, it is 15 blobs of 16 bytes each. They are passed to the `schedule` function that will perform a lot of arithmetic operations on the array of `s`'s. Again, no need to understand `schedule` just yet; as far as we are concerned it is a black box that takes `s`'s in input and gives us back different `s`'s in output, period.
 
-Each of those 16 bytes (xmmwords) (`s0`, ..., `s14`) are XOR'ed together, and if the resulting *xmmword* obeys a bunch of constraints then you get the good boy message.
+Each of those 16 bytes (conveniently, XMMs register are 16 bytes long which allows the compiler to optimize the code manipulating those blobs) (`s0`, ..., `s14`) are XOR'ed together, and if the resulting *xmmword* obeys a bunch of constraints then you get the good boy message.
 
 Those constraints look like this:
 
@@ -222,9 +224,9 @@ This garbage simply translates to `win = (mxor == 0x4242424269696969373737371313
 
 # Zooming in
 
-It is now a good time to zoom in and get our hands dirty a little. We sort of know what we need to achieve, but we need to know how to get there now. We know we have some dumping to do: `mask`, `mask3`, `shiftedmask`, `crc`, `sbx`, `mul2` and `mul3`. Easy. Mechanical.
+It is now a good time to zoom in and get our hands dirty a little. We sort of know what we need to achieve, but we are unsure of how to get there. We know we have some dumping to do: `mask`, `mask3`, `shiftedmask`, `crc`, `sbx`, `mul2` and `mul3`. Easy. Mechanical.
 
-The most important part though is to understand a bit more `schedule`. You can consider it as the heart of the challenge. So let's do that.
+The most important outstanding unknown part is to understand a bit more of `schedule`. You can consider it as the heart of the challenge. So let's do that.
 
 ## schedule
 
@@ -235,11 +237,11 @@ for(i = rand() % 15; scheduling[i] == 40; i = rand() % 15);
 nround = scheduling[i];
 ```
 
-The switch case that follows applies one type of transformation (arithmetic ones) on the chosen `s` variable. In order to track the number of *rounds* already applied to each `s`'s variables, an array called `scheduling` is used. The algorithm stops when forty rounds has been applied to every `s`'s. It's also worth to point out that there's a small anti-debugging here; a timer is started at the beginning (`t1`) of the round and stopped at the end (`t2`). If any abnormal delay between `t1` and `t2` is discovered the later computations will produce *wrong* results.
+The switch case that follows applies one type of transformation (arithmetic ones) on the chosen `s` variable. In order to track the number of *rounds* already applied to each `s`'s variables, an array called `scheduling` is used. The algorithm stops when forty rounds have been applied to every `s`'s. It's also worth to point out that there's a small anti-debugging here; a timer is started at the beginning (`t1`) of the round and stopped at the end (`t2`). If any abnormal delay between `t1` and `t2` is discovered the later computations will produce *wrong* results.
 
 We can observe 6 different type of operations in the switch case. Some of them look very easily invertible and some others would need some more work. But at this point, it reminds me a lot of this AES whitebox I analyzed back in [2013](https://github.com/0vercl0k/articles/blob/master/AES%20Whitebox%20Unboxing%20No%20Such%20Problem.pdf). This one doesn't have any obfuscation which makes it much easier to deal with. What I did at the time was pretty simple: divide and conquer. I broke down each round in four pieces. Each of those *quarter* round worked as a black box function that took 4 bytes of input and generated 4 bytes of output (as a result each round would generate 16 bytes/128bits). I needed to find the 4 bytes of input that would give me the 4 bytes of output I wanted. Solving those quarters could be done simultaneously and starting from the desired output you could go walk back from round `N` to round `N-1`. That was basically my plan for `ctf2`.
 
-At this point I already had ripped out the `schedule` function in my own program. I cleaned-up the code and made sure it produced the same results that the program itself (always fun to debug). In other words, I was ready to go forward with the analysis of all the arithmetic boxes.
+At this point I already had ripped out the `schedule` function to my own program. I cleaned-up the code and made sure it produced the same results as the program itself (always fun to debug). In other words, I was ready to go forward with the analysis of all the arithmetic rounds.
 
 ### case 0: encoding
 This case is as simple as it gets as you can see below:
@@ -333,12 +335,12 @@ case 37: {
 }
 ```
 
-The thing I always focus on is: the relationship between the input and output bytes. Remember that each round works as a function that takes a 16 bytes blob in input (a `Slot_t` in my code) and returns another 16 bytes blob as output. As we are interested to write a function that can find an input that generates a specific output it is very important to identify how the output is built and what input bytes are used to build it.
+The thing I always focus on is: the relationship between the input and output bytes. Remember that each round works as a function that takes a 16 bytes blob in input (a `Slot_t` in my code) and returns another 16 bytes blob as output. As we are interested in writing a function that can find an input that generates a specific output it is very important to identify how the output is built and what input bytes are used to build it.
 
 Let's have a closer look at how the first byte of the output is generated. We start from the end of the function and we follow back the references until we encounter a byte from the input state. In this case we trace back where `v57` is coming from, and then `v55` and `v56`. `v55` is the first byte of the input state, great. `v56` is a 
 a number encoding the number of the round. We don't necessarily care about it as of now, but it's good to realize that the number of the round is a parameter of this function; and not exclusively the inputs bytes. OK so we know that the first byte of the output is built via the first byte of the input, easy. Simpler than I first expected when looking at the Hex-Rays' output to be honest. But I'll take simple :).
 
-If you repeat the above steps for every bytes you basically realize that each bytes of the output is dependent on one single byte of input. They are all independent one from another which is even nicer. What this means is that we can very easily brute-force an input value to generate a specific output value. That's great because it is ... very cheap to compute; so cheap that we don't even bother and we move on to the next case.
+If you repeat the above steps for every byte you basically realize that each byte of the output is dependent on one single byte of input. They are all independent from one another which is even nicer. What this means is that we can very easily brute-force an input value to generate a specific output value. That's great because it is ... very cheap to compute; so cheap that we don't even bother and we move on to the next case.
 
 In theory we could even parallelize the below but it's probably not worth doing as already fast.
 
@@ -455,7 +457,7 @@ Next one!
 
 ### case 3, 7, 11, 15, 19, 23, 27, 31, 35: MixColumns
 
-This case is the most annoying one basically. At first sight, it looks very similar as the `case 1` we analyzed earlier, but ... not quite. 
+This case is the most annoying one basically. At first sight, it looks very similar to the `case 1` we analyzed earlier, but ... not quite. 
 
 ```C
 case 3:
@@ -537,11 +539,11 @@ case 35: {
 }
 ```
 
-This time if you take a closer look, we notice that each group of four bytes of output depends of four bytes of input. And every byte of those four bytes of output depend on those four input bytes.
+This time if we take a closer look, we notice that each group of four bytes of output depends of four bytes of input. And every byte of those four bytes of output depend on those four input bytes.
 
 This means that you cannot brute force byte by byte like earlier. You have to brute force four bytes... which is much more costly compared to what we've seen above. The only thing going for us is that we can brute force them in parallel as they are independent from each other. A thread for each should do the work.
 
-At this stage I already wasted a bunch of time on various bugs or stupid things; so I decided to write this very simple naive brute force function (it's not pretty nor fast... but I've made peace with it at this point):
+At this stage I already wasted a bunch of time on various bugs or stupid things; so I decided to write this very simple naive brute force function (it's neither pretty nor fast... but I've made peace with it at this point):
 
 ```C
 void reverse_35(Slot_t &Output, Slot_t &Input) {
@@ -672,7 +674,7 @@ case 36: {
 }
 ```
 
-Note that `mask3` is one of the array that gets modified when you introduce an abnormal delay in a round; like if you're debugging for example. Yet another spot where wrong results could be produced :).
+Note that `mask3` is one of the arrays that gets modified when you introduce an abnormal delay in a round; like if you're debugging for example. Yet another spot where wrong results could be produced :).
 
 ```C
 void reverse_36(Slot_t &Output, Slot_t &Input) {
@@ -701,7 +703,7 @@ void reverse_39(Slot_t &Output, Slot_t &Input) {
 
 ## unround
 
-At this stage we have all the small blocks we need to find an input state that generates a specific output state. We simply combine all the `reverse_` routines we wrote into a function that basically is the invert of `schedule`. We also create a utility function that applies forty `unround` to a state in order to fully invert it: from bottom to top.
+At this stage we have all the small blocks we need to find an input state that generates a specific output state. We simply combine all the `reverse_` routines we wrote into a function that basically is the inverse of `schedule`. We also create a utility function that applies forty `unround` to a state in order to fully invert it: from bottom to top.
 
 ```C
 void recover_state(Slot_t &Output, Slot_t &Input) {
@@ -761,7 +763,7 @@ All right, awesome. Sounds like we are done with schedule for now :).
 
 ## How do I win now?
 
-From above, we already established that the 15 `s`'s blobs get XOR'ed together and if the result is `0x42424242696969693737373713131313ULL` then it's a win, great. We also know that the input serial is diffused in those 15 blobs. In each blobs, there are all the bytes of the serial input. They are just mixed in differently depending on which blob it is. What this means is that when we give the good serial to the program, we can fully control only one of those blob. And as they are XOR'ed together it's unclear at first sight how we can get the resulting XOR equal to the magic value, strange.
+From above, we already established that the 15 `s`'s blobs get XOR'ed together and if the result is `0x42424242696969693737373713131313ULL` then it's a win, great. We also know that the input serial is diffused in those 15 blobs. In each blob, there are all the bytes of the serial input. They are just mixed in differently depending on which blob it is. What this means is that when we give the good serial to the program, we can fully control only one of those blobs. And as they are XOR'ed together it's unclear at first sight how we can get the resulting XOR equal to the magic value, strange.
 
 After being stuck a bit on this (and still being mad at myself for it D:), my friend [mongo](https://twitter.com/mongobug) asked me if I **really** took a look at what the 15 blobs look like. Ugh, I guess I kinda did? At this point I fired up my debugger and saw the below fifteen blobs (for the following serial `00112233445566778899AABBCCDDEEFF`):
 
@@ -769,43 +771,29 @@ After being stuck a bit on this (and still being mad at myself for it D:), my fr
 gef➤  pie breakpoint *0x0000000000001144c
 gef➤  pie run
 gef➤  x/240bx &states
-0x555556257660 <states>:        0x66    0xcc    0x33    0x55    0x88    0xee    0x77    0x00
-0x555556257668 <states+8>:      0xdd    0x22    0x99    0x11    0xff    0xbb    0x44    0xaa
-0x555556257670 <states+16>:     0xff    0xcc    0x66    0xaa    0x99    0x55    0x22    0x00
-0x555556257678 <states+24>:     0x77    0x11    0x88    0xbb    0xdd    0x33    0xee    0x44
-0x555556257680 <states+32>:     0xaa    0x33    0xdd    0xcc    0x66    0xee    0x11    0x44
-0x555556257688 <states+40>:     0xbb    0x55    0x77    0xff    0x22    0x00    0x88    0x99
-0x555556257690 <states+48>:     0xaa    0x55    0x33    0x11    0xbb    0xdd    0x66    0xcc
-0x555556257698 <states+56>:     0x22    0xff    0x44    0x88    0xee    0x77    0x99    0x00
-0x5555562576a0 <states+64>:     0x00    0x66    0xbb    0x77    0xff    0x55    0x88    0x33
-0x5555562576a8 <states+72>:     0x11    0x44    0x99    0x22    0xcc    0xdd    0xaa    0xee
-0x5555562576b0 <states+80>:     0x22    0x00    0x33    0xbb    0xcc    0x88    0x44    0xdd
-0x5555562576b8 <states+88>:     0x77    0x55    0xaa    0x11    0x66    0xff    0xee    0x99
-0x5555562576c0 <states+96>:     0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11
-0x5555562576c8 <states+104>:    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
-0x5555562576d0 <states+112>:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd
-0x5555562576d8 <states+120>:    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
-0x5555562576e0 <states+128>:    0x66    0xcc    0x33    0x55    0x88    0xee    0x77    0x00
-0x5555562576e8 <states+136>:    0xdd    0x22    0x99    0x11    0xff    0xbb    0x44    0xaa
-0x5555562576f0 <states+144>:    0xff    0xcc    0x66    0xaa    0x99    0x55    0x22    0x00
-0x5555562576f8 <states+152>:    0x77    0x11    0x88    0xbb    0xdd    0x33    0xee    0x44
-0x555556257700 <states+160>:    0xaa    0x33    0xdd    0xcc    0x66    0xee    0x11    0x44
-0x555556257708 <states+168>:    0xbb    0x55    0x77    0xff    0x22    0x00    0x88    0x99
-0x555556257710 <states+176>:    0xaa    0x55    0x33    0x11    0xbb    0xdd    0x66    0xcc
-0x555556257718 <states+184>:    0x22    0xff    0x44    0x88    0xee    0x77    0x99    0x00
-0x555556257720 <states+192>:    0x00    0x66    0xbb    0x77    0xff    0x55    0x88    0x33
-0x555556257728 <states+200>:    0x11    0x44    0x99    0x22    0xcc    0xdd    0xaa    0xee
-0x555556257730 <states+208>:    0x22    0x00    0x33    0xbb    0xcc    0x88    0x44    0xdd
-0x555556257738 <states+216>:    0x77    0x55    0xaa    0x11    0x66    0xff    0xee    0x99
-0x555556257740 <states+224>:    0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11
-0x555556257748 <states+232>:    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
+0x555556257660 <states>:        0x66    0xcc    0x33    0x55    0x88    0xee    0x77    0x00    0xdd    0x22    0x99    0x11    0xff    0xbb    0x44    0xaa
+0x555556257670 <states+16>:     0xff    0xcc    0x66    0xaa    0x99    0x55    0x22    0x00    0x77    0x11    0x88    0xbb    0xdd    0x33    0xee    0x44
+0x555556257680 <states+32>:     0xaa    0x33    0xdd    0xcc    0x66    0xee    0x11    0x44    0xbb    0x55    0x77    0xff    0x22    0x00    0x88    0x99
+0x555556257690 <states+48>:     0xaa    0x55    0x33    0x11    0xbb    0xdd    0x66    0xcc    0x22    0xff    0x44    0x88    0xee    0x77    0x99    0x00
+0x5555562576a0 <states+64>:     0x00    0x66    0xbb    0x77    0xff    0x55    0x88    0x33    0x11    0x44    0x99    0x22    0xcc    0xdd    0xaa    0xee
+0x5555562576b0 <states+80>:     0x22    0x00    0x33    0xbb    0xcc    0x88    0x44    0xdd    0x77    0x55    0xaa    0x11    0x66    0xff    0xee    0x99
+0x5555562576c0 <states+96>:     0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
+
+0x5555562576d0 <states+112>:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
+
+0x5555562576e0 <states+128>:    0x66    0xcc    0x33    0x55    0x88    0xee    0x77    0x00    0xdd    0x22    0x99    0x11    0xff    0xbb    0x44    0xaa
+0x5555562576f0 <states+144>:    0xff    0xcc    0x66    0xaa    0x99    0x55    0x22    0x00    0x77    0x11    0x88    0xbb    0xdd    0x33    0xee    0x44
+0x555556257700 <states+160>:    0xaa    0x33    0xdd    0xcc    0x66    0xee    0x11    0x44    0xbb    0x55    0x77    0xff    0x22    0x00    0x88    0x99
+0x555556257710 <states+176>:    0xaa    0x55    0x33    0x11    0xbb    0xdd    0x66    0xcc    0x22    0xff    0x44    0x88    0xee    0x77    0x99    0x00
+0x555556257720 <states+192>:    0x00    0x66    0xbb    0x77    0xff    0x55    0x88    0x33    0x11    0x44    0x99    0x22    0xcc    0xdd    0xaa    0xee
+0x555556257730 <states+208>:    0x22    0x00    0x33    0xbb    0xcc    0x88    0x44    0xdd    0x77    0x55    0xaa    0x11    0x66    0xff    0xee    0x99
+0x555556257740 <states+224>:    0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
 ```
 
-Do you see it now? If you look closely, you can see that `states[0] = states[8]`, `states[1] = states[9]`, `states[2] = states[10]`, etc. Which means that XORing them together cancel them out.. leaving the one blob in the middle: `states[7]`.
+Do you see it now? If you look closely, you can see that `states[0] = states[8]`, `states[1] = states[9]`, `states[2] = states[10]`, etc. Which means that XORing them together cancels them out.. leaving the one blob in the middle: `states[7]`.
 
 ```text
-0x5555562576d0 <states+112>:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd
-0x5555562576d8 <states+120>:    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
+0x5555562576d0 <states+112>:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
 ```
 
 So now we just have to invoke `recover_state` in order to find an input state that generates this output state: `42424242696969693737373713131313`. When we have recovered the sixteen bytes of input we need to study the diffusion algorithm a little to be able to construct an input serial that generates the `states[7]` of our choice (`slot2password`), easy.
@@ -848,8 +836,10 @@ Job done :-).
 
 ## Conclusion
 
-Interestingly, while I was writing up this article, [ledger](https://www.ledger.fr/) posted one describing the puzzles and some of the solutions they have received. You should definitely check it out: [CTF complete – HW bounty still ongoing](https://www.ledger.fr/2018/06/01/ctf-complete-hw-bounty-still-ongoing-2-337-btc/). The other interesting thing is, as usual, there are many ways leading to victory.
+Interestingly, while I was writing up this article, [ledger](https://www.ledger.fr/) posted one describing the puzzles and some of the solutions they have received. You should definitely check it out: [CTF complete - HW bounty still ongoing](https://www.ledger.fr/2018/06/01/ctf-complete-hw-bounty-still-ongoing-2-337-btc/). The other interesting thing is, as usual, there are many ways leading to victory.
 
-What's fascinating about it, is that in this specific case, studying the cryptography closer have allowed some people to directly extract the AES key. At what point writing a solution becomes trivial: decrypt a blob with AES and the extracted key. No need for any reimplementing any of the program's logic. That's very cool! But there's been an even richer spectrum of solutions: fault injections, side channel attacks, reverse-engineering, etc. That's also why I would definitely recommend to go and read other people solutions :).
+What's fascinating about it, is that in this specific case, studying the cryptography closer has allowed some people to directly extract the AES key. At that point writing a solution becomes trivial: decrypt a blob with AES and the extracted key. No need for any reimplementing any of the program's logic. That's very cool! But there's been an even richer spectrum of solutions: fault injections, side channel attacks, reverse-engineering, etc. That's also why I would definitely recommend to go and read other people solutions :).
 
 In any case, I've uploaded my solution file [unboxin-ctf2.cc](https://github.com/0vercl0k/stuffz/blob/master/ledgerctf2018/ctf2/unboxin-ctf2.cc) on my [github](https://github.com/0vercl0k/) as usual, enjoy!
+
+Last but not least, special thanks to my mates [yrp604](https://twitter.com/yrp604) and [mongo](https://twitter.com/mongobug) for proofreading and edits :)
