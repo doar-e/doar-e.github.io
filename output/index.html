@@ -97,6 +97,42 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2018/07/14/cve-2017-2446-or-jscjsglobalobjectishavingabadtime/">CVE-2017-2446 or JSC::JSGlobalObject::isHavingABadTime.</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2018-07-14T18:49:00-07:00">
+        <i class="icon-calendar"></i>Sat 14 July 2018
+</abbr>
+<span class="label">By</span>
+<a href="/author/yrp.html"><i class="icon-user"></i>yrp</a>
+<span class="label">Category</span>
+<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/javascriptcore.html"><i class="icon-tag"></i>JavascriptCore</a>
+	<a href="/tag/jsc.html"><i class="icon-tag"></i>jsc</a>
+	<a href="/tag/cve-2017-2446.html"><i class="icon-tag"></i>cve-2017-2446</a>
+	<a href="/tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>This post will cover the development of an exploit for JavaScriptCore (JSC) from the perspective of someone with no background in browser exploitation.</p>
+<p>Around the start of the year, I was pretty burnt out on CTF problems and was interested in writing an exploit for something more complicated and practical. I settled on writing a WebKit exploit for a few reasons:</p>
+<ul>
+<li>It is code that is broadly used in the real world</li>
+<li>Browsers seemed like a cool target in an area I had little familiarity (both C++ and interpreter exploitation.)</li>
+<li>WebKit is (supposedly) the softest of the major browser targets.</li>
+<li>There were good existing resources on WebKit exploitation, namely <a href="http://phrack.org/papers/attacking_javascript_engines.html">saelo’s Phrack article</a>, as well as a variety of public console exploits.</li>
+</ul>
+<p>With this in mind, I got a recommendation for an interesting looking bug that has not previously been publicly exploited: <a href="https://twitter.com/natashenka">@natashenka</a>’s CVE-2017-2446 from the <a href="https://bugs.chromium.org/p/project-zero/issues/detail?id=1032">project zero bugtracker</a>. The bug report had a PoC which crashed in <code>memcpy()</code> with some partially controlled registers, which is always a promising start.</p>
+<p>This post assumes you’ve read saelo’s Phrack article linked above, particularly the portions on NaN boxing and butterflies -- I can’t do a better job of explaining these concepts than the article. Additionally, you should be able to run a browser/JavaScript engine in a debugger -- we will target Linux for this post, but the concepts should translate to your preferred platform/debugger.</p>
+<p>Finally, the goal of doing this initially and now writing it up was and is to learn as much as possible. There is clearly a lot more for me to learn in this area, so if you read something that is incorrect, inefficient, unstable, a bad idea, or just have some thoughts to share, I’d love to hear from you.</p>
+
+                        <a class="btn primary xsmall" href="/blog/2018/07/14/cve-2017-2446-or-jscjsglobalobjectishavingabadtime/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">Breaking ledgerctf's AES white-box challenge</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
@@ -360,42 +396,6 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
 <p>As the article is quite long, here is the complete table of contents:</p>
 
                         <a class="btn primary xsmall" href="/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">Dissection of Quarkslab's 2014 security challenge</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2014-09-06T20:37:00-07:00">
-        <i class="icon-calendar"></i>Sat 06 September 2014
-</abbr>
-<span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
-
-
-<span class="label">Tags</span>
-	<a href="/tag/python.html"><i class="icon-tag"></i>python</a>
-	<a href="/tag/virtual-machine.html"><i class="icon-tag"></i>virtual machine</a>
-	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>As the blog was a bit silent for quite some time, I figured it would be cool to put together a post ; so here it is folks, dig in!</p>
-<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference in Kuala Lumpur from the 13th of October until the 16th.</p>
-<p>The challenge has been written by <a href="http://blog.quarkslab.com/author/serge-guelton.html">Serge Guelton</a>, a R&amp;D engineer specialized in compilers/parallel computations. At the time of writing, already eight different people manage to solve the challenge, and one of the ticket seems to have been won by <code>hackedd</code>, so congrats to him!</p>
-<p><center><img alt="woot.png" src="/images/dissection_of_quarkslab_s_2014_security_challenge/woot.png"></center>
-According to the description of the challenge Python is heavily involved, which is a good thing for at least two reasons:</p>
-<ul>
-<li>first because I already had <a href="https://doar-e.github.io/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">the occasion</a> to look at its source code in the past,</li>
-<li>and because I so am a <a href="https://github.com/0vercl0k/stuffz/tree/master/Python's%20internals">big fan of Python</a>.</li>
-</ul>
-<p>In this post I will describe how I tackled this problem, how I managed to solve it. And to make up for me being slow at solving it I tried to make it fairly detailed. </p>
-<p>At first it was supposed to be quite short though, but well..I decided to analyze fully the challenge even if it wasn't needed to find the key unfortunately, so it is a bit longer than expected :-).</p>
-<p>Anyway, sit down, make yourself at home and let me pour you a cup of tea before we begin :-).</p>
-
-                        <a class="btn primary xsmall" href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">more ...</a>
                 </div>
         </div>
         <hr />

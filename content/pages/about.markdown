@@ -46,7 +46,7 @@ We are also hanging out on IRC ([#doar-e@irc.w3challs.com](irc://#doar-e@irc.w3c
     </ul>
   </li>
   <br/>
-  <li>Chabroni <strong>yrp</strong> for his "<a href="https://doar-e.github.io/blog/2016/12/21/happy-unikernels/">Happy unikernels</a>":
+  <li>Chabroni <strong>yrp</strong> for "<a href="https://doar-e.github.io/blog/2016/12/21/happy-unikernels/">Happy unikernels</a>" and "<a href="https://doar-e.github.io/blog/2018/07/14/cve-2017-2446-or-jscjsglobalobjectishavingabadtime/">CVE-2017-2446 or JSC::JSGlobalObject::isHavingABadTime</a>":
     <ul>
       <li>Twitter account: <a href="https://twitter.com/yrp604">@yrp604</a></li>
       <li>Github account: <a href="https://github.com/yrp604">yrp604</a></li>

