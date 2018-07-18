@@ -363,7 +363,7 @@ Padding percentage: 25.00 %
 
 
 &lt;p&gt;The codepath we’re on expects a butterfly with memory layout simplified to the following:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;       -8   -4     +0  +4  +8
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;       -8   -4     +0  +8  +16
 +---------------------+---+-----------+
 |pub length|length| 0 | 1 | 2 |...| n |
 +---------------------+---+-----------+
