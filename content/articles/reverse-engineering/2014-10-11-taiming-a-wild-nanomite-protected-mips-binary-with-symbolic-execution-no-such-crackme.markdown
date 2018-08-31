@@ -1330,4 +1330,4 @@ Also, special thanks to [@__x86](https://twitter.com/__x86) and [@jonathansalwan
 
 The codes/traces/tools developed in this post are all available on github [here](https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014) and [here](https://github.com/egirault/NoSuchCon2014/tree/master/)!
 
-By the way, don't hesitate to contact a member of the staff if you have a cool post you would like to see here -- you too can end up in [doar-e's wall of fame](https://doar-e.github.io/about/) :-).
+By the way, don't hesitate to contact a member of the staff if you have a cool post you would like to see here -- you too can end up in [doar-e's wall of fame](https://doar-e.github.io/pages/about.html) :-).
