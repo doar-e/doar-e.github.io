@@ -80,7 +80,7 @@ a:hover{color:#3a8acc !important;text-decoration:underline;-webkit-transition: c
 .container-fluid:after{clear:both;}
 p{font-size:inherit;line-height:26px;}p small{font-size:11px;color:#999999;}
 .lead{margin-bottom:18px;font-size:20px;font-weight:200;line-height:27px;}
-h1,h2,h3,h4,h5,h6{text-align:initial;margin:0;font-family:inherit;font-weight:normal;color:inherit;text-rendering:optimizelegibility;}h1 small,h2 small,h3 small,h4 small,h5 small,h6 small{font-weight:normal;color:#999999;}
+h1,h2,h3,h4,h5,h6{padding-bottom:10px;padding-top:10px;text-align:initial;margin:0;font-family:inherit;font-weight:normal;color:inherit;text-rendering:optimizelegibility;}h1 small,h2 small,h3 small,h4 small,h5 small,h6 small{font-weight:normal;color:#999999;}
 h1{font-size:30px;}h1 small{font-size:18px;}
 h2{font-size:24px;}h2 small{font-size:18px;}
 h3{line-height:27px;}h3 small{font-size:14px;}
