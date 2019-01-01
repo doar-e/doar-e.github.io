@@ -1145,7 +1145,7 @@ The type of `ExceptionData` that we are interested in is what I call a `SEH_SCOP
 
 ## Putting it all together
 
-All right, so now that we sort of know how to dig out the information we are interested in, you can check the script I came up with: [parse_eh_win64.js](https://github.com/0vercl0k/stuffz/blob/master/windbg-scripts/parse_eh_win64.js).
+All right, so now that we sort of know how to dig out the information we are interested in, you can check the script I came up with: [parse_eh_win64.js](https://github.com/0vercl0k/windbg-scripts/blob/master/parse_eh_win64/parse_eh_win64.js).
 
 This extends both the `Process` and the `Module` models. In both of those models it adds a `Functions` node as well as a `ExceptionHandlers` node. Each node under `Functions` has an `ExceptionHandlers` node too.
 
