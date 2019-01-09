@@ -1,4 +1,4 @@
-Title: About
+﻿Title: About
 Date: 2013-08-18 18:47
 
 # How to contribute
@@ -9,6 +9,7 @@ You can also contact the owners:
   - Axel Souchet: [twitter][1], [github][2]
   - Jonathan Salwan: [twitter][3], [github][4]
   - Jérémy Fetiveau: [twitter][5], [github][6]
+  - yrp: [twitter][7], [github][8]
 
 We are also hanging out on IRC ([#doar-e@irc.w3challs.com](irc://#doar-e@irc.w3challs.com)) and on twitter ([@doar_e](https://twitter.com/doar_e)) ; don't be shy & join us!
 
@@ -18,6 +19,8 @@ We are also hanging out on IRC ([#doar-e@irc.w3challs.com](irc://#doar-e@irc.w3c
 [4]: https://github.com/JonathanSalwan/
 [5]: https://twitter.com/__x86
 [6]: https://github.com/JeremyFetiveau
+[7]: https://twitter.com/yrp604
+[8]: https://github.com/yrp604
 
 # Wall of fame
 

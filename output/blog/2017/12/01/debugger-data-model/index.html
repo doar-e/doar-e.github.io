@@ -1228,7 +1228,7 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 
 <p><code>BeginAddress</code> and <code>EndAddress</code> give you the <code>__try</code> block RVA, <code>HandlerAddress</code> encodes either the <code>Filter</code> function or the start of the <code>__finally</code> block. The <code>JumpTarget</code> field tells you if you are looking at either a <code>__try / __except</code> or a <code>__try / __finally</code>. Also, the current heuristic I use to know if the <code>SCOPE_RECORD</code> looks legit or not is to ensure that the <code>__try</code> block resides in between the boundaries of the function the handler is defined in. This has been working well so far - at least on the binaries I have tried it on, but I would not be that surprised if there exists some edge cases to this; if you know any feel free to hit me up!</p>
 <h2 id="putting-it-all-together">Putting it all together</h2>
-<p>All right, so now that we sort of know how to dig out the information we are interested in, you can check the script I came up with: <a href="https://github.com/0vercl0k/stuffz/blob/master/windbg-scripts/parse_eh_win64.js">parse_eh_win64.js</a>.</p>
+<p>All right, so now that we sort of know how to dig out the information we are interested in, you can check the script I came up with: <a href="https://github.com/0vercl0k/windbg-scripts/blob/master/parse_eh_win64/parse_eh_win64.js">parse_eh_win64.js</a>.</p>
 <p>This extends both the <code>Process</code> and the <code>Module</code> models. In both of those models it adds a <code>Functions</code> node as well as a <code>ExceptionHandlers</code> node. Each node under <code>Functions</code> has an <code>ExceptionHandlers</code> node too.</p>
 <p>This basically means that you can now:</p>
 <ul>
