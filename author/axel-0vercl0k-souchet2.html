@@ -97,6 +97,31 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/">Breaking Kryptonite's obfuscation: a static analysis approach relying on symbolic execution</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2013-09-16T11:47:00-07:00">
+        <i class="icon-calendar"></i>Mon 16 September 2013
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/reverse-engineering.html"><i class="icon-folder-open"></i>reverse-engineering</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add</em> LLVM instruction. Instead of having a single asm instruction generated at the end of the pipeline, you will end up with a ton of assembly codes doing only an addition. If you never read my article, and you are interested in it here it is: <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=260">Obfuscation of steel: meet my Kryptonite</a>.</p>
+<p><center><img alt="home-made-adder.png" src="/images/breaking_kryptonite_s_obfuscation_with_symbolic_execution/home-made-adder.png"></center></p>
+<p>In this post I wanted to show you how we can manage to break that obfuscation with symbolic execution. We are going to write a really tiny symbolic execution engine with IDAPy, and we will use Z3Py to simplify all our equations. Note that a friend of mine <a href="https://twitter.com/elvanderb">@elvanderb</a> used a similar approach (more generic though) to simplify some parts of the <a href="http://download.tuxfamily.org/overclokblog/Obfuscation%20of%20steel%3a%20meet%20my%20Kryptonite/binaries/">crackme</a> ; but he didn't wanted to publish it, so here is my blog post about it!</p>
+
+                        <a class="btn primary xsmall" href="/blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">Pinpointing heap-related issues: OllyDbg2 off-by-one story</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
