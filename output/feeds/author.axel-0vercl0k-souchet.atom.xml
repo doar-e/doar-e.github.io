@@ -444,7 +444,7 @@ js!js::math_atan2:
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;&lt;center&gt;&lt;img alt="jsvalue_taggedpointer" src="/images/exploiting_spidermonkey/jsvalue_taggedpointer.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="jsvalue_taggedpointer" src="/images/exploiting_spidermonkey/jsvalue_taggedpointer.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;p&gt;The &lt;code&gt;0x1fff1&lt;/code&gt; constant from above is &lt;code&gt;JSVAL_TAG_INT32&lt;/code&gt; and &lt;code&gt;0x1fffc&lt;/code&gt; is &lt;code&gt;JSVAL_TAG_OBJECT&lt;/code&gt; as defined in &lt;code&gt;JSValueType&lt;/code&gt; which makes sense:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;enum&lt;/span&gt; &lt;span class="nl"&gt;JSValueType&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt;
 &lt;span class="p"&gt;{&lt;/span&gt;
@@ -611,7 +611,7 @@ struct jsid
 &lt;p&gt;In the implementation, a &lt;code&gt;JS::Shape&lt;/code&gt; describes a single property; its name and slot number. To describe several of them, shapes are linked together via the &lt;code&gt;parent&lt;/code&gt; field (and others). The slot number (which is used to find the property content later) is stored in the lower bits of the &lt;code&gt;immutableFlags&lt;/code&gt; field. The property name is stored as a &lt;code&gt;jsid&lt;/code&gt; in the &lt;code&gt;propid_&lt;/code&gt; field.&lt;/p&gt;
 &lt;p&gt;I understand this is a lot of abstract information thrown at your face right now. But let's peel the onion to clear things up; starting with a closer look at the above shape. This &lt;code&gt;JS::Shape&lt;/code&gt; object describes a property which value is stored in the slot number 1 (&lt;code&gt;0x2000001 &amp;amp; SLOT_MASK&lt;/code&gt;). To get its name we dump its &lt;code&gt;propid_&lt;/code&gt; field which is &lt;code&gt;0x000001fce63a7e20&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;What is a &lt;code&gt;jsid&lt;/code&gt;? A &lt;code&gt;jsid&lt;/code&gt; is another type of tagged pointer where type information is encoded in the lower three bits this time.&lt;/p&gt;
-&lt;p&gt;&lt;center&gt;&lt;img alt="jsid" src="/images/exploiting_spidermonkey/jsid.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="jsid" src="/images/exploiting_spidermonkey/jsid.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;p&gt;Thanks to those lower bits we know that this address is pointing to a string and it should match one of our property name :).&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; ?? (char*)((JSString*)0x000001fc`e63a7e20)-&amp;gt;d.inlineStorageLatin1
 char * 0x000001fc`e63a7e28
@@ -695,7 +695,7 @@ class js::Shape * 0x000001fc`e63ae880
 
 
 &lt;p&gt;A new &lt;code&gt;JS::Shape&lt;/code&gt; gets allocated (&lt;code&gt;0x000001e7c24b1150&lt;/code&gt;) and its &lt;code&gt;parent&lt;/code&gt; is the previous set of shapes (&lt;code&gt;0x000001e7c24b1150&lt;/code&gt;). A bit like prepending a node in a linked-list.&lt;/p&gt;
-&lt;p&gt;&lt;center&gt;&lt;img alt="shapes" src="/images/exploiting_spidermonkey/shapes.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="shapes" src="/images/exploiting_spidermonkey/shapes.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;h2 id="slots"&gt;Slots&lt;/h2&gt;
 &lt;p&gt;In the previous section, we talked a lot about how property names are stored in memory. Now where are property values?&lt;/p&gt;
 &lt;p&gt;To answer this question we throw the previous TTD trace we acquired in our debugger and go back at the first call to &lt;code&gt;Math.atan2&lt;/code&gt;:&lt;/p&gt;
@@ -736,7 +736,7 @@ char * 0x000001fc`e63a7e48
 
 
 &lt;p&gt;Here is a diagram describing the hierarchy of objects to clear any potential confusion:&lt;/p&gt;
-&lt;p&gt;&lt;center&gt;&lt;img alt="properties.svg" src="/images/exploiting_spidermonkey/properties.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="properties.svg" src="/images/exploiting_spidermonkey/properties.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;p&gt;This is really as much internals as I wanted to cover as it should be enough to be understand what follows. You should also be able to inspect most JavaScript objects with this background. The only sort-of of odd-balls I have encountered are JavaScript Arrays that stores the &lt;code&gt;length&lt;/code&gt; property, for example in an &lt;code&gt;js::ObjectElements&lt;/code&gt; object; but that is about it.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dt js::ObjectElements
    +0x000 flags            : Uint4B
@@ -1041,7 +1041,7 @@ js&amp;gt; f2b(b2f([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]))
 &lt;p&gt;Anyway, this means we can leak the &lt;code&gt;emptyElementsHeader&lt;/code&gt; pointer as well as corrupt the &lt;code&gt;DATA_SLOT&lt;/code&gt; buffer pointer with doubles. Because I did not realize how doubles were encoded in &lt;code&gt;js::Value&lt;/code&gt; at first (duh), I actually had another Array adjacent to the TypedArray (one Array, one TypedArray and one Array) so that I could read the pointer via the TypedArray :(.&lt;/p&gt;
 &lt;p&gt;Last thing to mention before coding a bit is that we use the &lt;a href="https://github.com/0vercl0k/blazefox/blob/master/exploits/int64.js"&gt;Int64.js&lt;/a&gt; library written by &lt;a href="https://twitter.com/5aelo"&gt;saelo&lt;/a&gt; in order to represent 64-bit integers (that we cannot represent today with JavaScript native integers) and have &lt;a href="https://github.com/0vercl0k/blazefox/blob/master/exploits/utils.js"&gt;utility functions&lt;/a&gt; to convert a double to an &lt;code&gt;Int64&lt;/code&gt; or vice-versa. This is not something that we have to use, but makes thing feel more natural. At the time of writing, the &lt;a href="https://github.com/tc39/proposal-bigint"&gt;BigInt&lt;/a&gt; (aka arbitrary precision JavaScript integers) JavaScript standard &lt;a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1366287"&gt;wasn't enabled&lt;/a&gt; by default on Firefox, but this should be pretty mainstream in every major browsers quite soon. It will make all those shenanigans easier and you will not need any custom JavaScript module anymore to exploit your browser, quite the luxury :-).&lt;/p&gt;
 &lt;p&gt;Below is a summary diagram of the blaze'd Array and the TypedArray that we can corrupt via the first one:&lt;/p&gt;
-&lt;p&gt;&lt;center&gt;&lt;img alt="basic.js" src="/images/exploiting_spidermonkey/basic.js.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="basic.js" src="/images/exploiting_spidermonkey/basic.js.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;h3 id="building-an-arbitrary-memory-access-primitive"&gt;Building an arbitrary memory access primitive&lt;/h3&gt;
 &lt;p&gt;As per the above illustration, the first Array is 0x60 bytes long (including the inline buffer, assuming we instantiate it with at most 6 entries). The inline backing buffer starts at +0x30 (&lt;code&gt;6*8&lt;/code&gt;). The backing buffer can hold 6 &lt;code&gt;js::Value&lt;/code&gt; (another 0x30 bytes), and the target pointer to leak is at +0x18 (&lt;code&gt;3*8&lt;/code&gt;) of the TypedArray. This means, that if we get the &lt;code&gt;6+3&lt;/code&gt;th entry of the Array, we should have in return the &lt;code&gt;js!emptyElementsHeader&lt;/code&gt; pointer encoded as a double:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;js&amp;gt; b = new Array(1,2,3,4,5,6)
@@ -1899,7 +1899,7 @@ js&amp;gt; objectAddress(AB)
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;&lt;center&gt;&lt;img alt="kaizen.js" src="/images/exploiting_spidermonkey/kaizen.js.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="kaizen.js" src="/images/exploiting_spidermonkey/kaizen.js.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;h3 id="dynamically-resolve-exported-function-addresses"&gt;Dynamically resolve exported function addresses&lt;/h3&gt;
 &lt;p&gt;This is really something easy to do but for sure is far from being the most interesting or fun thing to do, I hear you..&lt;/p&gt;
 &lt;p&gt;The utilities are able to use a user-provided read function, a module base-address, it will walk its &lt;a href="http://win32assembly.programminghorizon.com/pe-tut6.html"&gt;IAT&lt;/a&gt; and resolve an API address. Nothing fancy, if you are more interested you can read the code in &lt;a href="https://github.com/0vercl0k/blazefox/blob/master/exploits/moarutils.js"&gt;moarutils.js&lt;/a&gt; and maybe even reuse it!&lt;/p&gt;
@@ -2306,7 +2306,7 @@ VS
 &lt;ul&gt;
 &lt;li&gt;As you have to know precisely the number of NOP to inject to simulate the "JIT environment", you also need to know the size of the instruction you want to plant. The issue is that when you are inflating the payload with NOP in between every instruction, some instructions get encoded differently. Imagine a short jump encoded on two bytes.. well it might become a long jump encoded with four bytes. And if it happens, it messes up everything.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;center&gt;&lt;img alt="ifrit.js" src="/images/exploiting_spidermonkey/ifrit.js.svg"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="ifrit.js" src="/images/exploiting_spidermonkey/ifrit.js.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Sort of as a follow-up to the above point I figured I would try to force MASM64 to generate long jumps all the time instead of short jumps. Turns out, I did not find a way to do that which was annoying.&lt;/li&gt;
 &lt;li&gt;My initial workflow was that: I would dump the assembly with WinDbg, send it to a Python script that generates a .asm file that I would compile with ml64. Something to keep in mind is that, in x86 one instruction can have several different encodings. With different sizes. So again, I encountered issues with the same class of problem as above: ml64 would encode the disassembled instruction a bit differently and kaboom.&lt;/li&gt;
