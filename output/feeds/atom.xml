@@ -656,7 +656,7 @@ unsigned int64 0xfffe01fc`e637e1f0
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;As expected &lt;code&gt;B&lt;/code&gt; indeed shares it even though &lt;code&gt;A&lt;/code&gt; and &lt;code&gt;B&lt;/code&gt; store different property values. Care to guess what is going to happen when we add another property to &lt;code&gt;B&lt;/code&gt; now? To find out, press &lt;code&gt;g&lt;/code&gt; one last time:&lt;/p&gt;
+&lt;p&gt;As expected &lt;code&gt;B&lt;/code&gt; indeed shares it even though &lt;code&gt;A&lt;/code&gt; and &lt;code&gt;B&lt;/code&gt; store different property values. Care to guess what is going to happen when we add another property to &lt;code&gt;C&lt;/code&gt; now? To find out, press &lt;code&gt;g&lt;/code&gt; one last time:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; g
 Breakpoint 0 hit
 Time Travel Position: D493:D
