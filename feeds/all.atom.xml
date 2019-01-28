@@ -1150,7 +1150,7 @@ js&amp;gt; Int64.fromJSValue(c.slice(0, 8)).toString(16)
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;And we can verify with the debugger that we indeed leaked the address of &lt;code&gt;c&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;And we can verify with the debugger that we indeed leaked the address of &lt;code&gt;d&lt;/code&gt;:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:005&amp;gt; !smdump_jsobject 0x16c8d201d20
 16c8d201d20: js!js::ArrayObject:   Length: 3
 16c8d201d20: js!js::ArrayObject: Capacity: 6
