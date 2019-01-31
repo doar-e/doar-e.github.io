@@ -1566,7 +1566,7 @@ ntdll!TpSimpleTryPost+0x111:
 &lt;li&gt;The third line adds 0x40 to it which means &lt;code&gt;@rsp&lt;/code&gt; now points into the backing buffer of the TypedArray which we fully control the content of,&lt;/li&gt;
 &lt;li&gt;And finally we return.&lt;/li&gt;
 &lt;/ol&gt;
-&lt;p&gt;With this pivot, we have control over the execution flow, as well as control over the stack; this is good stuff :-). The ntdll module used at the time is available here &lt;a href="https://github.com/0vercl0k/blazefox/blob/master/js-asserts/js.exe.local/ntdll.dll"&gt;ntdll&lt;/a&gt; (RS5 64-bit, Jan 2019) in case anyone is interested.&lt;/p&gt;
+&lt;p&gt;With this pivot, we have control over the execution flow, as well as control over the stack; this is good stuff :-). The ntdll module used at the time is available here &lt;a href="https://github.com/0vercl0k/blazefox/blob/master/js-asserts/ntdll/ntdll.dll"&gt;ntdll&lt;/a&gt; (RS5 64-bit, Jan 2019) in case anyone is interested.&lt;/p&gt;
 &lt;p&gt;The below shows step-by-step what it looks like from the debugger once we land on the above stack-pivot gadget:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; bp ntdll+bfda2
 
