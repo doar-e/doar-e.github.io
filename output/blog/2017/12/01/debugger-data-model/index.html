@@ -191,15 +191,15 @@
 One really interesting property of this exposed information is that it becomes <em>queryable</em> via operators that have been highly inspired from C#’s LINQ operators. For those who are unfamiliar with them I would suggest looking at <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/basic-linq-query-operations">Basic LINQ query operations</a>.</p>
 <h2 id="first-query">First query</h2>
 <p>Say you would like to find what modules the current <code>@rip</code> is pointing into, you can easily express this through a query using LINQ operators and the data model:</p>
-<div class="highlight"><pre><span></span>0:001&gt; dx @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))
-@$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))                
+<div class="highlight"><pre><span></span>0:001&amp;gt; dx @$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))
+@$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))                
     [0x8]            : C:\WINDOWS\SYSTEM32\ntdll.dll
 </pre></div>
 
 
 <p>..and you can even check all the information related to this module by clicking on the DML <code>[0x8]</code> link:</p>
-<div class="highlight"><pre><span></span>0:001&gt; dx -r1 @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))[8]
-@$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
+<div class="highlight"><pre><span></span>0:001&amp;gt; dx -r1 @$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))[8]
+@$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
     BaseAddress      : 0x7ffc985a0000
     Name             : C:\WINDOWS\SYSTEM32\ntdll.dll
     Size             : 0x1db000
@@ -209,21 +209,21 @@ One really interesting property of this exposed information is that it becomes <
 <p>In the previous two samples, there are several interesting points to highlight:</p>
 <p>1) <code>dx</code> is the operator to access the data model which is not available through the <code>??</code> / <code>?</code> operators</p>
 <p>2) <code>@$name</code> is how you access a variable that you have defined during a debugging session. The debugger itself defines several variables right off the bat just to make querying the model easier: <code>@$curprocess</code> is equivalent to <code>host.currentProcess</code> in Javascript, <code>@cursession</code> is <code>host.currentSession</code>, and <code>@$curthread</code> is <code>host.currentThread</code>. You can also define custom variables yourself, for example:</p>
-<div class="highlight"><pre><span></span>0:001&gt; dx @$doare = &quot;Diary of a reverse-engineer&quot;
+<div class="highlight"><pre><span></span>0:001&amp;gt; dx @$doare = &quot;Diary of a reverse-engineer&quot;
 @$doare = &quot;Diary of a reverse-engineer&quot; : Diary of a reverse-engineer
     Length           : 0x1b
-0:001&gt; dx &quot;Hello, &quot; + @$doare
+0:001&amp;gt; dx &quot;Hello, &quot; + @$doare
 &quot;Hello, &quot; + @$doare : Hello, Diary of a reverse-engineer
     Length           : 0x22
-0:001&gt; ?? @$doare
+0:001&amp;gt; ?? @$doare
 Bad register error at &#39;@$doare&#39;
-0:001&gt; ? @$doare
+0:001&amp;gt; ? @$doare
 Bad register error at &#39;@$doare&#39;
 </pre></div>
 
 
 <p>3) To query all the nodes in the <code>@$curprocess</code> hierarchy (if you want to wander through the data model you can just use <code>dx Debugger</code> and click through the DML links):</p>
-<div class="highlight"><pre><span></span>0:001&gt; dx @$curprocess
+<div class="highlight"><pre><span></span>0:001&amp;gt; dx @$curprocess
 @$curprocess                 : cmd.exe [Switch To]
     Name             : cmd.exe
     Id               : 0x874
@@ -234,9 +234,9 @@ Bad register error at &#39;@$doare&#39;
 
 
 <p>You can also check <code>Debugger.State.DebuggerVariables</code> where you can see the definitions for the variables we just mentioned:</p>
-<div class="highlight"><pre><span></span>0:001&gt; dx Debugger.State.DebuggerVariables
+<div class="highlight"><pre><span></span>0:001&amp;gt; dx Debugger.State.DebuggerVariables
 Debugger.State.DebuggerVariables                
-    cursession       : Live user mode: &lt;Local&gt;
+    cursession       : Live user mode: &amp;lt;Local&amp;gt;
     curprocess       : cmd.exe [Switch To]
     curthread        : ntdll!DbgUiRemoteBreakin (00007ffc`98675320)  [Switch To]
     scripts         
@@ -244,7 +244,7 @@ Debugger.State.DebuggerVariables
     vars            
     curstack        
     curframe         : ntdll!DbgBreakPoint [Switch To]
-0:001&gt; dx Debugger.State.DebuggerVariables.vars
+0:001&amp;gt; dx Debugger.State.DebuggerVariables.vars
 Debugger.State.DebuggerVariables.vars                
     doare            : Diary of a reverse-engineer
 </pre></div>
@@ -388,7 +388,7 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 <span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
     <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span> <span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="o">=&amp;</span><span class="nx">gt</span><span class="p">;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
     <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
     <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
     <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
@@ -400,7 +400,7 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
     <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
     <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
     <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
-        <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">OffsetExpression</span> <span class="o">==</span> <span class="s1">&#39;ntdll!RtlAllocateHeap+0x0&#39;</span>
+        <span class="nx">c</span> <span class="o">=&amp;</span><span class="nx">gt</span><span class="p">;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">OffsetExpression</span> <span class="o">==</span> <span class="s1">&#39;ntdll!RtlAllocateHeap+0x0&#39;</span>
     <span class="p">);</span>
 
     <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
@@ -419,9 +419,9 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 
 
 <p>This gives:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 Press &quot;g&quot; to run the target.
-0:000&gt; g-
+0:000&amp;gt; g-
 doare
 RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x82
 @$scriptContents.handle_bp()
@@ -452,12 +452,12 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 <span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
     <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span><span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="o">=&amp;</span><span class="nx">gt</span><span class="p">;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
     <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
     <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
     <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
     <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="nx">Args</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">compareTo</span><span class="p">(</span><span class="mh">0x100</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">Args</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">compareTo</span><span class="p">(</span><span class="mh">0x100</span><span class="p">)</span> <span class="o">&amp;</span><span class="nx">gt</span><span class="p">;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
         <span class="c1">// stop execution if the allocation size is bigger than 0x100</span>
         <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
     <span class="p">}</span>
@@ -471,7 +471,7 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
     <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
     <span class="kd">let</span> <span class="nx">HeapAlloc</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">getModuleSymbolAddress</span><span class="p">(</span><span class="s1">&#39;ntdll&#39;</span><span class="p">,</span> <span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">);</span>
     <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
-        <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Address</span> <span class="o">==</span> <span class="nx">HeapAlloc</span>
+        <span class="nx">c</span> <span class="o">=&amp;</span><span class="nx">gt</span><span class="p">;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Address</span> <span class="o">==</span> <span class="nx">HeapAlloc</span>
     <span class="p">);</span>
     <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
         <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RltAllocateHeap @ &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
@@ -485,10 +485,10 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 
 
 <p>Which gives this output:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 RltAllocateHeap @ 0x7fffc07587a0
 Press &quot;g&quot; to run the target.
-0:000&gt; g
+0:000&amp;gt; g
 RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x38
 ...
@@ -510,7 +510,7 @@ ntdll!RtlAllocateHeap:
 <p>Even though I won’t cover how recording and replaying a <em>TTD</em> trace in this article, I just wanted to show you in this part how powerful such features can be once coupled with the data model. As you have probably realized by now, the data model is all about extensibility: you can access specific <em>TTD</em> features via the model when you have a trace loaded in the debugger. This section tries to describe them.</p>
 <h3 id="ttdcalls">TTD.Calls</h3>
 <p>The first feature I wanted to talked about is <code>TTD.Calls</code>. This API goes through an entire execution trace and finds every unique point in the trace where an API has been called.</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx -v @$cursession.TTD
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx -v @$cursession.TTD
 @$cursession.TTD                 : [object Object]
     Calls            [Returns call information from the trace for the specified set of symbols: TTD.Calls(&quot;module!symbol1&quot;, &quot;module!symbol2&quot;, ...)]
 </pre></div>
@@ -518,9 +518,9 @@ ntdll!RtlAllocateHeap:
 
 <p>For each of those points, you have an object describing the call: time travel position (that you can travel to: see <code>TimeStart</code> and <code>TimeEnd</code> below), parameters (leveraging symbols if you have any to know how many parameters the API expects), return value, the thread id, etc.</p>
 <p>Here is what it looks like:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count()
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count()
 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count() : 0x267
-0:000&gt; dx @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()
+0:000&amp;gt; dx @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()
 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()                
     EventType        : Call
     ThreadId         : 0x1004
@@ -532,7 +532,7 @@ ntdll!RtlAllocateHeap:
     ReturnAddress    : 0x7fffbdcd9cc1
     ReturnValue      : 0x21b5df71980
     Parameters      
-0:000&gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters
+0:000&amp;gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters
 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters                
     [0x0]            : 0x21b5df70000
     [0x1]            : 0x8
@@ -542,9 +542,9 @@ ntdll!RtlAllocateHeap:
 
 
 <p>Obviously, the collection returned by <code>TTD.Calls</code> can be queried via the same <a href="https://docs.microsoft.com/en-us/dotnet/csharp/linq/query-expression-basics">LINQ</a>-like operators we mentioned earlier which is awesome. As an example, asking the following question has never been easier: "How many times did the allocator fail to allocate memory?":</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&gt; c.ReturnValue == 0)
-@$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&gt; c.ReturnValue == 0)                
-0:000&gt; dx @$Calls.Count()
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&amp;gt; c.ReturnValue == 0)
+@$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&amp;gt; c.ReturnValue == 0)                
+0:000&amp;gt; dx @$Calls.Count()
 @$Calls.Count()  : 0x0
 </pre></div>
 
@@ -552,7 +552,7 @@ ntdll!RtlAllocateHeap:
 <p>Note that because the API has been designed in a way that abstracts away ABI-specific details, you can have your query / code working on both x86 &amp; x64 seamlessly. Another important point is that this is much faster than setting a breakpoint manually and running the trace forward to collect this information yourself.</p>
 <h3 id="ttdmemory">TTD.Memory</h3>
 <p>The other <strong>very</strong> powerful feature that was announced fairly <a href="https://blogs.msdn.microsoft.com/windbg/2017/12/18/windbg-preview-1-1712-15003-release-notes/">recently</a> in version 1.1712.15003 is <code>TTD.Memory</code>. A bit like <code>TTD.Calls</code>, this feature lets you go and find every memory accesses that happened in an execution trace on a specific memory range. And again, it returns to the user a nice object that has all the information you could be potentially interested in (time travel positions, access type, the instruction pointer address, the address of the memory accessed, etc.):</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$Accesses[0]
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$Accesses[0]
 @$Accesses[0]                
     EventType        : MemoryAccess
     ThreadId         : 0x15e8
@@ -568,13 +568,13 @@ ntdll!RtlAllocateHeap:
 
 
 <p>Here is how you would go and ask it to find out every piece of code that write-accessed (read and execute are also other valid type of access you can query for and combine) the TEB region of the current thread:</p>
-<div class="highlight"><pre><span></span>0:001&gt; ? @$teb
+<div class="highlight"><pre><span></span>0:001&amp;gt; ? @$teb
 Evaluate expression: 792409825280 = 000000b8`7f4e6000
-0:001&gt; ?? sizeof(_TEB)
+0:001&amp;gt; ?? sizeof(_TEB)
 unsigned int64 0x1838
-0:001&gt; dx @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)
+0:001&amp;gt; dx @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)
 @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)                
-0:001&gt; dx @$Accesses[0]
+0:001&amp;gt; dx @$Accesses[0]
 @$Accesses[0]                
     EventType        : MemoryAccess
     ThreadId         : 0x15e8
@@ -590,14 +590,14 @@ unsigned int64 0x1838
 
 
 <p>The other beauty of it is that you can travel to the position ID and find out what happened:</p>
-<div class="highlight"><pre><span></span>0:001&gt; !tt F79:1B
+<div class="highlight"><pre><span></span>0:001&amp;gt; !tt F79:1B
 Setting position: F79:1B
 (1cfc.15e8): Break instruction exception - code 80000003 (first/second chance not available)
 Time Travel Position: F79:1B
 ntdll!TppWorkCallbackPrologRelease+0x100:
 00007fff`c0761bd0 f30f7f8010170000 movdqu  xmmword ptr [rax+1710h],xmm0 ds:000000b8`7f4e7710=00000000000000000000000000000000
 
-0:001&gt; dt _TEB ActivityId
+0:001&amp;gt; dt _TEB ActivityId
 ntdll!_TEB
    +0x1710 ActivityId : _GUID
 </pre></div>
@@ -607,7 +607,7 @@ ntdll!_TEB
 <h3 id="ttdutilitygetheapaddress">TTD.Utility.GetHeapAddress</h3>
 <p>The two previous features were mostly building blocks; this utility consumes the <code>TTD.Calls</code> API in order to show the lifetime of a heap chunk in a trace session. What does that mean exactly? Well, the utility looks for every heap related operation that happened on a chunk (start address, size) and show them to you.</p>
 <p>This is extremely useful when debugging or root-causing issues, and here is what it looks like on a dummy trace:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
 ========================================================================================================================================
 =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
 ========================================================================================================================================
@@ -621,7 +621,7 @@ ntdll!_TEB
 
 <p>The attentive reader has probably noticed something maybe unexpected with entries 0x59 and entries 0x276 where we are seeing two different allocations of the same chunk without any free in between. The answer to this question lies in the way the <code>GetHeapAddress</code> function is implemented (check out the <em>TTD\Analyzers\HeapAnalysis.js</em> file) - it basically looks for every heap related operation and only shows you the ones where <code>address + size</code> is a range containing the argument you passed. In this example we gave the function the address <code>0x21b5dce40a0</code>, 0x59 is an allocation and <code>0x21b5dce40a0</code> is in the range <code>0x21b5dce4030 + 0xAA</code> so we display it. Now, a free does not know the size of the chunk, the only thing it knows is the base pointer. In this case if we have a free of <code>0x21b5dce4030</code> the utility function would just not display it to us which explains how we can have two heap chunks allocated without a free in the following time frame: <code>ED:7D7, E59:3A7</code>.</p>
 <p>We can even go ahead and prove this by finding the free by running the below command:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p =&gt; p.Address == 0x21b5dce4030)
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p =&amp;gt; p.Address == 0x21b5dce4030)
 ========================================================================================================================================
 =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
 ========================================================================================================================================
@@ -635,11 +635,11 @@ ntdll!_TEB
 <p>As expected, the entry 0x64 is our free operation and it also happens in between the two allocation operations we were seeing earlier - solved.</p>
 <p>Pretty neat uh?</p>
 <p>It is nice enough to ask the utility for a specific heap address, but it would also be super nice if we had access to the whole heap activity that has happened during the session and that is what <code>TTD.Data.Heap</code> gives you:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$HeapOps=@$cursession.TTD.Data.Heap()
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$HeapOps=@$cursession.TTD.Data.Heap()
 ...
-0:000&gt; dx @$HeapOps.Count()
+0:000&amp;gt; dx @$HeapOps.Count()
 @$HeapOps.Count() : 0x414
-0:000&gt; dx @$HeapOps[137]
+0:000&amp;gt; dx @$HeapOps[137]
 @$HeapOps[137]                 : [object Object]
     Action           : Free
     Heap             : 0x21b5dcd0000
@@ -652,9 +652,9 @@ ntdll!_TEB
 
 
 <p>And of course do not forget that all these collections are queryable. We can easily find out what are all the other heap operations that are not <code>alloc</code> or <code>free</code> with the below query:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&gt; c.Action != &quot;Free&quot; &amp;&amp; c.Action != &quot;Alloc&quot;)
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&amp;gt; c.Action != &quot;Free&quot; &amp;amp;&amp;amp; c.Action != &quot;Alloc&quot;)
 ...
-0:000&gt; dx -g @$NoFreeAlloc
+0:000&amp;gt; dx -g @$NoFreeAlloc
 ============================================================================================================
 =                           = Action    = Heap             = Result          = (+) TimeStart = (+) TimeEnd =
 ============================================================================================================
@@ -716,7 +716,7 @@ the initializeScript method.
 
 
 <p>Once loaded you can go ahead and check that the node has been added:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$curprocess
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -767,7 +767,7 @@ the initializeScript method.
 
 
 <p>Which gives:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$curprocess
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -776,7 +776,7 @@ the initializeScript method.
     Environment     
     TTD             
     DiaryOfAReverseEngineer : [object Object]
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
 @$curprocess.DiaryOfAReverseEngineer                 : [object Object]
     process          : PING.EXE [Switch To]
     Foo              : Foo from PING.EXE
@@ -829,7 +829,7 @@ the initializeScript method.
 
 
 <p>And now if we display the <code>Process</code> model:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$curprocess
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -838,11 +838,11 @@ the initializeScript method.
     Environment     
     TTD             
     DiaryOfAReverseEngineer : Diary of a reverse-engineer
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
 @$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
     Foo              : Foo from PING.EXE
     Bar              : Bar from PING.EXE
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
 @$curprocess.DiaryOfAReverseEngineer.Add(1, 2) : 0x3
 </pre></div>
 
@@ -993,7 +993,7 @@ the initializeScript method.
 
 
 <p>And we can play with the node in the model:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$curprocess
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -1002,21 +1002,21 @@ the initializeScript method.
     Environment     
     TTD             
     DiaryOfAReverseEngineer : Diary of a reverse-engineer
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
 @$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
     Foo              : Foo from PING.EXE
     Bar              : Bar from PING.EXE
     Sub              : Sub module
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub
 @$curprocess.DiaryOfAReverseEngineer.Sub                 : Sub module
     SubFoo           : SubFoo from PING.EXE
     SubBar           : SubBar from PING.EXE
     Attributes       : Attributes
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes
 @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes                 : Attributes
     [0x0]            : Process: PING.EXE, Name: attr0, Value: value0
     [0x1]            : Process: PING.EXE, Name: attr1, Value: value0
-0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]
+0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]
 @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]                 : Process: PING.EXE, Name: attr0, Value: value0
     Name             : attr0
     Value            : value0
@@ -1030,7 +1030,7 @@ the initializeScript method.
 <h3 id="try-and-play-with-host-api-from-the-command-window">Try and play with <code>host.*</code> API from the command window</h3>
 <p>One of the things I quickly was bothered with at first is not being able to run my Javascript from the command window. Let's say that you want to play with a <code>host.*</code> API: these are not really directly accessible.</p>
 <p>A way to work around that is to load a script and to use the <code>@$scriptContents</code> variable from where you can access the <code>host</code> object.</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx -v @$scriptContents.host
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx -v @$scriptContents.host
 @$scriptContents.host                 : [object Object]
     currentApiVersionSupported : [object Object]
     currentApiVersionInitialized : [object Object]
@@ -1079,11 +1079,11 @@ the initializeScript method.
 <p>Similar to above, you can use the <code>.scriptrun</code> command for that. </p>
 <h3 id="is-the-javascript-engine-only-available-in-windbg-preview">Is the Javascript engine only available in Windbg Preview?</h3>
 <p>Nope it is not! You can load your Javascript scripts from the latest SDK's Windbg. You can use the <code>.scriptproviders</code> command to know what the various script providers currently loaded are, and if you do not see the Javascript provider you can just run <code>.load jsprovider.dll</code> to load it.</p>
-<div class="highlight"><pre><span></span>0:003&gt; .scriptproviders
+<div class="highlight"><pre><span></span>0:003&amp;gt; .scriptproviders
 Available Script Providers:
     NatVis (extension &#39;.NatVis&#39;)
-0:003&gt; .load jsprovider.dll
-0:003&gt; .scriptproviders
+0:003&amp;gt; .load jsprovider.dll
+0:003&amp;gt; .scriptproviders
 Available Script Providers:
     NatVis (extension &#39;.NatVis&#39;)
     JavaScript (extension &#39;.js&#39;)
@@ -1112,10 +1112,10 @@ Available Script Providers:
 
 
 <p>Which gives:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 [object Object]
 2316561115408
-0:000&gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
+0:000&amp;gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
 @$curthread.Environment.EnvironmentBlock.FlsData : 0x21b5dcd6910 [Type: void *]
 </pre></div>
 
@@ -1147,7 +1147,7 @@ Available Script Providers:
 
 
 <p>Resulting in:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 0
 [object Object]
 [object Object]
@@ -1167,7 +1167,7 @@ First chance exceptions are reported before any exception handling.
 This exception may be expected and handled.
 except!Fault+0x3d:
 00007ff7`a900179d 48c70001000000  mov     qword ptr [rax],1 ds:00000000`00000001=????????????????
-0:000&gt; !exchain
+0:000&amp;gt; !exchain
 8 stack frames, scanning for handlers...
 Frame 0x01: except!main+0x59 (00007ff7`a9001949)
   ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
@@ -1205,7 +1205,7 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 <p>The first table we need to look at is the <code>ENTRY_EXCEPTION</code> table that resides in the <code>DataDirectory</code> of the <code>OptionalHeader</code>. This directory is an array of <a href="https://docs.microsoft.com/en-us/cpp/build/struct-runtime-function">IMAGE_RUNTIME_FUNCTION_ENTRY</a> that describes the boundary of functions (handy for IDA!) and their unwinding information which is stored at the end of this structure.</p>
 <p>The unwinding information is mainly described by the <a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info">UNWIND_INFO</a> structure in which the frame unwinder can find what is necessary to unwind a stack-frame associated to this function. The array of <a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-code">UNWIND_CODE</a> structures basically tells you how to do an epilogue.</p>
 <p>What follows this array is variable though (documented <a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info">here</a>): if the <code>Flags</code> field of <code>UNWIND_INFO</code> specifies the <code>EHHANDLER</code> flag then we have what I call a <code>UNWIND_INFO_END</code> structure defined like this:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dt UNWIND_INFO_END
+<div class="highlight"><pre><span></span>0:000&amp;gt; dt UNWIND_INFO_END
    +0x000 ExceptionHandler : Uint4B
    +0x004 ExceptionData    : Uint4B
 </pre></div>
@@ -1215,10 +1215,10 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 <p>This is also where it was a bit of a surprise to me, as you basically cannot really tell for sure what type of structure is referenced by <code>ExceptionData</code>. For that, you would have to analyze the <code>ExceptionHandler</code> function to understand what and how this data is used. That is also most likely, why the <code>!exchains</code> command stops here and does not bother trying to parse the exception data blob.</p>
 <p>Obviously we can easily make an assumption and assume that the <code>ExceptionData</code> is the structure we would like it to be, and verify that it looks right. In addition, the fact that the code you are most likely looking at has been emitted by a well behaved compiler and that the binary has not been tampered with combined have given me good enough results. But keep in mind that in theory, you could place your own function and have your own <code>ExceptionData</code> format in which case reverse-engineering the handler would be mandatory - in practice this is an unlikely scenario if you are dealing with <em>normal</em> binaries.</p>
 <p>The type of <code>ExceptionData</code> that we are interested in is what I call a <code>SEH_SCOPE_TABLE</code> which is an array of <code>SCOPE_RECORD</code>s that are defined like this:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dt SEH_SCOPE_TABLE
+<div class="highlight"><pre><span></span>0:000&amp;gt; dt SEH_SCOPE_TABLE
   +0x000 Count            : Uint4B
   +0x004 ScopeRecord      : [1] SCOPE_RECORD
-0:000&gt; dt SCOPE_RECORD
+0:000&amp;gt; dt SCOPE_RECORD
   +0x000 BeginAddress     : Uint4B
   +0x004 EndAddress       : Uint4B
   +0x008 HandlerAddress   : Uint4B
@@ -1240,16 +1240,16 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 </ul>
 <p>With the same source of information we can easily filter and shape the way we want it displayed through the data model. There is no need to display every exception handler from the <code>Module</code> node as it would not be information related to a <code>Module</code> -- this is why we choose to filter it out and display only the ones concerning this <code>Module</code>. Same thing reasoning applies to <code>Functions</code> as well. The model is something you should explore step by step, it is not something where you have all the available information displayed at once - it is meant to be scoped and not overwhelming.</p>
 <p>And just in case you forgot about it, all this information is now accessible from the command window for query purposes. You can ask things like <em>Which function defines the most exception handlers?</em> very easily:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dx @$curprocess.Functions.OrderByDescending(c =&gt; c.ExceptionHandlers.Count()).First()
-@$curprocess.Functions.OrderByDescending(c =&gt; c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -&gt; RVA:0x7ff83563e5a2, 12 exception handlers
+<div class="highlight"><pre><span></span>0:000&amp;gt; dx @$curprocess.Functions.OrderByDescending(c =&amp;gt; c.ExceptionHandlers.Count()).First()
+@$curprocess.Functions.OrderByDescending(c =&amp;gt; c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -&amp;gt; RVA:0x7ff83563e5a2, 12 exception handlers
     EHHandlerRVA     : 0x221d6
     EHHandler        : 0x7ff8356021d6
     BeginRVA         : 0x5e170
     EndRVA           : 0x5e5a2
     Begin            : 0x7ff83563e170
     End              : 0x7ff83563e5a2
-    ExceptionHandlers :   __try {0x7ff83563e1d2 -&gt; 0x7ff83563e37a} __finally {0x7ff83563e5a2}...
-0:000&gt; u 0x7ff83563e170 l1
+    ExceptionHandlers :   __try {0x7ff83563e1d2 -&amp;gt; 0x7ff83563e37a} __finally {0x7ff83563e5a2}...
+0:000&amp;gt; u 0x7ff83563e170 l1
 KERNEL32!LoadModule:
 00007ff8`3563e170 4053            push    rbx
 </pre></div>
@@ -1257,7 +1257,7 @@ KERNEL32!LoadModule:
 
 <p>In this example, the function <code>KERNEL32!LoadModule</code> seems to be the function that has registered the largest number of exception handlers (12 of them).</p>
 <p>Now that we have this new source of information, we can also push it a bit further and implement a command that does a very similar job than <code>!exchain</code> by just mining information from the nodes we just added to the data model:</p>
-<div class="highlight"><pre><span></span>0:000&gt; !ehhandlers
+<div class="highlight"><pre><span></span>0:000&amp;gt; !ehhandlers
 9 stack frames, scanning for handlers...
 Frame 0x1: EHHandler: 0x7ff7a9001389: except!ILT+900(__GSHandlerCheck_SEH):
               Except: 0x7ff7a900194b: except!main+0x5b [c:\users\over\documents\blog\except\except\except.c @ 28]:
@@ -1270,7 +1270,7 @@ Frame 0x7: EHHandler: 0x7ff838050ef0: ntdll!_C_specific_handler:
               Filter: 0x7ff8380684d0: ntdll!RtlUserThreadStart$filt$0:
 @$ehhandlers()
 
-0:000&gt; !exchain
+0:000&amp;gt; !exchain
 8 stack frames, scanning for handlers...
 Frame 0x01: except!main+0x59 (00007ff7`a9001949)
   ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)

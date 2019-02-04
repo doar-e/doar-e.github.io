@@ -117,17 +117,7 @@
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>This post will cover the development of an exploit for JavaScriptCore (JSC) from the perspective of someone with no background in browser exploitation.</p>
-<p>Around the start of the year, I was pretty burnt out on CTF problems and was interested in writing an exploit for something more complicated and practical. I settled on writing a WebKit exploit for a few reasons:</p>
-<ul>
-<li>It is code that is broadly used in the real world</li>
-<li>Browsers seemed like a cool target in an area I had little familiarity (both C++ and interpreter exploitation.)</li>
-<li>WebKit is (supposedly) the softest of the major browser targets.</li>
-<li>There were good existing resources on WebKit exploitation, namely <a href="http://phrack.org/papers/attacking_javascript_engines.html">saelo’s Phrack article</a>, as well as a variety of public console exploits.</li>
-</ul>
-<p>With this in mind, I got a recommendation for an interesting looking bug that has not previously been publicly exploited: <a href="https://twitter.com/natashenka">@natashenka</a>’s CVE-2017-2446 from the <a href="https://bugs.chromium.org/p/project-zero/issues/detail?id=1032">project zero bugtracker</a>. The bug report had a PoC which crashed in <code>memcpy()</code> with some partially controlled registers, which is always a promising start.</p>
-<p>This post assumes you’ve read saelo’s Phrack article linked above, particularly the portions on NaN boxing and butterflies -- I can’t do a better job of explaining these concepts than the article. Additionally, you should be able to run a browser/JavaScript engine in a debugger -- we will target Linux for this post, but the concepts should translate to your preferred platform/debugger.</p>
-<p>Finally, the goal of doing this initially and now writing it up was and is to learn as much as possible. There is clearly a lot more for me to learn in this area, so if you read something that is incorrect, inefficient, unstable, a bad idea, or just have some thoughts to share, I’d love to hear from you.</p>
-
+<p>Around the start of the year, I was pretty burnt out on CTF problems and was interested in writing an exploit for something more complicated and …</p>
                         <a class="btn primary xsmall" href="/blog/2018/07/14/cve-2017-2446-or-jscjsglobalobjectishavingabadtime/">more ...</a>
                 </div>
         </div>
@@ -151,11 +141,7 @@
 	<a href="/tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="intro">Intro</h1>
-<p>Below is a collection of notes regarding unikernels. I had originally prepared this stuff to submit to EkoParty’s CFP, but ended up not wanting to devote time to stabilizing PHP7’s heap structures and I lost interest in the rest of the project before it was complete. However, there are still some cool takeaways I figured I could write down. Maybe they’ll come in handy? If so, please let let me know.</p>
-<p>Unikernels are a continuation of turning everything into a container or VM. Basically, as many VMs currently just run one userland application, the idea is that we can simplify our entire software stack by removing the userland/kernelland barrier and essentially compiling our usermode process into the kernel. This is, in the implementation I looked at, done with a NetBSD kernel and a variety of either <a href="https://github.com/rumpkernel/rumprun-packages">native or lightly-patched POSIX applications</a>  (bonus: there is significant lag time between upstream fixes and rump package fixes, just like every other containerized solution).</p>
-<p>While I don’t necessarily think that conceptually unikernels are a good idea (attack surface reduction vs mitigation removal), I do think people will start more widely deploying them shortly and I was curious what memory corruption exploitation would look like inside of them, and more generally what your payload options are like.</p>
-<p>All of the following is based off of two unikernel programs, nginx and php5 and only makes use of public vulnerabilities. I am happy to provide all referenced code (in varying states of incompleteness), on request.</p>
-
+<p>Below is a collection of notes regarding unikernels. I had originally prepared this stuff to submit to EkoParty’s CFP, but ended up not wanting to devote time to stabilizing PHP7’s heap structures and I lost interest in the rest of the project before it was complete. However …</p>
                         <a class="btn primary xsmall" href="/blog/2016/12/21/happy-unikernels/">more ...</a>
                 </div>
         </div>

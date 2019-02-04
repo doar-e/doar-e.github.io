@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Swimming in a Sea Of Nodes - part 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="/theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="/theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="/feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Swimming in a Sea Of Nodes - part 1">
+                                        Swimming in a Sea Of Nodes - part 1
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2019-01-28T00:00:00-08:00">
+        <i class="icon-calendar"></i>Mon 28 January 2019
+</abbr>
+<span class="label">By</span>
+<a href="/author/jeremy-__x86-fetiveau.html"><i class="icon-user"></i>Jeremy "__x86" Fetiveau</a>
+<span class="label">Category</span>
+<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+</footer><!-- /.post-info -->                </div>
+                <h1 id="swimming-in-a-sea-of-nodes-part-1">Swimming in a sea of nodes - part 1</h1>
+<p>Ages ago, I wrote a blog post here called <code>first dip in the kernel pool</code>, this year, we're going to swim in a <code>sea of nodes</code>!</p>
+<p>The new trend is to attack JavaScript engines and most specifically, optimizing compilers such as V8's <code>Turbofan</code>, SpiderMonkey's <code>IonMonkey</code>, JavaScriptCore's <code>DFG</code> and <code>Data Flow Graph</code> &amp; <code>Faster Than Light</code>) or Chakra's <code>FullJIT</code>. </p>
+<p>In this article, we're going to quickly discuss optimizing compilers.</p>
+<p>Then, we'll study some easy vulnerable optimization pass written by <a href="https://twitter.com/_tsuro">@_tsuro</a> (hime, again :-p). for Google's CTF 2018. </p>
+<p>Finally, we'll have a look at a really cool bug found by <a href="https://twitter.com/_tsuro">@_tsuro</a> (him, again :-p) which is issue <code>762874</code>, an incorrect range optimization of <code>String.indexOf</code> and <code>String.lastIndexOf</code>.</p>
+
+
+<h1 id="setup">Setup</h1>
+<p>First things first, let's prepare everything we need. </p>
+<h2 id="building-v8">Building v8</h2>
+<p>Building v8 is very easy. </p>
+<p>You can simply fetch the sources using  <a href="http://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html#_setting_up">depot tools</a> and then build using the following commands.</p>
+<div class="highlight"><pre><span></span>fetch v8
+gclient sync
+./build/install-build-deps.sh
+tools/dev/gm.py x64.release
+</pre></div>
+
+
+<p>Please note that whenever you're updating the source or checking out a specific commit, do <code>gclient sync</code> or you might be unable to build properly.</p>
+<h2 id="preparing-turbolizer">Preparing Turbolizer</h2>
+<p>Turbolizer is a tool that we are going to use to debug Turbofan's <code>sea of nodes</code> graph.</p>
+<div class="highlight"><pre><span></span>cd tools/turbolizer
+npm i
+npm run-script build
+python -m SimpleHTTPServer
+</pre></div>
+
+
+<p>When you executing a javascript file with <code>trace-turbo</code> (use <code>--trace-turbo-filter</code> to limit to a specific function), a <code>.cfg</code> and a <code>.json</code> files will be generated so that you can get a graph view of different optimization passes using <code>Turbolizer</code>.</p>
+<p>Simply go to the web interface using your favourite browser (which is chromium of course) and select the file from the interface.</p>
+<h1 id="preparing-debugging-helpers">Preparing debugging helpers</h1>
+<h2 id="adding-dumpobjects">Adding %DumpObjects</h2>
+<h2 id="adding-addressof-readat-writeat">Adding %AddressOf, %ReadAt, %WriteAt</h2>
+<h1 id="experimenting-with-the-optimization-phases">Experimenting with the optimization phases</h1>
+<h3 id="numberadd-nodes">NumberAdd nodes</h3>
+<h3 id="range-types">Range types</h3>
+<h3 id="checkbounds-nodes">CheckBounds nodes</h3>
+<h3 id="simplified-lowering-of-checkbounds-nodes">Simplified lowering of CheckBounds nodes</h3>
+<h1 id="understanding-duplicateadditionreducer">Understanding <code>DuplicateAdditionReducer</code></h1>
+<h3 id="a-visual-representation-of-the-reduction">A visual representation of the reduction</h3>
+<h3 id="concerning-iee-754">Concerning IEE 754</h3>
+<h3 id="understanding-the-bug">Understanding the bug</h3>
+<h1 id="exploitation">Exploitation</h1>
+<h3 id="from-oob-to-rw">From OOB to RW</h3>
+<h3 id="overwriting-wasm-rwx-memory">Overwriting WASM RWX memory</h3>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>

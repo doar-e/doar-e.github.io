@@ -97,6 +97,34 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
+                <h1><a href="/blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">Spotlight on an unprotected AES128 white-box implementation</a></h1>
+                <div class="well small"><footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2015-02-08T22:59:00-08:00">
+        <i class="icon-calendar"></i>Sun 08 February 2015
+</abbr>
+<span class="label">By</span>
+<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="/category/obfuscation.html"><i class="icon-folder-open"></i>obfuscation</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
+	<a href="/tag/white-box.html"><i class="icon-tag"></i>white-box</a>
+	<a href="/tag/practical-cryptography.html"><i class="icon-tag"></i>practical cryptography</a>
+	<a href="/tag/aes128.html"><i class="icon-tag"></i>aes128</a>
+	<a href="/tag/encryption.html"><i class="icon-tag"></i>encryption</a>
+</footer><!-- /.post-info --></div>
+                <div class="summary"><h1 id="introduction">Introduction</h1>
+<p>I think it all began when I've worked on the <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2013">NSC2013</a> crackme made by <a href="https://twitter.com/elvanderb">@elvanderb</a>, long story short you had an AES128 heavily obfuscated white-box implementation to break. The thing was you could actually solve the challenge in different ways: </p>
+<ol>
+<li>the first one was the easiest one: you didn't …</li></ol>
+                        <a class="btn primary xsmall" href="/blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">more ...</a>
+                </div>
+        </div>
+        <hr />
+        <div class="article">
                 <h1><a href="/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">Taming a wild nanomite-protected MIPS binary with symbolic execution: No Such Crackme</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
@@ -118,11 +146,7 @@
 	<a href="/tag/nosuchcon.html"><i class="icon-tag"></i>NoSuchCon</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><p>As last year, the French conference <a href="http://www.nosuchcon.org/#challenge">No Such Con</a> returns for its second edition in Paris from the 19th of November until the 21th of November. And again, the brilliant <a href="https://twitter.com/elvanderb">Eloi Vanderbeken</a> &amp; his mates at <a href="http://synacktiv.fr/en/index.html">Synacktiv</a> put together a series of three security challenges especially for this occasion.
-Apparently, the three tasks have already been <a href="https://twitter.com/Synacktiv/status/515174845844582401">solved</a> by awesome <a href="https://twitter.com/0xf4b">@0xfab</a> which won the competition, hats off :).</p>
-<p>To be honest I couldn't resist to try at least the first step, as I know that <a href="https://twitter.com/elvanderb">Eloi</a> always builds <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=253">really twisted</a> and <a href="http://www.nosuchcon.org/2013/#challenge">nice binaries</a> ; so I figured I should just give it a go!</p>
-<p>But this time we are trying something different though: this post has been co-authored by both <em>Emilien Girault</em> (<a href="https://twitter.com/emiliengirault">@emiliengirault</a>) and I. As we have slightly different solutions, we figured it would be a good idea to write those up inside a single post. This article starts with an introduction to the challenge and will then fork, presenting my solution and his.</p>
-<p>As the article is quite long, here is the complete table of contents:</p>
-
+Apparently, the …</p>
                         <a class="btn primary xsmall" href="/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">more ...</a>
                 </div>
         </div>
@@ -147,18 +171,7 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>As the blog was a bit silent for quite some time, I figured it would be cool to put together a post ; so here it is folks, dig in!</p>
-<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference in Kuala Lumpur from the 13th of October until the 16th.</p>
-<p>The challenge has been written by <a href="http://blog.quarkslab.com/author/serge-guelton.html">Serge Guelton</a>, a R&amp;D engineer specialized in compilers/parallel computations. At the time of writing, already eight different people manage to solve the challenge, and one of the ticket seems to have been won by <code>hackedd</code>, so congrats to him!</p>
-<p><center><img alt="woot.png" src="/images/dissection_of_quarkslab_s_2014_security_challenge/woot.png"></center>
-According to the description of the challenge Python is heavily involved, which is a good thing for at least two reasons:</p>
-<ul>
-<li>first because I already had <a href="https://doar-e.github.io/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">the occasion</a> to look at its source code in the past,</li>
-<li>and because I so am a <a href="https://github.com/0vercl0k/stuffz/tree/master/Python's%20internals">big fan of Python</a>.</li>
-</ul>
-<p>In this post I will describe how I tackled this problem, how I managed to solve it. And to make up for me being slow at solving it I tried to make it fairly detailed. </p>
-<p>At first it was supposed to be quite short though, but well..I decided to analyze fully the challenge even if it wasn't needed to find the key unfortunately, so it is a bit longer than expected :-).</p>
-<p>Anyway, sit down, make yourself at home and let me pour you a cup of tea before we begin :-).</p>
-
+<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference …</p>
                         <a class="btn primary xsmall" href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">more ...</a>
                 </div>
         </div>
@@ -181,10 +194,7 @@ According to the description of the challenge Python is heavily involved, which 
 	<a href="/tag/kernel.html"><i class="icon-tag"></i>kernel</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>A few months ago, I was writing a Linux kernel exploitation challenge on ARM in an attempt to learn about kernel exploitation and I thought I'd explore things a little. I chose the ARM architecture mainly because I thought it would be fun to look at. This article is going to describe how the ARM Exception Vector Table (EVT) can aid in kernel exploitation in case an attacker has a write what-where primitive. It will be covering a local exploit scenario as well as a remote exploit scenario. Please note that corrupting the EVT has been mentioned in the paper "Vector Rewrite Attack"<a href="http://cansecwest.com/slides07/Vector-Rewrite-Attack.pdf">[1]</a>, which briefly talks about how it can be used in NULL pointer dereference vulnerabilities on an ARM RTOS.</p>
-<p>The article is broken down into two main sections. First a brief description of the ARM EVT and its implications from an exploitation point of view (please note that a number of things about the EVT will be omitted to keep this article relatively short). We will go over two examples showing how we can abuse the EVT.</p>
-<p>I am assuming the reader is familiar with Linux kernel exploitation and knows some ARM assembly (seriously).</p>
-
+<p>A few months ago, I was writing a Linux kernel exploitation challenge on ARM in an attempt to learn about kernel exploitation and I thought I'd explore things a little. I chose the ARM architecture mainly because I thought it would be fun to look at. This article is …</p>
                         <a class="btn primary xsmall" href="/blog/2014/04/30/corrupting-arm-evt/">more ...</a>
                 </div>
         </div>
@@ -207,15 +217,7 @@ According to the description of the challenge Python is heavily involved, which 
 	<a href="/tag/virtual-machine.html"><i class="icon-tag"></i>virtual machine</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>A year ago, I've written a Python script to leverage a bug in Python's virtual machine: the idea was to fully control the Python virtual processor and after that to instrument the VM to execute native codes. The <a href="https://github.com/0vercl0k/stuffz/blob/master/Python's%20internals/python27_abuse_vm_to_execute_x86_code.py">python27_abuse_vm_to_execute_x86_code.py</a> script wasn't really self-explanatory, so I believe only a few people actually took some time to understood what happened under the hood. The purpose of this post is to give you an explanation of the bug, how you can control the VM and how you can turn the bug into something that can be more useful. It's also a cool occasion to see how works the Python virtual machine from a low-level perspective: what we love so much right?</p>
-<p>But before going further, I just would like to clarify a couple of things:</p>
-<ul>
-<li>I haven't found this bug, this is quite old and <strong>known</strong> by the Python developers (trading safety for performance), so don't panic this is <strong>not</strong> a 0day or a new bug ; can be a cool CTF trick though</li>
-<li>Obviously, YES I know we can also "escape" the virtual machine with the <a href="http://docs.python.org/2/library/ctypes.html">ctypes</a> module ; but this is a feature not a bug. In addition, ctypes is always "removed"  from sandbox implementation in Python</li>
-</ul>
-<p>Also, keep in mind I will focus Python 2.7.5 x86 on Windows ; but obviously this is adaptable for other systems and architectures, so this is left as an exercise to the interested readers.
-All right, let's move on to the first part: this one will focus the essentials about the VM, and Python objects.</p>
-
+<p>A year ago, I've written a Python script to leverage a bug in Python's virtual machine: the idea was to fully control the Python virtual processor and after that to instrument the VM to execute native codes. The <a href="https://github.com/0vercl0k/stuffz/blob/master/Python's%20internals/python27_abuse_vm_to_execute_x86_code.py">python27_abuse_vm_to_execute_x86_code.py</a> script wasn't really self-explanatory, so I believe only a …</p>
                         <a class="btn primary xsmall" href="/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">more ...</a>
                 </div>
         </div>
@@ -241,8 +243,7 @@ All right, let's move on to the first part: this one will focus the essentials a
 	<a href="/tag/tcpipsys.html"><i class="icon-tag"></i>tcpip.sys</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>I am currently playing with pool-based memory corruption vulnerabilities. That’s why I wanted to program a PoC exploit for the vulnerability presented by Tarjei Mandt during his first talk “Kernel Pool Exploitation on Windows 7” <a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf">[3]</a>. I think it's a good exercise to start learning about pool overflows.</p>
-
+<p>I am currently playing with pool-based memory corruption vulnerabilities. That’s why I wanted to program a PoC exploit for the vulnerability presented by Tarjei Mandt during his first talk “Kernel Pool Exploitation on Windows 7” <a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf">[3]</a>. I think it's a good exercise to start learning about pool overflows …</p>
                         <a class="btn primary xsmall" href="/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/">more ...</a>
                 </div>
         </div>
@@ -266,43 +267,7 @@ All right, let's move on to the first part: this one will focus the essentials a
 	<a href="/tag/windows-internals.html"><i class="icon-tag"></i>windows internals</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look at the internals of course.</p>
---Exception detected--
-ExceptionRecord: 0x0028fa2c Context: 0x0028fa7c
-Image Path: D:\Codes\The Sentinel\tests\divzero.exe
-Command Line: ..\tests\divzero.exe divzero.exe
-PID: 0x00000aac
-Exception Code: 0xc0000094 (EXCEPTION_INT_DIVIDE_BY_ZERO)
-Exception Address: 0x00401359
-EAX: 0x0000000a EDX: 0x00000000 ECX: 0x00000001 EBX: 0x7ffde000
-ESI: 0x00000000 EDI: 0x00000000 ESP: 0x0028fee0 EBP: 0x0028ff18
-EIP: 0x00401359
-EFLAGS: 0x00010246
-
-Stack:
-0x767bc265 0x54f3620f 0xfffffffe 0x767a0f5a 
-0x767ffc59 0x004018b0 0x0028ff90 0x00000000
-
-Disassembly:
-00401359 (04) f77c241c                 IDIV DWORD [ESP+0x1c]
-0040135d (04) 89442404                 MOV [ESP+0x4], EAX
-00401361 (07) c7042424304000           MOV DWORD [ESP], 0x403024
-00401368 (05) e833080000               CALL 0x401ba0
-0040136d (05) b800000000               MOV EAX, 0x0
-</pre>
-
-
-<p>That's why I divided this post in two big parts:</p>
-<ul>
-<li>the first one will talk about Windows internals background required to understand how things work under the hood,</li>
-<li>the last one will talk about <a href="http://research.microsoft.com/en-us/projects/detours/"><em>Detours</em></a> and how to hook <em>ntdll!KiUserExceptionDispatcher</em> toward our purpose. Basically, the library gives programmers a set of APIs to easily hook procedures. It also has a clean and readable documentation, so you should use it! It is usually used for that kind of things:</li>
-<li>Hot-patching bugs (no need to reboot),</li>
-<li>Tracing API calls (<a href="http://www.rohitab.com/apimonitor">API Monitor</a> like),</li>
-<li>Monitoring (a bit like our example),</li>
-<li>Pseudo-sandboxing (prevent API calls),</li>
-<li>etc.</li>
-</ul>
-
+<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look …</p>
                         <a class="btn primary xsmall" href="/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/">more ...</a>
                 </div>
         </div>
@@ -324,10 +289,7 @@ Disassembly:
 	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add</em> LLVM instruction. Instead of having a single asm instruction generated at the end of the pipeline, you will end up with a ton of assembly codes doing only an addition. If you never read my article, and you are interested in it here it is: <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=260">Obfuscation of steel: meet my Kryptonite</a>.</p>
-<p><center><img alt="home-made-adder.png" src="/images/breaking_kryptonite_s_obfuscation_with_symbolic_execution/home-made-adder.png"></center></p>
-<p>In this post I wanted to show you how we can manage to break that obfuscation with symbolic execution. We are going to write a really tiny symbolic execution engine with IDAPy, and we will use Z3Py to simplify all our equations. Note that a friend of mine <a href="https://twitter.com/elvanderb">@elvanderb</a> used a similar approach (more generic though) to simplify some parts of the <a href="http://download.tuxfamily.org/overclokblog/Obfuscation%20of%20steel%3a%20meet%20my%20Kryptonite/binaries/">crackme</a> ; but he didn't wanted to publish it, so here is my blog post about it!</p>
-
+<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add …</em></p>
                         <a class="btn primary xsmall" href="/blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/">more ...</a>
                 </div>
         </div>
@@ -352,16 +314,7 @@ Disassembly:
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>Yesterday afternoon, I was peacefully coding some stuff you know but I couldn't make my code working.
 As usual, in those type of situations you fire up your debugger in order to understand what is going on under the hood.
-That was a bit weird, to give you a bit of context I was doing some inline x86 assembly, and I've put on purpose an <em>int3</em> just
-before the piece of assembly code I thought was buggy. Once my file loaded in <a href="http://ollydbg.de/version2.html">OllyDbg2</a>, I hit <em>F9</em> in order to reach quickly the <em>int3</em> I've slipped into the inline assembly code. A bit of single-stepping, and <strong>BOOM</strong> I got a nasty crash. It happens sometimes, and that's uncool.
-Then, I relaunch my binary and try to reproduce the bug: same actions and <strong>BOOM</strong> again. OK, this time it's cool, I got a reproducible crash in OllyDbg2.</p>
-<p>I like when things like that happens to me (remember the crashes I've found in OllyDbg/IDA here: <a href="http://download.tuxfamily.org/overclokblog/PDB%20ain%27t%20PDD/0vercl0k_pdb_aint_pdd.pdf">PDB Ain't PDD</a>), it's always a nice exercise for me where I've to:</p>
-<ul>
-<li>pinpoint the bug in the application: usually not trivial when it's a real/big application</li>
-<li>reverse-engineer the codes involved in the bug in order to figure out why it's happening (sometimes I got the sources, sometimes I don't like this time)</li>
-</ul>
-<p>In this post, I will show you how I've manage to pinpoint where the bug was, using <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff549561(v=vs.85).aspx">GFlags, PageHeap</a> and <a href="http://www.windbg.info/">WinDbg</a>. Then, we will reverse-engineer the buggy code in order to understand why the bug is happening, and how we can code a clean trigger.</p>
-
+That was a bit weird, to give you a …</p>
                         <a class="btn primary xsmall" href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">more ...</a>
                 </div>
         </div>
@@ -384,37 +337,8 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
 	<a href="/tag/dynamic-binary-instrumentation.html"><i class="icon-tag"></i>dynamic-binary-instrumentation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic, anything) and you want to have the same coverage with only a subset of them. Or maybe, you are not really interested in the measure, but only with the coverage differences between two executions of your target: to locate where your program is handling a specific feature for example.</p>
-<p>But it's not a trivial problem, usually you don't have the source-code of the target, and you want it to be quick. The other thing, is that you don't have an input that covers the whole code base, you don't even know if it's possible ; so you can't compare your analysis to that "ideal one". Long story short, you can't say to the user "OK, this input covers 10% of your binary". But you can clearly register what your program is doing with input A, what it is doing with input B and then analyzing the differences. With that way you can have a (more precise?) idea about which input seems to have better coverage than another.</p>
-<p>Note also, this is a perfect occasion to play with Pin :-)).</p>
-<p>In this post, I will explain briefly how you can build that kind of tool using Pin, and how it can be used for reverse-engineer purposes.</p>
-
+<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic …</p>
                         <a class="btn primary xsmall" href="/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="/blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">Regular expressions obfuscation under the microscope</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2013-08-24T12:35:00-07:00">
-        <i class="icon-calendar"></i>Sat 24 August 2013
-</abbr>
-<span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="/category/obfuscation.html"><i class="icon-folder-open"></i>obfuscation</a>
-
-
-<span class="label">Tags</span>
-	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
-	<a href="/tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Some months ago I came across a strange couple of functions that was kind of playing with a <a href="http://en.wikipedia.org/wiki/Finite-state_machine">finite-state automaton</a> to validate an input. At first glance, I didn't really notice it was in fact a regex being processed, that's exactly why I spent quite some time to understand those routines. You are right to ask yourself: "Hmm but the regex string representation should be in the binary shouldn't it?", the thing is it wasn't. The purpose of this post is to focus on those kind of "compiled" regex, like when the author transform somehow the regex in a FSM directly usable in its program (for the sake of efficiency I guess). And to extract that handy string representation, you have to study the automaton.</p>
-<p>In this short post, we are going to see how a regular expression looks like in assembly/C, and how you can hide/obfuscate it. I hope you will enjoy the read, and you will both be able to recognize a regular expression compiled in your future reverse-engineering tasks and to obfuscate heavily your regex!</p>
-
-                        <a class="btn primary xsmall" href="/blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">more ...</a>
                 </div>
         </div>
         <hr />
@@ -424,7 +348,8 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
                         <li class="prev"><a href="/index.html">&larr; Previous</a></li>
                         <li class=""><a href="/index.html">1</a></li>
                         <li class="active"><a href="/index2.html">2</a></li>
-                        <li class="next disabled"><a href="#">&rarr; Next</a></li>
+                        <li class=""><a href="/index3.html">3</a></li>
+                        <li class="next"><a href="/index3.html">Next &rarr;</a></li>
         </ul>
         </div>
 
