@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Swimming in a Sea Of Nodes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="/theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="/theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="/feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="/category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="/category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="/category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="/pages/about.html">About</a></li>
+                <li><a href="/pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Swimming in a Sea Of Nodes">
+                                        Swimming in a Sea Of Nodes
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2019-01-28T13:37:00-08:00">
+        <i class="icon-calendar"></i>Mon 28 January 2019
+</abbr>
+<span class="label">By</span>
+<a href="/author/jeremy-__x86-fetiveau.html"><i class="icon-user"></i>Jeremy __x86 Fetiveau</a>
+<span class="label">Category</span>
+<a href="/category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+<span class="label">Tags</span>
+	<a href="/tag/v8.html"><i class="icon-tag"></i>v8</a>
+	<a href="/tag/turbofan.html"><i class="icon-tag"></i>turbofan</a>
+	<a href="/tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p>Ages ago, I wrote a blog post here called <code>first dip in the kernel pool</code>, this year, we're going to swim in a <code>sea of nodes</code>!</p>
+<p>The new trend is to attack JavaScript engines and most specifically, optimizing compilers such as V8's <code>Turbofan</code>, SpiderMonkey's <code>IonMonkey</code>, JavaScriptCore's <code>DFG</code> and <code>Data Flow Graph</code> &amp; <code>Faster Than Light</code>) or Chakra's <code>FullJIT</code>. </p>
+<p>In this article, we're going to quickly discuss optimizing compilers.</p>
+<p>Then, we'll study some easy vulnerable optimization pass written by <a href="https://twitter.com/_tsuro">@_tsuro</a> (hime, again :-p). for Google's CTF 2018. </p>
+<p>Finally, we'll have a look at a really cool bug found by <a href="https://twitter.com/_tsuro">@_tsuro</a> (him, again :-p) which is issue <code>762874</code>, an incorrect range optimization of <code>String.indexOf</code> and <code>String.lastIndexOf</code>.</p>
+
+
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#setup">Setup</a><ul>
+<li><a href="#building-v8">Building v8</a></li>
+<li><a href="#preparing-turbolizer">Preparing Turbolizer</a></li>
+</ul>
+</li>
+<li><a href="#speculative-optimizations-in-jit-compilers">Speculative optimizations in JIT compilers</a></li>
+<li><a href="#turbofans-pipeline">TurboFan's pipeline</a></li>
+<li><a href="#concerning-sea-of-nodes">Concerning Sea Of Nodes</a><ul>
+<li><a href="#value">Value</a></li>
+<li><a href="#effect">Effect</a></li>
+<li><a href="#control">Control</a></li>
+<li><a href="#reductions">Reductions</a></li>
+</ul>
+</li>
+<li><a href="#experimenting-with-the-optimization-phases">Experimenting with the optimization phases</a><ul>
+<li><a href="#playing-with-numberadd">Playing with NumberAdd</a><ul>
+<li><a href="#graph-builder-phase">Graph builder phase</a></li>
+<li><a href="#typer-phase">Typer phase</a></li>
+<li><a href="#type-lowering">Type lowering</a></li>
+</ul>
+</li>
+<li><a href="#range-types">Range types</a></li>
+<li><a href="#checkbounds-nodes">CheckBounds nodes</a><ul>
+<li><a href="#simplified-lowering">Simplified lowering</a></li>
+</ul>
+</li>
+<li><a href="#playing-with-various-addition-opcodes">Playing with various addition opcodes</a><ul>
+<li><a href="#speculativesafeintegeradd">SpeculativeSafeIntegerAdd</a></li>
+<li><a href="#speculativenumberadd">SpeculativeNumberAdd</a></li>
+<li><a href="#int32add">Int32Add</a></li>
+<li><a href="#jsadd">JSAdd</a></li>
+<li><a href="#numberadd">NumberAdd</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#the-duplicateadditionreducer-challenge">The DuplicateAdditionReducer challenge</a><ul>
+<li><a href="#understanding-the-reduction">Understanding the reduction</a></li>
+<li><a href="#understanding-the-bug">Understanding the bug</a><ul>
+<li><a href="#precision-loss-with-ieee-754-doubles">Precision loss with IEEE-754 doubles</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#exploitation">Exploitation</a><ul>
+<li><a href="#from-oob-to-rw">From OOB to RW</a></li>
+<li><a href="#overwriting-wasm-rwx-memory">Overwriting WASM RWX memory</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<h1 id="setup">Setup</h1>
+<p>First things first, let's prepare everything we need. </p>
+<h2 id="building-v8">Building v8</h2>
+<p>Building v8 is very easy. </p>
+<p>You can simply fetch the sources using  <a href="http://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html#_setting_up">depot tools</a> and then build using the following commands.</p>
+<div class="highlight"><pre><span></span>fetch v8
+gclient sync
+./build/install-build-deps.sh
+tools/dev/gm.py x64.release
+</pre></div>
+
+
+<p>Please note that whenever you're updating the source or checking out a specific commit, do <code>gclient sync</code> or you might be unable to build properly.</p>
+<h2 id="preparing-turbolizer">Preparing Turbolizer</h2>
+<p>Turbolizer is a tool that we are going to use to debug Turbofan's <code>sea of nodes</code> graph.</p>
+<div class="highlight"><pre><span></span>cd tools/turbolizer
+npm i
+npm run-script build
+python -m SimpleHTTPServer
+</pre></div>
+
+
+<p>When you executing a javascript file with <code>trace-turbo</code> (use <code>--trace-turbo-filter</code> to limit to a specific function), a <code>.cfg</code> and a <code>.json</code> files will be generated so that you can get a graph view of different optimization passes using <code>Turbolizer</code>.</p>
+<p>Simply go to the web interface using your favourite browser (which is chromium of course) and select the file from the interface.</p>
+<h1 id="speculative-optimizations-in-jit-compilers">Speculative optimizations in JIT compilers</h1>
+<h1 id="turbofans-pipeline">TurboFan's pipeline</h1>
+<h1 id="concerning-sea-of-nodes">Concerning Sea Of Nodes</h1>
+<h2 id="value">Value</h2>
+<h2 id="effect">Effect</h2>
+<h2 id="control">Control</h2>
+<h2 id="reductions">Reductions</h2>
+<h1 id="experimenting-with-the-optimization-phases">Experimenting with the optimization phases</h1>
+<h2 id="playing-with-numberadd">Playing with NumberAdd</h2>
+<p>Let's consider the following function : </p>
+<div class="highlight"><pre><span></span><span class="kd">function</span> <span class="nx">opt_me</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">x</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">();</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">;</span>
+  <span class="k">return</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">3</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Simply execute it a lot to trigger TurboFan or manually force optimization with <code>%OptimizeFunctionOnNextCall</code>. </p>
+<p>Run your code with <code>--trace-turbo</code> so as to generate trace files for <code>turbolizer</code>.</p>
+<h3 id="graph-builder-phase">Graph builder phase</h3>
+<p>We can look at the very first generated graph by selecting the "bytecode graph builder" option.</p>
+<p>The <code>JSCall</code> node corresponds to the <code>Math.random</code> call and obviously the <code>NumberConstant</code> and <code>SpeculativeNumberAdd</code> nodes are generated because of both <code>x+2</code> and <code>y+3</code> statements.</p>
+<p><img alt="addnumber_graphbuilder" src="images/swimming-in-a-sea-of-nodes/NumberAdd_graphbuilder.png"></p>
+<h3 id="typer-phase">Typer phase</h3>
+<p>After graph creation, comes optimization passes.</p>
+<p>One of its early optimization phase, is called the <code>TyperPhase</code> and is run by <code>OptimizeGraph</code>. The code is pretty self-explanatory.</p>
+<div class="highlight"><pre><span></span><span class="c1">// pipeline.cc</span>
+<span class="kt">bool</span> <span class="n">PipelineImpl</span><span class="o">::</span><span class="n">OptimizeGraph</span><span class="p">(</span><span class="n">Linkage</span><span class="o">*</span> <span class="n">linkage</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">PipelineData</span><span class="o">*</span> <span class="n">data</span> <span class="o">=</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">data_</span><span class="p">;</span>
+  <span class="c1">// Type the graph and keep the Typer running such that new nodes get</span>
+  <span class="c1">// automatically typed when they are created.</span>
+  <span class="n">Run</span><span class="o">&lt;</span><span class="n">TyperPhase</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">CreateTyper</span><span class="p">());</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="c1">// pipeline.cc</span>
+<span class="k">struct</span> <span class="n">TyperPhase</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="n">Run</span><span class="p">(</span><span class="n">PipelineData</span><span class="o">*</span> <span class="n">data</span><span class="p">,</span> <span class="n">Zone</span><span class="o">*</span> <span class="n">temp_zone</span><span class="p">,</span> <span class="n">Typer</span><span class="o">*</span> <span class="n">typer</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// [...]</span>
+    <span class="n">typer</span><span class="o">-&gt;</span><span class="n">Run</span><span class="p">(</span><span class="n">roots</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">induction_vars</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+</pre></div>
+
+
+<p>When running, what the <code>Typer</code> does is to visit every node of the graph and try to reduce it.</p>
+<div class="highlight"><pre><span></span><span class="c1">// typer.cc</span>
+<span class="kt">void</span> <span class="n">Typer</span><span class="o">::</span><span class="n">Run</span><span class="p">(</span><span class="k">const</span> <span class="n">NodeVector</span><span class="o">&amp;</span> <span class="n">roots</span><span class="p">,</span>
+                <span class="n">LoopVariableOptimizer</span><span class="o">*</span> <span class="n">induction_vars</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// [...]</span>
+  <span class="n">Visitor</span> <span class="n">visitor</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="n">induction_vars</span><span class="p">);</span>
+  <span class="n">GraphReducer</span> <span class="nf">graph_reducer</span><span class="p">(</span><span class="n">zone</span><span class="p">(),</span> <span class="n">graph</span><span class="p">());</span>
+  <span class="n">graph_reducer</span><span class="p">.</span><span class="n">AddReducer</span><span class="p">(</span><span class="o">&amp;</span><span class="n">visitor</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="nl">root</span> <span class="p">:</span> <span class="n">roots</span><span class="p">)</span> <span class="n">graph_reducer</span><span class="p">.</span><span class="n">ReduceNode</span><span class="p">(</span><span class="n">root</span><span class="p">);</span>
+  <span class="n">graph_reducer</span><span class="p">.</span><span class="n">ReduceGraph</span><span class="p">();</span>
+  <span class="c1">// [...]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Now let's have a look at the reducer.</p>
+<div class="highlight"><pre><span></span><span class="c1">// typer.cc</span>
+  <span class="n">Reduction</span> <span class="nf">Reduce</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ValueOutputCount</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">())</span> <span class="p">{</span>
+<span class="cp">#define DECLARE_CASE(x) \</span>
+<span class="cp">  case IrOpcode::k##x:  \</span>
+<span class="cp">    return UpdateType(node, TypeBinaryOp(node, x##Typer));</span>
+      <span class="n">JS_SIMPLE_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+<span class="cp">#undef DECLARE_CASE</span>
+
+<span class="cp">#define DECLARE_CASE(x) \</span>
+<span class="cp">  case IrOpcode::k##x:  \</span>
+<span class="cp">    return UpdateType(node, Type##x(node));</span>
+      <span class="n">DECLARE_CASE</span><span class="p">(</span><span class="n">Start</span><span class="p">)</span>
+      <span class="n">DECLARE_CASE</span><span class="p">(</span><span class="n">IfException</span><span class="p">)</span>
+      <span class="c1">// VALUE_OP_LIST without JS_SIMPLE_BINOP_LIST:</span>
+      <span class="n">COMMON_OP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">SIMPLIFIED_COMPARE_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">SIMPLIFIED_OTHER_OP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">JS_SIMPLE_UNOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">JS_OBJECT_OP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">JS_CONTEXT_OP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">JS_OTHER_OP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+<span class="cp">#undef DECLARE_CASE</span>
+</pre></div>
+
+
+<p>The <code>JS_OTHER_OP_LIST</code> macro is interesting. </p>
+<div class="highlight"><pre><span></span><span class="c1">// opcodes.h</span>
+<span class="cp">#define JS_OTHER_OP_LIST(V)            \</span>
+<span class="cp">  JS_CALL_OP_LIST(V)                   \</span>
+<span class="c1">// [...]</span>
+<span class="cp">#define JS_CALL_OP_LIST(V) \</span>
+<span class="cp">  V(JSCall)                \</span>
+</pre></div>
+
+
+<p>That means that the the following code will be generated : </p>
+<div class="highlight"><pre><span></span><span class="c1">// typer.cc</span>
+<span class="k">switch</span> <span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">())</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="n">IrOpcode</span><span class="o">::</span><span class="nl">kJSCall</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">UpdateType</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">TypeBinaryOp</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">JSCallTyper</span><span class="p">));</span>
+</pre></div>
+
+
+<p>So basically, the <code>TyperPhase</code> is going to call <code>JSCallTyper</code> on every single <code>JSCall</code> node that it visits. If we read the code of <code>JSCallTyper</code>, we see than whever the function called is a builtin, it will associate a <code>Type</code> with it. 
+For instance, in the case of a call to the <code>MathRandom</code> builtin, it knows that the expected return type is a <code>Type::PlainNumber</code>.</p>
+<div class="highlight"><pre><span></span><span class="c1">// typer.cc</span>
+<span class="n">Type</span> <span class="n">Typer</span><span class="o">::</span><span class="n">Visitor</span><span class="o">::</span><span class="n">JSCallTyper</span><span class="p">(</span><span class="n">Type</span> <span class="n">fun</span><span class="p">,</span> <span class="n">Typer</span><span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">fun</span><span class="p">.</span><span class="n">IsHeapConstant</span><span class="p">()</span> <span class="o">||</span> <span class="o">!</span><span class="n">fun</span><span class="p">.</span><span class="n">AsHeapConstant</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Ref</span><span class="p">().</span><span class="n">IsJSFunction</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">NonInternal</span><span class="p">();</span>
+  <span class="p">}</span>
+  <span class="n">JSFunctionRef</span> <span class="n">function</span> <span class="o">=</span> <span class="n">fun</span><span class="p">.</span><span class="n">AsHeapConstant</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Ref</span><span class="p">().</span><span class="n">AsJSFunction</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">function</span><span class="p">.</span><span class="n">shared</span><span class="p">().</span><span class="n">HasBuiltinFunctionId</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">NonInternal</span><span class="p">();</span>
+  <span class="p">}</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">function</span><span class="p">.</span><span class="n">shared</span><span class="p">().</span><span class="n">builtin_function_id</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="n">BuiltinFunctionId</span><span class="o">::</span><span class="nl">kMathRandom</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">PlainNumber</span><span class="p">();</span>
+</pre></div>
+
+
+<p>Okay, for the <code>NumberConstant</code> nodes it's easy. We simply read <code>TypeNumberConstant</code>.</p>
+<div class="highlight"><pre><span></span><span class="n">Type</span> <span class="n">Typer</span><span class="o">::</span><span class="n">Visitor</span><span class="o">::</span><span class="n">TypeNumberConstant</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">double</span> <span class="n">number</span> <span class="o">=</span> <span class="n">OpParameter</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">());</span>
+  <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">NewConstant</span><span class="p">(</span><span class="n">number</span><span class="p">,</span> <span class="n">zone</span><span class="p">());</span>
+<span class="p">}</span>
+<span class="n">Type</span> <span class="n">Type</span><span class="o">::</span><span class="n">NewConstant</span><span class="p">(</span><span class="kt">double</span> <span class="n">value</span><span class="p">,</span> <span class="n">Zone</span><span class="o">*</span> <span class="n">zone</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">RangeType</span><span class="o">::</span><span class="n">IsInteger</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Range</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">zone</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">IsMinusZero</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">MinusZero</span><span class="p">();</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">NaN</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="n">DCHECK</span><span class="p">(</span><span class="n">OtherNumberConstantType</span><span class="o">::</span><span class="n">IsOtherNumberConstant</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+  <span class="k">return</span> <span class="nf">OtherNumberConstant</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">zone</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>In most case, the type will be <code>Range</code>.</p>
+<p>What about those <code>SpeculativeNumberAdd</code> now? </p>
+<p>Again, we need to have a look at the macros. </p>
+<div class="highlight"><pre><span></span><span class="n">Reduction</span> <span class="nf">Reduce</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">())</span> <span class="p">{</span>
+<span class="c1">// [...]</span>
+<span class="cp">#define DECLARE_CASE(x) \</span>
+<span class="cp">  case IrOpcode::k##x:  \</span>
+<span class="cp">    return UpdateType(node, TypeBinaryOp(node, x));</span>
+      <span class="n">SIMPLIFIED_NUMBER_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">SIMPLIFIED_SPECULATIVE_NUMBER_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+<span class="cp">#undef DECLARE_CASE</span>
+<span class="c1">// [...]</span>
+ <span class="cp">#define DECLARE_CASE(x) \</span>
+<span class="cp">  case IrOpcode::k##x:  \</span>
+<span class="cp">    return TypeBinaryOp(node, x);</span>
+      <span class="n">SIMPLIFIED_NUMBER_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+      <span class="n">SIMPLIFIED_SPECULATIVE_NUMBER_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_CASE</span><span class="p">)</span>
+<span class="cp">#undef DECLARE_CASE</span>
+ <span class="c1">// [...]            </span>
+<span class="cp">#define DECLARE_METHOD(Name)                       \</span>
+<span class="cp">  static Type Name(Type lhs, Type rhs, Typer* t) { \</span>
+<span class="cp">    return t-&gt;operation_typer_.Name(lhs, rhs);     \</span>
+<span class="cp">  }</span>
+  <span class="n">SIMPLIFIED_NUMBER_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_METHOD</span><span class="p">)</span>
+  <span class="n">SIMPLIFIED_SPECULATIVE_NUMBER_BINOP_LIST</span><span class="p">(</span><span class="n">DECLARE_METHOD</span><span class="p">)</span>
+<span class="cp">#undef DECLARE_METHOD</span>
+</pre></div>
+
+
+<p>Long story short, this leads us to execute the <code>OperationTyper</code>.</p>
+<div class="highlight"><pre><span></span><span class="cp">#define SPECULATIVE_NUMBER_BINOP(Name)                         \</span>
+<span class="cp">  Type OperationTyper::Speculative##Name(Type lhs, Type rhs) { \</span>
+<span class="cp">    lhs = SpeculativeToNumber(lhs);                            \</span>
+<span class="cp">    rhs = SpeculativeToNumber(rhs);                            \</span>
+<span class="cp">    return Name(lhs, rhs);                                     \</span>
+<span class="cp">  }</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberAdd</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberSubtract</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberMultiply</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberDivide</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberModulus</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberBitwiseOr</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberBitwiseAnd</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberBitwiseXor</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberShiftLeft</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberShiftRight</span><span class="p">)</span>
+<span class="n">SPECULATIVE_NUMBER_BINOP</span><span class="p">(</span><span class="n">NumberShiftRightLogical</span><span class="p">)</span>
+<span class="cp">#undef SPECULATIVE_NUMBER_BINOP</span>
+
+<span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">SpeculativeToNumber</span><span class="p">(</span><span class="n">Type</span> <span class="n">type</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="n">ToNumber</span><span class="p">(</span><span class="n">Type</span><span class="o">::</span><span class="n">Intersect</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">NumberOrOddball</span><span class="p">(),</span> <span class="n">zone</span><span class="p">()));</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>And then we end up in <code>OperationTyper::NumberAdd(Type lhs, Type rhs)</code>.</p>
+<p>To get the types of  the right input node and the left input nodes, we call <code>SpeculativeToNumber</code> on each on them.</p>
+<p>To keep it simple, any kind of <code>Type::Number</code> will  remain the same type (a <code>PlainNumber</code> being a <code>Number</code>, it will stay a <code>PlainNumber</code>).</p>
+<p>The <code>Range(n,n)</code> type will become a <code>Number</code> as well so that we end-up calling <code>NumberAdd</code> on two <code>Number</code>. </p>
+<p><code>NumberAdd</code> mostly checks for some corner cases like if one of the two types is a <code>MinusZero</code> for instance. In most cases, the function will simply return the <code>PlainNumber</code> type.</p>
+<p>Okay done for the <code>Typer</code> phase!</p>
+<p>To sum up, everything happened in :</p>
+<ul>
+<li><code>Typer::Visitor::JSCallTyper</code></li>
+<li><code>OperationTyper::SpeculativeNumberAdd</code></li>
+</ul>
+<p>And this is how types are treated : </p>
+<ul>
+<li>The type of <code>JSCall(MathRandom)</code> becomes a <code>PlainNumber</code></li>
+<li>The type of <code>NumberConstant[n]</code> with <code>n != NaN &amp; n !=  -0</code> becomes a <code>Range(n,n)</code></li>
+<li>The type of a <code>Range(n,n)</code> is <code>PlainNumber</code></li>
+<li>The type of <code>SpeculativeNumberAdd(PlainNumber, PlainNumber)</code> is <code>PlainNumber</code></li>
+</ul>
+<p>Now the graph looks like this : </p>
+<p><img alt="addnumber_typer" src="/images/swimming-in-a-sea-of-nodes/NumberAdd_typer.png"></p>
+<h3 id="type-lowering">Type lowering</h3>
+<p>In <code>OptimizeGraph</code>,  the type lowering comes right after the typing.</p>
+<div class="highlight"><pre><span></span><span class="c1">// pipeline.cc</span>
+ <span class="n">Run</span><span class="o">&lt;</span><span class="n">TyperPhase</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">CreateTyper</span><span class="p">());</span>
+  <span class="n">RunPrintAndVerify</span><span class="p">(</span><span class="n">TyperPhase</span><span class="o">::</span><span class="n">phase_name</span><span class="p">());</span>
+  <span class="n">Run</span><span class="o">&lt;</span><span class="n">TypedLoweringPhase</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="n">RunPrintAndVerify</span><span class="p">(</span><span class="n">TypedLoweringPhase</span><span class="o">::</span><span class="n">phase_name</span><span class="p">());</span>
+</pre></div>
+
+
+<p>This phase goes through more reducers.</p>
+<div class="highlight"><pre><span></span><span class="c1">// pipeline.cc</span>
+    <span class="n">TypedOptimization</span> <span class="nf">typed_optimization</span><span class="p">(</span><span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="n">data</span><span class="o">-&gt;</span><span class="n">dependencies</span><span class="p">(),</span>
+                                         <span class="n">data</span><span class="o">-&gt;</span><span class="n">jsgraph</span><span class="p">(),</span> <span class="n">data</span><span class="o">-&gt;</span><span class="n">broker</span><span class="p">());</span>
+<span class="c1">// [...]</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">dead_code_elimination</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">create_lowering</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">constant_folding_reducer</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">typed_lowering</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">typed_optimization</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">simple_reducer</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">checkpoint_elimination</span><span class="p">);</span>
+    <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">common_reducer</span><span class="p">);</span>
+</pre></div>
+
+
+<p>Let's have a look at the <code>TypedOptimization</code> and more specifically <code>TypedOptimization::Reduce</code>. </p>
+<p>When a node is visited and its opcode is <code>IrOpcode::kSpeculativeNumberAdd</code>, it will call <code>ReduceSpeculativeNumberAdd</code>.</p>
+<div class="highlight"><pre><span></span><span class="n">Reduction</span> <span class="n">TypedOptimization</span><span class="o">::</span><span class="n">ReduceSpeculativeNumberAdd</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="n">lhs</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetValueInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetValueInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">Type</span> <span class="k">const</span> <span class="n">lhs_type</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetType</span><span class="p">(</span><span class="n">lhs</span><span class="p">);</span>
+  <span class="n">Type</span> <span class="k">const</span> <span class="n">rhs_type</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetType</span><span class="p">(</span><span class="n">rhs</span><span class="p">);</span>
+  <span class="n">NumberOperationHint</span> <span class="n">hint</span> <span class="o">=</span> <span class="n">NumberOperationHintOf</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">());</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">hint</span> <span class="o">==</span> <span class="n">NumberOperationHint</span><span class="o">::</span><span class="n">kNumber</span> <span class="o">||</span>
+       <span class="n">hint</span> <span class="o">==</span> <span class="n">NumberOperationHint</span><span class="o">::</span><span class="n">kNumberOrOddball</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+      <span class="n">BothAre</span><span class="p">(</span><span class="n">lhs_type</span><span class="p">,</span> <span class="n">rhs_type</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">PlainPrimitive</span><span class="p">())</span> <span class="o">&amp;&amp;</span>
+      <span class="n">NeitherCanBe</span><span class="p">(</span><span class="n">lhs_type</span><span class="p">,</span> <span class="n">rhs_type</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">StringOrReceiver</span><span class="p">()))</span> <span class="p">{</span>
+    <span class="c1">// SpeculativeNumberAdd(x:-string, y:-string) =&gt;</span>
+    <span class="c1">//     NumberAdd(ToNumber(x), ToNumber(y))</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="n">toNum_lhs</span> <span class="o">=</span> <span class="n">ConvertPlainPrimitiveToNumber</span><span class="p">(</span><span class="n">lhs</span><span class="p">);</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="n">toNum_rhs</span> <span class="o">=</span> <span class="n">ConvertPlainPrimitiveToNumber</span><span class="p">(</span><span class="n">rhs</span><span class="p">);</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="k">const</span> <span class="n">value</span> <span class="o">=</span>
+        <span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NewNode</span><span class="p">(</span><span class="n">simplified</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NumberAdd</span><span class="p">(),</span> <span class="n">toNum_lhs</span><span class="p">,</span> <span class="n">toNum_rhs</span><span class="p">);</span>
+    <span class="n">ReplaceWithValue</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nf">Replace</span><span class="p">(</span><span class="n">node</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>In the case of our two nodes, both have a hint of <code>NumberOperationHint::kNumber</code> because the node's type is a <code>PlainNumber</code>.</p>
+<p>Both right hand side and left hand side types are <code>PlainPrimitive</code> (<code>Plain Number</code> from the <code>NumberConstant</code>'s <code>Range</code> and <code>PlainNumber</code> from the <code>JSCall</code>).</p>
+<p>Therefore, a new <code>NumberAdd</code> node is created and replaces the current <code>SpeculativeNumberAdd</code>.</p>
+<p>Similarly , there is a <code>JSTypedLowering::ReduceJSCall</code> called when the <code>JSTypedLowering</code> reducer is visiting a <code>JSCall</code> node.</p>
+<p>Because the call target is a <code>Code Stub Assembler</code> implementation of a <code>builtin</code> function,  TurboFan simply creates a <code>LoadField</code> node and change the opcode of the <code>JSCall</code> node to a <code>Call</code> opcode.</p>
+<p>It also adds new inputs to this node.</p>
+<div class="highlight"><pre><span></span><span class="n">Reduction</span> <span class="n">JSTypedLowering</span><span class="o">::</span><span class="n">ReduceJSCall</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+<span class="c1">// [...]</span>
+<span class="c1">// Check if {target} is a known JSFunction.</span>
+<span class="c1">// [...]</span>
+    <span class="c1">// Load the context from the {target}.</span>
+    <span class="n">Node</span><span class="o">*</span> <span class="n">context</span> <span class="o">=</span> <span class="n">effect</span> <span class="o">=</span> <span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NewNode</span><span class="p">(</span>
+        <span class="n">simplified</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">LoadField</span><span class="p">(</span><span class="n">AccessBuilder</span><span class="o">::</span><span class="n">ForJSFunctionContext</span><span class="p">()),</span> <span class="n">target</span><span class="p">,</span>
+        <span class="n">effect</span><span class="p">,</span> <span class="n">control</span><span class="p">);</span>
+    <span class="n">NodeProperties</span><span class="o">::</span><span class="n">ReplaceContextInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">context</span><span class="p">);</span>
+
+    <span class="c1">// Update the effect dependency for the {node}.</span>
+    <span class="n">NodeProperties</span><span class="o">::</span><span class="n">ReplaceEffectInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">effect</span><span class="p">);</span>
+<span class="c1">// [...]</span>
+<span class="c1">// kMathRandom is a CSA builtin, not a CPP one</span>
+<span class="c1">// builtins-math-gen.cc:TF_BUILTIN(MathRandom, CodeStubAssembler) </span>
+<span class="c1">// builtins-definitions.h:  TFJ(MathRandom, 0, kReceiver)  </span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">HasBuiltinId</span><span class="p">()</span> <span class="o">&amp;&amp;</span>
+               <span class="n">Builtins</span><span class="o">::</span><span class="n">HasCppImplementation</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">builtin_id</span><span class="p">()))</span> <span class="p">{</span>
+      <span class="c1">// Patch {node} to a direct CEntry call.</span>
+      <span class="n">ReduceBuiltin</span><span class="p">(</span><span class="n">jsgraph</span><span class="p">(),</span> <span class="n">node</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">builtin_id</span><span class="p">(),</span> <span class="n">arity</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">HasBuiltinId</span><span class="p">()</span> <span class="o">&amp;&amp;</span>
+               <span class="n">Builtins</span><span class="o">::</span><span class="n">KindOf</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">builtin_id</span><span class="p">())</span> <span class="o">==</span> <span class="n">Builtins</span><span class="o">::</span><span class="n">TFJ</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// Patch {node} to a direct code object call.</span>
+      <span class="n">Callable</span> <span class="n">callable</span> <span class="o">=</span> <span class="n">Builtins</span><span class="o">::</span><span class="n">CallableFor</span><span class="p">(</span>
+          <span class="n">isolate</span><span class="p">(),</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">Builtins</span><span class="o">::</span><span class="n">Name</span><span class="o">&gt;</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">builtin_id</span><span class="p">()));</span>
+      <span class="n">CallDescriptor</span><span class="o">::</span><span class="n">Flags</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">CallDescriptor</span><span class="o">::</span><span class="n">kNeedsFrameState</span><span class="p">;</span>
+
+      <span class="k">const</span> <span class="n">CallInterfaceDescriptor</span><span class="o">&amp;</span> <span class="n">descriptor</span> <span class="o">=</span> <span class="n">callable</span><span class="p">.</span><span class="n">descriptor</span><span class="p">();</span>
+      <span class="k">auto</span> <span class="n">call_descriptor</span> <span class="o">=</span> <span class="n">Linkage</span><span class="o">::</span><span class="n">GetStubCallDescriptor</span><span class="p">(</span>
+          <span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">zone</span><span class="p">(),</span> <span class="n">descriptor</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">arity</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>
+      <span class="n">Node</span><span class="o">*</span> <span class="n">stub_code</span> <span class="o">=</span> <span class="n">jsgraph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">HeapConstant</span><span class="p">(</span><span class="n">callable</span><span class="p">.</span><span class="n">code</span><span class="p">());</span>
+      <span class="n">node</span><span class="o">-&gt;</span><span class="n">InsertInput</span><span class="p">(</span><span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">zone</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">stub_code</span><span class="p">);</span>  <span class="c1">// Code object.</span>
+      <span class="n">node</span><span class="o">-&gt;</span><span class="n">InsertInput</span><span class="p">(</span><span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">zone</span><span class="p">(),</span> <span class="mi">2</span><span class="p">,</span> <span class="n">new_target</span><span class="p">);</span>
+      <span class="n">node</span><span class="o">-&gt;</span><span class="n">InsertInput</span><span class="p">(</span><span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">zone</span><span class="p">(),</span> <span class="mi">3</span><span class="p">,</span> <span class="n">argument_count</span><span class="p">);</span>
+      <span class="n">NodeProperties</span><span class="o">::</span><span class="n">ChangeOp</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">common</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Call</span><span class="p">(</span><span class="n">call_descriptor</span><span class="p">));</span>
+    <span class="p">}</span>
+ <span class="c1">// [...]</span>
+    <span class="k">return</span> <span class="n">Changed</span><span class="p">(</span><span class="n">node</span><span class="p">);</span>
+  <span class="p">}</span>
+</pre></div>
+
+
+<p>Let's quickly check the sea of nodes to indeed observe the addition of the LoadField and the change of opcode of the node <code>#25</code> (note that it is the same node as before, only the opcode changed).</p>
+<p><img alt="addnumber_jscall_new_loadfield" src="/images/swimming-in-a-sea-of-nodes/NumberAdd_JSCall_newLoadField.png"></p>
+<h2 id="range-types">Range types</h2>
+<p>Previously, we already encountered various types, including the <code>Range</code> type. However, it was always the case of <code>Range(n,n)</code> of size 1. </p>
+<p>Now let's consider the following code : </p>
+<div class="highlight"><pre><span></span><span class="kd">function</span> <span class="nx">opt_me</span><span class="p">(</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">x</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span> <span class="c1">// [1] x0 = 10</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">b</span> <span class="o">==</span> <span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+    <span class="nx">x</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span> <span class="c1">// [2] x1 = 5</span>
+  <span class="c1">// [3] x2 = phi(x0, x1)</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">;</span>
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">1000</span><span class="p">;</span> 
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">*</span> <span class="mi">2</span><span class="p">;</span>
+  <span class="k">return</span> <span class="nx">y</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Let's quickly draw a CFG graph in <a href="https://en.wikipedia.org/wiki/Static_single_assignment_form">SSA form</a> with typing.</p>
+<p>So, depending on  <code>b == "foo"</code> being true of false, <code>x</code> will be either 10 or 5.  In SSA form,  each variable can be assigned only once. So <code>x0</code> and <code>x1</code> will be created for 10 and 5 at lines [1] and [2]. At line [3], the value of <code>x</code> (<code>x2</code> in SSA) will be either <code>x0</code> or <code>x1</code>, hence the need of a <code>phi function</code>.  </p>
+<p>The statement<code>x2 = phi(x0,x1)</code> means that x2 is being affected either <code>x0</code> or <code>x1</code>.</p>
+<p>So what about types now? The type of the constant 10 (<code>x0</code>) is <code>Range(10,10)</code> and the range of constant 5 -(<code>x1</code>) is <code>Range(5,5)</code>.  Without the surprise, the type of the <code>Phi</code> node would be the union of both ranges, which is <code>Range(5,10)</code>.</p>
+<p><img alt="diagram" src="/images/swimming-in-a-sea-of-nodes/diagram.png"></p>
+<p>Okay, let's actually check this by reading the code.</p>
+<div class="highlight"><pre><span></span><span class="n">Type</span> <span class="n">Typer</span><span class="o">::</span><span class="n">Visitor</span><span class="o">::</span><span class="n">TypePhi</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">arity</span> <span class="o">=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ValueInputCount</span><span class="p">();</span>
+  <span class="n">Type</span> <span class="n">type</span> <span class="o">=</span> <span class="n">Operand</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">arity</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">type</span> <span class="o">=</span> <span class="n">Type</span><span class="o">::</span><span class="n">Union</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">Operand</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">zone</span><span class="p">());</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">type</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>The code looks exactly as we would expect it to be : simply an union of all of the input's types!</p>
+<p>To understand the typing of the <code>SpeculativeSafeIntegerAdd</code> nodes, we need to go back to the <code>OperationTyper</code> implementation. In the case of <code>SpeculativeSafeIntegerAdd(n,m)</code>, TurboFan does an <code>AddRange(n.Min(), n.Max(), m.Min(), m.Max())</code>.</p>
+<div class="highlight"><pre><span></span><span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">SpeculativeSafeIntegerAdd</span><span class="p">(</span><span class="n">Type</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">Type</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">Type</span> <span class="n">result</span> <span class="o">=</span> <span class="n">SpeculativeNumberAdd</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">);</span>
+  <span class="c1">// If we have a Smi or Int32 feedback, the representation selection will</span>
+  <span class="c1">// either truncate or it will check the inputs (i.e., deopt if not int32).</span>
+  <span class="c1">// In either case the result will be in the safe integer range, so we</span>
+  <span class="c1">// can bake in the type here. This needs to be in sync with</span>
+  <span class="c1">// SimplifiedLowering::VisitSpeculativeAdditiveOp.</span>
+  <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">Intersect</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">cache_</span><span class="o">-&gt;</span><span class="n">kSafeIntegerOrMinusZero</span><span class="p">,</span> <span class="n">zone</span><span class="p">());</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<div class="highlight"><pre><span></span><span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">NumberAdd</span><span class="p">(</span><span class="n">Type</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">Type</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
+<span class="c1">// [...]</span>
+  <span class="n">Type</span> <span class="n">type</span> <span class="o">=</span> <span class="n">Type</span><span class="o">::</span><span class="n">None</span><span class="p">();</span>
+  <span class="n">lhs</span> <span class="o">=</span> <span class="n">Type</span><span class="o">::</span><span class="n">Intersect</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">PlainNumber</span><span class="p">(),</span> <span class="n">zone</span><span class="p">());</span>
+  <span class="n">rhs</span> <span class="o">=</span> <span class="n">Type</span><span class="o">::</span><span class="n">Intersect</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">PlainNumber</span><span class="p">(),</span> <span class="n">zone</span><span class="p">());</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">lhs</span><span class="p">.</span><span class="n">IsNone</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">rhs</span><span class="p">.</span><span class="n">IsNone</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">lhs</span><span class="p">.</span><span class="n">Is</span><span class="p">(</span><span class="n">cache_</span><span class="o">-&gt;</span><span class="n">kInteger</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">rhs</span><span class="p">.</span><span class="n">Is</span><span class="p">(</span><span class="n">cache_</span><span class="o">-&gt;</span><span class="n">kInteger</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">type</span> <span class="o">=</span> <span class="n">AddRanger</span><span class="p">(</span><span class="n">lhs</span><span class="p">.</span><span class="n">Min</span><span class="p">(),</span> <span class="n">lhs</span><span class="p">.</span><span class="n">Max</span><span class="p">(),</span> <span class="n">rhs</span><span class="p">.</span><span class="n">Min</span><span class="p">(),</span> <span class="n">rhs</span><span class="p">.</span><span class="n">Max</span><span class="p">());</span>
+    <span class="p">}</span> 
+<span class="c1">// [...]</span>
+  <span class="k">return</span> <span class="n">type</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p><code>AddRanger</code> is the function that actually computes the min and max bounds of the <code>Range</code>.</p>
+<div class="highlight"><pre><span></span><span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">AddRanger</span><span class="p">(</span><span class="kt">double</span> <span class="n">lhs_min</span><span class="p">,</span> <span class="kt">double</span> <span class="n">lhs_max</span><span class="p">,</span> <span class="kt">double</span> <span class="n">rhs_min</span><span class="p">,</span>
+                               <span class="kt">double</span> <span class="n">rhs_max</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">double</span> <span class="n">results</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+  <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">lhs_min</span> <span class="o">+</span> <span class="n">rhs_min</span><span class="p">;</span>
+  <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">lhs_min</span> <span class="o">+</span> <span class="n">rhs_max</span><span class="p">;</span>
+  <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">lhs_max</span> <span class="o">+</span> <span class="n">rhs_min</span><span class="p">;</span>
+  <span class="n">results</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">lhs_max</span> <span class="o">+</span> <span class="n">rhs_max</span><span class="p">;</span>
+  <span class="c1">// Since none of the inputs can be -0, the result cannot be -0 either.</span>
+  <span class="c1">// However, it can be nan (the sum of two infinities of opposite sign).</span>
+  <span class="c1">// On the other hand, if none of the &quot;results&quot; above is nan, then the</span>
+  <span class="c1">// actual result cannot be nan either.</span>
+  <span class="kt">int</span> <span class="n">nans</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">isnan</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">++</span><span class="n">nans</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">nans</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">NaN</span><span class="p">();</span>
+  <span class="n">Type</span> <span class="n">type</span> <span class="o">=</span> <span class="n">Type</span><span class="o">::</span><span class="n">Range</span><span class="p">(</span><span class="n">array_min</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">array_max</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">zone</span><span class="p">());</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">nans</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">type</span> <span class="o">=</span> <span class="n">Type</span><span class="o">::</span><span class="n">Union</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">NaN</span><span class="p">(),</span> <span class="n">zone</span><span class="p">());</span>
+  <span class="c1">// Examples:</span>
+  <span class="c1">//   [-inf, -inf] + [+inf, +inf] = NaN</span>
+  <span class="c1">//   [-inf, -inf] + [n, +inf] = [-inf, -inf] \/ NaN</span>
+  <span class="c1">//   [-inf, +inf] + [n, +inf] = [-inf, +inf] \/ NaN</span>
+  <span class="c1">//   [-inf, m] + [n, +inf] = [-inf, +inf] \/ NaN</span>
+  <span class="k">return</span> <span class="n">type</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Done with the range analysis!</p>
+<p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/turbofan_range.png"></p>
+<h2 id="checkbounds-nodes">CheckBounds nodes</h2>
+<p>Our final experiment will deal with <code>CheckBounds</code> node. Basically, nodes with a <code>CheckBounds</code> opcode add bound checks before loads and stores.</p>
+<p>Consider the following code : </p>
+<div class="highlight"><pre><span></span><span class="kd">function</span> <span class="nx">opt_me</span><span class="p">(</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">values</span> <span class="o">=</span> <span class="p">[</span><span class="mi">42</span><span class="p">,</span><span class="mi">1337</span><span class="p">];</span>       <span class="c1">// HeapConstant &lt;FixedArray[2]&gt;</span>
+  <span class="kd">let</span> <span class="nx">x</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>                   <span class="c1">// NumberConstant[10]          | Range(10,10)</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">b</span> <span class="o">==</span> <span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+    <span class="nx">x</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>                      <span class="c1">// NumberConstant[5]           | Range(5,5)</span>
+                                <span class="c1">// Phi                         | Range(5,10)</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">;</span>                <span class="c1">// SpeculativeSafeIntegerAdd   | Range(7,12)</span>
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">1000</span><span class="p">;</span>                 <span class="c1">// SpeculativeSafeIntegerAdd   | Range(1007,1012)</span>
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">*</span> <span class="mi">2</span><span class="p">;</span>                    <span class="c1">// SpeculativeNumberMultiply   | Range(2014,2024)</span>
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">&amp;</span> <span class="mi">10</span><span class="p">;</span>                   <span class="c1">// SpeculativeNumberBitwiseAnd | Range(0,10)</span>
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">/</span> <span class="mi">3</span><span class="p">;</span>                    <span class="c1">// SpeculativeNumberDivide     | PlainNumber</span>
+  <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">;</span>                    <span class="c1">// SpeculativeNumberBitwiseAnd | Range(0,1)</span>
+  <span class="k">return</span> <span class="nx">values</span><span class="p">[</span><span class="nx">y</span><span class="p">];</span>             <span class="c1">// CheckBounds                 | Range(0,1)</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>In order to prevent <code>values[y]</code> from using any out of bounds index, a <code>CheckBounds</code> node is going to be generated. Here is what the sea of nodes graph looks like right after the escape analysis phase.</p>
+<p><img alt="before" src="/images/swimming-in-a-sea-of-nodes/with_checkbounds.png"></p>
+<p>The cautious read will have noticed something interesting about the range analysis. The type of the <code>CheckBounds</code> node is <code>Range(0,1)</code>!  And also, the <code>LoadElement</code> has an input <code>FixedArray HeapConstant</code> of length <code>2</code>.  That leads us to an interesting phase : the simplified lowering.</p>
+<h3 id="simplified-lowering">Simplified lowering</h3>
+<p>When visiting a node with a <code>IrOpcode::kCheckBounds</code> opcode, the function <code>VisitCheckBounds</code> (<code>src/compiler/simplified-lowering.cc</code>) is going to get called.</p>
+<p>And this function, is responsible for some <code>CheckBounds</code> elimination. Sounds interesting!</p>
+<p>Long story short, it compares inputs 0 (index) and 1 (length). If the index's minimum range value is greater than zero (or equal to) and its maximum range value is less than than length value,  it will trigger a <code>DeferReplacement</code>. In other words, the <code>CheckBounds</code> node will be removed!</p>
+<div class="highlight"><pre><span></span> <span class="kt">void</span> <span class="nf">VisitCheckBounds</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">,</span> <span class="n">SimplifiedLowering</span><span class="o">*</span> <span class="n">lowering</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">CheckParameters</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">p</span> <span class="o">=</span> <span class="n">CheckParametersOf</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">());</span>
+    <span class="n">Type</span> <span class="k">const</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">TypeOf</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">InputAt</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+    <span class="n">Type</span> <span class="k">const</span> <span class="n">length_type</span> <span class="o">=</span> <span class="n">TypeOf</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">InputAt</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">length_type</span><span class="p">.</span><span class="n">Is</span><span class="p">(</span><span class="n">Type</span><span class="o">::</span><span class="n">Unsigned31</span><span class="p">()))</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">index_type</span><span class="p">.</span><span class="n">Is</span><span class="p">(</span><span class="n">Type</span><span class="o">::</span><span class="n">Integral32OrMinusZero</span><span class="p">()))</span> <span class="p">{</span>
+        <span class="c1">// Map -0 to 0, and the values in the [-2^31,-1] range to the</span>
+        <span class="c1">// [2^31,2^32-1] range, which will be considered out-of-bounds</span>
+        <span class="c1">// as well, because the {length_type} is limited to Unsigned31.</span>
+        <span class="n">VisitBinop</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">UseInfo</span><span class="o">::</span><span class="n">TruncatingWord32</span><span class="p">(),</span>
+                   <span class="n">MachineRepresentation</span><span class="o">::</span><span class="n">kWord32</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">lower</span><span class="p">())</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">lowering</span><span class="o">-&gt;</span><span class="n">poisoning_level_</span> <span class="o">==</span>
+                  <span class="n">PoisoningMitigationLevel</span><span class="o">::</span><span class="n">kDontPoison</span> <span class="o">&amp;&amp;</span>
+              <span class="p">(</span><span class="n">index_type</span><span class="p">.</span><span class="n">IsNone</span><span class="p">()</span> <span class="o">||</span> <span class="n">length_type</span><span class="p">.</span><span class="n">IsNone</span><span class="p">()</span> <span class="o">||</span>
+               <span class="p">(</span><span class="n">index_type</span><span class="p">.</span><span class="n">Min</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mf">0.0</span> <span class="o">&amp;&amp;</span>
+                <span class="n">index_type</span><span class="p">.</span><span class="n">Max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">length_type</span><span class="p">.</span><span class="n">Min</span><span class="p">())))</span> <span class="p">{</span>
+            <span class="c1">// The bounds check is redundant if we already know that</span>
+            <span class="c1">// the index is within the bounds of [0.0, length[.</span>
+            <span class="n">DeferReplacement</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">InputAt</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span>
+          <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="n">NodeProperties</span><span class="o">::</span><span class="n">ChangeOp</span><span class="p">(</span>
+                <span class="n">node</span><span class="p">,</span> <span class="n">simplified</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">CheckedUint32Bounds</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">feedback</span><span class="p">()));</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+<span class="c1">// [...]</span>
+  <span class="p">}</span>
+</pre></div>
+
+
+<p>Once again, let's confirm that by playing with the graph. We want to look at the <code>CheckBounds</code> before the simplified lowering and observe its inputs 0 (index) and 1 (length).</p>
+<p><img alt="CheckBounds_Index_Length" src="/images/swimming-in-a-sea-of-nodes/CheckBounds_Index_Length.png"></p>
+<p>We can easily see that <code>Range(0,1).Max() &lt; 2</code> and <code>Range(0,1).Min() &gt;= 0</code>. Therefore, node <code>58</code> is going to be replaced.</p>
+<p>After simplified lowering, the graph looks like this :</p>
+<p><img alt="after" src="/images/swimming-in-a-sea-of-nodes/removed_checkbounds.png"></p>
+<h2 id="playing-with-various-addition-opcodes">Playing with various addition opcodes</h2>
+<p>If you look at the file <code>opcode.h</code>we can see various type of  opcodes that correspond to some kind of add primitive.</p>
+<div class="highlight"><pre><span></span><span class="n">V</span><span class="p">(</span><span class="n">JSAdd</span><span class="p">)</span>
+<span class="n">V</span><span class="p">(</span><span class="n">NumberAdd</span><span class="p">)</span>
+<span class="n">V</span><span class="p">(</span><span class="n">SpeculativeNumberAdd</span><span class="p">)</span>
+<span class="n">V</span><span class="p">(</span><span class="n">SpeculativeSafeIntegerAdd</span><span class="p">)</span>
+<span class="n">V</span><span class="p">(</span><span class="n">Int32Add</span><span class="p">)</span>
+<span class="c1">// many more [...]</span>
+</pre></div>
+
+
+<p>So, without going into too much details, let's do one more experiment.</p>
+<p>Let's make a small snippet of code that generate each one of these opcodes. For each code, we want to confirm we've got the expected opcode in the sea of node</p>
+<h3 id="speculativesafeintegeradd">SpeculativeSafeIntegerAdd</h3>
+<div class="highlight"><pre><span></span><span class="kd">let</span> <span class="nx">opt_me</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mh">0x10000</span><span class="p">;</span> <span class="o">++</span><span class="nx">i</span><span class="p">)</span>
+  <span class="nx">opt_me</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">DebugPrint</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">SystemBreak</span><span class="p">();</span>
+</pre></div>
+
+
+<p>In this case, TurboFan speculates that x will be an integer. This guess is made due to the type feedback.</p>
+<p>Indeed, before kicking out TurboFan, v8 first quickly generates some Ignition bytecode that gathers type feedback.</p>
+<div class="highlight"><pre><span></span>$ d8 speculative_safeintegeradd.js --allow-natives-syntax --print-bytecode --print-bytecode-filter opt_me
+<span class="o">[</span>generated bytecode <span class="k">for</span> <span class="k">function</span>: opt_me<span class="o">]</span>
+Parameter count <span class="m">2</span>
+Frame size <span class="m">0</span>
+   <span class="m">13</span> E&gt; 0xceb2389dc72 @    <span class="m">0</span> : a5                StackCheck 
+   <span class="m">24</span> S&gt; 0xceb2389dc73 @    <span class="m">1</span> : <span class="m">25</span> <span class="m">02</span>             Ldar a0
+   <span class="m">33</span> E&gt; 0xceb2389dc75 @    <span class="m">3</span> : <span class="m">40</span> <span class="m">01</span> <span class="m">00</span>          AddSmi <span class="o">[</span><span class="m">1</span><span class="o">]</span>, <span class="o">[</span><span class="m">0</span><span class="o">]</span>
+   <span class="m">37</span> S&gt; 0xceb2389dc78 @    <span class="m">6</span> : a9                Return 
+Constant pool <span class="o">(</span><span class="nv">size</span> <span class="o">=</span> <span class="m">0</span><span class="o">)</span>
+Handler Table <span class="o">(</span><span class="nv">size</span> <span class="o">=</span> <span class="m">0</span><span class="o">)</span>
+</pre></div>
+
+
+<p>The <code>x + 1</code> statement is represented by the <code>AddSmi</code> ignition opcode.</p>
+<p>Let's read the code to quickly understand the semantics.</p>
+<div class="highlight"><pre><span></span><span class="c1">// Adds an immediate value &lt;imm&gt; to the value in the accumulator.</span>
+<span class="n">IGNITION_HANDLER</span><span class="p">(</span><span class="n">AddSmi</span><span class="p">,</span> <span class="n">InterpreterBinaryOpAssembler</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">BinaryOpSmiWithFeedback</span><span class="p">(</span><span class="o">&amp;</span><span class="n">BinaryOpAssembler</span><span class="o">::</span><span class="n">Generate_AddWithFeedback</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>This code means that everytime this ignition opcode is executed, it will gather feedback.</p>
+<p>We can examine the type feedback vector of a function by using <code>%DebugPrint</code> or the <code>job</code> command on a tagged pointer to a <code>FeedbackVEctor</code>.</p>
+<div class="highlight"><pre><span></span><span class="n">DebugPrint</span><span class="o">:</span> <span class="mh">0x129ab460af59</span><span class="o">:</span> <span class="o">[</span><span class="n">Function</span><span class="o">]</span>
+<span class="c1">// [...]</span>
+ <span class="o">-</span> <span class="n">feedback</span> <span class="n">vector</span><span class="o">:</span> <span class="mh">0x1a5d13f1dd91</span><span class="o">:</span> <span class="o">[</span><span class="n">FeedbackVector</span><span class="o">]</span> <span class="k">in</span> <span class="n">OldSpace</span>
+<span class="c1">// [...]</span>
+<span class="n">gef</span><span class="err">➤</span>  <span class="n">job</span> <span class="mh">0x1a5d13f1dd91</span>
+<span class="mh">0x1a5d13f1dd91</span><span class="o">:</span> <span class="o">[</span><span class="n">FeedbackVector</span><span class="o">]</span> <span class="k">in</span> <span class="n">OldSpace</span>
+ <span class="o">-</span> <span class="n">map</span><span class="o">:</span> <span class="mh">0x19b62e900bb9</span> <span class="o">&lt;</span><span class="n">Map</span><span class="o">&gt;</span>
+ <span class="o">-</span> <span class="n">length</span><span class="o">:</span> <span class="mi">1</span>
+ <span class="o">-</span> <span class="n">shared</span> <span class="kd">function</span> <span class="n">info</span><span class="o">:</span> <span class="mh">0x1a5d13f1da09</span> <span class="o">&lt;</span><span class="n">SharedFunctionInfo</span> <span class="n">opt_me</span><span class="o">&gt;</span>
+ <span class="o">-</span> <span class="n">optimized</span> <span class="n">code</span><span class="o">/</span><span class="n">marker</span><span class="o">:</span> <span class="n">OptimizationMarker</span><span class="o">::</span><span class="n">kNone</span>
+ <span class="o">-</span> <span class="n">invocation</span> <span class="n">count</span><span class="o">:</span> <span class="mi">14389</span>
+ <span class="o">-</span> <span class="n">profiler</span> <span class="n">ticks</span><span class="o">:</span> <span class="mi">0</span>
+ <span class="o">-</span> <span class="n">slot</span> <span class="err">#</span><span class="mi">0</span> <span class="n">BinaryOp</span> <span class="n">BinaryOp</span><span class="o">:</span><span class="n">SignedSmall</span> <span class="o">{</span>
+     <span class="o">[</span><span class="mi">0</span><span class="o">]:</span> <span class="mi">1</span>
+  <span class="o">}</span>
+</pre></div>
+
+
+<p>Thanks to this profiling, TurboFan will know it can generate a <code>SpeculativeSafeIntegerAdd</code>. This is why it is called <code>speculative optimization</code>. However, once optimized, if the function <code>opt_me</code> were to be called with a completely different parameter type, there would be a <code>deoptimization</code>. You may want to read this <a href="https://mathiasbynens.be/notes/shapes-ics">awesome article about shapes and inline caches</a> by <a href="https://twitter.com/mathias">Mathias Bynens</a> and <a href="https://twitter.com/bmeurer">Benedikt Meurer</a>.</p>
+<p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/speculativesafeintegeradd_typed_lowering.png"></p>
+<h3 id="speculativenumberadd">SpeculativeNumberAdd</h3>
+<div class="highlight"><pre><span></span><span class="kd">let</span> <span class="nx">opt_me</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">1000000000000</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">opt_me</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
+<span class="nx">opt_me</span><span class="p">(</span><span class="mi">4242</span><span class="p">);</span>
+</pre></div>
+
+
+<p>If we modify a bit the previous sample and use a higher value that can't be represented by an integer, we'll get a <code>SpeculativeNumberAdd</code> instead. TurboFan <code>speculates</code> about the type of <code>x</code> and relies on type feedback.</p>
+<p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/numberadd_typed_lowering.png"></p>
+<h3 id="int32add">Int32Add</h3>
+<div class="highlight"><pre><span></span><span class="kd">let</span> <span class="nx">opt_me</span><span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">?</span> <span class="mi">10</span> <span class="o">:</span> <span class="mi">20</span><span class="p">;</span>
+  <span class="k">return</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">100</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">opt_me</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
+<span class="nx">opt_me</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+</pre></div>
+
+
+<p>This time, we'll get the <code>Int32Add</code> only starting from the simplified lowering phase!</p>
+<p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/int32add_simplified_lowering.png"></p>
+<h3 id="jsadd">JSAdd</h3>
+<div class="highlight"><pre><span></span><span class="kd">let</span> <span class="nx">opt_me</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">?</span> 
+    <span class="p">({</span><span class="nx">valueOf</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">10</span><span class="p">;</span> <span class="p">}})</span>
+    <span class="o">:</span>
+    <span class="p">({[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">toPrimitive</span><span class="p">]()</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">20</span><span class="p">;</span> <span class="p">}});</span>
+  <span class="k">return</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">opt_me</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
+<span class="nx">opt_me</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+</pre></div>
+
+
+<p>In this case, <code>y</code> is a complex object and we need to call a slow <code>JSAdd</code> opcode to deal with this kind of situation.</p>
+<p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/jsadd_typed_lowering.png"></p>
+<h3 id="numberadd">NumberAdd</h3>
+<div class="highlight"><pre><span></span><span class="kd">let</span> <span class="nx">opt_me</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">?</span> <span class="mi">10</span> <span class="o">:</span> <span class="mi">20</span><span class="p">;</span>
+  <span class="k">return</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">1000000000000</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">opt_me</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
+<span class="nx">opt_me</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+</pre></div>
+
+
+<p>Like for the <code>SpeculativeNumberAdd</code> example, we add a value that can't be represented by an integer. However, this time there is no speculation involved. There is no need for any kind of type feedback since we can guarantee that <code>y</code> is an integer. There is no way to make <code>y</code> anything other than an integer.</p>
+<p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/numberadd_typed_lowering-1548150517168.png"></p>
+<h1 id="the-duplicateadditionreducer-challenge">The DuplicateAdditionReducer challenge</h1>
+<p>The <a href="https://github.com/google/google-ctf/blob/master/2018/finals/pwn-just-in-time/attachments/addition-reducer.patch">DuplicateAdditionReducer</a> written by <a href="https://twitter.com/_tsuro">Stephen tsuro Röttger</a> for <a href="https://github.com/google/google-ctf/tree/master/2018">Google CTF 2018</a> is a nice TurboFan challenge</p>
+<p>It adds a new reducer that tries to optimize cases such as <code>x + 1 + 1</code>.</p>
+<h2 id="understanding-the-reduction">Understanding the reduction</h2>
+<p>Lets read the relevant part of the code. </p>
+<div class="highlight"><pre><span></span><span class="n">Reduction</span> <span class="n">DuplicateAdditionReducer</span><span class="o">::</span><span class="n">Reduce</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="n">IrOpcode</span><span class="o">::</span><span class="nl">kNumberAdd</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">ReduceAddition</span><span class="p">(</span><span class="n">node</span><span class="p">);</span>
+    <span class="k">default</span><span class="o">:</span>
+      <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">Reduction</span> <span class="n">DuplicateAdditionReducer</span><span class="o">::</span><span class="n">ReduceAddition</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">DCHECK_EQ</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ControlInputCount</span><span class="p">(),</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">DCHECK_EQ</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">EffectInputCount</span><span class="p">(),</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">DCHECK_EQ</span><span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">ValueInputCount</span><span class="p">(),</span> <span class="mi">2</span><span class="p">);</span>
+
+  <span class="n">Node</span><span class="o">*</span> <span class="n">left</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetValueInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">left</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">()</span> <span class="o">!=</span> <span class="n">node</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span> <span class="c1">// [1]</span>
+  <span class="p">}</span>
+
+  <span class="n">Node</span><span class="o">*</span> <span class="n">right</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetValueInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">right</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">()</span> <span class="o">!=</span> <span class="n">IrOpcode</span><span class="o">::</span><span class="n">kNumberConstant</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span> <span class="c1">// [2]</span>
+  <span class="p">}</span>
+
+  <span class="n">Node</span><span class="o">*</span> <span class="n">parent_left</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetValueInput</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Node</span><span class="o">*</span> <span class="n">parent_right</span> <span class="o">=</span> <span class="n">NodeProperties</span><span class="o">::</span><span class="n">GetValueInput</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">parent_right</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">()</span> <span class="o">!=</span> <span class="n">IrOpcode</span><span class="o">::</span><span class="n">kNumberConstant</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span> <span class="c1">// [3]</span>
+  <span class="p">}</span>
+
+  <span class="kt">double</span> <span class="n">const1</span> <span class="o">=</span> <span class="n">OpParameter</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">right</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">());</span>
+  <span class="kt">double</span> <span class="n">const2</span> <span class="o">=</span> <span class="n">OpParameter</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">parent_right</span><span class="o">-&gt;</span><span class="n">op</span><span class="p">());</span>
+
+  <span class="n">Node</span><span class="o">*</span> <span class="n">new_const</span> <span class="o">=</span> <span class="n">graph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NewNode</span><span class="p">(</span><span class="n">common</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">NumberConstant</span><span class="p">(</span><span class="n">const1</span><span class="o">+</span><span class="n">const2</span><span class="p">));</span>
+
+  <span class="n">NodeProperties</span><span class="o">::</span><span class="n">ReplaceValueInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">parent_left</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">NodeProperties</span><span class="o">::</span><span class="n">ReplaceValueInput</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">new_const</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nf">Changed</span><span class="p">(</span><span class="n">node</span><span class="p">);</span> <span class="c1">// [4]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Basically that means we've got 4 scenarios when reducing a <code>NumberAdd</code> node.  Only one of them changes the node.  Let's draw a schema representing all of those cases.</p>
+<p><img alt="schema_vuln_ctf" src="/images/swimming-in-a-sea-of-nodes/schema_vuln_ctf.png"></p>
+<p>The case <code>[4]</code> will take both <code>NumberConstant</code>'s double value and add them together. It will create a new <code>NumberConstant</code> node with a value that is the result of this addition.</p>
+<p>The node's right input will become the newly created <code>NumberConstant</code> while the left input will be replaced by the left parent's left input. </p>
+<p><img alt="node_replace" src="/images/swimming-in-a-sea-of-nodes/node_replace.png"></p>
+<h2 id="understanding-the-bug">Understanding the bug</h2>
+<h3 id="precision-loss-with-ieee-754-doubles">Precision loss with IEEE-754 doubles</h3>
+<p>V8 represent number using <code>IEEE-754</code> doubles. That means it can encode integers using 52 bits. </p>
+<p>Therefore the maximum value is <code>pow(2,53)-1</code> which is <code>9007199254740991</code>.</p>
+<p>Number above this value can't all be represented. As such, there will be precision loss when computing with values greater than that.</p>
+<p><img alt="wikipedia" src="/images/swimming-in-a-sea-of-nodes/618px-IEEE_754_Double_Floating_Point_Format.svg.png"></p>
+<p>A quick experiment in JavaScript can demonstrate this problem where we can get to strange behaviors.</p>
+<div class="highlight"><pre><span></span><span class="nx">d8</span><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">x</span> <span class="o">=</span> <span class="nb">Number</span><span class="p">.</span><span class="nx">MAX_SAFE_INTEGER</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="kc">undefined</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span>
+<span class="mi">9007199254740992</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="mi">9007199254740992</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">2</span>
+<span class="mi">9007199254740994</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">3</span>
+<span class="mi">9007199254740996</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">4</span> 
+<span class="mi">9007199254740996</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">5</span>
+<span class="mi">9007199254740996</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">6</span>
+<span class="mi">9007199254740998</span>
+</pre></div>
+
+
+<p>In particular, if <code>x = Number.MAX_SAFE_INTEGER + 1</code> then <code>x + 1 == x</code>.</p>
+<p>That also means that <code>x += 1; x += 1;</code> is not equivalent to <code>x += 2</code>, due to the precision loft.</p>
+<div class="highlight"><pre><span></span><span class="nx">d8</span><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">y</span> <span class="o">=</span> <span class="nx">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">z</span> <span class="o">=</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">;</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span>
+<span class="mi">9007199254740992</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">z</span>
+<span class="mi">9007199254740994</span>
+<span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">==</span> <span class="nx">z</span>
+<span class="kc">false</span>
+</pre></div>
+
+
+<p>Therefore, those two graphs are not equivalent.</p>
+<p><img alt="bad_computation" src="/images/swimming-in-a-sea-of-nodes/bad_computation.png"></p>
+<p>Furthermore, the reducer does not update the type of the changed node. That's why it is going to be 'incorrectly' typed (with the old <code>Range(9007199254740992,9007199254740992)</code> , from the previous <code>Typer</code> phase, instead of <code>Range(9007199254740994,9007199254740994)</code> (even though the problem is that really, we cannot take for granted that there is no precision loss while computing <code>m+n</code> and therefore <code>x += n; x += n;</code> may not be equivalent to <code>x += (n + n)</code>).</p>
+<p>There is going to be a mismatch between the addition result <code>9007199254740994</code> and the type <code>9007199254740992</code>. What if we can use this buggy range analysis to get to reduce a <code>CheckBounds</code> node during the simplified lowering phase in a way that it would remove it?</p>
+<p>It is actually possible to trick the <code>CheckBounds</code> simplified lowering's visitor into comparing an incorrect index<code>Range</code> to a length so that it believes that the index is in bounds whereas it really is not. Thus removing a what seemed to be a useless bound check.</p>
+<p>Let's check this by having yet another look at the see of nodes!</p>
+<p>First consider the following code.</p>
+<div class="highlight"><pre><span></span><span class="kd">let</span> <span class="nx">opt_me</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+  <span class="kd">let</span> <span class="nx">arr</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="mf">1.1</span><span class="p">,</span><span class="mf">1.2</span><span class="p">,</span><span class="mf">1.3</span><span class="p">,</span><span class="mf">1.4</span><span class="p">);</span>
+  <span class="nx">arr2</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="mf">42.1</span><span class="p">,</span><span class="mf">42.0</span><span class="p">,</span><span class="mf">42.0</span><span class="p">);</span>
+  <span class="kd">let</span> <span class="nx">y</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span> <span class="o">==</span> <span class="s2">&quot;foo&quot;</span><span class="p">)</span> <span class="o">?</span> <span class="mi">4503599627370495</span> <span class="o">:</span> <span class="mi">4503599627370493</span><span class="p">;</span>
+  <span class="kd">let</span> <span class="nx">z</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">+</span> <span class="nx">y</span> <span class="o">+</span> <span class="nx">y</span> <span class="p">;</span> <span class="c1">// 2 + 4503599627370495 * 2 = 9007199254740992</span>
+  <span class="nx">z</span> <span class="o">=</span> <span class="nx">z</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="nx">z</span> <span class="o">=</span> <span class="nx">z</span> <span class="o">-</span> <span class="p">(</span><span class="mi">4503599627370495</span><span class="o">*</span><span class="mi">2</span><span class="p">);</span> 
+  <span class="k">return</span> <span class="nx">arr</span><span class="p">[</span><span class="nx">z</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="nx">opt_me</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">);</span>
+<span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
+<span class="kd">let</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">opt_me</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">);</span>
+<span class="nx">print</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span>
+</pre></div>
+
+
+<p>We do get a graph that looks exactly like the problematic drawing we showed before. Instead of getting two <code>NumberAdd(x,1)</code>, we get only one with <code>NumberAdd(x,2)</code>, which is not equivalent.</p>
+<p><img alt="vuln_numberadd" src="/images/swimming-in-a-sea-of-nodes/vuln_numberadd.png"></p>
+<p>Actually, if we execute the script, we get some OOB access and leak memory!</p>
+<div class="highlight"><pre><span></span>$ d8 trigger.js --allow-natives-sybtax
+<span class="m">3</span>.0046854007112e-310
+</pre></div>
+
+
+<p>The maximum value of <code>z</code> will be the following : </p>
+<div class="highlight"><pre><span></span>d8&gt; var x = 9007199254740992
+d8&gt; x = x + 2 // because of the buggy reducer!
+9007199254740994
+d8&gt; x = x - (4503599627370495*2)
+4
+</pre></div>
+
+
+<p>However, the index range used when visiting<code>CheckBounds</code> during simplified lowering will be computed as follows : </p>
+<div class="highlight"><pre><span></span>d8&gt; var x = 9007199254740992;
+d8&gt; x = x  + 1
+9007199254740992
+d8&gt; x = x  + 1
+9007199254740992
+d8&gt; x = x - (4503599627370495*2)
+2
+</pre></div>
+
+
+<p>Confirm that by looking at the graph.</p>
+<p><img alt="bad_range_for_checkbounds" src="/images/swimming-in-a-sea-of-nodes/bad_range_for_checkbounds.png"></p>
+<p>The index type used by <code>CheckBounds</code> is <code>Range(0,2)</code>(but in reality, its value can be up to 4) whereas the length type is <code>Range(4,4)</code>. </p>
+<p>Therefore, the index looks to be always in bounds making the <code>CheckBounds</code> replaced.</p>
+<p>In this case, we can load/store 8 bytes further because we're able to leak <code>arr[arr.length]</code>.</p>
+<h1 id="exploitation">Exploitation</h1>
+<h2 id="from-oob-to-rw">From OOB to RW</h2>
+<h2 id="overwriting-wasm-rwx-memory">Overwriting WASM RWX memory</h2>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="/theme/js/jquery-1.7.2.min.js"></script>
+    <script src="/theme/js/bootstrap.min.js"></script>
+  </body>
+</html>

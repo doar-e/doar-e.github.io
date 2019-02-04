@@ -119,12 +119,7 @@
 	<a href="/tag/ttd.html"><i class="icon-tag"></i>ttd</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded <a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/">"WinDbg Preview"</a> in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit after <a href="https://cppcon2017.sched.com/">cppcon2017</a> this year, I expected a massive pick-up from the security / reverse-engineering industry with a bunch of posts, tools, scripts, etc. To my surprise, this has not happened yet so I have waited patiently for my vacation to write a little something about it myself. So, here goes!</p>
-<p>Obviously, one of the most <em>noticeable</em> change in this debugger is the new UI.. but this is not something we will talk about. The <em>second</em> big improvement is .. a decent scripting engine! Until recently, I always had to use <a href="https://pykd.codeplex.com/">pyKD</a> to write automation scripts. This has worked <em>fairly</em> well for years, but I’m glad to move away from it and embrace the new extension model provided by Windbg &amp; Javascript (yes, you read this right). One of the biggest pain point I’ve to deal with with pyKD (aside from the installation process!) is that you had to evaluate many commands and then parse their outputs to extract the bits and pieces you needed. Thankfully, the new <em>debugger data model</em> solves this (or part of this anyway). The third new change is the integration of the time travel debugging (TTD) features discussed in this presentation: <a href="https://cppcon2017.sched.com/event/Bgsj/time-travel-debugging-root-causing-bugs-in-commercial-scale-software">Time Travel Debugging: Root Causing Bugs in Commercial Scale Software
-</a>.</p>
-<p>The goal of this post is to leverage all the nifty stuff we will learn to enumerate x64 <a href="https://docs.microsoft.com/fr-fr/cpp/cpp/try-except-statement">try/except</a> handlers in Javascript.</p>
-<p>So grab yourself a cup of fine coffee and read on :).</p>
-
+<p>The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded <a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/">"WinDbg Preview"</a> in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit …</p>
                         <a class="btn primary xsmall" href="/blog/2017/12/01/debugger-data-model/">more ...</a>
                 </div>
         </div>
@@ -149,16 +144,7 @@
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>Yesterday afternoon, I was peacefully coding some stuff you know but I couldn't make my code working.
 As usual, in those type of situations you fire up your debugger in order to understand what is going on under the hood.
-That was a bit weird, to give you a bit of context I was doing some inline x86 assembly, and I've put on purpose an <em>int3</em> just
-before the piece of assembly code I thought was buggy. Once my file loaded in <a href="http://ollydbg.de/version2.html">OllyDbg2</a>, I hit <em>F9</em> in order to reach quickly the <em>int3</em> I've slipped into the inline assembly code. A bit of single-stepping, and <strong>BOOM</strong> I got a nasty crash. It happens sometimes, and that's uncool.
-Then, I relaunch my binary and try to reproduce the bug: same actions and <strong>BOOM</strong> again. OK, this time it's cool, I got a reproducible crash in OllyDbg2.</p>
-<p>I like when things like that happens to me (remember the crashes I've found in OllyDbg/IDA here: <a href="http://download.tuxfamily.org/overclokblog/PDB%20ain%27t%20PDD/0vercl0k_pdb_aint_pdd.pdf">PDB Ain't PDD</a>), it's always a nice exercise for me where I've to:</p>
-<ul>
-<li>pinpoint the bug in the application: usually not trivial when it's a real/big application</li>
-<li>reverse-engineer the codes involved in the bug in order to figure out why it's happening (sometimes I got the sources, sometimes I don't like this time)</li>
-</ul>
-<p>In this post, I will show you how I've manage to pinpoint where the bug was, using <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff549561(v=vs.85).aspx">GFlags, PageHeap</a> and <a href="http://www.windbg.info/">WinDbg</a>. Then, we will reverse-engineer the buggy code in order to understand why the bug is happening, and how we can code a clean trigger.</p>
-
+That was a bit weird, to give you a …</p>
                         <a class="btn primary xsmall" href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">more ...</a>
                 </div>
         </div>

@@ -174,18 +174,18 @@
                  <span class="c1">; we push it in our equations list</span>
 <span class="nf">mov</span> <span class="nb">edx</span><span class="p">,</span> <span class="p">[</span><span class="nv">arg2</span><span class="p">]</span>  <span class="c1">; same thing here</span>
 
-<span class="nf">shr</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">2</span>   <span class="c1">; EAX=sym1 &gt;&gt; 2</span>
-<span class="nf">add</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">1</span>   <span class="c1">; EAX=(sym1 &gt;&gt; 2) + 1</span>
-<span class="nf">shl</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">3</span>   <span class="c1">; EAX=((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1</span>
-<span class="nf">and</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">2</span>   <span class="c1">; EAX=(((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2</span>
+<span class="nf">shr</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">2</span>   <span class="c1">; EAX=sym1 &amp;gt;&amp;gt; 2</span>
+<span class="nf">add</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">1</span>   <span class="c1">; EAX=(sym1 &amp;gt;&amp;gt; 2) + 1</span>
+<span class="nf">shl</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">3</span>   <span class="c1">; EAX=((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1</span>
+<span class="nf">and</span> <span class="nb">eax</span><span class="p">,</span> <span class="mi">2</span>   <span class="c1">; EAX=(((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2</span>
 <span class="nf">inc</span> <span class="nb">edx</span>      <span class="c1">; EDX=sym2 + 1</span>
-<span class="nf">xor</span> <span class="nb">edx</span><span class="p">,</span> <span class="nb">eax</span> <span class="c1">; EDX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)</span>
-<span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="nb">edx</span> <span class="c1">; EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)</span>
+<span class="nf">xor</span> <span class="nb">edx</span><span class="p">,</span> <span class="nb">eax</span> <span class="c1">; EDX=(sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2)</span>
+<span class="nf">mov</span> <span class="nb">eax</span><span class="p">,</span> <span class="nb">edx</span> <span class="c1">; EAX=(sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2)</span>
 </pre></div>
 
 
 <p>So at the end, you can ask the engine to give you the final state of EAX for example and it should give you something like:</p>
-<div class="highlight"><pre><span></span>EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
+<div class="highlight"><pre><span></span>EAX=(sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2)
 </pre></div>
 
 
@@ -194,19 +194,19 @@
 In [2]: sym1 = BitVec(&#39;sym1&#39;, 32)
 In [3]: sym2 = BitVec(&#39;sym2&#39;, 32)
 
-In [4]: simplify((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2))
-Out[4]: 1 + sym2 ^ Concat(0, 1 + Extract(0, 0, sym1 &gt;&gt; 2), 0)
+In [4]: simplify((sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2))
+Out[4]: 1 + sym2 ^ Concat(0, 1 + Extract(0, 0, sym1 &amp;gt;&amp;gt; 2), 0)
 
-In [5]: solve((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) == 0xdeadbeef)
+In [5]: solve((sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2) == 0xdeadbeef)
 [sym1 = 0, sym2 = 3735928556]
 
-In [6]: solve((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) == 0xdeadbeef, sym1 !=  0)
+In [6]: solve((sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2) == 0xdeadbeef, sym1 !=  0)
 [sym1 = 1073741824, sym2 = 3735928556]
 
 In [7]: sym1 = 1073741824
 In [8]: sym2 = 3735928556
 
-In [9]: hex((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) &amp; 0xffffffff)
+In [9]: hex((sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2) &amp;amp; 0xffffffff)
 Out[9]: &#39;0xdeadbeefL&#39;
 </pre></div>
 
@@ -230,7 +230,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
             <span class="n">ty</span> <span class="o">=</span> <span class="n">GetOpType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
             <span class="c1"># cst</span>
-            <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">ty</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="k">if</span> <span class="mi">5</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="n">ty</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="mi">7</span><span class="p">:</span>
                 <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOperandValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOpnd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
@@ -271,7 +271,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
 <span class="sd">    The symbolic variables have to be found by the user (or using data-taing). This is not</span>
 <span class="sd">    the purpose of this class.</span>
 
-<span class="sd">    We are lucky, we only need to handle those operations &amp; encodings:</span>
+<span class="sd">    We are lucky, we only need to handle those operations &amp;amp; encodings:</span>
 <span class="sd">        . mov:</span>
 <span class="sd">            . mov reg32, reg32</span>
 <span class="sd">            . mov reg32, [mem]</span>
@@ -386,7 +386,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shl&#39;</span><span class="p">:</span>
                 <span class="c1"># shl reg32, cst</span>
                 <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">src</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">src</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shl&quot; is not handled.&#39;</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
@@ -400,7 +400,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;and&quot; is not handled.&#39;</span><span class="p">)</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">x</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;xor&#39;</span><span class="p">:</span>
                 <span class="c1"># xor reg32, cst</span>
                 <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
@@ -514,7 +514,7 @@ Concat(~(Concat(1073741823, Extract(1, 1, arg1)) |
 <p>The ugly trick I came up with is just to use Z3Py's prove function, to try to prove that the equation is in fact an addition and if this is the case it returns the simplified equation. Again, if someone manages to simplify the previous equation without that type of trick I'm really interested!</p>
 <div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
-<span class="sd">        expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
+<span class="sd">        expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp;amp; arg1)</span>
 <span class="sd">        and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
 <span class="sd">        equation.</span>
 
@@ -545,8 +545,8 @@ EAX=arg0 + arg1
 <p>We just successfully simplified two thousands of assembly into a simple addition, wonderful!</p>
 <h1 id="symbolic-execution-vs-kryptonite">Symbolic execution VS Kryptonite</h1>
 <p>OK, now we have a working engine able to break a small program (~two thousands instructions), let's see if we can do the same with a kryptonized-binary. Let's take a simple addition like in the previous parts:</p>
-<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&amp;lt;stdio.h&amp;gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&amp;lt;stdlib.h&amp;gt;</span><span class="cp"></span>
 
 <span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">add</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span>
 <span class="p">{</span>
@@ -568,8 +568,8 @@ EAX=arg0 + arg1
 <div class="highlight"><pre><span></span>$ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
 $ clang++ llvm-functionpass-kryptonite-obfuscater.cpp <span class="sb">`</span>llvm-config --cxxflags --ldflags --libs core<span class="sb">`</span> -shared -o llvm-functionpass-kryptonite-obfuscater.so
 $ clang -S -emit-llvm add.c -o add.ll
-$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
-$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
+$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="p">&amp;</span>amp<span class="p">;&amp;</span>amp<span class="p">;</span> mv add.opti.ll add.ll
+$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="p">&amp;</span>amp<span class="p">;&amp;</span>amp<span class="p">;</span> mv add.opti.ll add.ll
 $ llc -O0 -filetype<span class="o">=</span>obj -march<span class="o">=</span>x86 add.ll -o add.o
 $ clang -static add.o -o kryptonite-add
 $ strip --strip-all ./kryptonite-add
@@ -599,7 +599,7 @@ $ strip --strip-all ./kryptonite-add
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
             <span class="n">ty</span> <span class="o">=</span> <span class="n">GetOpType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
             <span class="c1"># cst</span>
-            <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">ty</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="k">if</span> <span class="mi">5</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="n">ty</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="mi">7</span><span class="p">:</span>
                 <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOperandValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOpnd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
@@ -621,7 +621,7 @@ $ strip --strip-all ./kryptonite-add
 <span class="sd">    The symbolic variables have to be found by the user (or using data-taing). This is not</span>
 <span class="sd">    the purpose of this class.</span>
 
-<span class="sd">    We are lucky, we only need to handle those operations &amp; encodings:</span>
+<span class="sd">    We are lucky, we only need to handle those operations &amp;amp; encodings:</span>
 <span class="sd">        . mov:</span>
 <span class="sd">            . mov reg32, reg32</span>
 <span class="sd">            . mov reg32, [mem]</span>
@@ -714,7 +714,7 @@ $ strip --strip-all ./kryptonite-add
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
         <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
-            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">%</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">%</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> instructions, </span><span class="si">%d</span><span class="s1"> equations so far...&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">))</span>
 
             <span class="k">if</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;mov&#39;</span><span class="p">:</span>
@@ -742,13 +742,13 @@ $ strip --strip-all ./kryptonite-add
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shr&#39;</span><span class="p">:</span>
                 <span class="c1"># shr reg32, cst</span>
                 <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">src</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">src</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shr&quot; is not handled.&#39;</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shl&#39;</span><span class="p">:</span>
                 <span class="c1"># shl reg32, cst</span>
                 <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">src</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">src</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shl&quot; is not handled.&#39;</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
@@ -761,7 +761,7 @@ $ strip --strip-all ./kryptonite-add
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;and&quot; is not handled.&#39;</span><span class="p">)</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">x</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;xor&#39;</span><span class="p">:</span>
                 <span class="c1"># xor reg32, cst</span>
                 <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
@@ -794,7 +794,7 @@ $ strip --strip-all ./kryptonite-add
 
     <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
-<span class="sd">        expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
+<span class="sd">        expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp;amp; arg1)</span>
 <span class="sd">        and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
 <span class="sd">        equation.</span>
 

@@ -115,10 +115,7 @@
 	<a href="/tag/whitebox.html"><i class="icon-tag"></i>whitebox</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.</p>
-<p><a href="https://www.ledger.fr/">ledger</a> is a french security company founded in 2014 that is specialized in cryptography, cryptocurrencies, and hardware. They recently put up online three different puzzles to celebrate the official launch of their <a href="https://www.ledger.fr/bounty-program/">bug bounty program</a>. The second challenge called <em>ctf2</em> is the one we will be discussing today. <em>ctf2</em> is an ELF64 binary that is available <a href="https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao">here</a> for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.</p>
-<p>Let's do it!</p>
-
+<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background …</p>
                         <a class="btn primary xsmall" href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">more ...</a>
                 </div>
         </div>
@@ -141,11 +138,7 @@
 	<a href="/tag/bevx.html"><i class="icon-tag"></i>beVX</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original tweet</a> advertising it.</p>
-<p>With this challenge, you are tasked to reverse-engineer a binary providing some sort of encryption service, and there is supposedly a private key (aka the flag) to retrieve. A remote server with the challenge running is also available for you to carry out your attack. This looked pretty interesting as it was different than the usual keygen-me type of reverse-engineering challenge.</p>
-<p>Unfortunately, I didn't get a chance to play with this while the remote server was up (the organizers took it down once they received the solutions of the three winners). However, cool thing is that you can easily manufacture your own server to play at home.. which is what I ended up doing.</p>
-<p>As I thought the challenge was cute enough, and that I would also like to write on a more regular basis, so here is a small write-up describing how I abused the server to get the private key out. Hope you don't find it too boring :-).</p>
-
+<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original …</a></p>
                         <a class="btn primary xsmall" href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">more ...</a>
                 </div>
         </div>
@@ -168,10 +161,7 @@
 	<a href="/tag/symbolic-execution.html"><i class="icon-tag"></i>symbolic execution</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>In the past weeks I enjoyed working on reversing a piece of software (don't ask me the name), to study how serial numbers are validated. The story the user has to follow is pretty common: download the trial, pay, get the serial number, use it in the annoying nag screen to get the fully functional version of the software.</p>
-<p>Since my purpose is to not damage the company developing the software, I will not mention the name of the software, nor I will publish the final key generator in binary form, nor its source code. My goal is instead to study a real case of serial number validation, and to highlight its weaknesses.</p>
-<p>In this post we are going to take a look at the steps I followed to reverse the serial validation process and to make a key generator using <a href="http://klee.github.io/">KLEE</a> symbolic virtual machine. We are not going to follow all the details on the reversing part, since you cannot reproduce them on your own. We will concentrate our thoughts on the key-generator itself: that is the most interesting part.</p>
-
+<p>In the past weeks I enjoyed working on reversing a piece of software (don't ask me the name), to study how serial numbers are validated. The story the user has to follow is pretty common: download the trial, pay, get the serial number, use it in the annoying nag …</p>
                         <a class="btn primary xsmall" href="/blog/2015/08/18/keygenning-with-klee/">more ...</a>
                 </div>
         </div>
@@ -198,11 +188,7 @@
 	<a href="/tag/nosuchcon.html"><i class="icon-tag"></i>NoSuchCon</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><p>As last year, the French conference <a href="http://www.nosuchcon.org/#challenge">No Such Con</a> returns for its second edition in Paris from the 19th of November until the 21th of November. And again, the brilliant <a href="https://twitter.com/elvanderb">Eloi Vanderbeken</a> &amp; his mates at <a href="http://synacktiv.fr/en/index.html">Synacktiv</a> put together a series of three security challenges especially for this occasion.
-Apparently, the three tasks have already been <a href="https://twitter.com/Synacktiv/status/515174845844582401">solved</a> by awesome <a href="https://twitter.com/0xf4b">@0xfab</a> which won the competition, hats off :).</p>
-<p>To be honest I couldn't resist to try at least the first step, as I know that <a href="https://twitter.com/elvanderb">Eloi</a> always builds <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=253">really twisted</a> and <a href="http://www.nosuchcon.org/2013/#challenge">nice binaries</a> ; so I figured I should just give it a go!</p>
-<p>But this time we are trying something different though: this post has been co-authored by both <em>Emilien Girault</em> (<a href="https://twitter.com/emiliengirault">@emiliengirault</a>) and I. As we have slightly different solutions, we figured it would be a good idea to write those up inside a single post. This article starts with an introduction to the challenge and will then fork, presenting my solution and his.</p>
-<p>As the article is quite long, here is the complete table of contents:</p>
-
+Apparently, the …</p>
                         <a class="btn primary xsmall" href="/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/">more ...</a>
                 </div>
         </div>
@@ -227,18 +213,7 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>As the blog was a bit silent for quite some time, I figured it would be cool to put together a post ; so here it is folks, dig in!</p>
-<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference in Kuala Lumpur from the 13th of October until the 16th.</p>
-<p>The challenge has been written by <a href="http://blog.quarkslab.com/author/serge-guelton.html">Serge Guelton</a>, a R&amp;D engineer specialized in compilers/parallel computations. At the time of writing, already eight different people manage to solve the challenge, and one of the ticket seems to have been won by <code>hackedd</code>, so congrats to him!</p>
-<p><center><img alt="woot.png" src="/images/dissection_of_quarkslab_s_2014_security_challenge/woot.png"></center>
-According to the description of the challenge Python is heavily involved, which is a good thing for at least two reasons:</p>
-<ul>
-<li>first because I already had <a href="https://doar-e.github.io/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">the occasion</a> to look at its source code in the past,</li>
-<li>and because I so am a <a href="https://github.com/0vercl0k/stuffz/tree/master/Python's%20internals">big fan of Python</a>.</li>
-</ul>
-<p>In this post I will describe how I tackled this problem, how I managed to solve it. And to make up for me being slow at solving it I tried to make it fairly detailed. </p>
-<p>At first it was supposed to be quite short though, but well..I decided to analyze fully the challenge even if it wasn't needed to find the key unfortunately, so it is a bit longer than expected :-).</p>
-<p>Anyway, sit down, make yourself at home and let me pour you a cup of tea before we begin :-).</p>
-
+<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference …</p>
                         <a class="btn primary xsmall" href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">more ...</a>
                 </div>
         </div>
@@ -262,43 +237,7 @@ According to the description of the challenge Python is heavily involved, which 
 	<a href="/tag/windows-internals.html"><i class="icon-tag"></i>windows internals</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look at the internals of course.</p>
---Exception detected--
-ExceptionRecord: 0x0028fa2c Context: 0x0028fa7c
-Image Path: D:\Codes\The Sentinel\tests\divzero.exe
-Command Line: ..\tests\divzero.exe divzero.exe
-PID: 0x00000aac
-Exception Code: 0xc0000094 (EXCEPTION_INT_DIVIDE_BY_ZERO)
-Exception Address: 0x00401359
-EAX: 0x0000000a EDX: 0x00000000 ECX: 0x00000001 EBX: 0x7ffde000
-ESI: 0x00000000 EDI: 0x00000000 ESP: 0x0028fee0 EBP: 0x0028ff18
-EIP: 0x00401359
-EFLAGS: 0x00010246
-
-Stack:
-0x767bc265 0x54f3620f 0xfffffffe 0x767a0f5a 
-0x767ffc59 0x004018b0 0x0028ff90 0x00000000
-
-Disassembly:
-00401359 (04) f77c241c                 IDIV DWORD [ESP+0x1c]
-0040135d (04) 89442404                 MOV [ESP+0x4], EAX
-00401361 (07) c7042424304000           MOV DWORD [ESP], 0x403024
-00401368 (05) e833080000               CALL 0x401ba0
-0040136d (05) b800000000               MOV EAX, 0x0
-</pre>
-
-
-<p>That's why I divided this post in two big parts:</p>
-<ul>
-<li>the first one will talk about Windows internals background required to understand how things work under the hood,</li>
-<li>the last one will talk about <a href="http://research.microsoft.com/en-us/projects/detours/"><em>Detours</em></a> and how to hook <em>ntdll!KiUserExceptionDispatcher</em> toward our purpose. Basically, the library gives programmers a set of APIs to easily hook procedures. It also has a clean and readable documentation, so you should use it! It is usually used for that kind of things:</li>
-<li>Hot-patching bugs (no need to reboot),</li>
-<li>Tracing API calls (<a href="http://www.rohitab.com/apimonitor">API Monitor</a> like),</li>
-<li>Monitoring (a bit like our example),</li>
-<li>Pseudo-sandboxing (prevent API calls),</li>
-<li>etc.</li>
-</ul>
-
+<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look …</p>
                         <a class="btn primary xsmall" href="/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/">more ...</a>
                 </div>
         </div>
@@ -320,10 +259,7 @@ Disassembly:
 	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add</em> LLVM instruction. Instead of having a single asm instruction generated at the end of the pipeline, you will end up with a ton of assembly codes doing only an addition. If you never read my article, and you are interested in it here it is: <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=260">Obfuscation of steel: meet my Kryptonite</a>.</p>
-<p><center><img alt="home-made-adder.png" src="/images/breaking_kryptonite_s_obfuscation_with_symbolic_execution/home-made-adder.png"></center></p>
-<p>In this post I wanted to show you how we can manage to break that obfuscation with symbolic execution. We are going to write a really tiny symbolic execution engine with IDAPy, and we will use Z3Py to simplify all our equations. Note that a friend of mine <a href="https://twitter.com/elvanderb">@elvanderb</a> used a similar approach (more generic though) to simplify some parts of the <a href="http://download.tuxfamily.org/overclokblog/Obfuscation%20of%20steel%3a%20meet%20my%20Kryptonite/binaries/">crackme</a> ; but he didn't wanted to publish it, so here is my blog post about it!</p>
-
+<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add …</em></p>
                         <a class="btn primary xsmall" href="/blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/">more ...</a>
                 </div>
         </div>

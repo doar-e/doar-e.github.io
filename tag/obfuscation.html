@@ -119,16 +119,7 @@
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>I think it all began when I've worked on the <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2013">NSC2013</a> crackme made by <a href="https://twitter.com/elvanderb">@elvanderb</a>, long story short you had an AES128 heavily obfuscated white-box implementation to break. The thing was you could actually solve the challenge in different ways: </p>
 <ol>
-<li>the first one was the easiest one: you didn't need to know anything about white-box, crypto or even AES ; you could just see the function as a black-box &amp; try to find "design flaws" in its inner-workings</li>
-<li>the elite way: this one involved to understand &amp; recover the entire design of the white-box, then to identify design weaknesses that allows the challenger to directly attack &amp; recover the encryption key. A really nice write-up has been recently written by <a href="https://twitter.com/doegox">@doegox</a>, check it out, really :): <a href="http://wiki.yobi.be/wiki/NSC_Writeups">Oppida/NoSuchCon challenge</a>.</li>
-</ol>
-<p>The annoying thing is that you don't have a lot of understandable available C code on the web that implement such things, nevertheless you do have quite some nice academic references ; they are a really good resource to build your own.</p>
-<p>This post aims to present briefly, in a simple way what an AES white-box looks like, and to show how its design is important if you want to not have your encryption key extracted :). The implementation I'm going to talk about today is not my creation at all, I just followed the first part (might do another post talking about the second part? Who knows) of a really <a href="https://github.com/0vercl0k/stuffz/raw/master/wbaes_attack/docs/a_tutorial_on_whitebox_aes.pdf">nice paper</a> (even for non-mathematical / crypto guys like me!) written by James A. Muir.</p>
-<p>The idea is simple: we will start from a clean AES128 encryption function in plain C, we will modify it &amp; transform it into a white-box implementation in several steps.
-As usual, all the code are available on my github account; you are encourage to break &amp; hack them!</p>
-<p>Of course, we will use this post to briefly present what is the white-box cryptography, what are the goals &amp; why it's kind of cool.</p>
-<p>Before diving deep, here is the table of contents:</p>
-
+<li>the first one was the easiest one: you didn't …</li></ol>
                         <a class="btn primary xsmall" href="/blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">more ...</a>
                 </div>
         </div>
@@ -151,9 +142,7 @@ As usual, all the code are available on my github account; you are encourage to 
 	<a href="/tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Some months ago I came across a strange couple of functions that was kind of playing with a <a href="http://en.wikipedia.org/wiki/Finite-state_machine">finite-state automaton</a> to validate an input. At first glance, I didn't really notice it was in fact a regex being processed, that's exactly why I spent quite some time to understand those routines. You are right to ask yourself: "Hmm but the regex string representation should be in the binary shouldn't it?", the thing is it wasn't. The purpose of this post is to focus on those kind of "compiled" regex, like when the author transform somehow the regex in a FSM directly usable in its program (for the sake of efficiency I guess). And to extract that handy string representation, you have to study the automaton.</p>
-<p>In this short post, we are going to see how a regular expression looks like in assembly/C, and how you can hide/obfuscate it. I hope you will enjoy the read, and you will both be able to recognize a regular expression compiled in your future reverse-engineering tasks and to obfuscate heavily your regex!</p>
-
+<p>Some months ago I came across a strange couple of functions that was kind of playing with a <a href="http://en.wikipedia.org/wiki/Finite-state_machine">finite-state automaton</a> to validate an input. At first glance, I didn't really notice it was in fact a regex being processed, that's exactly why I spent quite some time to understand …</p>
                         <a class="btn primary xsmall" href="/blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">more ...</a>
                 </div>
         </div>

@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - debugging</title><link href="/" rel="alternate"></link><link href="/feeds/category.debugging.atom.xml" rel="self"></link><id>/</id><updated>2017-12-01T06:59:00-08:00</updated><entry><title>Debugger data model, Javascript &amp; x64 exception handling</title><link href="/blog/2017/12/01/debugger-data-model/" rel="alternate"></link><published>2017-12-01T06:59:00-08:00</published><updated>2017-12-01T06:59:00-08:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:None,2017-12-01:/blog/2017/12/01/debugger-data-model/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
-&lt;p&gt;The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded &lt;a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/"&gt;"WinDbg Preview"&lt;/a&gt; in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit after &lt;a href="https://cppcon2017.sched.com/"&gt;cppcon2017&lt;/a&gt; this year, I expected a massive pick-up from the security / reverse-engineering industry with a bunch of posts, tools, scripts, etc. To my surprise, this has not happened yet so I have waited patiently for my vacation to write a little something about it myself. So, here goes!&lt;/p&gt;
-&lt;p&gt;Obviously, one of the most &lt;em&gt;noticeable&lt;/em&gt; change in this debugger is the new UI.. but this is not something we will talk about. The &lt;em&gt;second&lt;/em&gt; big improvement is .. a decent scripting engine! Until recently, I always had to use &lt;a href="https://pykd.codeplex.com/"&gt;pyKD&lt;/a&gt; to write automation scripts. This has worked &lt;em&gt;fairly&lt;/em&gt; well for years, but I’m glad to move away from it and embrace the new extension model provided by Windbg &amp;amp; Javascript (yes, you read this right). One of the biggest pain point I’ve to deal with with pyKD (aside from the installation process!) is that you had to evaluate many commands and then parse their outputs to extract the bits and pieces you needed. Thankfully, the new &lt;em&gt;debugger data model&lt;/em&gt; solves this (or part of this anyway). The third new change is the integration of the time travel debugging (TTD) features discussed in this presentation: &lt;a href="https://cppcon2017.sched.com/event/Bgsj/time-travel-debugging-root-causing-bugs-in-commercial-scale-software"&gt;Time Travel Debugging: Root Causing Bugs in Commercial Scale Software
-&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;The goal of this post is to leverage all the nifty stuff we will learn to enumerate x64 &lt;a href="https://docs.microsoft.com/fr-fr/cpp/cpp/try-except-statement"&gt;try/except&lt;/a&gt; handlers in Javascript.&lt;/p&gt;
-&lt;p&gt;So grab yourself a cup of fine coffee and read on :).&lt;/p&gt;
-</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded &lt;a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/"&gt;"WinDbg Preview"&lt;/a&gt; in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded &lt;a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/"&gt;"WinDbg Preview"&lt;/a&gt; in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit after &lt;a href="https://cppcon2017.sched.com/"&gt;cppcon2017&lt;/a&gt; this year, I expected a massive pick-up from the security / reverse-engineering industry with a bunch of posts, tools, scripts, etc. To my surprise, this has not happened yet so I have waited patiently for my vacation to write a little something about it myself. So, here goes!&lt;/p&gt;
 &lt;p&gt;Obviously, one of the most &lt;em&gt;noticeable&lt;/em&gt; change in this debugger is the new UI.. but this is not something we will talk about. The &lt;em&gt;second&lt;/em&gt; big improvement is .. a decent scripting engine! Until recently, I always had to use &lt;a href="https://pykd.codeplex.com/"&gt;pyKD&lt;/a&gt; to write automation scripts. This has worked &lt;em&gt;fairly&lt;/em&gt; well for years, but I’m glad to move away from it and embrace the new extension model provided by Windbg &amp;amp; Javascript (yes, you read this right). One of the biggest pain point I’ve to deal with with pyKD (aside from the installation process!) is that you had to evaluate many commands and then parse their outputs to extract the bits and pieces you needed. Thankfully, the new &lt;em&gt;debugger data model&lt;/em&gt; solves this (or part of this anyway). The third new change is the integration of the time travel debugging (TTD) features discussed in this presentation: &lt;a href="https://cppcon2017.sched.com/event/Bgsj/time-travel-debugging-root-causing-bugs-in-commercial-scale-software"&gt;Time Travel Debugging: Root Causing Bugs in Commercial Scale Software
 &lt;/a&gt;.&lt;/p&gt;
@@ -67,15 +62,15 @@
 One really interesting property of this exposed information is that it becomes &lt;em&gt;queryable&lt;/em&gt; via operators that have been highly inspired from C#’s LINQ operators. For those who are unfamiliar with them I would suggest looking at &lt;a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/basic-linq-query-operations"&gt;Basic LINQ query operations&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="first-query"&gt;First query&lt;/h2&gt;
 &lt;p&gt;Say you would like to find what modules the current &lt;code&gt;@rip&lt;/code&gt; is pointing into, you can easily express this through a query using LINQ operators and the data model:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; dx @$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))
-@$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))                
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; dx @$curprocess.Modules.Where(p =&amp;amp;gt; @rip &amp;amp;gt;= p.BaseAddress &amp;amp;amp;&amp;amp;amp; @rip &amp;amp;lt; (p.BaseAddress+p.Size))
+@$curprocess.Modules.Where(p =&amp;amp;gt; @rip &amp;amp;gt;= p.BaseAddress &amp;amp;amp;&amp;amp;amp; @rip &amp;amp;lt; (p.BaseAddress+p.Size))                
     [0x8]            : C:\WINDOWS\SYSTEM32\ntdll.dll
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;..and you can even check all the information related to this module by clicking on the DML &lt;code&gt;[0x8]&lt;/code&gt; link:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; dx -r1 @$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))[8]
-@$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; dx -r1 @$curprocess.Modules.Where(p =&amp;amp;gt; @rip &amp;amp;gt;= p.BaseAddress &amp;amp;amp;&amp;amp;amp; @rip &amp;amp;lt; (p.BaseAddress+p.Size))[8]
+@$curprocess.Modules.Where(p =&amp;amp;gt; @rip &amp;amp;gt;= p.BaseAddress &amp;amp;amp;&amp;amp;amp; @rip &amp;amp;lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
     BaseAddress      : 0x7ffc985a0000
     Name             : C:\WINDOWS\SYSTEM32\ntdll.dll
     Size             : 0x1db000
@@ -85,21 +80,21 @@ One really interesting property of this exposed information is that it becomes &
 &lt;p&gt;In the previous two samples, there are several interesting points to highlight:&lt;/p&gt;
 &lt;p&gt;1) &lt;code&gt;dx&lt;/code&gt; is the operator to access the data model which is not available through the &lt;code&gt;??&lt;/code&gt; / &lt;code&gt;?&lt;/code&gt; operators&lt;/p&gt;
 &lt;p&gt;2) &lt;code&gt;@$name&lt;/code&gt; is how you access a variable that you have defined during a debugging session. The debugger itself defines several variables right off the bat just to make querying the model easier: &lt;code&gt;@$curprocess&lt;/code&gt; is equivalent to &lt;code&gt;host.currentProcess&lt;/code&gt; in Javascript, &lt;code&gt;@cursession&lt;/code&gt; is &lt;code&gt;host.currentSession&lt;/code&gt;, and &lt;code&gt;@$curthread&lt;/code&gt; is &lt;code&gt;host.currentThread&lt;/code&gt;. You can also define custom variables yourself, for example:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; dx @$doare = &amp;quot;Diary of a reverse-engineer&amp;quot;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; dx @$doare = &amp;quot;Diary of a reverse-engineer&amp;quot;
 @$doare = &amp;quot;Diary of a reverse-engineer&amp;quot; : Diary of a reverse-engineer
     Length           : 0x1b
-0:001&amp;gt; dx &amp;quot;Hello, &amp;quot; + @$doare
+0:001&amp;amp;gt; dx &amp;quot;Hello, &amp;quot; + @$doare
 &amp;quot;Hello, &amp;quot; + @$doare : Hello, Diary of a reverse-engineer
     Length           : 0x22
-0:001&amp;gt; ?? @$doare
+0:001&amp;amp;gt; ?? @$doare
 Bad register error at &amp;#39;@$doare&amp;#39;
-0:001&amp;gt; ? @$doare
+0:001&amp;amp;gt; ? @$doare
 Bad register error at &amp;#39;@$doare&amp;#39;
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;3) To query all the nodes in the &lt;code&gt;@$curprocess&lt;/code&gt; hierarchy (if you want to wander through the data model you can just use &lt;code&gt;dx Debugger&lt;/code&gt; and click through the DML links):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; dx @$curprocess
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; dx @$curprocess
 @$curprocess                 : cmd.exe [Switch To]
     Name             : cmd.exe
     Id               : 0x874
@@ -110,9 +105,9 @@ Bad register error at &amp;#39;@$doare&amp;#39;
 
 
 &lt;p&gt;You can also check &lt;code&gt;Debugger.State.DebuggerVariables&lt;/code&gt; where you can see the definitions for the variables we just mentioned:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; dx Debugger.State.DebuggerVariables
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; dx Debugger.State.DebuggerVariables
 Debugger.State.DebuggerVariables                
-    cursession       : Live user mode: &amp;lt;Local&amp;gt;
+    cursession       : Live user mode: &amp;amp;lt;Local&amp;amp;gt;
     curprocess       : cmd.exe [Switch To]
     curthread        : ntdll!DbgUiRemoteBreakin (00007ffc`98675320)  [Switch To]
     scripts         
@@ -120,7 +115,7 @@ Debugger.State.DebuggerVariables
     vars            
     curstack        
     curframe         : ntdll!DbgBreakPoint [Switch To]
-0:001&amp;gt; dx Debugger.State.DebuggerVariables.vars
+0:001&amp;amp;gt; dx Debugger.State.DebuggerVariables.vars
 Debugger.State.DebuggerVariables.vars                
     doare            : Diary of a reverse-engineer
 &lt;/pre&gt;&lt;/div&gt;
@@ -264,7 +259,7 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 &lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;handle_bp&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;currentThread&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Registers&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;User&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Args&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;rcx&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;rdx&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;r8&lt;/span&gt; &lt;span class="p"&gt;];&lt;/span&gt;
-    &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Args&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="p"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Args&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&amp;amp;&lt;/span&gt;&lt;span class="nx"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;HeapHandle&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Flags&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Size&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
@@ -276,7 +271,7 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;currentThread&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Registers&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;User&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;CurrentProcess&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;currentProcess&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;BreakpointAlreadySet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;CurrentProcess&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Debug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Breakpoints&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Any&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
-        &lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="p"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;OffsetExpression&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;ntdll!RtlAllocateHeap+0x0&amp;#39;&lt;/span&gt;
+        &lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&amp;amp;&lt;/span&gt;&lt;span class="nx"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;OffsetExpression&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;ntdll!RtlAllocateHeap+0x0&amp;#39;&lt;/span&gt;
     &lt;span class="p"&gt;);&lt;/span&gt;
 
     &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;BreakpointAlreadySet&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="kc"&gt;false&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -295,9 +290,9 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 
 
 &lt;p&gt;This gives:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt;
 Press &amp;quot;g&amp;quot; to run the target.
-0:000&amp;gt; g-
+0:000&amp;amp;gt; g-
 doare
 RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x82
 @$scriptContents.handle_bp()
@@ -328,12 +323,12 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 &lt;span class="kd"&gt;function&lt;/span&gt; &lt;span class="nx"&gt;handle_bp&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;currentThread&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Registers&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;User&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Args&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nx"&gt;Regs&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;rcx&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;rdx&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;Regs&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;r8&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
-    &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Args&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="p"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;Args&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&amp;amp;&lt;/span&gt;&lt;span class="nx"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;HeapHandle&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Flags&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;Size&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;ArgsS&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="nx"&gt;logln&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;RtlAllocateHeap: HeapHandle: &amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="nx"&gt;HeapHandle&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;, Flags: &amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="nx"&gt;Flags&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;, Size: &amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="nx"&gt;Size&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;Args&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nx"&gt;compareTo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x100&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;Args&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nx"&gt;compareTo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x100&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nx"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="c1"&gt;// stop execution if the allocation size is bigger than 0x100&lt;/span&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="kc"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
@@ -347,7 +342,7 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;CurrentProcess&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;currentProcess&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;HeapAlloc&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;host&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;getModuleSymbolAddress&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ntdll&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;RtlAllocateHeap&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;BreakpointAlreadySet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;CurrentProcess&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Debug&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Breakpoints&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Any&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
-        &lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="p"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Address&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="nx"&gt;HeapAlloc&lt;/span&gt;
+        &lt;span class="nx"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&amp;amp;&lt;/span&gt;&lt;span class="nx"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="nx"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Address&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="nx"&gt;HeapAlloc&lt;/span&gt;
     &lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;BreakpointAlreadySet&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="kc"&gt;false&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="nx"&gt;logln&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;RltAllocateHeap @ &amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="nx"&gt;HeapAlloc&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;toString&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
@@ -361,10 +356,10 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 
 
 &lt;p&gt;Which gives this output:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt;
 RltAllocateHeap @ 0x7fffc07587a0
 Press &amp;quot;g&amp;quot; to run the target.
-0:000&amp;gt; g
+0:000&amp;amp;gt; g
 RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x38
 ...
@@ -386,7 +381,7 @@ ntdll!RtlAllocateHeap:
 &lt;p&gt;Even though I won’t cover how recording and replaying a &lt;em&gt;TTD&lt;/em&gt; trace in this article, I just wanted to show you in this part how powerful such features can be once coupled with the data model. As you have probably realized by now, the data model is all about extensibility: you can access specific &lt;em&gt;TTD&lt;/em&gt; features via the model when you have a trace loaded in the debugger. This section tries to describe them.&lt;/p&gt;
 &lt;h3 id="ttdcalls"&gt;TTD.Calls&lt;/h3&gt;
 &lt;p&gt;The first feature I wanted to talked about is &lt;code&gt;TTD.Calls&lt;/code&gt;. This API goes through an entire execution trace and finds every unique point in the trace where an API has been called.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx -v @$cursession.TTD
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx -v @$cursession.TTD
 @$cursession.TTD                 : [object Object]
     Calls            [Returns call information from the trace for the specified set of symbols: TTD.Calls(&amp;quot;module!symbol1&amp;quot;, &amp;quot;module!symbol2&amp;quot;, ...)]
 &lt;/pre&gt;&lt;/div&gt;
@@ -394,9 +389,9 @@ ntdll!RtlAllocateHeap:
 
 &lt;p&gt;For each of those points, you have an object describing the call: time travel position (that you can travel to: see &lt;code&gt;TimeStart&lt;/code&gt; and &lt;code&gt;TimeEnd&lt;/code&gt; below), parameters (leveraging symbols if you have any to know how many parameters the API expects), return value, the thread id, etc.&lt;/p&gt;
 &lt;p&gt;Here is what it looks like:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx -r1 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Count()
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx -r1 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Count()
 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Count() : 0x267
-0:000&amp;gt; dx @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).First()
+0:000&amp;amp;gt; dx @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).First()
 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).First()                
     EventType        : Call
     ThreadId         : 0x1004
@@ -408,7 +403,7 @@ ntdll!RtlAllocateHeap:
     ReturnAddress    : 0x7fffbdcd9cc1
     ReturnValue      : 0x21b5df71980
     Parameters      
-0:000&amp;gt; dx -r1 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).First().Parameters
+0:000&amp;amp;gt; dx -r1 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).First().Parameters
 @$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).First().Parameters                
     [0x0]            : 0x21b5df70000
     [0x1]            : 0x8
@@ -418,9 +413,9 @@ ntdll!RtlAllocateHeap:
 
 
 &lt;p&gt;Obviously, the collection returned by &lt;code&gt;TTD.Calls&lt;/code&gt; can be queried via the same &lt;a href="https://docs.microsoft.com/en-us/dotnet/csharp/linq/query-expression-basics"&gt;LINQ&lt;/a&gt;-like operators we mentioned earlier which is awesome. As an example, asking the following question has never been easier: "How many times did the allocator fail to allocate memory?":&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$Calls=@$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Where(c =&amp;gt; c.ReturnValue == 0)
-@$Calls=@$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Where(c =&amp;gt; c.ReturnValue == 0)                
-0:000&amp;gt; dx @$Calls.Count()
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$Calls=@$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Where(c =&amp;amp;gt; c.ReturnValue == 0)
+@$Calls=@$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Where(c =&amp;amp;gt; c.ReturnValue == 0)                
+0:000&amp;amp;gt; dx @$Calls.Count()
 @$Calls.Count()  : 0x0
 &lt;/pre&gt;&lt;/div&gt;
 
@@ -428,7 +423,7 @@ ntdll!RtlAllocateHeap:
 &lt;p&gt;Note that because the API has been designed in a way that abstracts away ABI-specific details, you can have your query / code working on both x86 &amp;amp; x64 seamlessly. Another important point is that this is much faster than setting a breakpoint manually and running the trace forward to collect this information yourself.&lt;/p&gt;
 &lt;h3 id="ttdmemory"&gt;TTD.Memory&lt;/h3&gt;
 &lt;p&gt;The other &lt;strong&gt;very&lt;/strong&gt; powerful feature that was announced fairly &lt;a href="https://blogs.msdn.microsoft.com/windbg/2017/12/18/windbg-preview-1-1712-15003-release-notes/"&gt;recently&lt;/a&gt; in version 1.1712.15003 is &lt;code&gt;TTD.Memory&lt;/code&gt;. A bit like &lt;code&gt;TTD.Calls&lt;/code&gt;, this feature lets you go and find every memory accesses that happened in an execution trace on a specific memory range. And again, it returns to the user a nice object that has all the information you could be potentially interested in (time travel positions, access type, the instruction pointer address, the address of the memory accessed, etc.):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$Accesses[0]
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$Accesses[0]
 @$Accesses[0]                
     EventType        : MemoryAccess
     ThreadId         : 0x15e8
@@ -444,13 +439,13 @@ ntdll!RtlAllocateHeap:
 
 
 &lt;p&gt;Here is how you would go and ask it to find out every piece of code that write-accessed (read and execute are also other valid type of access you can query for and combine) the TEB region of the current thread:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; ? @$teb
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; ? @$teb
 Evaluate expression: 792409825280 = 000000b8`7f4e6000
-0:001&amp;gt; ?? sizeof(_TEB)
+0:001&amp;amp;gt; ?? sizeof(_TEB)
 unsigned int64 0x1838
-0:001&amp;gt; dx @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &amp;quot;w&amp;quot;)
+0:001&amp;amp;gt; dx @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &amp;quot;w&amp;quot;)
 @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &amp;quot;w&amp;quot;)                
-0:001&amp;gt; dx @$Accesses[0]
+0:001&amp;amp;gt; dx @$Accesses[0]
 @$Accesses[0]                
     EventType        : MemoryAccess
     ThreadId         : 0x15e8
@@ -466,14 +461,14 @@ unsigned int64 0x1838
 
 
 &lt;p&gt;The other beauty of it is that you can travel to the position ID and find out what happened:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;gt; !tt F79:1B
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:001&amp;amp;gt; !tt F79:1B
 Setting position: F79:1B
 (1cfc.15e8): Break instruction exception - code 80000003 (first/second chance not available)
 Time Travel Position: F79:1B
 ntdll!TppWorkCallbackPrologRelease+0x100:
 00007fff`c0761bd0 f30f7f8010170000 movdqu  xmmword ptr [rax+1710h],xmm0 ds:000000b8`7f4e7710=00000000000000000000000000000000
 
-0:001&amp;gt; dt _TEB ActivityId
+0:001&amp;amp;gt; dt _TEB ActivityId
 ntdll!_TEB
    +0x1710 ActivityId : _GUID
 &lt;/pre&gt;&lt;/div&gt;
@@ -483,7 +478,7 @@ ntdll!_TEB
 &lt;h3 id="ttdutilitygetheapaddress"&gt;TTD.Utility.GetHeapAddress&lt;/h3&gt;
 &lt;p&gt;The two previous features were mostly building blocks; this utility consumes the &lt;code&gt;TTD.Calls&lt;/code&gt; API in order to show the lifetime of a heap chunk in a trace session. What does that mean exactly? Well, the utility looks for every heap related operation that happened on a chunk (start address, size) and show them to you.&lt;/p&gt;
 &lt;p&gt;This is extremely useful when debugging or root-causing issues, and here is what it looks like on a dummy trace:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
 ========================================================================================================================================
 =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
 ========================================================================================================================================
@@ -497,7 +492,7 @@ ntdll!_TEB
 
 &lt;p&gt;The attentive reader has probably noticed something maybe unexpected with entries 0x59 and entries 0x276 where we are seeing two different allocations of the same chunk without any free in between. The answer to this question lies in the way the &lt;code&gt;GetHeapAddress&lt;/code&gt; function is implemented (check out the &lt;em&gt;TTD\Analyzers\HeapAnalysis.js&lt;/em&gt; file) - it basically looks for every heap related operation and only shows you the ones where &lt;code&gt;address + size&lt;/code&gt; is a range containing the argument you passed. In this example we gave the function the address &lt;code&gt;0x21b5dce40a0&lt;/code&gt;, 0x59 is an allocation and &lt;code&gt;0x21b5dce40a0&lt;/code&gt; is in the range &lt;code&gt;0x21b5dce4030 + 0xAA&lt;/code&gt; so we display it. Now, a free does not know the size of the chunk, the only thing it knows is the base pointer. In this case if we have a free of &lt;code&gt;0x21b5dce4030&lt;/code&gt; the utility function would just not display it to us which explains how we can have two heap chunks allocated without a free in the following time frame: &lt;code&gt;ED:7D7, E59:3A7&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;We can even go ahead and prove this by finding the free by running the below command:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p =&amp;gt; p.Address == 0x21b5dce4030)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p =&amp;amp;gt; p.Address == 0x21b5dce4030)
 ========================================================================================================================================
 =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
 ========================================================================================================================================
@@ -511,11 +506,11 @@ ntdll!_TEB
 &lt;p&gt;As expected, the entry 0x64 is our free operation and it also happens in between the two allocation operations we were seeing earlier - solved.&lt;/p&gt;
 &lt;p&gt;Pretty neat uh?&lt;/p&gt;
 &lt;p&gt;It is nice enough to ask the utility for a specific heap address, but it would also be super nice if we had access to the whole heap activity that has happened during the session and that is what &lt;code&gt;TTD.Data.Heap&lt;/code&gt; gives you:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$HeapOps=@$cursession.TTD.Data.Heap()
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$HeapOps=@$cursession.TTD.Data.Heap()
 ...
-0:000&amp;gt; dx @$HeapOps.Count()
+0:000&amp;amp;gt; dx @$HeapOps.Count()
 @$HeapOps.Count() : 0x414
-0:000&amp;gt; dx @$HeapOps[137]
+0:000&amp;amp;gt; dx @$HeapOps[137]
 @$HeapOps[137]                 : [object Object]
     Action           : Free
     Heap             : 0x21b5dcd0000
@@ -528,9 +523,9 @@ ntdll!_TEB
 
 
 &lt;p&gt;And of course do not forget that all these collections are queryable. We can easily find out what are all the other heap operations that are not &lt;code&gt;alloc&lt;/code&gt; or &lt;code&gt;free&lt;/code&gt; with the below query:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&amp;gt; c.Action != &amp;quot;Free&amp;quot; &amp;amp;&amp;amp; c.Action != &amp;quot;Alloc&amp;quot;)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&amp;amp;gt; c.Action != &amp;quot;Free&amp;quot; &amp;amp;amp;&amp;amp;amp; c.Action != &amp;quot;Alloc&amp;quot;)
 ...
-0:000&amp;gt; dx -g @$NoFreeAlloc
+0:000&amp;amp;gt; dx -g @$NoFreeAlloc
 ============================================================================================================
 =                           = Action    = Heap             = Result          = (+) TimeStart = (+) TimeEnd =
 ============================================================================================================
@@ -592,7 +587,7 @@ the initializeScript method.
 
 
 &lt;p&gt;Once loaded you can go ahead and check that the node has been added:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$curprocess
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -643,7 +638,7 @@ the initializeScript method.
 
 
 &lt;p&gt;Which gives:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$curprocess
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -652,7 +647,7 @@ the initializeScript method.
     Environment     
     TTD             
     DiaryOfAReverseEngineer : [object Object]
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
 @$curprocess.DiaryOfAReverseEngineer                 : [object Object]
     process          : PING.EXE [Switch To]
     Foo              : Foo from PING.EXE
@@ -705,7 +700,7 @@ the initializeScript method.
 
 
 &lt;p&gt;And now if we display the &lt;code&gt;Process&lt;/code&gt; model:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$curprocess
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -714,11 +709,11 @@ the initializeScript method.
     Environment     
     TTD             
     DiaryOfAReverseEngineer : Diary of a reverse-engineer
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
 @$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
     Foo              : Foo from PING.EXE
     Bar              : Bar from PING.EXE
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
 @$curprocess.DiaryOfAReverseEngineer.Add(1, 2) : 0x3
 &lt;/pre&gt;&lt;/div&gt;
 
@@ -869,7 +864,7 @@ the initializeScript method.
 
 
 &lt;p&gt;And we can play with the node in the model:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$curprocess
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$curprocess
 @$curprocess                 : PING.EXE [Switch To]
     Name             : PING.EXE
     Id               : 0x1cfc
@@ -878,21 +873,21 @@ the initializeScript method.
     Environment     
     TTD             
     DiaryOfAReverseEngineer : Diary of a reverse-engineer
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer
 @$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
     Foo              : Foo from PING.EXE
     Bar              : Bar from PING.EXE
     Sub              : Sub module
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub
 @$curprocess.DiaryOfAReverseEngineer.Sub                 : Sub module
     SubFoo           : SubFoo from PING.EXE
     SubBar           : SubBar from PING.EXE
     Attributes       : Attributes
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes
 @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes                 : Attributes
     [0x0]            : Process: PING.EXE, Name: attr0, Value: value0
     [0x1]            : Process: PING.EXE, Name: attr1, Value: value0
-0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]
+0:000&amp;amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]
 @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]                 : Process: PING.EXE, Name: attr0, Value: value0
     Name             : attr0
     Value            : value0
@@ -906,7 +901,7 @@ the initializeScript method.
 &lt;h3 id="try-and-play-with-host-api-from-the-command-window"&gt;Try and play with &lt;code&gt;host.*&lt;/code&gt; API from the command window&lt;/h3&gt;
 &lt;p&gt;One of the things I quickly was bothered with at first is not being able to run my Javascript from the command window. Let's say that you want to play with a &lt;code&gt;host.*&lt;/code&gt; API: these are not really directly accessible.&lt;/p&gt;
 &lt;p&gt;A way to work around that is to load a script and to use the &lt;code&gt;@$scriptContents&lt;/code&gt; variable from where you can access the &lt;code&gt;host&lt;/code&gt; object.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx -v @$scriptContents.host
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx -v @$scriptContents.host
 @$scriptContents.host                 : [object Object]
     currentApiVersionSupported : [object Object]
     currentApiVersionInitialized : [object Object]
@@ -955,11 +950,11 @@ the initializeScript method.
 &lt;p&gt;Similar to above, you can use the &lt;code&gt;.scriptrun&lt;/code&gt; command for that. &lt;/p&gt;
 &lt;h3 id="is-the-javascript-engine-only-available-in-windbg-preview"&gt;Is the Javascript engine only available in Windbg Preview?&lt;/h3&gt;
 &lt;p&gt;Nope it is not! You can load your Javascript scripts from the latest SDK's Windbg. You can use the &lt;code&gt;.scriptproviders&lt;/code&gt; command to know what the various script providers currently loaded are, and if you do not see the Javascript provider you can just run &lt;code&gt;.load jsprovider.dll&lt;/code&gt; to load it.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:003&amp;gt; .scriptproviders
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:003&amp;amp;gt; .scriptproviders
 Available Script Providers:
     NatVis (extension &amp;#39;.NatVis&amp;#39;)
-0:003&amp;gt; .load jsprovider.dll
-0:003&amp;gt; .scriptproviders
+0:003&amp;amp;gt; .load jsprovider.dll
+0:003&amp;amp;gt; .scriptproviders
 Available Script Providers:
     NatVis (extension &amp;#39;.NatVis&amp;#39;)
     JavaScript (extension &amp;#39;.js&amp;#39;)
@@ -988,10 +983,10 @@ Available Script Providers:
 
 
 &lt;p&gt;Which gives:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt;
 [object Object]
 2316561115408
-0:000&amp;gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
+0:000&amp;amp;gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
 @$curthread.Environment.EnvironmentBlock.FlsData : 0x21b5dcd6910 [Type: void *]
 &lt;/pre&gt;&lt;/div&gt;
 
@@ -1023,7 +1018,7 @@ Available Script Providers:
 
 
 &lt;p&gt;Resulting in:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt;
 0
 [object Object]
 [object Object]
@@ -1043,7 +1038,7 @@ First chance exceptions are reported before any exception handling.
 This exception may be expected and handled.
 except!Fault+0x3d:
 00007ff7`a900179d 48c70001000000  mov     qword ptr [rax],1 ds:00000000`00000001=????????????????
-0:000&amp;gt; !exchain
+0:000&amp;amp;gt; !exchain
 8 stack frames, scanning for handlers...
 Frame 0x01: except!main+0x59 (00007ff7`a9001949)
   ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
@@ -1081,7 +1076,7 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 &lt;p&gt;The first table we need to look at is the &lt;code&gt;ENTRY_EXCEPTION&lt;/code&gt; table that resides in the &lt;code&gt;DataDirectory&lt;/code&gt; of the &lt;code&gt;OptionalHeader&lt;/code&gt;. This directory is an array of &lt;a href="https://docs.microsoft.com/en-us/cpp/build/struct-runtime-function"&gt;IMAGE_RUNTIME_FUNCTION_ENTRY&lt;/a&gt; that describes the boundary of functions (handy for IDA!) and their unwinding information which is stored at the end of this structure.&lt;/p&gt;
 &lt;p&gt;The unwinding information is mainly described by the &lt;a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info"&gt;UNWIND_INFO&lt;/a&gt; structure in which the frame unwinder can find what is necessary to unwind a stack-frame associated to this function. The array of &lt;a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-code"&gt;UNWIND_CODE&lt;/a&gt; structures basically tells you how to do an epilogue.&lt;/p&gt;
 &lt;p&gt;What follows this array is variable though (documented &lt;a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info"&gt;here&lt;/a&gt;): if the &lt;code&gt;Flags&lt;/code&gt; field of &lt;code&gt;UNWIND_INFO&lt;/code&gt; specifies the &lt;code&gt;EHHANDLER&lt;/code&gt; flag then we have what I call a &lt;code&gt;UNWIND_INFO_END&lt;/code&gt; structure defined like this:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dt UNWIND_INFO_END
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dt UNWIND_INFO_END
    +0x000 ExceptionHandler : Uint4B
    +0x004 ExceptionData    : Uint4B
 &lt;/pre&gt;&lt;/div&gt;
@@ -1091,10 +1086,10 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 &lt;p&gt;This is also where it was a bit of a surprise to me, as you basically cannot really tell for sure what type of structure is referenced by &lt;code&gt;ExceptionData&lt;/code&gt;. For that, you would have to analyze the &lt;code&gt;ExceptionHandler&lt;/code&gt; function to understand what and how this data is used. That is also most likely, why the &lt;code&gt;!exchains&lt;/code&gt; command stops here and does not bother trying to parse the exception data blob.&lt;/p&gt;
 &lt;p&gt;Obviously we can easily make an assumption and assume that the &lt;code&gt;ExceptionData&lt;/code&gt; is the structure we would like it to be, and verify that it looks right. In addition, the fact that the code you are most likely looking at has been emitted by a well behaved compiler and that the binary has not been tampered with combined have given me good enough results. But keep in mind that in theory, you could place your own function and have your own &lt;code&gt;ExceptionData&lt;/code&gt; format in which case reverse-engineering the handler would be mandatory - in practice this is an unlikely scenario if you are dealing with &lt;em&gt;normal&lt;/em&gt; binaries.&lt;/p&gt;
 &lt;p&gt;The type of &lt;code&gt;ExceptionData&lt;/code&gt; that we are interested in is what I call a &lt;code&gt;SEH_SCOPE_TABLE&lt;/code&gt; which is an array of &lt;code&gt;SCOPE_RECORD&lt;/code&gt;s that are defined like this:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dt SEH_SCOPE_TABLE
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dt SEH_SCOPE_TABLE
   +0x000 Count            : Uint4B
   +0x004 ScopeRecord      : [1] SCOPE_RECORD
-0:000&amp;gt; dt SCOPE_RECORD
+0:000&amp;amp;gt; dt SCOPE_RECORD
   +0x000 BeginAddress     : Uint4B
   +0x004 EndAddress       : Uint4B
   +0x008 HandlerAddress   : Uint4B
@@ -1116,16 +1111,16 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 &lt;/ul&gt;
 &lt;p&gt;With the same source of information we can easily filter and shape the way we want it displayed through the data model. There is no need to display every exception handler from the &lt;code&gt;Module&lt;/code&gt; node as it would not be information related to a &lt;code&gt;Module&lt;/code&gt; -- this is why we choose to filter it out and display only the ones concerning this &lt;code&gt;Module&lt;/code&gt;. Same thing reasoning applies to &lt;code&gt;Functions&lt;/code&gt; as well. The model is something you should explore step by step, it is not something where you have all the available information displayed at once - it is meant to be scoped and not overwhelming.&lt;/p&gt;
 &lt;p&gt;And just in case you forgot about it, all this information is now accessible from the command window for query purposes. You can ask things like &lt;em&gt;Which function defines the most exception handlers?&lt;/em&gt; very easily:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; dx @$curprocess.Functions.OrderByDescending(c =&amp;gt; c.ExceptionHandlers.Count()).First()
-@$curprocess.Functions.OrderByDescending(c =&amp;gt; c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -&amp;gt; RVA:0x7ff83563e5a2, 12 exception handlers
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; dx @$curprocess.Functions.OrderByDescending(c =&amp;amp;gt; c.ExceptionHandlers.Count()).First()
+@$curprocess.Functions.OrderByDescending(c =&amp;amp;gt; c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -&amp;amp;gt; RVA:0x7ff83563e5a2, 12 exception handlers
     EHHandlerRVA     : 0x221d6
     EHHandler        : 0x7ff8356021d6
     BeginRVA         : 0x5e170
     EndRVA           : 0x5e5a2
     Begin            : 0x7ff83563e170
     End              : 0x7ff83563e5a2
-    ExceptionHandlers :   __try {0x7ff83563e1d2 -&amp;gt; 0x7ff83563e37a} __finally {0x7ff83563e5a2}...
-0:000&amp;gt; u 0x7ff83563e170 l1
+    ExceptionHandlers :   __try {0x7ff83563e1d2 -&amp;amp;gt; 0x7ff83563e37a} __finally {0x7ff83563e5a2}...
+0:000&amp;amp;gt; u 0x7ff83563e170 l1
 KERNEL32!LoadModule:
 00007ff8`3563e170 4053            push    rbx
 &lt;/pre&gt;&lt;/div&gt;
@@ -1133,7 +1128,7 @@ KERNEL32!LoadModule:
 
 &lt;p&gt;In this example, the function &lt;code&gt;KERNEL32!LoadModule&lt;/code&gt; seems to be the function that has registered the largest number of exception handlers (12 of them).&lt;/p&gt;
 &lt;p&gt;Now that we have this new source of information, we can also push it a bit further and implement a command that does a very similar job than &lt;code&gt;!exchain&lt;/code&gt; by just mining information from the nodes we just added to the data model:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; !ehhandlers
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; !ehhandlers
 9 stack frames, scanning for handlers...
 Frame 0x1: EHHandler: 0x7ff7a9001389: except!ILT+900(__GSHandlerCheck_SEH):
               Except: 0x7ff7a900194b: except!main+0x5b [c:\users\over\documents\blog\except\except\except.c @ 28]:
@@ -1146,7 +1141,7 @@ Frame 0x7: EHHandler: 0x7ff838050ef0: ntdll!_C_specific_handler:
               Filter: 0x7ff8380684d0: ntdll!RtlUserThreadStart$filt$0:
 @$ehhandlers()
 
-0:000&amp;gt; !exchain
+0:000&amp;amp;gt; !exchain
 8 stack frames, scanning for handlers...
 Frame 0x01: except!main+0x59 (00007ff7`a9001949)
   ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
@@ -1175,16 +1170,7 @@ As usual, big thanks to my buddy &lt;a href="https://twitter.com/yrp604"&gt;yrp6
 &lt;/ul&gt;</content><category term="debugging"></category><category term="javascript"></category><category term="windbg"></category><category term="exception handling"></category><category term="seh"></category><category term="time-travel debugging"></category><category term="ttd"></category></entry><entry><title>Pinpointing heap-related issues: OllyDbg2 off-by-one story</title><link href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/" rel="alternate"></link><published>2013-09-09T09:53:00-07:00</published><updated>2013-09-09T09:53:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:None,2013-09-09:/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Yesterday afternoon, I was peacefully coding some stuff you know but I couldn't make my code working.
 As usual, in those type of situations you fire up your debugger in order to understand what is going on under the hood.
-That was a bit weird, to give you a bit of context I was doing some inline x86 assembly, and I've put on purpose an &lt;em&gt;int3&lt;/em&gt; just
-before the piece of assembly code I thought was buggy. Once my file loaded in &lt;a href="http://ollydbg.de/version2.html"&gt;OllyDbg2&lt;/a&gt;, I hit &lt;em&gt;F9&lt;/em&gt; in order to reach quickly the &lt;em&gt;int3&lt;/em&gt; I've slipped into the inline assembly code. A bit of single-stepping, and &lt;strong&gt;BOOM&lt;/strong&gt; I got a nasty crash. It happens sometimes, and that's uncool.
-Then, I relaunch my binary and try to reproduce the bug: same actions and &lt;strong&gt;BOOM&lt;/strong&gt; again. OK, this time it's cool, I got a reproducible crash in OllyDbg2.&lt;/p&gt;
-&lt;p&gt;I like when things like that happens to me (remember the crashes I've found in OllyDbg/IDA here: &lt;a href="http://download.tuxfamily.org/overclokblog/PDB%20ain%27t%20PDD/0vercl0k_pdb_aint_pdd.pdf"&gt;PDB Ain't PDD&lt;/a&gt;), it's always a nice exercise for me where I've to:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;pinpoint the bug in the application: usually not trivial when it's a real/big application&lt;/li&gt;
-&lt;li&gt;reverse-engineer the codes involved in the bug in order to figure out why it's happening (sometimes I got the sources, sometimes I don't like this time)&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;In this post, I will show you how I've manage to pinpoint where the bug was, using &lt;a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff549561(v=vs.85).aspx"&gt;GFlags, PageHeap&lt;/a&gt; and &lt;a href="http://www.windbg.info/"&gt;WinDbg&lt;/a&gt;. Then, we will reverse-engineer the buggy code in order to understand why the bug is happening, and how we can code a clean trigger.&lt;/p&gt;
-</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+That was a bit weird, to give you a …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Yesterday afternoon, I was peacefully coding some stuff you know but I couldn't make my code working.
 As usual, in those type of situations you fire up your debugger in order to understand what is going on under the hood.
 That was a bit weird, to give you a bit of context I was doing some inline x86 assembly, and I've put on purpose an &lt;em&gt;int3&lt;/em&gt; just
@@ -1223,7 +1209,7 @@ ntdll!RtlpBreakPointHeap+0x23:
 
 
 &lt;p&gt;We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like &lt;em&gt;after&lt;/em&gt;, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; k
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; k
 ChildEBP RetAddr  
 00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
 00189b04 76f52a8a ntdll!RtlpCheckBusyBlockTail+0x171
@@ -1268,7 +1254,7 @@ ollydbg!Findfreehardbreakslot+0x21d9:
 
 
 &lt;p&gt;Woot, this is very cool, because now we know &lt;strong&gt;exactly&lt;/strong&gt; where something is going wrong. Let's get more information about the heap chunk now:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;gt; !heap -p -a ecx
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0:000&amp;amp;gt; !heap -p -a ecx
     address 0f00ed30 found in
     _DPH_HEAP_ROOT @ 4f11000
     in busy allocation
@@ -1309,27 +1295,27 @@ ollydbg!Findfreehardbreakslot+0x21d9:
   &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 
   &lt;span class="c1"&gt;// ...&lt;/span&gt;
-  &lt;span class="n"&gt;file_content&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kr"&gt;__int8&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;Readfile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;sourcefile&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;file_size&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;file_content&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kr"&gt;__int8&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;Readfile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;sourcefile&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;file_size&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
   &lt;span class="c1"&gt;// ...&lt;/span&gt;
   &lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
   &lt;span class="n"&gt;nb_lines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-  &lt;span class="k"&gt;while&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;file_size&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;while&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;lt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;file_size&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="c1"&gt;// doing stuff to count all the char, and all the lines in the file&lt;/span&gt;
     &lt;span class="c1"&gt;// ...&lt;/span&gt;
   &lt;span class="p"&gt;}&lt;/span&gt;
 
-  &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;Memalloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;12&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;nb_lines&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-  &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Memalloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;nb_lines&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem2&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;Memalloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;12&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;nb_lines&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Memalloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;nb_lines&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem2&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="n"&gt;nb_lines2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;file_size&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;file_content&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;lt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;file_size&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;file_content&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
-      &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;nb_lines2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-      &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;nb_lines2&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;file_size&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+      &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;nb_lines2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+      &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;nb_lines2&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;lt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;file_size&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
       &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;file_content&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1340,7 +1326,7 @@ ollydbg!Findfreehardbreakslot+0x21d9:
       &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="n"&gt;nb_lines2&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="c1"&gt;// BOOM!&lt;/span&gt;
-    &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;nb_lines2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;mem1_ov&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;nb_lines2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nbchar&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="c1"&gt;// ...&lt;/span&gt;
   &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
@@ -1355,7 +1341,7 @@ ollydbg!Findfreehardbreakslot+0x21d9:
 &lt;em&gt; At line 10: "u-&amp;gt;Sourcefile" is a string pointer on the path of your source code (found in the PDB database). The routine is just reading the whole file, giving you its size, and a pointer on the file content now stored memory.
 &lt;/em&gt; From line 12 to 18: we have a loop counting the total number of lines in your source code.
 &lt;em&gt; At line 20: we have the allocation of our chunk. It allocates 12&lt;/em&gt;(nb_lines + 1) bytes. We saw previously in WinDbg that the size of the chunk was 0x2d0: it should means we have exactly ((0x2d0 / 12) - 1) = 59 lines in our source code:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;D:\TODO\crashes\odb2-OOB-write-heap&amp;gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;D:\TODO\crashes\odb2-OOB-write-heap&amp;amp;gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
 59 OOB-write-heap-OllyDbg2h-trigger.c
 &lt;/pre&gt;&lt;/div&gt;
 

@@ -115,43 +115,7 @@
 	<a href="/tag/windows-internals.html"><i class="icon-tag"></i>windows internals</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look at the internals of course.</p>
---Exception detected--
-ExceptionRecord: 0x0028fa2c Context: 0x0028fa7c
-Image Path: D:\Codes\The Sentinel\tests\divzero.exe
-Command Line: ..\tests\divzero.exe divzero.exe
-PID: 0x00000aac
-Exception Code: 0xc0000094 (EXCEPTION_INT_DIVIDE_BY_ZERO)
-Exception Address: 0x00401359
-EAX: 0x0000000a EDX: 0x00000000 ECX: 0x00000001 EBX: 0x7ffde000
-ESI: 0x00000000 EDI: 0x00000000 ESP: 0x0028fee0 EBP: 0x0028ff18
-EIP: 0x00401359
-EFLAGS: 0x00010246
-
-Stack:
-0x767bc265 0x54f3620f 0xfffffffe 0x767a0f5a 
-0x767ffc59 0x004018b0 0x0028ff90 0x00000000
-
-Disassembly:
-00401359 (04) f77c241c                 IDIV DWORD [ESP+0x1c]
-0040135d (04) 89442404                 MOV [ESP+0x4], EAX
-00401361 (07) c7042424304000           MOV DWORD [ESP], 0x403024
-00401368 (05) e833080000               CALL 0x401ba0
-0040136d (05) b800000000               MOV EAX, 0x0
-</pre>
-
-
-<p>That's why I divided this post in two big parts:</p>
-<ul>
-<li>the first one will talk about Windows internals background required to understand how things work under the hood,</li>
-<li>the last one will talk about <a href="http://research.microsoft.com/en-us/projects/detours/"><em>Detours</em></a> and how to hook <em>ntdll!KiUserExceptionDispatcher</em> toward our purpose. Basically, the library gives programmers a set of APIs to easily hook procedures. It also has a clean and readable documentation, so you should use it! It is usually used for that kind of things:</li>
-<li>Hot-patching bugs (no need to reboot),</li>
-<li>Tracing API calls (<a href="http://www.rohitab.com/apimonitor">API Monitor</a> like),</li>
-<li>Monitoring (a bit like our example),</li>
-<li>Pseudo-sandboxing (prevent API calls),</li>
-<li>etc.</li>
-</ul>
-
+<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look …</p>
                         <a class="btn primary xsmall" href="/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/">more ...</a>
                 </div>
         </div>

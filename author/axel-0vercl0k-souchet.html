@@ -118,34 +118,7 @@
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>This blogpost covers the development of three exploits targeting SpiderMonkey JavaScript Shell interpreter and Mozilla Firefox on Windows 10 RS5 64-bit from the perspective of somebody that has never written a browser exploit nor looked closely at any JavaScript engine codebase.</p>
-<p>As you have probably noticed, there has been a LOT of interest in exploiting browsers in the past year or two. Every major CTF competition has at least one browser challenge, every month there are at least a write-up or two touching on browser exploitation. It is just everywhere. That is kind of why I figured I should have a little look at what a JavaScript engine is like from inside the guts, and exploit one of them. I have picked Firefox's SpiderMonkey JavaScript engine and the challenge <a href="https://ctftime.org/task/6000">Blazefox</a> that has been written by <a href="https://twitter.com/itszn13">itszn13</a>.</p>
-<p>In this blogpost, I present my findings and the <a href="https://github.com/0vercl0k/blazefox/blob/master/exploits">three exploits</a> I have written during this quest. Originally, the challenge was targeting a Linux x64 environment and so naturally I decided to exploit it on Windows x64 :). Now you may wonder why three different exploits? Three different exploits allowed me to take it step by step and not face all the complexity at once. That is usually how I work day to day, I make something small work and iterate to build it up.</p>
-<p>Here is how I organized things:</p>
-<ul>
-<li>
-<p>The first thing I wrote is a WinDbg JavaScript extension called <a href="https://github.com/0vercl0k/windbg-scripts/tree/master/sm">sm.js</a> that gives me visibility into a bunch of stuff in SpiderMonkey. It is also a good exercise to familiarize yourself with the various ways objects are organized in memory. It is not necessary, but it has been definitely useful when writing the exploits.</p>
-</li>
-<li>
-<p>The first exploit, <code>basic.js</code>, targets a very specific build of the JavaScript interpreter, <code>js.exe</code>. It is full of hardcoded ugly offsets, and would have no chance to land elsewhere than on my system with this specific build of <code>js.exe</code>.</p>
-</li>
-<li>
-<p>The second exploit, <code>kaizen.js</code>, is meant to be a net improvement of <code>basic.js</code>. It still targets the JavaScript interpreter itself, but this time, it resolves dynamically a bunch of things like a big boy. It also uses the baseline JIT to have it generate ROP gadgets.</p>
-</li>
-<li>
-<p>The third exploit, <code>ifrit.js</code>, finally targets the Firefox browser with a little extra. Instead of just leveraging the baseline JIT to generate one or two ROP gadgets, we make it JIT a whole native code payload. No need to ROP, scan for finding Windows API addresses or to create a writable and executable memory region anymore. We just redirect the execution flow to our payload inside the JIT code. This might be the less dull / interesting part for people that knows SpiderMonkey and have been doing browser exploitation already :).</p>
-</li>
-</ul>
-<p>Before starting, for those who do not feel like reading through the whole post: <strong>TL;DR</strong> I have created a <a href="https://github.com/0vercl0k/blazefox">blazefox</a> GitHub repository that you can clone with all the materials. In the repository you can find:</p>
-<ul>
-<li><a href="https://github.com/0vercl0k/blazefox/tree/master/sm">sm.js</a> which is the debugger extension mentioned above,</li>
-<li>The source code of the three exploits in <a href="https://github.com/0vercl0k/blazefox/tree/master/exploits">exploits</a>,</li>
-<li>A 64-bit debug build of the JavaScript shell along with private symbol information in <a href="https://github.com/0vercl0k/blazefox/tree/master/js-asserts">js-asserts</a>, and a release build in <a href="https://github.com/0vercl0k/blazefox/tree/master/js-release">js-release</a>,</li>
-<li>The scripts I used to build the <strong>B</strong>ring <strong>Y</strong>our <strong>O</strong>wn <strong>P</strong>ayload technique in <a href="https://github.com/0vercl0k/blazefox/tree/master/scripts">scripts</a>,</li>
-<li>The sources that have been used to build <code>js-release</code> so that you can do source-level debugging in WinDbg in <a href="https://github.com/0vercl0k/blazefox/tree/master/src/js">src/js</a>,</li>
-<li>A 64-bit build of the Firefox binaries along with private symbol information for <code>xul.dll</code> in <a href="https://github.com/0vercl0k/blazefox/blob/master/ff-bin.7z.001">ff-bin.7z.001</a> and <a href="https://github.com/0vercl0k/blazefox/blob/master/ff-bin.7z.002">ff-bin.7z.002</a>.</li>
-</ul>
-<p>All right, let's buckle up and hit the road now!</p>
-
+<p>As you have probably noticed, there has been …</p>
                         <a class="btn primary xsmall" href="/blog/2018/11/19/introduction-to-spidermonkey-exploitation/">more ...</a>
                 </div>
         </div>
@@ -169,10 +142,7 @@
 	<a href="/tag/whitebox.html"><i class="icon-tag"></i>whitebox</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background.</p>
-<p><a href="https://www.ledger.fr/">ledger</a> is a french security company founded in 2014 that is specialized in cryptography, cryptocurrencies, and hardware. They recently put up online three different puzzles to celebrate the official launch of their <a href="https://www.ledger.fr/bounty-program/">bug bounty program</a>. The second challenge called <em>ctf2</em> is the one we will be discussing today. <em>ctf2</em> is an ELF64 binary that is available <a href="https://drive.google.com/open?id=1UPLe3V5Jt3SMqZe4ZIFcnWydSqUyI4Ao">here</a> for download (if you want to follow at home). The binary is about 11MB, written in C++ and even has symbols; great.</p>
-<p>Let's do it!</p>
-
+<p>About a month ago, my mate <a href="https://twitter.com/b0n0n">b0n0n</a> was working on the <a href="https://www.ledger.fr/ctf2018/">ledgerctf</a> puzzles and challenged me to have a look at the <em>ctf2</em> binary. I eventually did and this blogpost discusses the protection scheme and how I broke it. Before diving in though, here is a bit of background …</p>
                         <a class="btn primary xsmall" href="/blog/2018/05/17/breaking-ledgerctfs-aes-white-box-challenge/">more ...</a>
                 </div>
         </div>
@@ -195,11 +165,7 @@
 	<a href="/tag/bevx.html"><i class="icon-tag"></i>beVX</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original tweet</a> advertising it.</p>
-<p>With this challenge, you are tasked to reverse-engineer a binary providing some sort of encryption service, and there is supposedly a private key (aka the flag) to retrieve. A remote server with the challenge running is also available for you to carry out your attack. This looked pretty interesting as it was different than the usual keygen-me type of reverse-engineering challenge.</p>
-<p>Unfortunately, I didn't get a chance to play with this while the remote server was up (the organizers took it down once they received the solutions of the three winners). However, cool thing is that you can easily manufacture your own server to play at home.. which is what I ended up doing.</p>
-<p>As I thought the challenge was cute enough, and that I would also like to write on a more regular basis, so here is a small write-up describing how I abused the server to get the private key out. Hope you don't find it too boring :-).</p>
-
+<p>About two weeks ago, my friend <a href="https://twitter.com/mongobug">mongo</a> challenged me to solve a reverse-engineering puzzle put up by the <a href="https://blogs.securiteam.com/">SSD</a> team for <a href="https://www.offensivecon.org/">OffensiveCon2018</a> (which is a security conference that took place in Berlin in February). The challenge binary is available for download <a href="https://www.beyondsecurity.com/bevxcon/bevx-challenge-1">here</a> and <a href="https://twitter.com/SecuriTeam_SSD/status/964459126960066560">here is one of the original …</a></p>
                         <a class="btn primary xsmall" href="/blog/2018/03/11/bevx-challenge-on-the-operation-table/">more ...</a>
                 </div>
         </div>
@@ -227,12 +193,7 @@
 	<a href="/tag/ttd.html"><i class="icon-tag"></i>ttd</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded <a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/">"WinDbg Preview"</a> in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit after <a href="https://cppcon2017.sched.com/">cppcon2017</a> this year, I expected a massive pick-up from the security / reverse-engineering industry with a bunch of posts, tools, scripts, etc. To my surprise, this has not happened yet so I have waited patiently for my vacation to write a little something about it myself. So, here goes!</p>
-<p>Obviously, one of the most <em>noticeable</em> change in this debugger is the new UI.. but this is not something we will talk about. The <em>second</em> big improvement is .. a decent scripting engine! Until recently, I always had to use <a href="https://pykd.codeplex.com/">pyKD</a> to write automation scripts. This has worked <em>fairly</em> well for years, but I’m glad to move away from it and embrace the new extension model provided by Windbg &amp; Javascript (yes, you read this right). One of the biggest pain point I’ve to deal with with pyKD (aside from the installation process!) is that you had to evaluate many commands and then parse their outputs to extract the bits and pieces you needed. Thankfully, the new <em>debugger data model</em> solves this (or part of this anyway). The third new change is the integration of the time travel debugging (TTD) features discussed in this presentation: <a href="https://cppcon2017.sched.com/event/Bgsj/time-travel-debugging-root-causing-bugs-in-commercial-scale-software">Time Travel Debugging: Root Causing Bugs in Commercial Scale Software
-</a>.</p>
-<p>The goal of this post is to leverage all the nifty stuff we will learn to enumerate x64 <a href="https://docs.microsoft.com/fr-fr/cpp/cpp/try-except-statement">try/except</a> handlers in Javascript.</p>
-<p>So grab yourself a cup of fine coffee and read on :).</p>
-
+<p>The main goal of today's post is to show a bit more of what is now possible with the latest Windbg (currently branded <a href="https://blogs.windows.com/buildingapps/2017/08/28/new-windbg-available-preview/">"WinDbg Preview"</a> in the Microsoft store) and the time travel debugging tools that Microsoft released a few months ago. When these finally got released, a bit …</p>
                         <a class="btn primary xsmall" href="/blog/2017/12/01/debugger-data-model/">more ...</a>
                 </div>
         </div>
@@ -256,9 +217,7 @@
 	<a href="/tag/program-analysis.html"><i class="icon-tag"></i>program analysis</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via <a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/">clang</a>, or at runtime with dynamic binary instrumentation frameworks like <a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool">Pin</a> or <a href="http://www.dynamorio.org/">DynamoRIO</a>. One thing I have always looked for though, is a framework able to statically instrument a PE image. A framework designed a bit like <a href="https://clang.llvm.org/">clang</a> where you can write 'passes' doing various things: transformation of the image, analysis of code blocks, etc. Until a couple of months ago, I wasn't aware of any public and robust projects providing this capability (as in, able to instrument real-world scale programs like Chrome or similar).</p>
-<p>In this post (it's been a while I know!), I'll introduce the <a href="https://github.com/google/syzygy">syzygy</a> transformation tool chain with a focus on its <a href="https://github.com/google/syzygy/tree/master/syzygy/instrument">instrumenter</a>, and give an overview of the framework, its capabilities, its limitations, and how you can write transformations yourself. As examples, I'll walk through two simple examples: an analysis pass generating a call-graph, and a transformation pass rewriting the function <code>__report_gsfailure</code> in <a href="https://msdn.microsoft.com/en-us/library/8dbf701c.aspx">/GS</a> protected binaries.</p>
-
+<p>Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via <a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/">clang</a>, or at runtime with dynamic binary instrumentation frameworks like <a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool">Pin</a> or <a href="http://www.dynamorio.org/">DynamoRIO</a>. One thing I have always looked for though, is a framework able to statically instrument a PE image. A …</p>
                         <a class="btn primary xsmall" href="/blog/2017/08/05/binary-rewriting-with-syzygy/">more ...</a>
                 </div>
         </div>
@@ -284,13 +243,7 @@
 	<a href="/tag/pass.html"><i class="icon-tag"></i>pass</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as <a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf">Latner</a> said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that could be used in a lot of (different) domains: code-optimization (think <a href="https://github.com/JonathanSalwan/Tigress_protection">deobfuscation</a>), (architecture independent) <a href="https://github.com/0vercl0k/articles/blob/master/Obfuscation%20of%20steel%20meet%20Kryptonite.pdf">code obfuscation</a>, static code instrumentation (think <a href="https://github.com/google/sanitizers/wiki">sanitizers</a>), <a href="http://clang-analyzer.llvm.org/index.html">static analysis</a>, for runtime software exploitation mitigations (think <a href="http://clang.llvm.org/docs/ControlFlowIntegrity.html">cfi</a>, <a href="http://clang.llvm.org/docs/SafeStack.html">safestack</a>), power a fuzzing framework (think <a href="http://llvm.org/docs/LibFuzzer.html">libFuzzer</a>), ..you name it.</p>
-<p>A lot of the power that came with this giant library was partly because it would operate in mainly three stages, and you were free to hook your code in any of those: front-end, mid-end, back-end. Other strengths included: the high number of back-ends, the documentation, the C/C++ APIs, the community, ease of use compared to gcc (see below from kcc's <a href="https://gcc.gnu.org/wiki/cauldron2012?action=AttachFile&amp;do=get&amp;target=kcc.pdf">presentation</a>), etc.</p>
-<p><center><img alt="GCC from a newcomer's perspective" src="/images/token_capture_via_llvm_based_static_analysis_pass/llvmvsgcc.png"></center>
-The front-end part takes as input source code and generates LLVM IL code, the middle part operates on LLVM IL and finally the last one receives LLVM IL in order to output assembly code and or an executable file.</p>
-<p><center><img alt="Major components in a three phase compiler" src="/images/token_capture_via_llvm_based_static_analysis_pass/llvm_architecture.png"></center>
-In this post we will walk through a simple LLVM pass that does neither optimization, nor obfuscation; but acts more as a token finder for fuzzing purposes. </p>
-
+<p>About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as <a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf">Latner</a> said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that …</p>
                         <a class="btn primary xsmall" href="/blog/2016/11/27/clang-and-passes/">more ...</a>
                 </div>
         </div>
@@ -318,16 +271,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>I think it all began when I've worked on the <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2013">NSC2013</a> crackme made by <a href="https://twitter.com/elvanderb">@elvanderb</a>, long story short you had an AES128 heavily obfuscated white-box implementation to break. The thing was you could actually solve the challenge in different ways: </p>
 <ol>
-<li>the first one was the easiest one: you didn't need to know anything about white-box, crypto or even AES ; you could just see the function as a black-box &amp; try to find "design flaws" in its inner-workings</li>
-<li>the elite way: this one involved to understand &amp; recover the entire design of the white-box, then to identify design weaknesses that allows the challenger to directly attack &amp; recover the encryption key. A really nice write-up has been recently written by <a href="https://twitter.com/doegox">@doegox</a>, check it out, really :): <a href="http://wiki.yobi.be/wiki/NSC_Writeups">Oppida/NoSuchCon challenge</a>.</li>
-</ol>
-<p>The annoying thing is that you don't have a lot of understandable available C code on the web that implement such things, nevertheless you do have quite some nice academic references ; they are a really good resource to build your own.</p>
-<p>This post aims to present briefly, in a simple way what an AES white-box looks like, and to show how its design is important if you want to not have your encryption key extracted :). The implementation I'm going to talk about today is not my creation at all, I just followed the first part (might do another post talking about the second part? Who knows) of a really <a href="https://github.com/0vercl0k/stuffz/raw/master/wbaes_attack/docs/a_tutorial_on_whitebox_aes.pdf">nice paper</a> (even for non-mathematical / crypto guys like me!) written by James A. Muir.</p>
-<p>The idea is simple: we will start from a clean AES128 encryption function in plain C, we will modify it &amp; transform it into a white-box implementation in several steps.
-As usual, all the code are available on my github account; you are encourage to break &amp; hack them!</p>
-<p>Of course, we will use this post to briefly present what is the white-box cryptography, what are the goals &amp; why it's kind of cool.</p>
-<p>Before diving deep, here is the table of contents:</p>
-
+<li>the first one was the easiest one: you didn't …</li></ol>
                         <a class="btn primary xsmall" href="/blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">more ...</a>
                 </div>
         </div>
@@ -352,18 +296,7 @@ As usual, all the code are available on my github account; you are encourage to 
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>As the blog was a bit silent for quite some time, I figured it would be cool to put together a post ; so here it is folks, dig in!</p>
-<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference in Kuala Lumpur from the 13th of October until the 16th.</p>
-<p>The challenge has been written by <a href="http://blog.quarkslab.com/author/serge-guelton.html">Serge Guelton</a>, a R&amp;D engineer specialized in compilers/parallel computations. At the time of writing, already eight different people manage to solve the challenge, and one of the ticket seems to have been won by <code>hackedd</code>, so congrats to him!</p>
-<p><center><img alt="woot.png" src="/images/dissection_of_quarkslab_s_2014_security_challenge/woot.png"></center>
-According to the description of the challenge Python is heavily involved, which is a good thing for at least two reasons:</p>
-<ul>
-<li>first because I already had <a href="https://doar-e.github.io/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">the occasion</a> to look at its source code in the past,</li>
-<li>and because I so am a <a href="https://github.com/0vercl0k/stuffz/tree/master/Python's%20internals">big fan of Python</a>.</li>
-</ul>
-<p>In this post I will describe how I tackled this problem, how I managed to solve it. And to make up for me being slow at solving it I tried to make it fairly detailed. </p>
-<p>At first it was supposed to be quite short though, but well..I decided to analyze fully the challenge even if it wasn't needed to find the key unfortunately, so it is a bit longer than expected :-).</p>
-<p>Anyway, sit down, make yourself at home and let me pour you a cup of tea before we begin :-).</p>
-
+<p>The French company <a href="http://blog.quarkslab.com/you-like-python-security-challenge-and-traveling-win-a-free-ticket-to-hitb-kul.html">Quarkslab</a> <a href="https://twitter.com/quarkslab/status/507457671386394624">recently</a> <a href="https://twitter.com/HITBSecConf/status/507458788522094592">released</a> a security challenge to win a free entrance to attend the upcoming <a href="https://conference.hitb.org/hitbsecconf2014kul/">HITBSecConf</a> conference …</p>
                         <a class="btn primary xsmall" href="/blog/2014/09/06/dissection-of-quarkslabs-2014-security-challenge/">more ...</a>
                 </div>
         </div>
@@ -386,15 +319,7 @@ According to the description of the challenge Python is heavily involved, which 
 	<a href="/tag/virtual-machine.html"><i class="icon-tag"></i>virtual machine</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>A year ago, I've written a Python script to leverage a bug in Python's virtual machine: the idea was to fully control the Python virtual processor and after that to instrument the VM to execute native codes. The <a href="https://github.com/0vercl0k/stuffz/blob/master/Python's%20internals/python27_abuse_vm_to_execute_x86_code.py">python27_abuse_vm_to_execute_x86_code.py</a> script wasn't really self-explanatory, so I believe only a few people actually took some time to understood what happened under the hood. The purpose of this post is to give you an explanation of the bug, how you can control the VM and how you can turn the bug into something that can be more useful. It's also a cool occasion to see how works the Python virtual machine from a low-level perspective: what we love so much right?</p>
-<p>But before going further, I just would like to clarify a couple of things:</p>
-<ul>
-<li>I haven't found this bug, this is quite old and <strong>known</strong> by the Python developers (trading safety for performance), so don't panic this is <strong>not</strong> a 0day or a new bug ; can be a cool CTF trick though</li>
-<li>Obviously, YES I know we can also "escape" the virtual machine with the <a href="http://docs.python.org/2/library/ctypes.html">ctypes</a> module ; but this is a feature not a bug. In addition, ctypes is always "removed"  from sandbox implementation in Python</li>
-</ul>
-<p>Also, keep in mind I will focus Python 2.7.5 x86 on Windows ; but obviously this is adaptable for other systems and architectures, so this is left as an exercise to the interested readers.
-All right, let's move on to the first part: this one will focus the essentials about the VM, and Python objects.</p>
-
+<p>A year ago, I've written a Python script to leverage a bug in Python's virtual machine: the idea was to fully control the Python virtual processor and after that to instrument the VM to execute native codes. The <a href="https://github.com/0vercl0k/stuffz/blob/master/Python's%20internals/python27_abuse_vm_to_execute_x86_code.py">python27_abuse_vm_to_execute_x86_code.py</a> script wasn't really self-explanatory, so I believe only a …</p>
                         <a class="btn primary xsmall" href="/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/">more ...</a>
                 </div>
         </div>
@@ -418,43 +343,7 @@ All right, let's move on to the first part: this one will focus the essentials a
 	<a href="/tag/windows-internals.html"><i class="icon-tag"></i>windows internals</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look at the internals of course.</p>
---Exception detected--
-ExceptionRecord: 0x0028fa2c Context: 0x0028fa7c
-Image Path: D:\Codes\The Sentinel\tests\divzero.exe
-Command Line: ..\tests\divzero.exe divzero.exe
-PID: 0x00000aac
-Exception Code: 0xc0000094 (EXCEPTION_INT_DIVIDE_BY_ZERO)
-Exception Address: 0x00401359
-EAX: 0x0000000a EDX: 0x00000000 ECX: 0x00000001 EBX: 0x7ffde000
-ESI: 0x00000000 EDI: 0x00000000 ESP: 0x0028fee0 EBP: 0x0028ff18
-EIP: 0x00401359
-EFLAGS: 0x00010246
-
-Stack:
-0x767bc265 0x54f3620f 0xfffffffe 0x767a0f5a 
-0x767ffc59 0x004018b0 0x0028ff90 0x00000000
-
-Disassembly:
-00401359 (04) f77c241c                 IDIV DWORD [ESP+0x1c]
-0040135d (04) 89442404                 MOV [ESP+0x4], EAX
-00401361 (07) c7042424304000           MOV DWORD [ESP], 0x403024
-00401368 (05) e833080000               CALL 0x401ba0
-0040136d (05) b800000000               MOV EAX, 0x0
-</pre>
-
-
-<p>That's why I divided this post in two big parts:</p>
-<ul>
-<li>the first one will talk about Windows internals background required to understand how things work under the hood,</li>
-<li>the last one will talk about <a href="http://research.microsoft.com/en-us/projects/detours/"><em>Detours</em></a> and how to hook <em>ntdll!KiUserExceptionDispatcher</em> toward our purpose. Basically, the library gives programmers a set of APIs to easily hook procedures. It also has a clean and readable documentation, so you should use it! It is usually used for that kind of things:</li>
-<li>Hot-patching bugs (no need to reboot),</li>
-<li>Tracing API calls (<a href="http://www.rohitab.com/apimonitor">API Monitor</a> like),</li>
-<li>Monitoring (a bit like our example),</li>
-<li>Pseudo-sandboxing (prevent API calls),</li>
-<li>etc.</li>
-</ul>
-
+<p>The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like <a href="http://gynvael.coldwind.pl/">gynvael</a>'s <a href="http://gynvael.coldwind.pl/?id=148">ExcpHook</a> but in userland), and to generate a report with information related to the exception. The other purpose is to have a look …</p>
                         <a class="btn primary xsmall" href="/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/">more ...</a>
                 </div>
         </div>

@@ -115,9 +115,7 @@
 	<a href="/tag/program-analysis.html"><i class="icon-tag"></i>program analysis</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via <a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/">clang</a>, or at runtime with dynamic binary instrumentation frameworks like <a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool">Pin</a> or <a href="http://www.dynamorio.org/">DynamoRIO</a>. One thing I have always looked for though, is a framework able to statically instrument a PE image. A framework designed a bit like <a href="https://clang.llvm.org/">clang</a> where you can write 'passes' doing various things: transformation of the image, analysis of code blocks, etc. Until a couple of months ago, I wasn't aware of any public and robust projects providing this capability (as in, able to instrument real-world scale programs like Chrome or similar).</p>
-<p>In this post (it's been a while I know!), I'll introduce the <a href="https://github.com/google/syzygy">syzygy</a> transformation tool chain with a focus on its <a href="https://github.com/google/syzygy/tree/master/syzygy/instrument">instrumenter</a>, and give an overview of the framework, its capabilities, its limitations, and how you can write transformations yourself. As examples, I'll walk through two simple examples: an analysis pass generating a call-graph, and a transformation pass rewriting the function <code>__report_gsfailure</code> in <a href="https://msdn.microsoft.com/en-us/library/8dbf701c.aspx">/GS</a> protected binaries.</p>
-
+<p>Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via <a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/">clang</a>, or at runtime with dynamic binary instrumentation frameworks like <a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool">Pin</a> or <a href="http://www.dynamorio.org/">DynamoRIO</a>. One thing I have always looked for though, is a framework able to statically instrument a PE image. A …</p>
                         <a class="btn primary xsmall" href="/blog/2017/08/05/binary-rewriting-with-syzygy/">more ...</a>
                 </div>
         </div>
@@ -143,13 +141,7 @@
 	<a href="/tag/pass.html"><i class="icon-tag"></i>pass</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as <a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf">Latner</a> said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that could be used in a lot of (different) domains: code-optimization (think <a href="https://github.com/JonathanSalwan/Tigress_protection">deobfuscation</a>), (architecture independent) <a href="https://github.com/0vercl0k/articles/blob/master/Obfuscation%20of%20steel%20meet%20Kryptonite.pdf">code obfuscation</a>, static code instrumentation (think <a href="https://github.com/google/sanitizers/wiki">sanitizers</a>), <a href="http://clang-analyzer.llvm.org/index.html">static analysis</a>, for runtime software exploitation mitigations (think <a href="http://clang.llvm.org/docs/ControlFlowIntegrity.html">cfi</a>, <a href="http://clang.llvm.org/docs/SafeStack.html">safestack</a>), power a fuzzing framework (think <a href="http://llvm.org/docs/LibFuzzer.html">libFuzzer</a>), ..you name it.</p>
-<p>A lot of the power that came with this giant library was partly because it would operate in mainly three stages, and you were free to hook your code in any of those: front-end, mid-end, back-end. Other strengths included: the high number of back-ends, the documentation, the C/C++ APIs, the community, ease of use compared to gcc (see below from kcc's <a href="https://gcc.gnu.org/wiki/cauldron2012?action=AttachFile&amp;do=get&amp;target=kcc.pdf">presentation</a>), etc.</p>
-<p><center><img alt="GCC from a newcomer's perspective" src="/images/token_capture_via_llvm_based_static_analysis_pass/llvmvsgcc.png"></center>
-The front-end part takes as input source code and generates LLVM IL code, the middle part operates on LLVM IL and finally the last one receives LLVM IL in order to output assembly code and or an executable file.</p>
-<p><center><img alt="Major components in a three phase compiler" src="/images/token_capture_via_llvm_based_static_analysis_pass/llvm_architecture.png"></center>
-In this post we will walk through a simple LLVM pass that does neither optimization, nor obfuscation; but acts more as a token finder for fuzzing purposes. </p>
-
+<p>About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as <a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf">Latner</a> said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that …</p>
                         <a class="btn primary xsmall" href="/blog/2016/11/27/clang-and-passes/">more ...</a>
                 </div>
         </div>
@@ -172,11 +164,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
 	<a href="/tag/dynamic-binary-instrumentation.html"><i class="icon-tag"></i>dynamic-binary-instrumentation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic, anything) and you want to have the same coverage with only a subset of them. Or maybe, you are not really interested in the measure, but only with the coverage differences between two executions of your target: to locate where your program is handling a specific feature for example.</p>
-<p>But it's not a trivial problem, usually you don't have the source-code of the target, and you want it to be quick. The other thing, is that you don't have an input that covers the whole code base, you don't even know if it's possible ; so you can't compare your analysis to that "ideal one". Long story short, you can't say to the user "OK, this input covers 10% of your binary". But you can clearly register what your program is doing with input A, what it is doing with input B and then analyzing the differences. With that way you can have a (more precise?) idea about which input seems to have better coverage than another.</p>
-<p>Note also, this is a perfect occasion to play with Pin :-)).</p>
-<p>In this post, I will explain briefly how you can build that kind of tool using Pin, and how it can be used for reverse-engineer purposes.</p>
-
+<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic …</p>
                         <a class="btn primary xsmall" href="/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">more ...</a>
                 </div>
         </div>
