@@ -198,12 +198,12 @@ call void %foo(i8 97 signext)
 
 
 <p>Every time <code>AFLTokenCap::runOnBasicBlock</code> is called, the LLVM mid-end will call into our analysis pass (either statically linked into clang/opt or will dynamically load it) with a <code>BasicBlock</code> passed by reference. From there, we can iterate through the set of instructions contained in the basic block and find the <a href="http://llvm.org/docs/LangRef.html#call-instruction">call</a> instructions. Every instructions subclass the top level <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1Instruction.html">llvm::Instruction</a> class - in order to filter you can use the <code>dyn_cast&lt;T&gt;</code> template function that works like the <code>dynamic_cast&lt;T&gt;</code> operator but does not rely on RTTI (and is more efficient - according to the <a href="http://llvm.org/docs/CodingStandards.html">LLVM coding standards</a>). Used in conjunction with a <a href="http://en.cppreference.com/w/cpp/language/range-for">range-based for loop</a> on the <code>BasicBlock</code> object you can iterate through all the instructions you want.</p>
-<div class="highlight"><pre><span></span><span class="kt">bool</span> <span class="n">AFLTokenCap</span><span class="o">::</span><span class="n">runOnBasicBlock</span><span class="p">(</span><span class="n">BasicBlock</span> <span class="o">&amp;</span><span class="n">B</span><span class="p">)</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><span class="kt">bool</span> <span class="n">AFLTokenCap</span><span class="o">::</span><span class="n">runOnBasicBlock</span><span class="p">(</span><span class="n">BasicBlock</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">B</span><span class="p">)</span> <span class="p">{</span>
 
-  <span class="k">for</span><span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="nl">I_</span> <span class="p">:</span> <span class="n">B</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for</span><span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="nl">I_</span> <span class="p">:</span> <span class="n">B</span><span class="p">)</span> <span class="p">{</span>
 
     <span class="cm">/* Handle calls to functions of interest */</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">CallInst</span> <span class="o">*</span><span class="n">I</span> <span class="o">=</span> <span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">CallInst</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">I_</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">CallInst</span> <span class="o">*</span><span class="n">I</span> <span class="o">=</span> <span class="n">dyn_cast</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">CallInst</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">I_</span><span class="p">))</span> <span class="p">{</span>
 
       <span class="c1">// [...]</span>
     <span class="p">}</span>
@@ -225,7 +225,7 @@ call void %foo(i8 97 signext)
 <p>The end goal, is to find <code>llvm::ConstantDataArray</code>s and to retrieve their raw values - those will be the hard-coded strings we are looking for.</p>
 <div class="highlight"><pre><span></span>/home/over/workz/afl-2.35b/afl-clang-fast -c -W -Wall -O3 -funroll-loops   -fPIC -o png.pic.o png.c
 [...]
-afl-llvm-tokencap-pass 2.35b by &lt;0vercl0k@tuxfamily.org&gt;
+afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
 [...]
 [+] Call to memcmp with constant &quot;\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3&quot; found in png.c/png_icc_check_header
 </pre></div>
@@ -257,24 +257,24 @@ section_iTXt=&quot;iTXt&quot;
 <span class="c1">// ...</span>
 <span class="k">if</span> <span class="p">(</span><span class="n">chunk_name</span> <span class="o">==</span> <span class="n">png_IHDR</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">png_ptr</span><span class="o">-&gt;</span><span class="n">push_length</span> <span class="o">!=</span> <span class="mi">13</span><span class="p">)</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">png_ptr</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">push_length</span> <span class="o">!=</span> <span class="mi">13</span><span class="p">)</span>
      <span class="n">png_error</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="s">&quot;Invalid IHDR length&quot;</span><span class="p">);</span>
 
   <span class="n">PNG_PUSH_SAVE_BUFFER_IF_FULL</span>
-  <span class="nf">png_handle_IHDR</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">,</span> <span class="n">png_ptr</span><span class="o">-&gt;</span><span class="n">push_length</span><span class="p">);</span>
+  <span class="n">png_handle_IHDR</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">,</span> <span class="n">png_ptr</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">push_length</span><span class="p">);</span>
 <span class="p">}</span>
 <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">chunk_name</span> <span class="o">==</span> <span class="n">png_IEND</span><span class="p">)</span>
 <span class="p">{</span>
   <span class="n">PNG_PUSH_SAVE_BUFFER_IF_FULL</span>
-  <span class="n">png_handle_IEND</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">,</span> <span class="n">png_ptr</span><span class="o">-&gt;</span><span class="n">push_length</span><span class="p">);</span>
+  <span class="n">png_handle_IEND</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">,</span> <span class="n">png_ptr</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">push_length</span><span class="p">);</span>
 
-  <span class="n">png_ptr</span><span class="o">-&gt;</span><span class="n">process_mode</span> <span class="o">=</span> <span class="n">PNG_READ_DONE_MODE</span><span class="p">;</span>
+  <span class="n">png_ptr</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">process_mode</span> <span class="o">=</span> <span class="n">PNG_READ_DONE_MODE</span><span class="p">;</span>
   <span class="n">png_push_have_end</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">);</span>
 <span class="p">}</span>
 <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">chunk_name</span> <span class="o">==</span> <span class="n">png_PLTE</span><span class="p">)</span>
 <span class="p">{</span>
   <span class="n">PNG_PUSH_SAVE_BUFFER_IF_FULL</span>
-  <span class="n">png_handle_PLTE</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">,</span> <span class="n">png_ptr</span><span class="o">-&gt;</span><span class="n">push_length</span><span class="p">);</span>
+  <span class="n">png_handle_PLTE</span><span class="p">(</span><span class="n">png_ptr</span><span class="p">,</span> <span class="n">info_ptr</span><span class="p">,</span> <span class="n">png_ptr</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">push_length</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 
@@ -282,8 +282,8 @@ section_iTXt=&quot;iTXt&quot;
 <p>In order to also grab those guys, I have decided to add the support for compare instructions with integer immediate (in one of the operand). Again, thanks to LLVM this is really easy to pull that off: we just need to find the <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1ICmpInst.html">llvm::ICmpInst</a> instructions. The only thing to keep in mind is  false positives. In order to lower the false positives rate, I have chosen to consider an integer immediate as a token only if only it is fully ASCII (like the <code>libpng</code> tokens above)</p>
 <p>We can even push it a bit more, and handle switch statements via the same strategy. The only additional step is to retrieve every <code>cases</code> from in the <code>switch</code> statement: <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1SwitchInst.html#a8e7005748409a956c8875e259716559b">llvm::SwitchInst::cases</a>.</p>
 <div class="highlight"><pre><span></span><span class="cm">/* Handle switch/case with integer immediates */</span>
-<span class="k">else</span> <span class="nf">if</span><span class="p">(</span><span class="n">SwitchInst</span> <span class="o">*</span><span class="n">SI</span> <span class="o">=</span> <span class="n">dyn_cast</span><span class="o">&lt;</span><span class="n">SwitchInst</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">I_</span><span class="p">))</span> <span class="p">{</span>
-  <span class="k">for</span><span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="nl">CIT</span> <span class="p">:</span> <span class="n">SI</span><span class="o">-&gt;</span><span class="n">cases</span><span class="p">())</span> <span class="p">{</span>
+<span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">SwitchInst</span> <span class="o">*</span><span class="n">SI</span> <span class="o">=</span> <span class="n">dyn_cast</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="n">SwitchInst</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">I_</span><span class="p">))</span> <span class="p">{</span>
+  <span class="k">for</span><span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="nl">CIT</span> <span class="p">:</span> <span class="n">SI</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">cases</span><span class="p">())</span> <span class="p">{</span>
 
     <span class="n">ConstantInt</span> <span class="o">*</span><span class="n">CI</span> <span class="o">=</span> <span class="n">CIT</span><span class="p">.</span><span class="n">getCaseValue</span><span class="p">();</span>
     <span class="n">dump_integer_token</span><span class="p">(</span><span class="n">CI</span><span class="p">);</span>
@@ -295,10 +295,10 @@ section_iTXt=&quot;iTXt&quot;
 <h2 id="limitations">Limitations</h2>
 <p>The main limitation is that as you are supposed to run the pass as part of the compilation process, it is most likely going to end-up compiling tests or utilities that the library ships with. Now, this is annoying as it may add some noise to your tokens - especially with utility programs. Those ones usually parse input arguments and some use <code>strcmp</code> like function with hard-coded strings to do their parsing.</p>
 <p>A partial solution (as in, it reduces the noise, but does not remove it entirely) I have implemented is just to not process any functions called <code>main</code>. Most of the cases I have seen (the set of samples is pretty small I won't lie &gt;:]), this argument parsing is made in the <code>main</code> function and it is very easy to not process it by blacklisting it as you can see below:</p>
-<div class="highlight"><pre><span></span><span class="kt">bool</span> <span class="n">AFLTokenCap</span><span class="o">::</span><span class="n">runOnBasicBlock</span><span class="p">(</span><span class="n">BasicBlock</span> <span class="o">&amp;</span><span class="n">B</span><span class="p">)</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><span class="kt">bool</span> <span class="n">AFLTokenCap</span><span class="o">::</span><span class="n">runOnBasicBlock</span><span class="p">(</span><span class="n">BasicBlock</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">B</span><span class="p">)</span> <span class="p">{</span>
 <span class="c1">// [...]</span>
   <span class="n">Function</span> <span class="o">*</span><span class="n">F</span> <span class="o">=</span> <span class="n">B</span><span class="p">.</span><span class="n">getParent</span><span class="p">();</span>
-  <span class="n">m_FunctionName</span> <span class="o">=</span> <span class="n">F</span><span class="o">-&gt;</span><span class="n">hasName</span><span class="p">()</span> <span class="o">?</span> <span class="n">F</span><span class="o">-&gt;</span><span class="n">getName</span><span class="p">().</span><span class="n">data</span><span class="p">()</span> <span class="o">:</span> <span class="s">&quot;unknown&quot;</span><span class="p">;</span>
+  <span class="n">m_FunctionName</span> <span class="o">=</span> <span class="n">F</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">hasName</span><span class="p">()</span> <span class="o">?</span> <span class="n">F</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">getName</span><span class="p">().</span><span class="n">data</span><span class="p">()</span> <span class="o">:</span> <span class="s">&quot;unknown&quot;</span><span class="p">;</span>
 
   <span class="k">if</span><span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">m_FunctionName</span><span class="p">,</span> <span class="s">&quot;main&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
@@ -311,9 +311,9 @@ section_iTXt=&quot;iTXt&quot;
 <div class="highlight"><pre><span></span>over@bubuntu:~/workz/lpng1625$ AFL_TOKEN_FILE=/tmp/png.dict make
 cp scripts/pnglibconf.h.prebuilt pnglibconf.h
 /home/over/workz/afl-2.35b/afl-clang-fast -c -I../zlib  -W -Wall -O3 -funroll-loops   -o png.o png.c
-afl-clang-fast 2.35b by &lt;lszekeres@google.com&gt;
-afl-llvm-tokencap-pass 2.35b by &lt;0vercl0k@tuxfamily.org&gt;
-afl-llvm-pass 2.35b by &lt;lszekeres@google.com&gt;
+afl-clang-fast 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
+afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
+afl-llvm-pass 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
 [+] Instrumented 945 locations (non-hardened mode, ratio 100%).
 [+] Found alphanum constant &quot;acsp&quot; in png.c/png_icc_check_header
 [+] Call to memcmp with constant &quot;\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3&quot; found in png.c/png_icc_check_header
@@ -370,8 +370,8 @@ over@bubuntu:~/workz/lpng1625$ sort -u /tmp/png.dict
 <p>On <a href="https://github.com/mackyle/sqlite">sqlite3</a> (<a href="">sqlite.dict</a>):</p>
 <div class="highlight"><pre><span></span>over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
 [...]
-afl-llvm-tokencap-pass 2.35b by &lt;0vercl0k@tuxfamily.org&gt;
-afl-llvm-pass 2.35b by &lt;lszekeres@google.com&gt;
+afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
+afl-llvm-pass 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
 [+] Instrumented 47546 locations (non-hardened mode, ratio 100%).
 [+] Call to strcmp with constant &quot;unix-excl&quot; found in sqlite3.c/unixOpen
 [+] Call to memcmp with constant &quot;SQLite format 3&quot; found in sqlite3.c/sqlite3BtreeBeginTrans
@@ -438,11 +438,11 @@ over@bubuntu:~/workz/sqlite3$ sort -u /tmp/sqlite.dict
 
 
 <p>On <a href="https://github.com/GNOME/libxml2">libxml2</a> (here is a library with a lot of test cases / utilities that raises the noise ratio in the tokens extracted - cf <code>xmlShell*</code> for example):</p>
-<div class="highlight"><pre><span></span>over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh &amp;&amp; AFL_TOKEN_FILE=/tmp/xml.dict make
+<div class="highlight"><pre><span></span>over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh &amp;amp;&amp;amp; AFL_TOKEN_FILE=/tmp/xml.dict make
 [...]
-afl-clang-fast 2.35b by &lt;lszekeres@google.com&gt;
-afl-llvm-tokencap-pass 2.35b by &lt;0vercl0k@tuxfamily.org&gt;
-afl-llvm-pass 2.35b by &lt;lszekeres@google.com&gt;
+afl-clang-fast 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
+afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
+afl-llvm-pass 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
 [+] Instrumented 668 locations (non-hardened mode, ratio 100%).
 [+] Call to strcmp with constant &quot;UTF-8&quot; found in encoding.c/xmlParseCharEncoding__internal_alias
 [+] Call to strcmp with constant &quot;UTF8&quot; found in encoding.c/xmlParseCharEncoding__internal_alias
@@ -471,9 +471,9 @@ afl-llvm-pass 2.35b by &lt;lszekeres@google.com&gt;
 [+] Call to strcmp with constant &quot;SHIFT_JIS&quot; found in encoding.c/xmlParseCharEncoding__internal_alias
 [+] Call to strcmp with constant &quot;EUC-JP&quot; found in encoding.c/xmlParseCharEncoding__internal_alias
 [...]
-afl-clang-fast 2.35b by &lt;lszekeres@google.com&gt;
-afl-llvm-tokencap-pass 2.35b by &lt;0vercl0k@tuxfamily.org&gt;
-afl-llvm-pass 2.35b by &lt;lszekeres@google.com&gt;
+afl-clang-fast 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
+afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
+afl-llvm-pass 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
 [+] Instrumented 1214 locations (non-hardened mode, ratio 100%).
 [+] Call to strcmp with constant &quot;exit&quot; found in debugXML.c/xmlShell__internal_alias
 [+] Call to strcmp with constant &quot;quit&quot; found in debugXML.c/xmlShell__internal_alias
@@ -497,7 +497,7 @@ over@bubuntu:~/workz/libxml2$ sort -u /tmp/xml.dict
 &quot;base&quot;
 &quot;c14n&quot;
 &quot;catalog&quot;
-&quot;&lt;![CDATA[&quot;
+&quot;&amp;lt;![CDATA[&quot;
 &quot;chvalid&quot;
 &quot;crazy:&quot;
 &quot;debugXML&quot;
@@ -634,7 +634,7 @@ over@bubuntu:~/workz/libxml2$ sort -u /tmp/xml.dict
 
 
 <p>Performance wise - here is what we are looking at on <code>libpng</code> (+0.283s):</p>
-<div class="highlight"><pre><span></span>over@bubuntu:~/workz/lpng1625$ make clean &amp;&amp; time AFL_TOKEN_FILE=/tmp/png.dict make &amp;&amp; make clean &amp;&amp; time make
+<div class="highlight"><pre><span></span>over@bubuntu:~/workz/lpng1625$ make clean &amp;amp;&amp;amp; time AFL_TOKEN_FILE=/tmp/png.dict make &amp;amp;&amp;amp; make clean &amp;amp;&amp;amp; time make
 [...]
 real    0m12.320s
 user    0m11.732s

@@ -163,7 +163,7 @@ ntdll!RtlpBreakPointHeap+0x23:
 
 
 <p>We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like <em>after</em>, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:</p>
-<div class="highlight"><pre><span></span>0:000&gt; k
+<div class="highlight"><pre><span></span>0:000&amp;gt; k
 ChildEBP RetAddr  
 00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
 00189b04 76f52a8a ntdll!RtlpCheckBusyBlockTail+0x171
@@ -208,7 +208,7 @@ ollydbg!Findfreehardbreakslot+0x21d9:
 
 
 <p>Woot, this is very cool, because now we know <strong>exactly</strong> where something is going wrong. Let's get more information about the heap chunk now:</p>
-<div class="highlight"><pre><span></span>0:000&gt; !heap -p -a ecx
+<div class="highlight"><pre><span></span>0:000&amp;gt; !heap -p -a ecx
     address 0f00ed30 found in
     _DPH_HEAP_ROOT @ 4f11000
     in busy allocation
@@ -249,27 +249,27 @@ ollydbg!Findfreehardbreakslot+0x21d9:
   <span class="kt">int</span> <span class="n">idx</span><span class="p">;</span>
 
   <span class="c1">// ...</span>
-  <span class="n">file_content</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="o">*</span><span class="p">)</span><span class="n">Readfile</span><span class="p">(</span><span class="o">&amp;</span><span class="n">u</span><span class="o">-&gt;</span><span class="n">sourcefile</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">file_size</span><span class="p">);</span>
+  <span class="n">file_content</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="o">*</span><span class="p">)</span><span class="n">Readfile</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">sourcefile</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">file_size</span><span class="p">);</span>
   <span class="c1">// ...</span>
   <span class="n">nbchar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
   <span class="n">nb_lines</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">while</span><span class="p">(</span><span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span><span class="p">)</span>
+  <span class="k">while</span><span class="p">(</span><span class="n">nbchar</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">file_size</span><span class="p">)</span>
   <span class="p">{</span>
     <span class="c1">// doing stuff to count all the char, and all the lines in the file</span>
     <span class="c1">// ...</span>
   <span class="p">}</span>
 
-  <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">Memalloc</span><span class="p">(</span><span class="mi">12</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
-  <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem2</span> <span class="o">=</span> <span class="n">Memalloc</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span> <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span> <span class="o">&amp;&amp;</span> <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem2</span> <span class="p">)</span>
+  <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem1_ov</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">Memalloc</span><span class="p">(</span><span class="mi">12</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
+  <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem2</span> <span class="o">=</span> <span class="n">Memalloc</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem1_ov</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem2</span> <span class="p">)</span>
   <span class="p">{</span>
     <span class="n">nbchar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
     <span class="n">nb_lines2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="k">while</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span> <span class="o">&amp;&amp;</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
+    <span class="k">while</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">file_size</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
     <span class="p">{</span>
-      <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
-      <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-      <span class="k">if</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span> <span class="p">)</span>
+      <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
+      <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">file_size</span> <span class="p">)</span>
       <span class="p">{</span>
         <span class="k">while</span> <span class="p">(</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
         <span class="p">{</span>
@@ -280,7 +280,7 @@ ollydbg!Findfreehardbreakslot+0x21d9:
       <span class="o">++</span><span class="n">nb_lines2</span><span class="p">;</span>
     <span class="p">}</span>
     <span class="c1">// BOOM!</span>
-    <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
+    <span class="n">u</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
     <span class="c1">// ...</span>
   <span class="p">}</span>
 <span class="p">}</span>
@@ -295,7 +295,7 @@ ollydbg!Findfreehardbreakslot+0x21d9:
 <em> At line 10: "u-&gt;Sourcefile" is a string pointer on the path of your source code (found in the PDB database). The routine is just reading the whole file, giving you its size, and a pointer on the file content now stored memory.
 </em> From line 12 to 18: we have a loop counting the total number of lines in your source code.
 <em> At line 20: we have the allocation of our chunk. It allocates 12</em>(nb_lines + 1) bytes. We saw previously in WinDbg that the size of the chunk was 0x2d0: it should means we have exactly ((0x2d0 / 12) - 1) = 59 lines in our source code:</p>
-<div class="highlight"><pre><span></span>D:\TODO\crashes\odb2-OOB-write-heap&gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
+<div class="highlight"><pre><span></span>D:\TODO\crashes\odb2-OOB-write-heap&amp;gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
 59 OOB-write-heap-OllyDbg2h-trigger.c
 </pre></div>
 

@@ -218,7 +218,7 @@ Out[4]: [
       <span class="p">}</span>
       <span class="n">format_exc_check_arg</span><span class="p">(</span><span class="n">PyExc_UnboundLocalError</span><span class="p">,</span>
         <span class="n">UNBOUNDLOCAL_ERROR_MSG</span><span class="p">,</span>
-        <span class="n">PyTuple_GetItem</span><span class="p">(</span><span class="n">co</span><span class="o">-&gt;</span><span class="n">co_varnames</span><span class="p">,</span> <span class="n">oparg</span><span class="p">));</span>
+        <span class="n">PyTuple_GetItem</span><span class="p">(</span><span class="n">co</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">co_varnames</span><span class="p">,</span> <span class="n">oparg</span><span class="p">));</span>
       <span class="k">break</span><span class="p">;</span>
 
     <span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
@@ -279,7 +279,7 @@ Out[4]: [
 </ul>
 <p>Now, some of you may ask themselves "How does Python know the type of an object when it receives a pointer ?". In fact, this is exactly the role of the field <em>ob_type</em>. Python exports a <em>_typeobject</em> static variable that describes the type of the object. Here is, for instance the <em>PyString_Type</em>:</p>
 <div class="highlight"><pre><span></span><span class="n">PyTypeObject</span> <span class="n">PyString_Type</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">PyType_Type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">PyType_Type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
   <span class="s">&quot;str&quot;</span><span class="p">,</span>
   <span class="n">PyStringObject_SIZE</span><span class="p">,</span>
   <span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">),</span>
@@ -292,14 +292,14 @@ Out[4]: [
 
 
 <p>Basically, every string objects will have their <em>ob_type</em> fields pointing to that <em>PyString_Type</em> variable. With this cute little trick, Python is able to do type checking like that:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define Py_TYPE(ob)             (((PyObject*)(ob))-&gt;ob_type)</span>
-<span class="cp">#define PyType_HasFeature(t,f)  (((t)-&gt;tp_flags &amp; (f)) != 0)</span>
+<div class="highlight"><pre><span></span><span class="cp">#define Py_TYPE(ob)             (((PyObject*)(ob))-&amp;gt;ob_type)</span>
+<span class="cp">#define PyType_HasFeature(t,f)  (((t)-&amp;gt;tp_flags &amp;amp; (f)) != 0)</span>
 <span class="cp">#define PyType_FastSubclass(t,f)  PyType_HasFeature(t,f)</span>
 
 <span class="cp">#define PyString_Check(op) \</span>
 <span class="cp">  PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_STRING_SUBCLASS)</span>
 
-<span class="cp">#define PyString_CheckExact(op) (Py_TYPE(op) == &amp;PyString_Type)</span>
+<span class="cp">#define PyString_CheckExact(op) (Py_TYPE(op) == &amp;amp;PyString_Type)</span>
 </pre></div>
 
 
@@ -311,7 +311,7 @@ Out[4]: [
 
 
 <p>So when you are in your debugger and you want to know what type of object it is, you can use that field to identify easily the type of the object you are dealing with:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dps 026233b0 l2
+<div class="highlight"><pre><span></span>0:000&amp;gt; dps 026233b0 l2
 026233b0  00000001
 026233b4  1e226798 python27!PyString_Type
 </pre></div>
@@ -363,16 +363,16 @@ Out[25]: &#39;RETURN_VALUE&#39;
 
 <p>Time to attach my debugger to the interpreter to see what's going on in that weird-machine, and to place a conditional breakpoint on <a href="https://github.com/python-git/python/blob/master/Python/ceval.c#L667">PyEval_EvalFrameEx</a>.
 Once you did that, you can call the dummy function:</p>
-<div class="highlight"><pre><span></span>0:000&gt; bp python27!PyEval_EvalFrameEx+0x2b2 &quot;.if(poi(ecx+4) == 0x53170001){}.else{g}&quot;
+<div class="highlight"><pre><span></span>0:000&amp;gt; bp python27!PyEval_EvalFrameEx+0x2b2 &quot;.if(poi(ecx+4) == 0x53170001){}.else{g}&quot;
 breakpoint 0 redefined
-0:000&gt; g
+0:000&amp;gt; g
 eax=025ea914 ebx=00000000 ecx=025ea914 edx=026bef98 esi=1e222c0c edi=02002e38
 eip=1e0ec562 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
 python27!PyEval_EvalFrameEx+0x2b2:
 1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea914=7c
 
-0:000&gt; db ecx l8
+0:000&amp;gt; db ecx l8
 025ea914  7c 00 00 7c 01 00 17 53                          |..|...S
 </pre></div>
 
@@ -380,7 +380,7 @@ python27!PyEval_EvalFrameEx+0x2b2:
 <p>OK perfect, we are in the middle of the VM, and our function is being evaluated. The register <em>ECX</em> points to the bytecode being evaluated, and the first opcode is <em>LOAD_FAST</em>.</p>
 <p>Basically, this opcode takes an object in the <em>fastlocals</em> array, and push it on the virtual stack. In our case, as we saw in both the disassembly and the bytecode dump, we are going to load the index 0 (the argument <em>b</em>), then the index 1 (argument <em>c</em>).</p>
 <p>Here's what it looks like in the debugger ; first step is to load the <em>LOAD_FAST</em> opcode:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 eax=025ea914 ebx=00000000 ecx=025ea914 edx=026bef98 esi=1e222c0c edi=02002e38
 eip=1e0ec562 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
@@ -395,7 +395,7 @@ python27!PyEval_EvalFrameEx+0x2b2:
 
 
 <p>Then, the function needs to check if the opcode has argument or not, and that's done by comparing the opcode with a constant value called <em>HAVE_ARGUMENT</em>:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 eax=0000007c ebx=00000000 ecx=025ea915 edx=026bef98 esi=1e222c0c edi=00000000
 eip=1e0ec568 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
@@ -411,12 +411,12 @@ python27!PyEval_EvalFrameEx+0x2b8:
 
 
 <p>Definition of <code>HAS_ARG</code> in C:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define HAS_ARG(op) ((op) &gt;= HAVE_ARGUMENT)</span>
+<div class="highlight"><pre><span></span><span class="cp">#define HAS_ARG(op) ((op) &amp;gt;= HAVE_ARGUMENT)</span>
 </pre></div>
 
 
 <p>If the opcode has an argument, the function needs to retrieve it (it's one byte):</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 eax=0000007c ebx=00000000 ecx=025ea915 edx=026bef98 esi=1e222c0c edi=00000000
 eip=1e0ec571 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl nz na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200206
@@ -430,7 +430,7 @@ After that the function dispatches the execution flow to the <em>LOAD_FAST</em> 
 <div class="highlight"><pre><span></span><span class="cp">#define GETLOCAL(i)     (fastlocals[i])</span>
 <span class="cp">#define Py_INCREF(op) (                         \</span>
 <span class="cp">    _Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA       \</span>
-<span class="cp">    ((PyObject*)(op))-&gt;ob_refcnt++)</span>
+<span class="cp">    ((PyObject*)(op))-&amp;gt;ob_refcnt++)</span>
 <span class="cp">#define PUSH(v)                BASIC_PUSH(v)</span>
 <span class="cp">#define BASIC_PUSH(v)     (*stack_pointer++ = (v))</span>
 
@@ -447,7 +447,7 @@ After that the function dispatches the execution flow to the <em>LOAD_FAST</em> 
 
 
 <p>Let's see what it looks like in assembly:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 eax=0000007c ebx=00000000 ecx=0000007b edx=00000059 esi=1e222c0c edi=00000000
 eip=1e0ec5cf esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei ng nz na po cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
@@ -457,7 +457,7 @@ python27!PyEval_EvalFrameEx+0x31f:
 
 
 <p>After getting the <em>fastlocals</em>, we can retrieve an entry:</p>
-<div class="highlight"><pre><span></span>0:000&gt;
+<div class="highlight"><pre><span></span>0:000&amp;gt;
 eax=0000007c ebx=00000000 ecx=0000007b edx=026bef98 esi=1e222c0c edi=00000000
 eip=1e0ec5d3 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei ng nz na po cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
@@ -467,7 +467,7 @@ python27!PyEval_EvalFrameEx+0x323:
 
 
 <p>Also keep in mind we called our dummy function with two strings, so let's actually check it is a string object:</p>
-<div class="highlight"><pre><span></span>0:000&gt; dps 025eaaa0 l2
+<div class="highlight"><pre><span></span>0:000&amp;gt; dps 025eaaa0 l2
 025eaaa0  00000004
 025eaaa4  1e226798 python27!PyString_Type
 </pre></div>
@@ -484,7 +484,7 @@ python27!PyEval_EvalFrameEx+0x323:
 
 
 <p>We should find the content of the string directly in the object:</p>
-<div class="highlight"><pre><span></span>0:000&gt; db 025eaaa0 l1f
+<div class="highlight"><pre><span></span>0:000&amp;gt; db 025eaaa0 l1f
 025eaaa0  04 00 00 00 98 67 22 1e-05 00 00 00 dd 16 30 43  .....g&quot;.......0C
 025eaab0  01 00 00 00 48 65 6c 6c-6f 00 00 00 ff ff ff     ....Hello......
 </pre></div>
@@ -492,7 +492,7 @@ python27!PyEval_EvalFrameEx+0x323:
 
 <p>Awesome, we have the size of the string at the offset <em>0x8</em>, and the actual string is at <em>0x14</em>.</p>
 <p>Let's move on to the second opcode now, this time with less details though:</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=0000007c ebx=00000000 ecx=025ea917 edx=026bef98 esi=025eaaa0 edi=00000000
 eip=1e0ec562 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
@@ -503,20 +503,20 @@ python27!PyEval_EvalFrameEx+0x2b2:
 
 <p>This time, we are loading the second argument, so the index 1 of <em>fastlocals</em>.
 We can type-check the object and dump the string stored in it:</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=0000007c ebx=00000000 ecx=0000007b edx=026bef98 esi=025eaaa0 edi=00000001
 eip=1e0ec5d3 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei ng nz na po cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
 python27!PyEval_EvalFrameEx+0x323:
 1e0ec5d3 8bb4ba38010000  mov     esi,dword ptr [edx+edi*4+138h] ds:002b:026bf0d4=c0af5e02
-0:000&gt; db poi(026bf0d4) l1f
+0:000&amp;gt; db poi(026bf0d4) l1f
 025eafc0  04 00 00 00 98 67 22 1e-05 00 00 00 39 4a 25 29  .....g&quot;.....9J%)
 025eafd0  01 00 00 00 57 6f 72 6c-64 00 5e 02 79 00 00     ....World.^.y..
 </pre></div>
 
 
 <p>Comes now the <em>BINARY_ADD</em> opcode:</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=0000007c ebx=00000000 ecx=025ea91a edx=026bef98 esi=025eafc0 edi=00000001
 eip=1e0ec562 esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
@@ -532,10 +532,10 @@ The C code looks like this:</p>
 <span class="k">case</span> <span class="nl">BINARY_ADD</span><span class="p">:</span>
   <span class="n">w</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
   <span class="n">v</span> <span class="o">=</span> <span class="n">TOP</span><span class="p">();</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
     <span class="c1">// Not our case</span>
   <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span>
            <span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">string_concatenate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">next_instr</span><span class="p">);</span>
       <span class="cm">/* string_concatenate consumed the ref to v */</span>
@@ -554,20 +554,20 @@ The C code looks like this:</p>
 
 
 <p>And here is the assembly version where it retrieves the two objects from the top-of-stack:</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=00000017 ebx=00000000 ecx=00000016 edx=0000000f esi=025eafc0 edi=00000000
 eip=1e0eccf5 esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
 python27!PyEval_EvalFrameEx+0xa45:
 1e0eccf5 8b75f8          mov     esi,dword ptr [ebp-8] ss:002b:026bf0d8=a0aa5e02
 ...
-0:000&gt; 
+0:000&amp;gt; 
 eax=1e226798 ebx=00000000 ecx=00000016 edx=0000000f esi=025eaaa0 edi=00000000
 eip=1e0eccfb esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
 python27!PyEval_EvalFrameEx+0xa4b:
 1e0eccfb 8b7dfc          mov     edi,dword ptr [ebp-4] ss:002b:026bf0dc=c0af5e02
-0:000&gt; 
+0:000&amp;gt; 
 eax=1e226798 ebx=00000000 ecx=00000016 edx=0000000f esi=025eaaa0 edi=025eafc0
 eip=1e0eccfe esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
@@ -577,28 +577,28 @@ python27!PyEval_EvalFrameEx+0xa4e:
 
 
 <p>A bit further we have our string concatenation:</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=025eafc0 ebx=00000000 ecx=0027fcd0 edx=026bef98 esi=025eaaa0 edi=025eafc0
 eip=1e0eb733 esp=0027fcb8 ebp=00000005 iopl=0         nv up ei pl nz na po nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
 python27!PyEval_SliceIndex+0x813:
 1e0eb733 e83881fcff      call    python27!PyString_Concat (1e0b3870)
-0:000&gt; dd esp l3
+0:000&amp;gt; dd esp l3
 0027fcb8  0027fcd0 025eafc0 025eaaa0
-0:000&gt; p
+0:000&amp;gt; p
 eax=025eaaa0 ebx=00000000 ecx=00000064 edx=000004fb esi=025eaaa0 edi=025eafc0
 eip=1e0eb738 esp=0027fcb8 ebp=00000005 iopl=0         nv up ei pl nz na po nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
 python27!PyEval_SliceIndex+0x818:
 1e0eb738 8b442418        mov     eax,dword ptr [esp+18h] ss:002b:0027fcd0=c0aa5e02
-0:000&gt; db poi(0027fcd0) l1f
+0:000&amp;gt; db poi(0027fcd0) l1f
 025eaac0  01 00 00 00 98 67 22 1e-0a 00 00 00 ff ff ff ff  .....g&quot;.........
 025eaad0  00 00 00 00 48 65 6c 6c-6f 57 6f 72 6c 64 00     ....HelloWorld.
 </pre></div>
 
 
 <p>And the last part of the case is to push the resulting string onto the virtual stack (<em>SET_TOP</em> operation):</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=025eaac0 ebx=025eaac0 ecx=00000005 edx=000004fb esi=025eaaa0 edi=025eafc0
 eip=1e0ecb82 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl nz ac po cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200213
@@ -608,7 +608,7 @@ python27!PyEval_EvalFrameEx+0x8d2:
 
 
 <p>Last part of our deep dive, the <em>RETURN_VALUE</em> opcode:</p>
-<div class="highlight"><pre><span></span>0:000&gt; 
+<div class="highlight"><pre><span></span>0:000&amp;gt; 
 eax=025eaac0 ebx=025eafc0 ecx=025ea91b edx=026bef98 esi=025eaac0 edi=025eafc0
 eip=1e0ec562 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl zr na pe nc
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
@@ -625,8 +625,8 @@ python27!PyEval_EvalFrameEx+0x2b2:
 <span class="cp">#define GETITEM(v, i) PyTuple_GET_ITEM((PyTupleObject *)(v), (i))</span>
 <span class="cp">#else</span>
 <span class="c1">//...</span>
-<span class="cm">/* Macro, trading safety for speed &lt;-- LOL, :) */</span> 
-<span class="cp">#define PyTuple_GET_ITEM(op, i) (((PyTupleObject *)(op))-&gt;ob_item[i])</span>
+<span class="cm">/* Macro, trading safety for speed &amp;lt;-- LOL, :) */</span> 
+<span class="cp">#define PyTuple_GET_ITEM(op, i) (((PyTupleObject *)(op))-&amp;gt;ob_item[i])</span>
 
 <span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
@@ -677,7 +677,7 @@ python27!PyEval_EvalFrameEx+0x347:
 <span class="kn">import</span> <span class="nn">struct</span>
 
 <span class="k">def</span> <span class="nf">pshort</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&amp;lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
   <span class="k">pass</span>
@@ -688,9 +688,9 @@ python27!PyEval_EvalFrameEx+0x347:
 <span class="n">address_consts</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">consts</span><span class="p">)</span>
 <span class="c1"># python27!PyEval_EvalFrameEx+0x347:</span>
 <span class="c1"># 1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch] ds:002b:fd8a8af0=????????</span>
-<span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
-<span class="n">high</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span>
-<span class="n">low</span> <span class="o">=</span>  <span class="n">offset</span> <span class="o">&amp;</span> <span class="mh">0xffff</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffffffff</span>
+<span class="n">high</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">16</span>
+<span class="n">low</span> <span class="o">=</span>  <span class="n">offset</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffff</span>
 <span class="k">print</span> <span class="s1">&#39;Consts tuple @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">address_consts</span>
 <span class="k">print</span> <span class="s1">&#39;Address of controled data @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">address_s</span>
 <span class="k">print</span> <span class="s1">&#39;Offset between const and our object: @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">offset</span>
@@ -707,7 +707,7 @@ python27!PyEval_EvalFrameEx+0x347:
 
 
 <p>..annnnd..</p>
-<div class="highlight"><pre><span></span>D:\&gt;python 1.py
+<div class="highlight"><pre><span></span>D:\&amp;gt;python 1.py
 Consts tuple @0x01db1030
 Address of controled data @0x022a0654
 Offset between const and our object: @0x0013bd86
@@ -720,14 +720,14 @@ eip=1e0ec5fb esp=0027fc68 ebp=01e63fc0 iopl=0         nv up ei ng nz na pe cy
 cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010287
 python27!PyEval_EvalFrameEx+0x34b:
 1e0ec5fb ff06            inc     dword ptr [esi]      ds:002b:deadbeef=????????
-0:000&gt; ub eip l1
+0:000&amp;gt; ub eip l1
 python27!PyEval_EvalFrameEx+0x347:
 1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch]
-0:000&gt; ? eax+edi*4+c
+0:000&amp;gt; ? eax+edi*4+c
 Evaluate expression: 36308564 = 022a0654
-0:000&gt; dd 022a0654 l1
-022a0654  deadbeef &lt;- the data we control in our PyStringObject
-0:000&gt; dps 022a0654-0n20 l2
+0:000&amp;gt; dd 022a0654 l1
+022a0654  deadbeef &amp;lt;- the data we control in our PyStringObject
+0:000&amp;gt; dps 022a0654-0n20 l2
 022a0640  00000003
 022a0644  1e226798 python27!PyString_Type
 </pre></div>
@@ -758,22 +758,22 @@ Evaluate expression: 36308564 = 022a0654
   <span class="n">PyObject</span> <span class="o">**</span><span class="n">sp</span><span class="p">;</span>
   <span class="n">PCALL</span><span class="p">(</span><span class="n">PCALL_ALL</span><span class="p">);</span>
   <span class="n">sp</span> <span class="o">=</span> <span class="n">stack_pointer</span><span class="p">;</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">call_function</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sp</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">call_function</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sp</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
 
 <span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
 <span class="nf">call_function</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oparg</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">na</span> <span class="o">=</span> <span class="n">oparg</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nk</span> <span class="o">=</span> <span class="p">(</span><span class="n">oparg</span><span class="o">&gt;&gt;</span><span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">na</span> <span class="o">=</span> <span class="n">oparg</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xff</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nk</span> <span class="o">=</span> <span class="p">(</span><span class="n">oparg</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xff</span><span class="p">;</span>
   <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">na</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nk</span><span class="p">;</span>
   <span class="n">PyObject</span> <span class="o">**</span><span class="n">pfunc</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">pp_stack</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
   <span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span> <span class="o">=</span> <span class="o">*</span><span class="n">pfunc</span><span class="p">;</span>
   <span class="n">PyObject</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">w</span><span class="p">;</span>
 
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">nk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">nk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
     <span class="c1">// ..Nope..</span>
   <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">PyMethod_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">PyMethod_GET_SELF</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">PyMethod_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">PyMethod_GET_SELF</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
       <span class="c1">// ..Still Nope...</span>
     <span class="p">}</span> <span class="k">else</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">PyFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
@@ -796,7 +796,7 @@ Evaluate expression: 36308564 = 022a0654
 <span class="p">{</span>
   <span class="n">ternaryfunc</span> <span class="n">call</span><span class="p">;</span>
 
-  <span class="k">if</span> <span class="p">((</span><span class="n">call</span> <span class="o">=</span> <span class="n">func</span><span class="o">-&gt;</span><span class="n">ob_type</span><span class="o">-&gt;</span><span class="n">tp_call</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">call</span> <span class="o">=</span> <span class="n">func</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">ob_type</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">tp_call</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">PyObject</span> <span class="o">*</span><span class="n">result</span><span class="p">;</span>
     <span class="c1">// Yay an interesting call :)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">call</span><span class="p">)(</span><span class="n">func</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">kw</span><span class="p">);</span>
@@ -814,10 +814,10 @@ Evaluate expression: 36308564 = 022a0654
 <span class="kn">import</span> <span class="nn">struct</span>
 
 <span class="k">def</span> <span class="nf">pshort</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&amp;lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">puint</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;I&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&amp;lt;I&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
   <span class="k">pass</span>
@@ -835,12 +835,12 @@ Evaluate expression: 36308564 = 022a0654
 <span class="n">s</span> <span class="o">=</span> <span class="n">puint</span><span class="p">(</span><span class="n">addr_first_object_controled_data</span><span class="p">)</span>
 <span class="n">address_s</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
 <span class="n">address_consts</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">consts</span><span class="p">)</span>
-<span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffffffff</span>
 
 <span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
   <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span>  <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span><span class="p">)</span>     <span class="o">+</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>    <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&amp;</span> <span class="mh">0xffff</span><span class="p">)</span>  <span class="o">+</span>
+  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span>  <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">16</span><span class="p">)</span>     <span class="o">+</span>
+  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>    <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffff</span><span class="p">)</span>  <span class="o">+</span>
   <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;CALL_FUNCTION&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
   <span class="n">consts</span><span class="p">,</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
 <span class="p">)</span>

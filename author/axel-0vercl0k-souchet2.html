@@ -113,10 +113,7 @@
 	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add</em> LLVM instruction. Instead of having a single asm instruction generated at the end of the pipeline, you will end up with a ton of assembly codes doing only an addition. If you never read my article, and you are interested in it here it is: <a href="http://0vercl0k.tuxfamily.org/bl0g/?p=260">Obfuscation of steel: meet my Kryptonite</a>.</p>
-<p><center><img alt="home-made-adder.png" src="/images/breaking_kryptonite_s_obfuscation_with_symbolic_execution/home-made-adder.png"></center></p>
-<p>In this post I wanted to show you how we can manage to break that obfuscation with symbolic execution. We are going to write a really tiny symbolic execution engine with IDAPy, and we will use Z3Py to simplify all our equations. Note that a friend of mine <a href="https://twitter.com/elvanderb">@elvanderb</a> used a similar approach (more generic though) to simplify some parts of the <a href="http://download.tuxfamily.org/overclokblog/Obfuscation%20of%20steel%3a%20meet%20my%20Kryptonite/binaries/">crackme</a> ; but he didn't wanted to publish it, so here is my blog post about it!</p>
-
+<p><em>Kryptonite</em> was a proof-of-concept I built to obfuscate codes at the LLVM intermediate representation level. The idea was to use semantic-preserving transformations in order to not break the original program. One of the main idea was for example to build a home-made 32 bits adder to replace the <em>add …</em></p>
                         <a class="btn primary xsmall" href="/blog/2013/09/16/breaking-kryptonites-obfuscation-with-symbolic-execution/">more ...</a>
                 </div>
         </div>
@@ -141,16 +138,7 @@
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>Yesterday afternoon, I was peacefully coding some stuff you know but I couldn't make my code working.
 As usual, in those type of situations you fire up your debugger in order to understand what is going on under the hood.
-That was a bit weird, to give you a bit of context I was doing some inline x86 assembly, and I've put on purpose an <em>int3</em> just
-before the piece of assembly code I thought was buggy. Once my file loaded in <a href="http://ollydbg.de/version2.html">OllyDbg2</a>, I hit <em>F9</em> in order to reach quickly the <em>int3</em> I've slipped into the inline assembly code. A bit of single-stepping, and <strong>BOOM</strong> I got a nasty crash. It happens sometimes, and that's uncool.
-Then, I relaunch my binary and try to reproduce the bug: same actions and <strong>BOOM</strong> again. OK, this time it's cool, I got a reproducible crash in OllyDbg2.</p>
-<p>I like when things like that happens to me (remember the crashes I've found in OllyDbg/IDA here: <a href="http://download.tuxfamily.org/overclokblog/PDB%20ain%27t%20PDD/0vercl0k_pdb_aint_pdd.pdf">PDB Ain't PDD</a>), it's always a nice exercise for me where I've to:</p>
-<ul>
-<li>pinpoint the bug in the application: usually not trivial when it's a real/big application</li>
-<li>reverse-engineer the codes involved in the bug in order to figure out why it's happening (sometimes I got the sources, sometimes I don't like this time)</li>
-</ul>
-<p>In this post, I will show you how I've manage to pinpoint where the bug was, using <a href="http://msdn.microsoft.com/en-us/library/windows/hardware/ff549561(v=vs.85).aspx">GFlags, PageHeap</a> and <a href="http://www.windbg.info/">WinDbg</a>. Then, we will reverse-engineer the buggy code in order to understand why the bug is happening, and how we can code a clean trigger.</p>
-
+That was a bit weird, to give you a …</p>
                         <a class="btn primary xsmall" href="/blog/2013/09/09/pinpointing-heap-related-issues-ollydbg2-off-by-one-story/">more ...</a>
                 </div>
         </div>
@@ -173,11 +161,7 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
 	<a href="/tag/dynamic-binary-instrumentation.html"><i class="icon-tag"></i>dynamic-binary-instrumentation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic, anything) and you want to have the same coverage with only a subset of them. Or maybe, you are not really interested in the measure, but only with the coverage differences between two executions of your target: to locate where your program is handling a specific feature for example.</p>
-<p>But it's not a trivial problem, usually you don't have the source-code of the target, and you want it to be quick. The other thing, is that you don't have an input that covers the whole code base, you don't even know if it's possible ; so you can't compare your analysis to that "ideal one". Long story short, you can't say to the user "OK, this input covers 10% of your binary". But you can clearly register what your program is doing with input A, what it is doing with input B and then analyzing the differences. With that way you can have a (more precise?) idea about which input seems to have better coverage than another.</p>
-<p>Note also, this is a perfect occasion to play with Pin :-)).</p>
-<p>In this post, I will explain briefly how you can build that kind of tool using Pin, and how it can be used for reverse-engineer purposes.</p>
-
+<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic …</p>
                         <a class="btn primary xsmall" href="/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">more ...</a>
                 </div>
         </div>
@@ -200,9 +184,7 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
 	<a href="/tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Some months ago I came across a strange couple of functions that was kind of playing with a <a href="http://en.wikipedia.org/wiki/Finite-state_machine">finite-state automaton</a> to validate an input. At first glance, I didn't really notice it was in fact a regex being processed, that's exactly why I spent quite some time to understand those routines. You are right to ask yourself: "Hmm but the regex string representation should be in the binary shouldn't it?", the thing is it wasn't. The purpose of this post is to focus on those kind of "compiled" regex, like when the author transform somehow the regex in a FSM directly usable in its program (for the sake of efficiency I guess). And to extract that handy string representation, you have to study the automaton.</p>
-<p>In this short post, we are going to see how a regular expression looks like in assembly/C, and how you can hide/obfuscate it. I hope you will enjoy the read, and you will both be able to recognize a regular expression compiled in your future reverse-engineering tasks and to obfuscate heavily your regex!</p>
-
+<p>Some months ago I came across a strange couple of functions that was kind of playing with a <a href="http://en.wikipedia.org/wiki/Finite-state_machine">finite-state automaton</a> to validate an input. At first glance, I didn't really notice it was in fact a regex being processed, that's exactly why I spent quite some time to understand …</p>
                         <a class="btn primary xsmall" href="/blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">more ...</a>
                 </div>
         </div>

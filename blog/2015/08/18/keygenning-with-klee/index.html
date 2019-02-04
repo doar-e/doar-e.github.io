@@ -205,10 +205,10 @@
 
     <span class="c1">// validate w.r.t. known registrations</span>
     <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="n">get_index_in_mail_table</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&gt;</span> <span class="n">HEADER_SIZE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">HEADER_SIZE</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">VALID_IF_LAST_VERSION</span><span class="p">;</span>
     <span class="kt">int</span> <span class="n">mail_digest</span> <span class="o">=</span> <span class="n">compute_mail_digest</span><span class="p">(</span><span class="n">mail</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">mail_digest_table</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">mail_digest</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">VALID</span><span class="p">;</span>
     <span class="p">}</span>
@@ -257,9 +257,9 @@
 <h2 id="symbolic-execution">Symbolic execution</h2>
 <p>Symbolic execution is a way to execute programs using symbolic variables instead of concrete values. A symbolic variable is used whenever a value can be controlled by user input (this can be done by hand or determined by using taint analysis), and could be a file, standard input, a network stream, etc. Symbolic execution translates the program's semantics into a logical formula. Each instruction cause that formula to be updated. By solving a formula for one path, we get concrete values for the variables. If those values are used in the program, the execution reaches that program point. Dynamic Symbolic Execution (DSE) builds the logical formula at runtime, step-by-step, following one path at a time. When a branch of the program is found during the execution, the engine transforms the condition into arithmetic operations. It then chooses the T (true) or F (false) branch and updates the formula with this new constraint (or its negation). At the end of a path, the engine can backtrack and select another path to execute. For example:</p>
 <div class="highlight"><pre><span></span><span class="kt">int</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">SymVar_1</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">SymVar_2</span><span class="p">;</span> <span class="c1">// symbolic variables</span>
-<span class="k">if</span> <span class="p">(</span><span class="n">v1</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">v1</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">v2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-<span class="k">if</span> <span class="p">(</span><span class="n">v2</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">v1</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">v2</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">v1</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
    <span class="n">error</span><span class="p">();</span>
 </pre></div>
 
@@ -295,9 +295,9 @@
 <span class="k">typedef</span> <span class="kt">int</span> <span class="n">BOOL</span><span class="p">;</span>
 
 <span class="n">BOOL</span> <span class="nf">check_arg</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">10</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
     <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span> <span class="c1">// not reachable</span>
 <span class="p">}</span>
@@ -305,12 +305,12 @@
 
 
 <p>This is actually a silly example, I know, but let's pretend to verify this function with this main:</p>
-<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;assert.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;klee/klee.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&amp;lt;assert.h&amp;gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&amp;lt;klee/klee.h&amp;gt;</span><span class="cp"></span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">input</span><span class="p">;</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="s">&quot;input&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="s">&quot;input&quot;</span><span class="p">);</span>
     <span class="k">return</span> <span class="n">check_arg</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
@@ -318,9 +318,9 @@
 
 <p>In <code>main</code> we have a symbolic variable used as input for the function to be tested. We can also modify it to include an assertion:</p>
 <div class="highlight"><pre><span></span><span class="n">BOOL</span> <span class="nf">check_arg</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">10</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
     <span class="n">klee_assert</span><span class="p">(</span><span class="n">FALSE</span><span class="p">);</span>
     <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span> <span class="c1">// not reachable</span>
@@ -364,9 +364,9 @@ object    <span class="m">0</span>: data: <span class="m">0</span>
 <p>In these test files, KLEE reports the command line arguments, the symbolic objects along with their size and the value provided for the test. To cover the whole program, we need <code>input</code> variable to get a value greater than 10 and one below or equal. You can see that this is the case: in the first test case the value 2147483647 is used, covering the first branch, while 0 is provided for the second, covering the other branch.</p>
 <p>So far, so good. But what if we change the function in this way?</p>
 <div class="highlight"><pre><span></span><span class="n">BOOL</span> <span class="nf">check_arg</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">10</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>
-    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">)</span>    <span class="c1">// instead of &lt;=</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">10</span><span class="p">)</span>    <span class="c1">// instead of &amp;lt;=</span>
         <span class="k">return</span> <span class="n">TRUE</span><span class="p">;</span>
     <span class="n">klee_assert</span><span class="p">(</span><span class="n">FALSE</span><span class="p">);</span>
     <span class="k">return</span> <span class="n">FALSE</span><span class="p">;</span>       <span class="c1">// now reachable</span>
@@ -409,8 +409,8 @@ object    <span class="m">0</span>: data: <span class="m">10</span>
 <p>As we have a powerful tool to find execution paths, we can use it to find the path we are interested in. As showed by the nice <a href="https://feliam.wordpress.com/2010/10/07/the-symbolic-maze/">symbolic maze</a> post of Feliam, we can use KLEE to solve a maze. The idea is simple but very powerful: flag the portion of code you interested in with a <code>klee_assert(0)</code> call, causing KLEE to highlight the test case able to reach that point. In the maze example, this is as simple as changing a <code>read</code> call with a <code>klee_make_symbolic</code> and the <code>prinft("You win!\n")</code> with the already mentioned <code>klee_assert(0)</code>. Test cases triggering this assertion are the one solving the maze!</p>
 <p>For a concrete example, let's suppose we have this function:</p>
 <div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">magic_computation</span><span class="p">(</span><span class="kt">int</span> <span class="n">input</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">32</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
-        <span class="n">input</span> <span class="o">^=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">i</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">32</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">input</span> <span class="o">^=</span> <span class="mi">1</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">i</span><span class="p">;</span>
     <span class="k">return</span> <span class="n">input</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
@@ -432,7 +432,7 @@ object    <span class="m">0</span>: data: <span class="m">10</span>
 <p>KLEE can resolve this problem for us, if we provide symbolic inputs and actually an assert to trigger:</p>
 <div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">input</span><span class="p">,</span> <span class="n">result</span><span class="p">;</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="s">&quot;input&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="s">&quot;input&quot;</span><span class="p">);</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">magic_computation</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="o">==</span> <span class="mi">253</span><span class="p">)</span>
         <span class="n">klee_assert</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
@@ -508,12 +508,12 @@ KLEE: <span class="k">done</span>: generated <span class="nv">tests</span> <span
 </ul>
 <p>Note that adding <code>atoi</code> function to our code, adds 68 execution paths to the program. Using many libc functions in our code adds complexity, so we have to use them carefully when we want to reverse complex functions.</p>
 <p>Let now make the program safe by adding a check to the command line argument length. Let's also add an assertion, because it is fun :)</p>
-<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;assert.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;klee/klee.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&amp;lt;stdlib.h&amp;gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&amp;lt;assert.h&amp;gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&amp;lt;klee/klee.h&amp;gt;</span><span class="cp"></span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-    <span class="kt">int</span> <span class="n">result</span> <span class="o">=</span> <span class="n">argc</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="o">?</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">result</span> <span class="o">=</span> <span class="n">argc</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">1</span> <span class="o">?</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">:</span> <span class="mi">0</span><span class="p">;</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="o">==</span> <span class="mi">42</span><span class="p">)</span>
         <span class="n">klee_assert</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
     <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
@@ -576,12 +576,12 @@ object    <span class="m">1</span>: data: <span class="s1">&#39;+42\x00&#39;</sp
     <span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="n">customer</span><span class="p">;</span>
     <span class="kt">char</span> <span class="n">mail</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
     <span class="k">enum</span> <span class="n">result_t</span> <span class="n">result</span><span class="p">;</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">serial</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">serial</span><span class="p">),</span> <span class="s">&quot;serial&quot;</span><span class="p">);</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">customer</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">customer</span><span class="p">),</span> <span class="s">&quot;customer&quot;</span><span class="p">);</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mail</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">),</span> <span class="s">&quot;mail&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">serial</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">serial</span><span class="p">),</span> <span class="s">&quot;serial&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">customer</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">customer</span><span class="p">),</span> <span class="s">&quot;customer&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">mail</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">),</span> <span class="s">&quot;mail&quot;</span><span class="p">);</span>
 
     <span class="n">valid</span> <span class="o">=</span> <span class="n">check_registration</span><span class="p">(</span><span class="n">serial</span><span class="p">,</span> <span class="n">customer</span><span class="p">,</span> <span class="n">mail</span><span class="p">);</span>
-    <span class="n">valid</span> <span class="o">&amp;=</span> <span class="n">license_type</span> <span class="o">==</span> <span class="n">PRO</span><span class="p">;</span>
+    <span class="n">valid</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">=</span> <span class="n">license_type</span> <span class="o">==</span> <span class="n">PRO</span><span class="p">;</span>
     <span class="n">klee_assert</span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
@@ -615,9 +615,9 @@ object    <span class="m">1</span>: data: <span class="s1">&#39;+42\x00&#39;</sp
 <div class="highlight"><pre><span></span><span class="kt">char</span> <span class="n">mail</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
 <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
 <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="n">mail</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">),</span> <span class="s">&quot;mail&quot;</span><span class="p">);</span>
-<span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">mail</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-    <span class="n">klee_assume</span><span class="p">(</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="sc">&#39;0&#39;</span> <span class="o">&amp;</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="sc">&#39;9&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="sc">&#39;a&#39;</span> <span class="o">&amp;</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="sc">&#39;z&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span> <span class="p">);</span>
+    <span class="n">klee_assume</span><span class="p">(</span> <span class="p">(</span><span class="n">c</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;0&#39;</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">c</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;9&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">c</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;a&#39;</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">c</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;z&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span> <span class="p">);</span>
 <span class="p">}</span>
 <span class="n">klee_assume</span><span class="p">(</span><span class="n">mail</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
 </pre></div>
@@ -646,8 +646,8 @@ $ klee --optimize --libc<span class="o">=</span>uclibc --posix-runtime attempt1.
 </ul>
 <p>Can we split them in different KLEE runs?</p>
 <p>Clearly the first one can be written as:</p>
-<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;assert.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;klee/klee.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&amp;lt;assert.h&amp;gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&amp;lt;klee/klee.h&amp;gt;</span><span class="cp"></span>
 <span class="c1">// include all the functions extracted from the program</span>
 <span class="cp">#include</span> <span class="cpf">&quot;extracted_code.c&quot;</span><span class="cp"></span>
 
@@ -659,7 +659,7 @@ $ klee --optimize --libc<span class="o">=</span>uclibc --posix-runtime attempt1.
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="n">valid</span><span class="p">;</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">serial</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">serial</span><span class="p">),</span> <span class="s">&quot;serial&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">serial</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">serial</span><span class="p">),</span> <span class="s">&quot;serial&quot;</span><span class="p">);</span>
     <span class="n">license_type</span> <span class="o">=</span> <span class="n">get_license_type</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
     <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="n">license_type</span> <span class="o">==</span> <span class="n">PRO</span><span class="p">);</span>
     <span class="n">klee_assert</span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">);</span>
@@ -693,10 +693,10 @@ object    <span class="m">1</span>: data: <span class="m">102690141</span>
 <p>The third condition is less simple: we have a table in which are stored values matching mail addresses with serial numbers. The high level check is this:</p>
 <div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">check</span><span class="p">(</span><span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">mail</span><span class="p">)</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="n">get_index_in_mail_table</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&gt;</span> <span class="n">HEADER_SIZE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="n">HEADER_SIZE</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">VALID_IF_LAST_VERSION</span><span class="p">;</span>
     <span class="kt">int</span> <span class="n">mail_digest</span> <span class="o">=</span> <span class="n">compute_mail_digest</span><span class="p">(</span><span class="n">mail</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">mail_digest_table</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">mail_digest</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">VALID</span><span class="p">;</span>
     <span class="p">}</span>
@@ -708,12 +708,12 @@ object    <span class="m">1</span>: data: <span class="m">102690141</span>
 <p>This piece of code imposes constraints on our mail address and serial number, but not on the customer number. We can rewrite the checks in two parts, the one checking the serial, and the one checking the mail address:</p>
 <div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">check_serial</span><span class="p">(</span><span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">mail</span><span class="p">)</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="n">get_index_in_mail_table</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
-    <span class="kt">int</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">index</span> <span class="o">&lt;=</span> <span class="n">HEADER_SIZE</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">index</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="n">HEADER_SIZE</span><span class="p">;</span>
 <span class="p">}</span>
 
 <span class="kt">int</span> <span class="nf">check_mail</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">mail</span><span class="p">,</span> <span class="kt">int</span> <span class="n">index</span><span class="p">)</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">mail_digest</span> <span class="o">=</span> <span class="n">compute_mail_digest</span><span class="p">(</span><span class="n">mail</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">mail_digest_table</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">mail_digest</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
     <span class="p">}</span>
@@ -727,12 +727,12 @@ object    <span class="m">1</span>: data: <span class="m">102690141</span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
     <span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="n">valid</span><span class="p">,</span> <span class="n">index</span><span class="p">;</span>
-    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">serial</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">serial</span><span class="p">),</span> <span class="s">&quot;serial&quot;</span><span class="p">);</span>
+    <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">serial</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">serial</span><span class="p">),</span> <span class="s">&quot;serial&quot;</span><span class="p">);</span>
     <span class="n">license_type</span> <span class="o">=</span> <span class="n">get_license_type</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
     <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="n">license_type</span> <span class="o">==</span> <span class="n">PRO</span><span class="p">);</span>
     <span class="c1">// added just now</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">get_index_in_mail_table</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
-    <span class="n">valid</span> <span class="o">&amp;=</span> <span class="n">index</span> <span class="o">&lt;=</span> <span class="n">HEADER_SIZE</span><span class="p">;</span>
+    <span class="n">valid</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">=</span> <span class="n">index</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="n">HEADER_SIZE</span><span class="p">;</span>
 
     <span class="n">klee_assert</span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">);</span>
 <span class="p">}</span>
@@ -771,15 +771,15 @@ object    <span class="m">1</span>: data: <span class="m">120300641</span>
 
     <span class="c1">// mail is symbolic</span>
     <span class="n">klee_make_symbolic</span><span class="p">(</span><span class="n">mail</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">),</span> <span class="s">&quot;mail&quot;</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
     <span class="p">{</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">mail</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-        <span class="n">klee_assume</span><span class="p">(</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="sc">&#39;0&#39;</span> <span class="o">&amp;</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="sc">&#39;9&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="sc">&#39;a&#39;</span> <span class="o">&amp;</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="sc">&#39;z&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span> <span class="p">);</span>
+        <span class="n">klee_assume</span><span class="p">(</span> <span class="p">(</span><span class="n">c</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;0&#39;</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">c</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;9&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">c</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;a&#39;</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">c</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=</span> <span class="sc">&#39;z&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span> <span class="p">);</span>
     <span class="p">}</span>
     <span class="n">klee_assume</span><span class="p">(</span><span class="n">mail</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
 
     <span class="c1">// get serial as external input</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">2</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
     <span class="n">serial</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 
@@ -819,7 +819,7 @@ object    <span class="m">1</span>: data: <span class="s1">&#39;yrwt\x00\x00\x00
 <p>This is simpler than before, since we already have a serial and a mail, so the only thing missing is a customer number matching those. We can compute it directly, even without symbolic execution:</p>
 <div class="highlight"><pre><span></span><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
 
     <span class="kt">int</span> <span class="n">serial</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
@@ -848,14 +848,14 @@ $ ./customer <span class="m">120300641</span> yrwt
     <span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="n">min_index</span><span class="p">,</span> <span class="n">max_index</span><span class="p">,</span> <span class="n">valid</span><span class="p">;</span>
 
     <span class="c1">// get chunk bounds as external inputs</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="mi">3</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
     <span class="n">min_index</span><span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
     <span class="n">max_index</span><span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 
     <span class="c1">// check and assert</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">get_index_in_mail_table</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
-    <span class="n">valid</span> <span class="o">=</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="n">min_index</span> <span class="o">&amp;&amp;</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">max_index</span><span class="p">;</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">index</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="n">min_index</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">index</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="n">max_index</span><span class="p">;</span>
     <span class="n">klee_assert</span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">);</span>
     <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
@@ -886,7 +886,7 @@ $ ./customer <span class="m">120300641</span> yrwt
         <span class="nb">echo</span> <span class="s2">&quot;;;&quot;</span>
         <span class="k">continue</span>
     <span class="k">fi</span>
-    <span class="nv">MAIL</span><span class="o">=</span><span class="k">$(</span>sed <span class="s1">&#39;s/\\x00//g&#39;</span> <span class="o">&lt;&lt;&lt;</span> <span class="nv">$MAIL_ARRAY</span> <span class="p">|</span> sed <span class="s2">&quot;s/&#39;//g&quot;</span><span class="k">)</span>
+    <span class="nv">MAIL</span><span class="o">=</span><span class="k">$(</span>sed <span class="s1">&#39;s/\\x00//g&#39;</span> <span class="p">&amp;</span>lt<span class="p">;&amp;</span>lt<span class="p">;&amp;</span>lt<span class="p">;</span> <span class="nv">$MAIL_ARRAY</span> <span class="p">|</span> sed <span class="s2">&quot;s/&#39;//g&quot;</span><span class="k">)</span>
     <span class="nv">CUSTOMER</span><span class="o">=</span><span class="k">$(</span>./customer <span class="nv">$LICENSE</span> <span class="nv">$MAIL</span><span class="k">)</span>
 
     <span class="nb">echo</span> <span class="s2">&quot;</span><span class="nv">$LICENSE</span><span class="s2">;</span><span class="nv">$MAIL</span><span class="s2">;</span><span class="nv">$CUSTOMER</span><span class="s2">&quot;</span>
@@ -897,12 +897,12 @@ $ ./customer <span class="m">120300641</span> yrwt
 <p>This script uses the <code>solve.sh</code> script, that does the actual work and prints the result of KLEE runs:</p>
 <div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 <span class="c1"># do work</span>
-klee <span class="nv">$@</span> &gt;/dev/null <span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
+klee <span class="nv">$@</span> <span class="p">&amp;</span>gt<span class="p">;</span>/dev/null <span class="m">2</span><span class="p">&amp;</span>gt<span class="p">;&amp;</span>amp<span class="p">;</span><span class="m">1</span>
 <span class="c1"># print result</span>
 <span class="nv">ASSERT_FILE</span><span class="o">=</span><span class="k">$(</span>ls klee-last <span class="p">|</span> grep .assert.err<span class="k">)</span>
 <span class="nv">TEST_FILE</span><span class="o">=</span><span class="k">$(</span>basename klee-last/<span class="nv">$ASSERT_FILE</span> .assert.err<span class="k">)</span>
 <span class="nv">OUTPUT</span><span class="o">=</span><span class="k">$(</span>ktest-tool --write-ints klee-last/<span class="nv">$TEST_FILE</span>.ktest <span class="p">|</span> grep data<span class="k">)</span>
-<span class="nv">RESULT</span><span class="o">=</span><span class="k">$(</span>sed <span class="s1">&#39;s/.*:.*: //&#39;</span> <span class="o">&lt;&lt;&lt;</span> <span class="nv">$OUTPUT</span><span class="k">)</span>
+<span class="nv">RESULT</span><span class="o">=</span><span class="k">$(</span>sed <span class="s1">&#39;s/.*:.*: //&#39;</span> <span class="p">&amp;</span>lt<span class="p">;&amp;</span>lt<span class="p">;&amp;</span>lt<span class="p">;</span> <span class="nv">$OUTPUT</span><span class="k">)</span>
 <span class="nb">echo</span> <span class="nv">$RESULT</span>
 <span class="c1"># cleanup</span>
 rm -rf <span class="k">$(</span>readlink -f klee-last<span class="k">)</span>
