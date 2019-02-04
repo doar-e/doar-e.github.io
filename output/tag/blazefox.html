@@ -118,34 +118,7 @@
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>This blogpost covers the development of three exploits targeting SpiderMonkey JavaScript Shell interpreter and Mozilla Firefox on Windows 10 RS5 64-bit from the perspective of somebody that has never written a browser exploit nor looked closely at any JavaScript engine codebase.</p>
-<p>As you have probably noticed, there has been a LOT of interest in exploiting browsers in the past year or two. Every major CTF competition has at least one browser challenge, every month there are at least a write-up or two touching on browser exploitation. It is just everywhere. That is kind of why I figured I should have a little look at what a JavaScript engine is like from inside the guts, and exploit one of them. I have picked Firefox's SpiderMonkey JavaScript engine and the challenge <a href="https://ctftime.org/task/6000">Blazefox</a> that has been written by <a href="https://twitter.com/itszn13">itszn13</a>.</p>
-<p>In this blogpost, I present my findings and the <a href="https://github.com/0vercl0k/blazefox/blob/master/exploits">three exploits</a> I have written during this quest. Originally, the challenge was targeting a Linux x64 environment and so naturally I decided to exploit it on Windows x64 :). Now you may wonder why three different exploits? Three different exploits allowed me to take it step by step and not face all the complexity at once. That is usually how I work day to day, I make something small work and iterate to build it up.</p>
-<p>Here is how I organized things:</p>
-<ul>
-<li>
-<p>The first thing I wrote is a WinDbg JavaScript extension called <a href="https://github.com/0vercl0k/windbg-scripts/tree/master/sm">sm.js</a> that gives me visibility into a bunch of stuff in SpiderMonkey. It is also a good exercise to familiarize yourself with the various ways objects are organized in memory. It is not necessary, but it has been definitely useful when writing the exploits.</p>
-</li>
-<li>
-<p>The first exploit, <code>basic.js</code>, targets a very specific build of the JavaScript interpreter, <code>js.exe</code>. It is full of hardcoded ugly offsets, and would have no chance to land elsewhere than on my system with this specific build of <code>js.exe</code>.</p>
-</li>
-<li>
-<p>The second exploit, <code>kaizen.js</code>, is meant to be a net improvement of <code>basic.js</code>. It still targets the JavaScript interpreter itself, but this time, it resolves dynamically a bunch of things like a big boy. It also uses the baseline JIT to have it generate ROP gadgets.</p>
-</li>
-<li>
-<p>The third exploit, <code>ifrit.js</code>, finally targets the Firefox browser with a little extra. Instead of just leveraging the baseline JIT to generate one or two ROP gadgets, we make it JIT a whole native code payload. No need to ROP, scan for finding Windows API addresses or to create a writable and executable memory region anymore. We just redirect the execution flow to our payload inside the JIT code. This might be the less dull / interesting part for people that knows SpiderMonkey and have been doing browser exploitation already :).</p>
-</li>
-</ul>
-<p>Before starting, for those who do not feel like reading through the whole post: <strong>TL;DR</strong> I have created a <a href="https://github.com/0vercl0k/blazefox">blazefox</a> GitHub repository that you can clone with all the materials. In the repository you can find:</p>
-<ul>
-<li><a href="https://github.com/0vercl0k/blazefox/tree/master/sm">sm.js</a> which is the debugger extension mentioned above,</li>
-<li>The source code of the three exploits in <a href="https://github.com/0vercl0k/blazefox/tree/master/exploits">exploits</a>,</li>
-<li>A 64-bit debug build of the JavaScript shell along with private symbol information in <a href="https://github.com/0vercl0k/blazefox/tree/master/js-asserts">js-asserts</a>, and a release build in <a href="https://github.com/0vercl0k/blazefox/tree/master/js-release">js-release</a>,</li>
-<li>The scripts I used to build the <strong>B</strong>ring <strong>Y</strong>our <strong>O</strong>wn <strong>P</strong>ayload technique in <a href="https://github.com/0vercl0k/blazefox/tree/master/scripts">scripts</a>,</li>
-<li>The sources that have been used to build <code>js-release</code> so that you can do source-level debugging in WinDbg in <a href="https://github.com/0vercl0k/blazefox/tree/master/src/js">src/js</a>,</li>
-<li>A 64-bit build of the Firefox binaries along with private symbol information for <code>xul.dll</code> in <a href="https://github.com/0vercl0k/blazefox/blob/master/ff-bin.7z.001">ff-bin.7z.001</a> and <a href="https://github.com/0vercl0k/blazefox/blob/master/ff-bin.7z.002">ff-bin.7z.002</a>.</li>
-</ul>
-<p>All right, let's buckle up and hit the road now!</p>
-
+<p>As you have probably noticed, there has been …</p>
                         <a class="btn primary xsmall" href="/blog/2018/11/19/introduction-to-spidermonkey-exploitation/">more ...</a>
                 </div>
         </div>
