@@ -7,7 +7,7 @@ Slug: having-a-look-at-the-windows-userkernel-exceptions-dispatcher
 # Introduction
 The purpose of this little post is to create a piece of code able to monitor exceptions raised in a process (a bit like [gynvael](http://gynvael.coldwind.pl/)'s [ExcpHook](http://gynvael.coldwind.pl/?id=148) but in userland), and to generate a report with information related to the exception. The other purpose is to have a look at the internals of course.
 
-    :::text
+```text
     --Exception detected--
     ExceptionRecord: 0x0028fa2c Context: 0x0028fa7c
     Image Path: D:\Codes\The Sentinel\tests\divzero.exe
@@ -30,6 +30,7 @@ The purpose of this little post is to create a piece of code able to monitor exc
     00401361 (07) c7042424304000           MOV DWORD [ESP], 0x403024
     00401368 (05) e833080000               CALL 0x401ba0
     0040136d (05) b800000000               MOV EAX, 0x0
+```
 
 That's why I divided this post in two big parts:
 
@@ -52,7 +53,7 @@ The purpose of this part is to be sure to understand how exceptions are given ba
 ## nt!KiTrap*
 When your userland application does something wrong an exception is raised by your CPU: let's say you are trying to do a division by zero (*nt!KiTrap00* will handle that case), or you are trying to fetch a memory page that doesn't exist (*nt!KiTrap0E*).
 
-    :::text
+```text
     kd> !idt -a
     
     Dumping IDT: 80b95400
@@ -76,11 +77,13 @@ When your userland application does something wrong an exception is raised by yo
     10:   8464f9f4 nt!KiTrap10
     11:   8464fb34 nt!KiTrap11
     [...]
+```
+
 I'm sure you already know that but in x86 Intel processors there is a table called the [IDT](http://wiki.osdev.org/Interrupt_Descriptor_Table) that stores the different routines that will handle the exceptions. The virtual address of that table is stored in a special x86 register called *IDTR*, and that register is accessible only by using the instructions *sidt* (Stores Interrupt Descriptor Table register) and *lidt* (Loads Interrupt Descriptor Table register).
 
 Basically there are two important things in an IDT entry: the address of the [ISR](https://en.wikipedia.org/wiki/Interrupt_handler), and the segment selector (remember it's a simple index in the [GDT](http://wiki.osdev.org/GDT_Tutorial)) the CPU should use.
 
-    :::text
+```text
     kd> !pcr
     KPCR for Processor 0 at 84732c00:
         [...]
@@ -111,6 +114,7 @@ Basically there are two important things in an IDT entry: the address of the [IS
     [...]
     0008  0008  Code32  00000000  FFFFFFFF  YES     0    0    Execute/Read, accessed  (Ring 0)CS=0008
     [...]
+```
 
 The entry just above tells us that for the processor 0, if a *division-by-zero* exception is raised the kernel mode routine nt!KiTrap00 will be called with a flat-model code32 ring0 segment (cf GDT dump).
 
@@ -123,13 +127,14 @@ That's kind of simple actually. The trick used by the Windows kernel is to check
 
 But guess what ? That symbol holds the address of *ntdll!KiUserExceptionDispatcher*, so it makes total sense!
 
-    :::text
+```text
     kd> dps nt!KeUserExceptionDispatcher L1
     847a49a0  77476448 ntdll!KiUserExceptionDispatcher
+```
 
 If like me you like illustrations, I've made a WinDbg session where I am going to show what we just talked about. First, let's trigger our *division-by-zero* exception:
 
-    :::text
+```text
     kd> bp nt!KiTrap00
     kd> g
     Breakpoint 0 hit
@@ -142,10 +147,11 @@ If like me you like illustrations, I've made a WinDbg session where I am going t
     kd> u divzero+0x1269 l1
     divzero+0x1269:
     01141269 f7f0            div     eax,eax
+```
 
 Now let's go a bit further in the ISR, and more precisely when the *nt!_KTRAP_FRAME* is built:
 
-    :::text
+```text
     kd> bp nt!KiTrap00+0x36
     kd> g
     Breakpoint 1 hit
@@ -198,10 +204,11 @@ Now let's go a bit further in the ISR, and more precisely when the *nt!_KTRAP_FR
     001b:01141269 f7f0            div     eax,eax
     kd> .trap
     Resetting default scope
+```
 
 The idea now is to track the modification of the *nt!_KTRAP_FRAME.Eip* field as we discussed earlier (BTW, don't try to put directly a breakpoint on *nt!KiDispatchException* with VMware, it just blows my guest virtual machine) via a hardware-breakpoint:
 
-    :::text
+```text
     kd> ba w4 esp+68
     kd> g
     Breakpoint 2 hit
@@ -212,6 +219,7 @@ The idea now is to track the modification of the *nt!_KTRAP_FRAME.Eip* field as 
     kd> ln 0x77b36448
     Exact matches:
         ntdll!KiUserExceptionDispatcher (<no parameter info>)
+```
 
 OK, so here we can clearly see the trap frame has been modified (keep in mind WinDbg gives you the control *after* the actual writing). That basically means that when the kernel will resume the execution via *nt!KiExceptionExit* (or *nt!Kei386EoiHelper*, two symbols for one same address) the CPU will directly execute the user mode exceptions dispatcher.
 
@@ -239,14 +247,15 @@ So our sentinel will be divided in two main parts:
 
 The first one is really easy to implement using [DetourCreateProcessWithDll](https://github.com/0vercl0k/stuffz/blob/master/The%20Sentinel/ProcessSpawner/main.cpp#L66): it's going to create the process and inject the DLL we want.
 
-    :::text
+```text
     Usage: ./ProcessSpawner <full path dll> <path executable> <excutable name> [args..]
+```
 
 To successfully hook a function you have to know its address of course, and you have to implement the hook function. Then, you have to call *DetourTransactionBegin*, *DetourUpdateThread*, *DetourTransactionCommit* and you're done, wonderful isn't it ?
 
 The only tricky thing, in our case, is that we want to hook *ntdll!KiUserExceptionDispatcher*, and that function has its own custom calling convention. Fortunately for us, in the *samples* directory of Detours you can find how you are supposed to deal with that specific case:
 
-    :::c KiUserExceptionDispatcher hook
+```C
     VOID __declspec(naked) NTAPI KiUserExceptionDispatcher(PEXCEPTION_RECORD ExceptionRecord, PCONTEXT Context)
     {
         /* Taken from the Excep's detours sample */
@@ -281,13 +290,14 @@ The only tricky thing, in our case, is that we want to hook *ntdll!KiUserExcepti
             ret                             ;
         }
     }
+```
 
 Here is what looks *ntdll!KiUserExceptionDispatcher* like in memory after the hook:
 
 <center>![hook.png](/images/ntdll.KiUserExceptionDispatcher/hook.png)</center>
 Disassembling some instructions pointed by the *CONTEXT.Eip* field is also really straightforward to do with *distorm_decode*:
 
-    :::c Use distorm3 to disassemble some codes
+```C
     if(IsBadReadPtr((const void*)Context->Eip, SIZE_BIGGEST_X86_INSTR * MAX_INSTRUCTIONS) == 0)
     {
       _DecodeResult res;
@@ -323,14 +333,16 @@ Disassembling some instructions pointed by the *CONTEXT.Eip* field is also reall
         }
       }
     }
+```
 
 So the prototype works pretty great like that.
 
-    :::text
+```text
     D:\Codes\The Sentinel\Release>ProcessSpawner.exe "D:\Codes\The Sentinel\Release\ExceptionMonitorDll.dll" ..\tests\divzero.exe divzero.exe
     D:\Codes\The Sentinel\Release>ls -l D:\Crashs\divzero.exe
     total 4
     -rw-rw-rw-  1 0vercl0k 0 863 2013-10-16 22:58 exceptionaddress_401359pid_2732tick_258597468timestamp_1381957116.txt
+```
 
 But once I've encountered a behavior that I didn't plan on: there was like a stack-corruption in a stack-frame protected by the */GS* cookie. If the cookie has been, somehow, rewritten the program calls *___report_gs_failure* (sometimes the implementation is directly inlined, thus you can find the definition of the function in your binary) in order to kill the program because the stack-frame is broken. Long story short, I was also hooking *kernel32!UnhandleExceptionFilter* to not miss that kind of exceptions, but I noticed while writing this post that it doesn't work anymore. We are going to see why in the next part.
 
@@ -338,7 +350,7 @@ But once I've encountered a behavior that I didn't plan on: there was like a sta
 ## Introduction
 When I was writing this little post I did also some tests on my personal machine: a Windows 8 host. But the test for the */GS* thing we just talked about wasn't working at all as I said. So I started my investigation by looking at the code of *__report_gsfailure* (generated with a VS2012) and I saw this:
 
-    :::c __report_gsfailure
+```C
     void __usercall __report_gsfailure(unsigned int a1<ebx>, unsigned int a2<edi>, unsigned int a3<esi>, char a4)
     {
       unsigned int v4; // eax@1
@@ -358,10 +370,11 @@ When I was writing this little post I did also some tests on my personal machine
       [...]
       __raise_securityfailure(&GS_ExceptionPointers);
     }
+```
 
 The first thing I asked myself was about that weird *int 29h*. Next thing I did was to download a fresh Windows 8 VM [here](http://www.modern.ie/fr-fr/virtualization-tools#downloads) and attached a kernel debugger in order to check the IDT entry 0x29:
 
-    :::text
+```text
     kd> vertarget
     Windows 8 Kernel Version 9200 MP (2 procs) Free x86 compatible
     Built by: 9200.16424.x86fre.win8_gdr.120926-1855
@@ -374,10 +387,11 @@ The first thing I asked myself was about that weird *int 29h*. Next thing I did 
     Dumping IDT: 809da400
     
     29: 8158795c nt!KiRaiseSecurityCheckFailure
+```
 
 As opposed I was used to see on my Win7 machine:
 
-    :::text
+```text
     kd> vertarget
     Windows 7 Kernel Version 7600 MP (1 procs) Free x86 compatible
     Product: WinNt, suite: TerminalServer SingleUserTS
@@ -391,10 +405,11 @@ As opposed I was used to see on my Win7 machine:
     Dumping IDT: 80b95400
     
     29: 00000000
+```
 
 I've opened my favorite IDE and I wrote a bit of code to test if there was a different behavior between Win7 and Win8 regarding this exception handling:
 
-    :::c gs.c
+```C
     #include <stdio.h>
     #include <windows.h>
     
@@ -410,6 +425,7 @@ I've opened my favorite IDE and I wrote a bit of code to test if there was a dif
       }
       return 0;
     }
+```
 
 On Win7 I'm able to catch the exception via a SEH handler: it means the Windows kernel calls the user mode exception dispatcher for further processing by the user exception handlers (as we saw at the beginning of the post). But on Win8, at my surprise, I don't get the message ; the process is killed directly after displaying the usual message box "a program has stopped". Definitely weird.
 
@@ -418,7 +434,7 @@ When the interruption 0x29 is triggered by my code, the CPU is going to check if
 
 And as previously, the function is going to check where the fault happened and because it happened in userland it will modify the trap frame structure to reach *ntdll!KiUserExceptionDispatcher*. That's why we can catch it in our *__except* scope.
 
-    :::text
+```text
     kd> r
     eax=0000000d ebx=86236d40 ecx=862b48f0 edx=0050e600 esi=00000000 edi=0029b39f
     eip=848652dd esp=9637fd34 ebp=9637fd34 iopl=0         nv up ei pl zr na pe nc
@@ -432,6 +448,7 @@ And as previously, the function is going to check where the fault happened and b
     kd> u gs+0x2b39f l1
     gs+0x2b39f:
     0029b39f cd29            int     29h
+```
 
 ## What happens on Win8
 This time the kernel has defined an ISR for the interruption 0x29: *nt!KiRaiseSecurityCheckFailure*. This function is going to call *nt!KiFastFailDispatch*, and this one is going to call *nt!KiDispatchException*:
@@ -439,7 +456,7 @@ This time the kernel has defined an ISR for the interruption 0x29: *nt!KiRaiseSe
 <center>![kifastfaildispatch.png](/images/ntdll.KiUserExceptionDispatcher/kifastfaildispatch.png)</center>
 BUT the exception is going to be processed as a **second-chance** exception because of the way *nt!KiFastFailDispatch* calls the kernel mode exception dispatcher. And if we look at the source of *nt!KiDispatchException* in ReactOS we can see that this exception won't have the chance to reach back the userland as in Win7 :)):
 
-    :::c KiDispatchException from ReactOS
+```C
     VOID
     NTAPI
     KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
@@ -487,6 +504,7 @@ BUT the exception is going to be processed as a **second-chance** exception beca
     // [...]
         return;
     }
+```
 
 To convince yourself you can even modify the *FirstChance* argument passed to *nt!KiDispatchException* from *nt!KiFastFailDispatch*. You will see the SEH handler is called like in Win7:
 

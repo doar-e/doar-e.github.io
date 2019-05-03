@@ -30,8 +30,9 @@ Before diving deep, here is the table of contents:
 ## Introduction
 All right, here we are: this part is just a reminder of how AES (with a 128 bits key) roughly works. If you know that already, feel free to go to the next level. Basically in here I just want us to build our first function: a simple block encryption. The signature of the function will be something, as you expect, like this:
 
-    :::c aes128_enc_base signature
+```c 
     void aes128_enc_base(unsigned char in[16], unsigned char out[16], unsigned char key[16])
+```
 
 The encryption works in eleven rounds, the first one & the last one are slightly different than the nine others ; but they all rely on four different operations. Those operations are called: AddRoundKey, SubBytes, ShiftRows, MixColumns. Each round modifies a 128 bits state with a 128 bits round-key. Those round-keys are generated from the encryption key after a key expansion (called key schedule) function. Note that the first round-key is actually the encryption key.
 
@@ -44,7 +45,8 @@ The key schedule is like the most important part of the algorithm. As I said a b
 
 I don't really feel like explaining in detail how it works (as it is a bit tricky to explain that with words), I would rather advise you to read the FIPS document or to follow the flash animation. Here is what my key schedule looks like:
 
-    :::c aes key schedule
+```c 
+// aes key schedule
     const unsigned char S_box[] = { 0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76, 0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0, 0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15, 0x04, 0xC7, 0x23, 0xC3, 0x18, 0x96, 0x05, 0x9A, 0x07, 0x12, 0x80, 0xE2, 0xEB, 0x27, 0xB2, 0x75, 0x09, 0x83, 0x2C, 0x1A, 0x1B, 0x6E, 0x5A, 0xA0, 0x52, 0x3B, 0xD6, 0xB3, 0x29, 0xE3, 0x2F, 0x84, 0x53, 0xD1, 0x00, 0xED, 0x20, 0xFC, 0xB1, 0x5B, 0x6A, 0xCB, 0xBE, 0x39, 0x4A, 0x4C, 0x58, 0xCF, 0xD0, 0xEF, 0xAA, 0xFB, 0x43, 0x4D, 0x33, 0x85, 0x45, 0xF9, 0x02, 0x7F, 0x50, 0x3C, 0x9F, 0xA8, 0x51, 0xA3, 0x40, 0x8F, 0x92, 0x9D, 0x38, 0xF5, 0xBC, 0xB6, 0xDA, 0x21, 0x10, 0xFF, 0xF3, 0xD2, 0xCD, 0x0C, 0x13, 0xEC, 0x5F, 0x97, 0x44, 0x17, 0xC4, 0xA7, 0x7E, 0x3D, 0x64, 0x5D, 0x19, 0x73, 0x60, 0x81, 0x4F, 0xDC, 0x22, 0x2A, 0x90, 0x88, 0x46, 0xEE, 0xB8, 0x14, 0xDE, 0x5E, 0x0B, 0xDB, 0xE0, 0x32, 0x3A, 0x0A, 0x49, 0x06, 0x24, 0x5C, 0xC2, 0xD3, 0xAC, 0x62, 0x91, 0x95, 0xE4, 0x79, 0xE7, 0xC8, 0x37, 0x6D, 0x8D, 0xD5, 0x4E, 0xA9, 0x6C, 0x56, 0xF4, 0xEA, 0x65, 0x7A, 0xAE, 0x08, 0xBA, 0x78, 0x25, 0x2E, 0x1C, 0xA6, 0xB4, 0xC6, 0xE8, 0xDD, 0x74, 0x1F, 0x4B, 0xBD, 0x8B, 0x8A, 0x70, 0x3E, 0xB5, 0x66, 0x48, 0x03, 0xF6, 0x0E, 0x61, 0x35, 0x57, 0xB9, 0x86, 0xC1, 0x1D, 0x9E, 0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF, 0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16 };
     #define DW(x) (*(unsigned int*)(x))
     {
@@ -81,6 +83,7 @@ I don't really feel like explaining in detail how it works (as it is a bit trick
             }
         }
     }
+```
 
 Sweet, feel free to dump the round keys and to compare them with an official test vector to convince you that this thing works. Once we have that function, we need to build the different primitives that the core encryption algorithm will use & reuse to generate the encrypted block. Some of them are like 1 line of C, really simple ; some others are a bit more twisted, but whatever.
 
@@ -89,29 +92,31 @@ Sweet, feel free to dump the round keys and to compare them with an official tes
 #### AddRoundKey
 This one is a really simple one: it takes a round key (according to which round you are currently in), the state & you xor every single byte of the state with the round-key.
 
-    :::c AddRoundKey
+```C
     void AddRoundKey(unsigned char roundkey[16], unsigned char out[16])
     {
         for (size_t i = 0; i < 16; ++i)
             out[i] ^= roundkey[i];
     }
+```
 
 #### SubBytes
 Another simple one: it takes the state as input & will substitute every byte using the forward substitution box `S_box`.
 
-    :::c SubBytes
+```C
     void SubBytes(unsigned char out[16])
     {
         for (size_t i = 0; i < 16; ++i)
             out[i] = S_box[out[i]];
     }
+```
 
 If you are interested in how the values of the `S_box` are computed, you should read the following blogpost [AES SBox and ParisGP](http://kutioo.blogspot.fr/2013/11/aes-sbox-and-parigp.html) written by my mate [@kutioo](https://twitter.com/kutioo).
 
 #### ShiftRows
 This operation is a bit less tricky, but still is fairly straightforward. Imagine that the state is a 4x4 matrix, you just have to left rotate the second line by 1 byte, the third one by 2 bytes & finally the last one by 3 bytes. This can be done in C like this:
 
-    :::c ShiftRows
+```C
     __forceinline void ShiftRows(unsigned char out[16])
     {
         // +----+----+----+----+
@@ -144,30 +149,32 @@ This operation is a bit less tricky, but still is fairly straightforward. Imagin
         out[11] = out[7];
         out[7] = tmp1;
     }
+```
 
 #### MixColumns
 I guess this one is the less trivial one to implement & understand. But basically it is a "matrix multiplication" (in GF(2^8) though hence the double-quotes) between 4 bytes of the state (row matrix) against a fixed 4x4 matrix. That gives you 4 new state bytes, so you do that for every double-words of your state.
 
 Now, I kind of cheated for my implementation: instead of implementing the "weird" multiplication, I figured I could use a pre-computed table instead to avoid all the hassle. Because the fixed matrix has only 3 different values (1, 2 & 3) the final table has a really small memory footprint: 3*0x100 bytes basically (if I'm being honest I even stole this table from [@elvanderb](https://twitter.com/elvanderb)'s [crazy white-box generator](http://pastebin.com/MvXpGZts)).
 
-    :::c gmul
+```
     const unsigned char gmul[3][0x100] = {
         { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF },
         { 0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2A, 0x2C, 0x2E, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3A, 0x3C, 0x3E, 0x40, 0x42, 0x44, 0x46, 0x48, 0x4A, 0x4C, 0x4E, 0x50, 0x52, 0x54, 0x56, 0x58, 0x5A, 0x5C, 0x5E, 0x60, 0x62, 0x64, 0x66, 0x68, 0x6A, 0x6C, 0x6E, 0x70, 0x72, 0x74, 0x76, 0x78, 0x7A, 0x7C, 0x7E, 0x80, 0x82, 0x84, 0x86, 0x88, 0x8A, 0x8C, 0x8E, 0x90, 0x92, 0x94, 0x96, 0x98, 0x9A, 0x9C, 0x9E, 0xA0, 0xA2, 0xA4, 0xA6, 0xA8, 0xAA, 0xAC, 0xAE, 0xB0, 0xB2, 0xB4, 0xB6, 0xB8, 0xBA, 0xBC, 0xBE, 0xC0, 0xC2, 0xC4, 0xC6, 0xC8, 0xCA, 0xCC, 0xCE, 0xD0, 0xD2, 0xD4, 0xD6, 0xD8, 0xDA, 0xDC, 0xDE, 0xE0, 0xE2, 0xE4, 0xE6, 0xE8, 0xEA, 0xEC, 0xEE, 0xF0, 0xF2, 0xF4, 0xF6, 0xF8, 0xFA, 0xFC, 0xFE, 0x1B, 0x19, 0x1F, 0x1D, 0x13, 0x11, 0x17, 0x15, 0x0B, 0x09, 0x0F, 0x0D, 0x03, 0x01, 0x07, 0x05, 0x3B, 0x39, 0x3F, 0x3D, 0x33, 0x31, 0x37, 0x35, 0x2B, 0x29, 0x2F, 0x2D, 0x23, 0x21, 0x27, 0x25, 0x5B, 0x59, 0x5F, 0x5D, 0x53, 0x51, 0x57, 0x55, 0x4B, 0x49, 0x4F, 0x4D, 0x43, 0x41, 0x47, 0x45, 0x7B, 0x79, 0x7F, 0x7D, 0x73, 0x71, 0x77, 0x75, 0x6B, 0x69, 0x6F, 0x6D, 0x63, 0x61, 0x67, 0x65, 0x9B, 0x99, 0x9F, 0x9D, 0x93, 0x91, 0x97, 0x95, 0x8B, 0x89, 0x8F, 0x8D, 0x83, 0x81, 0x87, 0x85, 0xBB, 0xB9, 0xBF, 0xBD, 0xB3, 0xB1, 0xB7, 0xB5, 0xAB, 0xA9, 0xAF, 0xAD, 0xA3, 0xA1, 0xA7, 0xA5, 0xDB, 0xD9, 0xDF, 0xDD, 0xD3, 0xD1, 0xD7, 0xD5, 0xCB, 0xC9, 0xCF, 0xCD, 0xC3, 0xC1, 0xC7, 0xC5, 0xFB, 0xF9, 0xFF, 0xFD, 0xF3, 0xF1, 0xF7, 0xF5, 0xEB, 0xE9, 0xEF, 0xED, 0xE3, 0xE1, 0xE7, 0xE5 },
         { 0x00, 0x03, 0x06, 0x05, 0x0C, 0x0F, 0x0A, 0x09, 0x18, 0x1B, 0x1E, 0x1D, 0x14, 0x17, 0x12, 0x11, 0x30, 0x33, 0x36, 0x35, 0x3C, 0x3F, 0x3A, 0x39, 0x28, 0x2B, 0x2E, 0x2D, 0x24, 0x27, 0x22, 0x21, 0x60, 0x63, 0x66, 0x65, 0x6C, 0x6F, 0x6A, 0x69, 0x78, 0x7B, 0x7E, 0x7D, 0x74, 0x77, 0x72, 0x71, 0x50, 0x53, 0x56, 0x55, 0x5C, 0x5F, 0x5A, 0x59, 0x48, 0x4B, 0x4E, 0x4D, 0x44, 0x47, 0x42, 0x41, 0xC0, 0xC3, 0xC6, 0xC5, 0xCC, 0xCF, 0xCA, 0xC9, 0xD8, 0xDB, 0xDE, 0xDD, 0xD4, 0xD7, 0xD2, 0xD1, 0xF0, 0xF3, 0xF6, 0xF5, 0xFC, 0xFF, 0xFA, 0xF9, 0xE8, 0xEB, 0xEE, 0xED, 0xE4, 0xE7, 0xE2, 0xE1, 0xA0, 0xA3, 0xA6, 0xA5, 0xAC, 0xAF, 0xAA, 0xA9, 0xB8, 0xBB, 0xBE, 0xBD, 0xB4, 0xB7, 0xB2, 0xB1, 0x90, 0x93, 0x96, 0x95, 0x9C, 0x9F, 0x9A, 0x99, 0x88, 0x8B, 0x8E, 0x8D, 0x84, 0x87, 0x82, 0x81, 0x9B, 0x98, 0x9D, 0x9E, 0x97, 0x94, 0x91, 0x92, 0x83, 0x80, 0x85, 0x86, 0x8F, 0x8C, 0x89, 0x8A, 0xAB, 0xA8, 0xAD, 0xAE, 0xA7, 0xA4, 0xA1, 0xA2, 0xB3, 0xB0, 0xB5, 0xB6, 0xBF, 0xBC, 0xB9, 0xBA, 0xFB, 0xF8, 0xFD, 0xFE, 0xF7, 0xF4, 0xF1, 0xF2, 0xE3, 0xE0, 0xE5, 0xE6, 0xEF, 0xEC, 0xE9, 0xEA, 0xCB, 0xC8, 0xCD, 0xCE, 0xC7, 0xC4, 0xC1, 0xC2, 0xD3, 0xD0, 0xD5, 0xD6, 0xDF, 0xDC, 0xD9, 0xDA, 0x5B, 0x58, 0x5D, 0x5E, 0x57, 0x54, 0x51, 0x52, 0x43, 0x40, 0x45, 0x46, 0x4F, 0x4C, 0x49, 0x4A, 0x6B, 0x68, 0x6D, 0x6E, 0x67, 0x64, 0x61, 0x62, 0x73, 0x70, 0x75, 0x76, 0x7F, 0x7C, 0x79, 0x7A, 0x3B, 0x38, 0x3D, 0x3E, 0x37, 0x34, 0x31, 0x32, 0x23, 0x20, 0x25, 0x26, 0x2F, 0x2C, 0x29, 0x2A, 0x0B, 0x08, 0x0D, 0x0E, 0x07, 0x04, 0x01, 0x02, 0x13, 0x10, 0x15, 0x16, 0x1F, 0x1C, 0x19, 0x1A }
         };
+```
 
 Once you have this magic table, the multiplication gets really easy. Let's take an example:
 
 <center>![mixcolumn_example.png](/images/spotlight_on_an_unprotected_aes128_white-box_implementation/mixcolumn_example.png)</center>
 As I said, the four bytes at the left are from your state & the 4x4 matrix is the fixed one (filled only with 3 different values). To have the result of this multiplication you just have to execute this:
 
-    :::python mult
+```C
     reduce(operator.xor, [gmul[1][0xd4], gmul[2][0xbf], gmul[0][0x5d], gmul[0][0x30]])
-
+```
 The first indexes in the table are the actual values taken from the 4x4 matrix minus one (because our array is going to be addressed from index 0). So then you can declare your own 4x4 matrix with proper indexes & do the multiplication four times:
 
-    :::c MixColumns
+```C
     void MixColumns(unsigned char out[16])
     {
         const unsigned char matrix[16] = {
@@ -201,6 +208,7 @@ The first indexes in the table are the actual values taken from the 4x4 matrix m
             out[i * 4 + 3] = gmul[matrix[12]][a] ^ gmul[matrix[13]][b] ^ gmul[matrix[14]][c] ^ gmul[matrix[15]][d];
         }
     }
+```
 
 ### Combine them together
 Now we have everything we need, it is going to be easy peasy ; really:
@@ -221,7 +229,7 @@ Now we have everything we need, it is going to be easy peasy ; really:
 
 Here we are, we finally have our AES128 encryption function that we will use as a reference:
 
-    :::c aes128_enc_base
+```C
     void aes128_enc_base(unsigned char in[16], unsigned char out[16], unsigned char key[16])
     {
         unsigned int d;
@@ -276,10 +284,11 @@ Here we are, we finally have our AES128 encryption function that we will use as 
         ShiftRows(out);
         AddRoundKey(round_keys[10], out);
     }
+```
 
 Not that bad right? And we can even prepare a function that tests if the encrypted block is valid or not (this is really going to be useful as soon as we start to tweak the implementation):
 
-    :::c tests
+```C
     unsigned char tests()
     {
         /// AES128ENC
@@ -300,6 +309,7 @@ Not that bad right? And we can even prepare a function that tests if the encrypt
     
         return 1;
     }
+```
 
 Brilliant.
 
@@ -323,7 +333,7 @@ This one is really easy: basically we just have to change our loop to start at `
 
 The encryption loop should look like this now:
 
-    :::c aes128_enc_reorg_step1
+```C
     void aes128_enc_reorg_step1(unsigned char in[16], unsigned char out[16], unsigned char key[16])
     {
     [...]
@@ -344,11 +354,12 @@ The encryption loop should look like this now:
         ShiftRows(out);
         AddRoundKey(round_keys[10], out);
     }
+```
 
 ## Step 2: `SubBytes` then `ShiftRows` equals `ShiftRows` then `SubBytes`
 Yet another easy one: because `SubBytes` is just replacing a byte by its substitution (stored in `S_box`), you can apply `ShiftRows` before `SubBytes` or `SubBytes` before `ShiftRows` ; you will get the same result. So let's exchange them:
 
-    :::c aes128_enc_reorg_step2
+```C
     void aes128_enc_reorg_step2(unsigned char in[16], unsigned char out[16], unsigned char key[16])
     {
     [...]
@@ -371,11 +382,12 @@ Yet another easy one: because `SubBytes` is just replacing a byte by its substit
         SubBytes(out);
         AddRoundKey(round_keys[10], out);
     }
+```
 
 ## Step 3: `ShiftRows` first, but needs to `ShiftRows` the round-key
 This one is a bit more tricky, but again it's more about reordering, rewriting the encryption loop than really replacing computation by look-up tables so far. Basically, the idea of this step is to start the encryption loop with a `ShiftRows` operation. Because of the way this operation is defined, if you put it first you also need to apply `ShiftRows` to the current round key in order to get the same result than `AddRoundKey`/`ShiftRows`.
 
-    :::c aes128_enc_reorg_step3
+```C
     void aes128_enc_reorg_step3(unsigned char in[16], unsigned char out[16], unsigned char key[16])
     {
     [...]
@@ -398,6 +410,7 @@ This one is a bit more tricky, but again it's more about reordering, rewriting t
         SubBytes(out);
         AddRoundKey(round_keys[10], out);
     }
+```
 
 ## Step 4: White-boxing it like it's hot, White-boxing it like it's hot
 This step is a really important one for us, it's actually the first one where we are going to be able to both remove the key & start the tables generator project. The tables generator project basically generates everything we need to have our white-box AES encryption working.
@@ -418,7 +431,7 @@ The `S_box` part is for the `SubBytes` operation, the xor with one byte of the r
 
 If you are confused about that bit, don't be ; it's just I suck at explaining things, but just have a look at the following code (especially at lines 47, 48):
 
-    :::c wbaes128_unprotected_tables_generator.c:Tboxes generation
+```C
     int main()
     {
         unsigned char key[16] = "0vercl0k@doare-e";
@@ -485,10 +498,11 @@ If you are confused about that bit, don't be ; it's just I suck at explaining th
         }
         printf("};\n\n");
     }
+```
 
 Now that we have this table created, we just need to actually use it in our encryption. Thanks to this table, the encryption loop is way more simple and pretty, check it out:
 
-    :::c aes128_enc_wb_step1
+```C
     void aes128_enc_wb_step1(unsigned char in[16], unsigned char out[16])
     {
         memcpy(out, in, 16);
@@ -514,20 +528,23 @@ Now that we have this table created, we just need to actually use it in our encr
             out[j] = x;
         }
     }
+```
 
 ## Step 5: Transforming `MixColumns` in a look-up table
 OK, so this is maybe the "most difficult" part of the game: we have to transform our ugly `MixColumn` function in four look-up tables. Basically, we want to transform this:
 
-    :::c before
+```C
     out[i * 4 + 0] = gmul[matrix[0]][a] ^ gmul[matrix[1]][b] ^ gmul[matrix[2]][c] ^ gmul[matrix[3]][d];
     out[i * 4 + 1] = gmul[matrix[4]][a] ^ gmul[matrix[5]][b] ^ gmul[matrix[6]][c] ^ gmul[matrix[7]][d];
     out[i * 4 + 2] = gmul[matrix[8]][a] ^ gmul[matrix[9]][b] ^ gmul[matrix[10]][c] ^ gmul[matrix[11]][d];
     out[i * 4 + 3] = gmul[matrix[12]][a] ^ gmul[matrix[13]][b] ^ gmul[matrix[14]][c] ^ gmul[matrix[15]][d];
+```
 
 by this (where `Ty[0-4]` are the look-up tables I mentioned just above):
 
-    :::c after
+```C
     DW(&out[j * 4]) = Ty[0][a] ^ Ty[1][b] ^ Ty[2][c] ^ Ty[3][d];
+```
 
 We know that `gmul[X]` gives you 1 byte, and we can see those four lines use `gmul[X][a]` where `X` is constant. You can also see that basically those four lines take 4 bytes as input `a`, `b`, `c` & `d` and will generate 4 bytes as output.
 
@@ -535,7 +552,7 @@ The idea is to combine `gmul[matrix[0]][a]`, `gmul[matrix[4]][a]`, `gmul[matrix[
 
 With that in mind, the tables generation function writes nearly by itself:
 
-    :::c wbaes128_unprotected_tables_generator.c:Ty tables generation
+```C
     int main()
     {
     [...]
@@ -578,10 +595,11 @@ With that in mind, the tables generation function writes nearly by itself:
         }
         printf("};\n");
     }
+```
 
 Glad to replace that `MixColumn` call now:
 
-    :::c aes128_enc_wb_step2
+```C
     void aes128_enc_wb_step2(unsigned char in[16], unsigned char out[16])
     {
         memcpy(out, in, 16);
@@ -617,10 +635,11 @@ Glad to replace that `MixColumn` call now:
             out[j] = x;
         }
     }
+```
 
 You can even make it cleaner by merging the two inner-loops & make them both handle 4 bytes of data by 4 bytes of data:
 
-    :::c aes128_enc_wb_step3
+```C
     // Unified the loops by treating the state 4 bytes by 4 bytes
     void aes128_enc_wb_step3(unsigned char in[16], unsigned char out[16])
     {
@@ -656,12 +675,13 @@ You can even make it cleaner by merging the two inner-loops & make them both han
             out[j] = x;
         }
     }
+```
 
 ## Step 6: Adding a little *xor* table
 
 This step is a really simple one (& kind of useless) ; we just want to transform the *xor* operation between 2 double-words by a look-up table that does that between 2 nibbles (4 bits). Basically, you combine 8 nibbles to get a full double-word with *or* operations & some binary shifts. Easy peasy:
 
-    :::c wbaes128_unprotected_tables_generator.c:Xor table generation
+```C
     int main()
     {
     [...]
@@ -692,10 +712,11 @@ This step is a really simple one (& kind of useless) ; we just want to transform
         printf("};\n");
         return EXIT_SUCCESS;
     }
+```
 
 Which is directly used by our implementation:
 
-    :::c aes128_enc_wb_step4
+```C
     void aes128_enc_wb_step4(unsigned char in[16], unsigned char out[16])
     {
         memcpy(out, in, 16);
@@ -738,20 +759,22 @@ Which is directly used by our implementation:
             out[j] = x;
         }
     }
+```
 
 ## Step 7: Combining TBoxes & Ty tables
 The last step aims to combine the `Tboxes` with `Ty` tables and if you look at the code it doesn't seem really hard. We basically want the table to work this way: 1 byte as input (`a` for example in the previous code) & generate 4 bytes of outputs.
 
 To compute such a table, you need to compute the `Tboxes` (or not, you can compute everything without relying on the `Tboxes` ; it's actually what I'm doing), & then you compute `Ty[Y][Tboxes[i][j][X]]` ; this is it, roughly. `X`, `i` and `j` are the unknown variables here, which means we will end-up with a table like that:
 
-    :::c Tyboxes
+```C
     const unsigned int Tyboxes[9][16][0x100];
+```
 
 Makes sense right?
 
 So here is the code that generates that big table:
 
-    :::c wbaes128_unprotected_tables_generator.c:Tyboxes table generation
+```C
     int main()
     {
     [...]
@@ -818,6 +841,7 @@ So here is the code that generates that big table:
         printf("};\n\n");
         return EXIT_SUCCESS;
     }
+```
 
 We just have to take care of the last round which is a bit different as we saw earlier, but no biggie.
 
@@ -825,7 +849,7 @@ We just have to take care of the last round which is a bit different as we saw e
 
 Yeah, finally, here we are ; the final code of our (not protected) AES128 white-box:
 
-    :::c aes128_enc_wb_final
+```C
     void aes128_enc_wb_final(unsigned char in[16], unsigned char out[16])
     {
         memcpy(out, in, 16);
@@ -858,6 +882,7 @@ Yeah, finally, here we are ; the final code of our (not protected) AES128 white-
             out[j] = x;
         }
     }
+```
 
 It's cute isn't it?
 
@@ -866,9 +891,10 @@ As the title says, this white-box implementation is really insecure: which means
 
 If it's not already obvious to you, you just have to remember how we actually compute the values inside that big tables ; look carefully at those two lines:
 
-    :::c Tyboxes generation core
+```C
     unsigned char c = S_box[x ^ round_keys[r][i]];
     Tyboxes[r][i][x] = Ty[i % 4][c];
+```
 
 In our case, `r` is 0, `i` will be the byte index of the round key 0 (which is the AES key) & we can also set `x` to a constant value: let's say 0 or 1 for instance. `S_box` is known, `Ty` too as this transformation is always the same (it doesn't depend on the key). Basically we just need to brute-force `round_keys[r][i]` with every values a byte can take. If the computed value is equal to the one in the dumped `Tyboxes`, then we have extracted one byte of the round key & we can go find the next one.
 
@@ -876,7 +902,7 @@ Attentive readers noticed that we are not going to actually extract the encrypti
 
 Here is the code that does what I just described:
 
-    :::c wbaes128_attack_the_boxes.c:main
+```C
         unsigned char scrambled_key[16] = { 0 };
         for (size_t i = 0; i < 16; ++i)
         {
@@ -920,7 +946,7 @@ Here is the code that does what I just described:
         printf("Key successfully extracted & UnShiftRow'd:\n");
         for (size_t i = 0; i < 16; ++i)
             printf("\\x%.2x", scrambled_key[i]);
-    
+```    
 
 # Obfuscating it?
 This is basically the part where you have no limits, where you can exercise your creativity & develop stuff. I'll just talk about ideas & obvious things, a lot of them are directly taken from [@elvanderb](https://twitter.com/elvanderb)'s challenge so I guess I owe him yet another beer.
@@ -951,7 +977,7 @@ Do also try to shuffle everything that is "shufflable" ; here is simple graph th
 <center>![aes.svg](/images/spotlight_on_an_unprotected_aes128_white-box_implementation/aes.svg)</center>
 From here, you have everything you need to move the lines around & generate a "less normal" implementation (even that we can clearly see what I call synchronization points at the end of every round which is basically the calls to `ShiftRows(out)` ; but again we could get rid of those, and directly in-lining them etc):
 
-    :::python generate_dependency_graph.py:generate_shuffled_implementation_via_dependency_graph
+```python
     def generate_shuffled_implementation_via_dependency_graph(dependency_graph, out_filename):
         '''This function is basically leveraging the graph we produced in the previous function
         to generate an actual shuffled implementation of the AES white-box without breaking any
@@ -991,6 +1017,7 @@ From here, you have everything you need to move the lines around & generate a "l
             f.writelines(shuffled_lines)
             f.write('}')
         return shuffled_lines
+```
 
 Anyway, I wish I had time to implement what we just talked about but I unfortunately don't; if you do feel free to shoot me an email & I'll update the post with links to your code :-).
 

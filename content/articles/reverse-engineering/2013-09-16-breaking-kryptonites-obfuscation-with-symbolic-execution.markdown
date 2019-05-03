@@ -47,7 +47,7 @@ Of course, when the engine has been successfully executed, you may want to ask i
 
 Here is a little example to sum up what we just said:
 
-    :::nasm
+```text
     mov eax, [arg1]  ; at this moment we have our first symbolic variable
                      ; we push it in our equations list
     mov edx, [arg2]  ; same thing here
@@ -59,15 +59,17 @@ Here is a little example to sum up what we just said:
     inc edx      ; EDX=sym2 + 1
     xor edx, eax ; EDX=(sym2 + 1) ^ ((((sym1 >> 2) + 1) << 1) & 2)
     mov eax, edx ; EAX=(sym2 + 1) ^ ((((sym1 >> 2) + 1) << 1) & 2)
+```
 
 So at the end, you can ask the engine to give you the final state of EAX for example and it should give you something like:
 
-    :::text
+```text
     EAX=(sym2 + 1) ^ ((((sym1 >> 2) + 1) << 1) & 2)
+```
 
 With that equation you are free to use Z3Py to either simplify it or to try to find how you can have a specific value in EAX controlling only the symbolic variables:
 
-    :::text
+```text
     In [1]: from z3 import *
     In [2]: sym1 = BitVec('sym1', 32)
     In [3]: sym2 = BitVec('sym2', 32)
@@ -86,6 +88,7 @@ With that equation you are free to use Z3Py to either simplify it or to try to f
     
     In [9]: hex((sym2 + 1) ^ ((((sym1 >> 2) + 1) << 1) & 2) & 0xffffffff)
     Out[9]: '0xdeadbeefL'
+```
 
 As you can imagine, that kind of tool is very valuable/handy when you do reverse-engineering tasks or bug-hunting. Unfortunately, our PoC won't be enough accurate/generic/complete to be used in "normal" cases, but never mind.
 
@@ -94,7 +97,7 @@ To implement our little PoC we will use only [IDAPython](https://code.google.com
 ## The disassembler
 The first thing we have to do is to use IDA's API in order to have some inspection information about assembly instructions. The idea is just to have the mnemonic, the source and the destination operands easily ; here is the class I've designed toward that purpose:
 
-    :::python Disassembler class
+```python
     class Disassembler(object):
         '''A simple class to decode easily instruction in IDA'''
         def __init__(self, start, end):
@@ -122,6 +125,7 @@ The first thing we have to do is to use IDA's API in order to have some inspecti
             while self.eip != self.end:
                 yield self._decode_instr()
                 self.eip += ItemSize(self.eip)
+```
 
 ## The symbolic execution engine
 There are several important parts in our engine:
@@ -133,7 +137,7 @@ There are several important parts in our engine:
 
 Here is the PoC code:
 
-    :::python SymbolicExecutionEngine class
+```python
     def prove(f):
         '''Taken from http://rise4fun.com/Z3Py/tutorialcontent/guide#h26'''
         s = Solver()
@@ -306,11 +310,12 @@ Here is the PoC code:
             eq = self.get_reg_equation(reg)
             eq = simplify(eq)
             return eq
+```
 
 ## Testing
 OK, we just have to instantiate the engine giving him the start/end address of the routine and to ask him to give us the final equation holded in EAX.
 
-    :::python main
+```python
     def main():
         '''Here we will try to attack the semantic-preserving obfuscations
         I talked about in "Obfuscation of steel: meet my Kryptonite." : http://0vercl0k.tuxfamily.org/bl0g/?p=260.
@@ -326,10 +331,11 @@ OK, we just have to instantiate the engine giving him the start/end address of t
     
     if __name__ == '__main__':
         main()
+```
 
 And here is what I saw:
 
-    :::text
+```text
     Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
     Trying to read a non-initialized area, we got a new symbolic variable: arg1
@@ -362,6 +368,7 @@ And here is what I saw:
              2147483646),
            0) +
     ...
+```
 
 There was two possible explanations for this problem:
 
@@ -370,7 +377,7 @@ There was two possible explanations for this problem:
 
  To know what was the right answer, I used Z3Py's prove function in order to know if the equation was equivalent to a simple addition:
 
-    :::python main
+```python
      def main():
         '''Here we will try to attack the semantic-preserving obfuscations
         I talked about in "Obfuscation of steel: meet my Kryptonite." : http://0vercl0k.tuxfamily.org/bl0g/?p=260.
@@ -386,12 +393,13 @@ There was two possible explanations for this problem:
     
     if __name__ == '__main__':
         main()
+```
 
 Fortunately for us, it printed *True* ; so our code is correct. But it also means, the simplify function, as is at least, isn't able to simplify that bunch of equations involving bit-vector arithmetics. I still haven't found a clean way to make Z3Py simplify my big equation, so if someone knows how I can do that please contact me. I've also exported the complete equation, and uploaded it [here](/downloads/code/breaking_kryptonite_s_obfuscation_with_symbolic_execution/eq.txt) ; you are free to give it a try like this.
 
 The ugly trick I came up with is just to use Z3Py's prove function, to try to prove that the equation is in fact an addition and if this is the case it returns the simplified equation. Again, if someone manages to simplify the previous equation without that type of trick I'm really interested!
 
-    :::python nasty trick
+```python
         def _simplify_additions(self, eq):
             '''The idea in this function is to help Z3 to simplify our big bitvec-arithmetic
             expression. It's simple, in eq we have a big expression with two symbolic variables (arg0 & arg1)
@@ -410,22 +418,24 @@ The ugly trick I came up with is just to use Z3Py's prove function, to try to pr
             eq = self.get_reg_equation(reg)
             eq = simplify(self._simplify_additions(eq))
             return eq
+```
 
 And now if you relaunch the script you will get:
 
-    :::text
+```text
     Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
     Trying to read a non-initialized area, we got a new symbolic variable: arg1
     Done, retrieving the equation in EAX, and simplifying..
     EAX=arg0 + arg1
+```
 
 We just successfully simplified two thousands of assembly into a simple addition, wonderful!
 
 # Symbolic execution VS Kryptonite
 OK, now we have a working engine able to break a small program (~two thousands instructions), let's see if we can do the same with a kryptonized-binary. Let's take a simple addition like in the previous parts:
 
-    :::c
+```C
     #include <stdio.h>
     #include <stdlib.h>
     
@@ -442,10 +452,11 @@ OK, now we have a working engine able to break a small program (~two thousands i
         printf("Result: %u\n", add(atoll(argv[1]), atoll(argv[2])));
         return 1;
     }
+```
 
 Now, time for a kryptonization:
 
-    :::bash
+```bash
     $ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
     $ clang++ llvm-functionpass-kryptonite-obfuscater.cpp `llvm-config --cxxflags --ldflags --libs core` -shared -o llvm-functionpass-kryptonite-obfuscater.so
     $ clang -S -emit-llvm add.c -o add.ll
@@ -454,12 +465,13 @@ Now, time for a kryptonization:
     $ llc -O0 -filetype=obj -march=x86 add.ll -o add.o
     $ clang -static add.o -o kryptonite-add
     $ strip --strip-all ./kryptonite-add
+```
 
 At this moment we end up with that binary: [kryptonite-add](https://github.com/0vercl0k/stuffz/blob/master/llvm-funz/kryptonite-add). The target routine for our study starts at 0x804823C and ends at 0x08072284 ; roughly more than 40 thousands assembly instructions and kind of big right?
 
 Here is our final IDAPython script after some minor adjustments (added one or two more instructions):
 
-    :::python tiny_symbolic_execution_engine_z3.py https://github.com/0vercl0k/stuffz/blob/master/llvm-funz/tiny_symbolic_execution_engine_z3.py
+```python
     class EquationId(object):
         def __init__(self, id_):
             self.id = id_
@@ -714,9 +726,11 @@ Here is our final IDAPython script after some minor adjustments (added one or tw
     if __name__ == '__main__':
         main()
 
+```
+
 And here is the final output:
 
-    :::text
+```text
     Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
     Trying to read a non-initialized area, we got a new symbolic variable: arg1
@@ -733,6 +747,7 @@ And here is the final output:
     {'eax': EID:19856, 'ebp': None, 'eip': None, 'esp': None, 'edx': EID:19825, 'edi': EID:19796, 'ebx': EID:19797, 'esi': EID:19823, 'ecx': EID:19856}
     Retrieving and simplifying the EAX register..
     EAX=arg0 + arg1
+```
 
 # Conclusion
 I hope you did enjoy this little introduction to symbolic execution, and how it can be very valuable to remove some semantic-preserving obfuscations. We also have seen that this PoC is not really elaborate: it doesn't handle loops or any branches, doesn't care about EFLAGS, etc ; but it was enough to break our two examples. I hope you also enjoyed the examples used to showcase our tiny symbolic execution engine.

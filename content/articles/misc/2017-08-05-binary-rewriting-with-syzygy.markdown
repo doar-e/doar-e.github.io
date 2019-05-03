@@ -36,13 +36,14 @@ In order to get a development environment setup you need to follow specific step
 
 Once depot_tools is installed, it is just a matter of executing the below commands for getting the code and compiling it:
 
-    :::text
+```text
     > set PATH=D:\Codes\depot_tools;%PATH%
     > mkdir syzygy
     > cd syzygy
     > fetch syzygy
     > cd syzygy\src
     > ninja -C out\Release instrument
+```
 
 If you would like more information on the matter, I suggest you read this wiki page: [SyzygyDevelopmentGuide](https://github.com/google/syzygy/wiki/SyzygyDevelopmentGuide).
 
@@ -60,7 +61,7 @@ Oh, one last thing: the instrumenter is basically the application that decompose
 
 To make things clearer - and because I like debugging sessions - I think it is worthwhile to spend a bit of time in a debugger actually seeing the various structures and how they map to some code we know. Let's take the following C program and compile it in debug mode (don't forget to enable the full PDB generation with the following linker flag: `/PROFILE`):
 
-    :::c
+```c
     #include <stdio.h>
     
     void foo(int x) {
@@ -74,20 +75,23 @@ To make things clearer - and because I like debugging sessions - I think it is w
       foo(argc);
       return 0;
     }
+```
 
 Throw it to your favorite debugger with the following command - we will use the afl transformation as an example transform to analyze the data we have available to us:
 
-    :::
+```
     instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe
+```
 
 And let's place this breakpoint:
 
-    :::
+```
     bm instrument!*AFLTransform::OnBlock ".if(@@c++(block->type_ == 0)){ }.else{ g }"
+```
 
 Now it's time to inspect the Block associated with our function `foo` from above:
 
-    :::
+```
     0:000> g
     eax=002dcf80 ebx=00000051 ecx=00482da8 edx=004eaba0 esi=004bd398 edi=004bd318
     eip=002dcf80 esp=0113f4b8 ebp=0113f4c8 iopl=0         nv up ei pl nz na po nc
@@ -114,13 +118,14 @@ Now it's time to inspect the Block associated with our function `foo` from above
       [+0x054] owns_data_       : false
       [+0x058] data_            : 0x49ef50 : 0x55
       [+0x05c] data_size_       : 0x5b
+```
 
 The above shows us every the different properties available in a Block; we can see it is named `foo`, has the identifier 0x51 and has a size of 0x5B bytes.
 
 <center>![foo_idaview.png](/images/binary_rewriting_with_syzygy/foo_idaview.png)</center>
 It also has one referrer and 3 references, what could they be? With the explanation I gave above, we can guess that the referrer (or cross-ref) must be the `main` function as it calls into `foo`.
 
-    :::
+```
     0:000> dx -r1 (*((instrument!std::pair<block_graph::BlockGraph::Block *,int> *)0x4f87c0))
       first            : 0x4bd3ac
       second           : 48
@@ -144,11 +149,11 @@ It also has one referrer and 3 references, what could they be? With the explanat
         [+0x054] owns_data_       : false
         [+0x058] data_            : 0x49efb0 : 0x55
         [+0x05c] data_size_       : 0x4d
-    
+```
 
 Something to keep in mind when it comes to [references](https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L1046) is that they are not simply a pointer to a block. A reference does indeed reference a block (duh), but it also has an offset associated to this block to point exactly at where the data is being referenced from.
 
-    :::cpp
+```cpp
     // Represents a reference from one block to another. References may be offset.
     // That is, they may refer to an object at a given location, but actually point
     // to a location that is some fixed distance away from that object. This allows,
@@ -174,12 +179,13 @@ Something to keep in mind when it comes to [references](https://github.com/googl
     //        +---------------------------+      B = base
     //  \-----/                                  O = offset
     //
+```
 
 Let's have a look at the references associated with the `foo` block now. If you look closely at the block, the set of references is of size 3... what could they be?
 
 One for the `printf` function, one for the data Block for the string passed to `printf` maybe?
 
-    :::text
+```text
     First reference:
     ----------------
     
@@ -243,23 +249,26 @@ One for the `printf` function, one for the data Block for the string passed to `
         [+0x018] name_            : 0xbb96c8 : "_RTC_CheckEsp"
         [+0x01c] compiland_name_  : 0x4c5260 : "f:\binaries\Intermediate\vctools\msvcrt.nativeproj_607447030\objd\x86\_stack_.obj"
     [...]
+```
 
 Perfect - that's what we sort of guessed! The last one is just the compiler adding [Run-Time Error Checks](https://msdn.microsoft.com/en-us/library/8wtf2dfz.aspx) on us.
 
 Let's have a closer look to the first reference. The `references_` member is a hash table of offsets and instances of reference.
 
-    :::cpp
+```cpp
     // Map of references that this block makes to other blocks.
     typedef std::map<Offset, Reference> ReferenceMap;
+```
 
 The offset tells you where exactly in the `foo` block there is a reference; in our case we can see that the first reference is at offset 57 from the base of the block. If you start IDA real quick and browse at this address, you will see that it points one byte after the PUSH opcode (pointing exactly on the reference to the `_Format` string):
 
-    :::text
+```text
     .text:004010C8 68 20 41 40 00 push    offset _Format  ; "Binary rewriting with syzygy\n"
+```
 
 Another interesting bit I didn't mention earlier is that naturally the `data_` field backs the actual content of the Block:
 
-    :::text
+```text
     0:000> u @@c++(block->data_)
     0049ef50 55              push    ebp
     0049ef51 8bec            mov     ebp,esp
@@ -269,11 +278,11 @@ Another interesting bit I didn't mention earlier is that naturally the `data_` f
     0049ef5b 57              push    edi
     0049ef5c 8dbd34ffffff    lea     edi,[ebp-0CCh]
     0049ef62 b933000000      mov     ecx,33h
-
+```
 <center>![foo_disassview.png](/images/binary_rewriting_with_syzygy/foo_disassview.png)</center>
 Last but not least, I mentioned SourceRanges (you can see it as a vector of pairs describing data ranges from the binary to the content in memory) before, so let's dump it to see what it looks like:
 
-    :::text
+```text
     0:000> dx -r1 (*((instrument!core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > *)0x4bd36c))
         [+0x000] range_pairs_     : { size=1 }
     0:000> dx -r1 (*((instrument!std::vector<std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >,std::allocator<std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > > > *)0x4bd36c))
@@ -289,10 +298,11 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
         [+0x004] size_            : 0x5b
     0:000> dx -r1 (*((instrument!core::detail::AddressImpl<0> *)0x4da1d0))
         [+0x000] value_           : 0x1090 [Type: unsigned int]
+```
 
 In this SourceRanges, we have a mapping from the [DataRange](https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L568) (RVA 0, size 0x5B), to the [SourceRange](https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L571) (RVA 0x1090, size 0x5B - which matches the previous IDA screen shot, obviously). We will come back to those once we have actually modified / rewritten the blocks to see what happens to the SourceRanges.
 
-    :::c++
+```c++
     enum AddressType : uint8_t {
       kRelativeAddressType,
       kAbsoluteAddressType,
@@ -315,6 +325,7 @@ In this SourceRanges, we have a mapping from the [DataRange](https://github.com/
     // A virtual address relative to the image base, often termed RVA in
     // documentation and in data structure comments.
     using RelativeAddress = detail::AddressImpl<kRelativeAddressType>;
+```
 
 Now that you have been introduced to the main concepts, it is time for me to walk you through two small applications.
 
@@ -324,7 +335,7 @@ Now that you have been introduced to the main concepts, it is time for me to wal
 
 As the framework exposes all the information you need to rewrite and analyze binary, you are also free to *just* analyze a binary and not modify a single bit. In this example let's make a Block transform and generate a graph of the relationship between code Blocks (functions). As we are interested in exploring the whole binary and every single code Block, we subclass `IterativeTransformImpl`:
 
-    :::c++
+```c++
     // Declares a BlockGraphTransform implementation wrapping the common transform
     // that iterates over each block in the image.
     
@@ -341,6 +352,7 @@ As the framework exposes all the information you need to rewrite and analyze bin
     template<class DerivedType>
     class IterativeTransformImpl
         : public NamedBlockGraphTransformImpl<DerivedType> { };
+```
 
 Doing so allows us define `Pre` / `Post` functions, and an `OnBlock` function that gets called for every Block encountered in the image. This is pretty handy as I can define an `OnBlock` callback to mine the information we want for every Block, and define `Post` to process the data I have accumulated if necessary.
 
@@ -353,7 +365,7 @@ The `OnBlock` function should be pretty light as we only want to achieve a coupl
 
 The first thing to do is to create a C++ class named `CallGraphAnalysis`, declared in `doare_transform.h` and defined in `doare_transform.cc`. Those files are put in the `syzygy/instrument/transforms` directory where all others transforms live in:
 
-    :::text
+```text
     D:\syzygy\src>git status
     On branch dev-doare1
     Changes to be committed:
@@ -361,10 +373,11 @@ The first thing to do is to create a C++ class named `CallGraphAnalysis`, declar
     
             new file:   syzygy/instrument/transforms/doare_transforms.cc
             new file:   syzygy/instrument/transforms/doare_transforms.h
+```
 
 In order to get it compiled we also need to modify the `instrument.gyp` project file:
 
-    :::text
+```text
     D:\syzygy\src>git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
     index 464c5566..c0eceb87 100644
@@ -379,12 +392,13 @@ In order to get it compiled we also need to modify the `instrument.gyp` project 
              'transforms/entry_call_transform.cc',
              'transforms/entry_call_transform.h',
              'transforms/entry_thunk_transform.cc',
+```
 
 The gyp file is basically used to generate Ninja project files - which means that if you don't regenerate the Ninja files from the updated version of this gyp file, you will not be compiling your new code. In order to force a regeneration, you can invoke the `depot_tools` command: `gclient runhooks`.
 
 At this point we are ready to get our class coded up; here is the class declaration I have:
 
-    :::c++
+```c++
     // Axel '0vercl0k' Souchet - 26 Aug 2017
     
     #ifndef SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
@@ -432,10 +446,11 @@ At this point we are ready to get our class coded up; here is the class declarat
     }  // namespace instrument
     
     #endif  // SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
+```
 
 After declaring it, the interesting part for us is to have a look at the `OnBlock` method:
 
-    :::c++
+```c++
     bool CallGraphAnalysis::OnBlock(const TransformPolicyInterface* policy,
                                     BlockGraph* block_graph,
                                     Block* block) {
@@ -470,6 +485,7 @@ After declaring it, the interesting part for us is to have a look at the `OnBloc
       total_code_blocks_++;
       return true;
     }
+```
 
 The first step of the method is to make sure that the Block we are dealing with is a block we want to analyze. As I have explained before, Blocks are not exclusive code Blocks. That is the reason why we check the type of the block to only accepts code Blocks. Another type of Block that syzygy artificially creates (it has no existence in the image being analyzed) is called a `GAP_BLOCK`; which is basically a block that fills a gap in the address space. For that reason we also skip those blocks.
 
@@ -477,7 +493,7 @@ At this point we have a code Block and we can start to mine whatever information
 
 I am sure at this stage you are interested in compiling it, and get it to run on a binary. To do that we need to add the *plumbing* necessary to surface it to `instrument.exe` tool. First thing you need is an `instrumenter`, we declare it in `doare_instrumenter.h` and define it in `doare_instrumenter.cc` in the `syzygy/instrument/instrumenters` directory:
 
-    :::text
+```text
     D:\syzygy\src>git status
     On branch dev-doare1
     Changes to be committed:
@@ -485,12 +501,13 @@ I am sure at this stage you are interested in compiling it, and get it to run on
     
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.cc
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.h
+```
 
 An instrumenter is basically a class that encapsulate the configuration and the invocation of one or several transforms. The instrumenter can receive options passed by the application, thus can set configuration flags when invoking the transforms, etc. You could imagine parsing a configuration file here, or doing any preparation needed by your transform. Then, the instrumenter registers the transform against the `Relinker` object (a bit like the pass manager in LLVM if you want to think about it this way).
 
 Anyway, as our transform is trivial we basically don't need any of this "preparation"; so let's settle for the least required:
 
-    :::c++
+```c++
     // Axel '0vercl0k' Souchet - 26 Aug 2017
     
     #ifndef SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
@@ -527,10 +544,11 @@ Anyway, as our transform is trivial we basically don't need any of this "prepara
     }  // namespace instrument
     
     #endif  // SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
+```
 
 The `InstrumentPrepare` method is where the instrumenter registers the transform against the relinker object:
 
-    :::c++
+```c++
     // Axel '0vercl0k' Souchet - 26 Aug 2017
     
     #include "syzygy/instrument/instrumenters/doare_instrumenter.h"
@@ -562,10 +580,11 @@ The `InstrumentPrepare` method is where the instrumenter registers the transform
     }
     }  // namespace instrumenters
     }  // namespace instrument
+```
 
 Like before, we also need to add those two files in the `instrument.gyp` file and regenerate the Ninja project files via the `gclient runhooks` command:
 
-    :::text
+```text
     D:\syzygy\src>git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
     index 464c5566..c0eceb87 100644
@@ -589,10 +608,11 @@ Like before, we also need to add those two files in the `instrument.gyp` file an
              'transforms/entry_call_transform.cc',
              'transforms/entry_call_transform.h',
              'transforms/entry_thunk_transform.cc',
+```
 
 The last step for us is to surface our instrumenter to the main of the application. I just add a mode called `doare` that you can set via the `--mode` switch, and if the flag is specified it instantiates the newly born `DoareInstrumenter`.
 
-    :::text
+```text
     D:\syzygy\src>git diff syzygy/instrument/instrument_app.cc
     diff --git a/syzygy/instrument/instrument_app.cc b/syzygy/instrument/instrument_app.cc
     index 72bb40b8..c54258d8 100644
@@ -624,10 +644,11 @@ The last step for us is to surface our instrumenter to the main of the applicati
          } else if (base::LowerCaseEqualsASCII(mode, "flummox")) {
            instrumenter_.reset(new instrumenters::FlummoxInstrumenter());
          } else if (base::LowerCaseEqualsASCII(mode, "profile")) {
+```
 
 This should be it! Recompiling the `instrument` project should be enough to be able to invoke the transform and see some of our debug messages:
 
-    :::text
+```text
     D:\Downloads\syzygy\src>ninja -C out\Release instrument
     ninja: Entering directory `out\Release'
     [4/4] LINK_EMBED instrument.exe
@@ -637,12 +658,13 @@ This should be it! Recompiling the `instrument` project should be enough to be a
     [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace'::Decompose -> block_graph::BlockGraph::AddressSpace::GetBlockByAddress
     [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace'::Decompose -> block_graph::BlockGraph::AddressSpace::GetBlockByAddress
     [...]
+```
 
 ### Visualize it?
 
 As I was writing this I figured it might be worth to spend a bit of time trying to visualize this network to make it more attractive for the readers. So I decided to use [visjs](http://visjs.org/network_examples.html) and the `Post` callback to output the call-graph in a way visjs would understand:
 
-    :::c++
+```c++
     bool CallGraphAnalysis::PostBlockGraphIteration(
         const TransformPolicyInterface* policy,
         BlockGraph* block_graph,
@@ -742,6 +764,7 @@ As I was writing this I figured it might be worth to spend a bit of time trying 
       std::cout << "]);" << std::endl;
       return true;
     }
+```
 
 The above function basically starts to walk the network from the `main` function and do a BFS algorithm (that allows us to define *levels* for each Block). It then outputs two sets of data: the nodes, and the edges.
 
@@ -753,7 +776,7 @@ If you would like to check out the result I have uploaded an interactive network
 
 The idea for this transform came back when I was playing around with [WinAFL](https://github.com/ivanfratric/winafl); I encountered a case where one of the test-case triggered a [/GS](https://msdn.microsoft.com/en-us/library/8dbf701c.aspx) violation in a harness program I was fuzzing. Buffer security checks are a set of compiler and runtime instrumentation aiming at detecting and preventing the exploitation of stack-based buffer overflows. A cookie is placed on the stack by the prologue of the protected function in between the local variables of the stack-frame and the saved stack pointer / saved instruction pointer. The compiler instruments the code so that before the function returns, it invokes a check function (called `__security_check_cookie`) that ensure the integrity of the cookie.
 
-    :::nasm
+```text
     ; void __fastcall __security_check_cookie(unsigned int cookie)
     @__security_check_cookie@4 proc near
     cookie= dword ptr -4
@@ -763,12 +786,13 @@ The idea for this transform came back when I was playing around with [WinAFL](ht
     failure:
        repne jmp ___report_gsfailure
     @__security_check_cookie@4 endp
+```
 
 If the cookie matches the secret, everything is fine, the function returns and life goes on. If it does not, it means something overwrote it and as a result the process needs to be killed. The way the check function achieves this is by raising an exception that the process cannot even catch itself; which makes sense if you think about it as you don't want an attacker to be able to hijack the exception.
 
 On recent version of Windows, this is achieved via a [fail-fast exception](http://www.alex-ionescu.com/?p=69) or by invoking [UnhandledExceptionFilter](https://msdn.microsoft.com/en-us/library/windows/desktop/ms681401(v=vs.85\).aspx) (after forcing the top level exception filter to 0) and terminating the process (done by ` __raise_securityfailure`).
 
-    :::nasm
+```text
     ; void __cdecl __raise_securityfailure(_EXCEPTION_POINTERS *const exception_pointers)
     ___raise_securityfailure proc near
     exception_pointers= dword ptr  8
@@ -786,6 +810,7 @@ On recent version of Windows, this is achieved via a [fail-fast exception](http:
        pop     ebp
        retn
     ___raise_securityfailure endp
+```
 
 Funny enough - if this sounds familiar - turns out I have encountered this very problem a while back and you can read the story here: [Having a Look at the Windows' User/Kernel Exceptions Dispatcher](http://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/).
 
@@ -797,7 +822,7 @@ I started evaluating syzygy with this simple task: making the program crash with
 
 First step is to define a transform as in the previous example. This time I subclass `NamedBlockGraphTransformImpl` which wants me to implement a `TransformBlockGraph` method that receives: a transform policy (used to make decision before applying transformation), the graph (block_graph) and a data Block that represents the PE header of our image (header_block):
 
-    :::c++
+```c++
     class SecurityCookieCheckHookTransform
         : public block_graph::transforms::NamedBlockGraphTransformImpl<
               SecurityCookieCheckHookTransform> {
@@ -814,10 +839,11 @@ First step is to define a transform as in the previous example. This time I subc
                                BlockGraph* block_graph,
                                BlockGraph::Block* header_block) final;
     };
+```
 
 As I explained a bit earlier, the BlockGraph is the top level container of Blocks. This is what I walk through in order to find our Block of interest. The Block of interest for us has the name `__report_gsfailure`:
 
-    :::c++
+```c++
     BlockGraph::Block* report_gsfailure = nullptr;
     BlockGraph::BlockMap& blocks = block_graph->blocks_mutable();
     for (auto& block : blocks) {
@@ -832,10 +858,11 @@ As I explained a bit earlier, the BlockGraph is the top level container of Block
       LOG(ERROR) << "Could not find " << kReportGsFailure << ".";
       return false;
     }
+```
 
 The transform tries to be careful by checking that the Block only has a single referrer: which should be the `__security_cookie_check` Block. If not, I gracefully exit and don't apply the transformation as I am not sure with what I am dealing with.
 
-    :::c++
+```c++
     if (report_gsfailure->referrers().size() != 1) {
       // We bail out if we don't have a single referrer as the only
       // expected referrer is supposed to be __security_cookie_check.
@@ -845,10 +872,11 @@ The transform tries to be careful by checking that the Block only has a single r
                  << " is expected.";
       return false;
     }
+```
 
 At this point, I create a new Block that has only a single instruction designed to trigger a fault every time; to do so I can even use the basic Intel assembler integrated in syzygy. After this, I place this new Block inside the `.text` section the image (tracked by the BlockGraph as mentioned earlier).
 
-    :::c++
+```c++
     BlockGraph::Section* section_text = block_graph->FindOrAddSection(
         pe::kCodeSectionName, pe::kCodeCharacteristics);
     
@@ -871,10 +899,11 @@ At this point, I create a new Block that has only a single instruction designed 
     }
     
     DCHECK_EQ(1u, block_builder.new_blocks().size());
+```
 
 Finally, I update all the referrers to point to our new Block, and remove the `__report_gsfailure` Block as it is effectively now dead-code:
 
-    :::c++
+```c++
     // Transfer the referrers to the new block, and delete the old one.
     BlockGraph::Block* syzygy_report_gsfailure =
         block_builder.new_blocks().front();
@@ -887,10 +916,11 @@ Finally, I update all the referrers to point to our new Block, and remove the `_
       LOG(ERROR) << "Removing " << kReportGsFailure << " failed.";
       return false;
     }
+```
 
 Here is what it looks like after our transformation:
 
-    :::nasm
+```text
     ; void __fastcall __security_check_cookie(unsigned int cookie)
     @__security_check_cookie@4 proc near
     cookie = ecx
@@ -902,6 +932,7 @@ Here is what it looks like after our transformation:
     
     loc_426EE6:
                     mov     ds:0DEADBEEFh, eax
+```
 
 ### One does not simply binary rewrite
 

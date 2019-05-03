@@ -35,7 +35,7 @@ This part is going to describe only the essential information you need to both u
 ## Setting up a proper debugging environment
 The answer to that question is [Qemu](http://wiki.qemu.org/Main_Page), as expected. You can even download already fully prepared & working Debian images on [aurel32](https://people.debian.org/~aurel32/qemu/mipsel/)'s website.
 
-    :::bash get a working qemu environment
+```bash
     overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
     overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/vmlinux-3.2.0-4-4kc-malta
     overclok@wildout:~/chall/nsc2014$ cat start_vm.sh
@@ -58,10 +58,11 @@ The answer to that question is [Qemu](http://wiki.qemu.org/Main_Page), as expect
     permitted by applicable law.
     root@debian-mipsel:~# uname -a
     Linux debian-mipsel 3.2.0-4-4kc-malta #1 Debian 3.2.51-1 mips GNU/Linux
+```
 
 Feel free to install your essentials in the virtual environment, some tools might come handy (it should take a bit of time to install them though):
 
-    :::bash aptitude install all-of-the-things
+```bash
     root@debian-mipsel:~# aptitude install strace gdb gcc python
     root@debian-mipsel:~# wget https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
     root@debian-mipsel:~# mv gdbinit-mips ~/.gdbinit
@@ -91,14 +92,16 @@ Feel free to install your essentials in the virtual environment, some tools migh
        0x402038 <main+20>:  sw      a1,76(s8)
        0x40203c <main+24>:  lw      v1,72(s8)
        0x402040 <main+28>:  li      v0,2
+```
 
 And finally you should be able to run the wild beast:
 
-    :::bash release the beast
+```bash
     root@debian-mipsel:~# /home/user/crackmips
     usage: /home/user/crackmips password
     root@debian-mipsel:~# /home/user/crackmips 'doar-e ftw'
     WRONG PASSWORD
+```
 
 Brilliant :-).
 
@@ -120,7 +123,7 @@ After a bit of time in IDA, here is how works the binary:
 Basically, we need to find the 6 input *DWORD*s that are going to generate the following ones in *output*: *0x7953205b*, *0x6b63616e*, *0x20766974*, *0x534e202b*, *0x203d2043*, *0x5d20333c*. We also know that the father is going to interact with its son, so we need to study both codes to be sure to understand the challenge properly.
 If you prefer code, here is the big picture in C:
 
-    :::c big picture
+```C
     int main(int argc, char *argv[])
     {
         DWORD serial_dwords[6] = {0};
@@ -149,13 +152,14 @@ If you prefer code, here is the big picture in C:
                 BadBoy();
         }
     }
+```
 
 # Let's get our hands dirty
 ## Father's in charge
 The first thing I did after having the big picture was to look at the code of the father. Why? The code seemed a bit simpler than the son's one, so I figured studying the father would make more sense to understand what kind of protection we need to subvert.
 You can even crank up [strace](http://linux.die.net/man/1/strace) to have a clearer overview of the syscalls used:
 
-    :::text strace father
+```text
     root@debian-mipsel:~# strace -i /home/user/crackmips $(python -c 'print "1"*48')
     [7734e224] execve("/home/user/crackmips", ["/home/user/crackmips", "11111111111111111111111111111111"...], [/* 12 vars */]) = 0
     [...]
@@ -196,6 +200,7 @@ You can even crank up [strace](http://linux.die.net/man/1/strace) to have a clea
     [7737052c] ptrace(PTRACE_SETREGS, 2539, 0, 0x7f8f87c4) = 0
     [7737052c] ptrace(PTRACE_CONT, 2539, 0, SIG_0) = 0
     [...]
+```
 
 That's an interesting output that I didn't expect at all actually. What we are seeing here is the father driving its son by modifying, potentially (we will find out that later), its context every time the son is *SIGTRAP*ing (note *waitpid* second argument).
 
@@ -254,7 +259,7 @@ I also chose to implement this engine in a way that we can also use it as a simp
 
 Anyway, after this long theoretical speech let's have a look at some code. The first important job of the engine is to be able to parse MIPS assembly: fortunately for us this is really easy. We are directly feeding plain-text MIPS disassembly directly copied from IDA to our engine:
 
-    :::python mini_mips_symexec_engine.py@MiniMipsSymExecEngine._parse_line
+```python
     def _parse_line(self, line):
       addr_seg, instr, rest = line.split(None, 2)
       args = rest.split(',')
@@ -268,7 +273,7 @@ Anyway, after this long theoretical speech let's have a look at some code. The f
       )
       _, addr = addr_seg.split(':')
       return int(addr, 16), instr, a0, a1, a2
-
+```
 From here you have all the information you need: the instruction and its operands (*None* if an operand doesn't exist as you can have up to 3 operands). The other important job that follows is to handle the different type of operands ; here are the ones I encountered in the challenge:
 
   * General purpose register,
@@ -277,7 +282,7 @@ From here you have all the information you need: the instruction and its operand
 
 To handle / convert those I created a bunch of dull / helper functions:
 
-    :::python mini_mips_symexec_engine.py@MiniMipsSymExecEngine._is_*
+```python
     def _is_gpr(self, x):
       '''Is it a valid GPR name?'''
       return x in self.gpr
@@ -310,12 +315,13 @@ To handle / convert those I created a bunch of dull / helper functions:
       '''Get the stack variable name'''
       _, var_name = x.split('+')
       return var_name.replace('(fp)', '')
+```
 
 Finally, we have to handle every different instructions and their encodings. Of course, you need to implement only the instructions you want: most likely the ones that are used in the code you are interested int. In a nutshell, this is the core of the engine. You can also use it to output valid Python/C lines if you fancy having a decompiler in your sleeve ; might be handy right?
 
 This is what the core function looks like, it is really simple, dumb and so unoptimized ; but at least it's clear to me:
 
-    :::python mini_mips_symexec_engine.py@step
+```python
     def step(self):
       '''This is the core of the engine -- you are supposed to implement the semantics
       of all the instructions you want to emulate here.'''
@@ -355,10 +361,11 @@ This is what the core function looks like, it is really simple, dumb and so unop
         else:
           raise Exception('lw not implemented')
     [...]
+```
 
 The first level of *if* handles the different instructions, the second level of *if* handles the different encodings an instruction can have. The *self.logger* thingy is just my way to save the execution traces in files to let the console clean:
 
-    :::python mini_mips_symexec_engine.py@__init__
+```python
     def __init__(self, trace_name):
       self.gpr = {
         'zero' : 0,
@@ -396,12 +403,13 @@ The first level of *if* handles the different instructions, the second level of 
       
       self.logger.setLevel(logging.INFO)
       self.logger.addHandler(h)
+```
 
 At that point, if I wanted only an emulator I would be done. But because I want to use [Z3](https://z3.codeplex.com/) and symbolic variables I want to get your attention on two common pitfalls that can cost you hours of debugging (trust me on that one :-():
   
   * The first one is that the operator *\_\_rshift\_\_* isn't the logical right shift but the arithmetical one; which is quite different and can generate results you don't expect:
 
-        :::python LShR VS >>
+```python
         In [1]: from z3 import *
         
         In [2]: simplify(BitVecVal(4, 3) >> 1)
@@ -412,10 +420,11 @@ At that point, if I wanted only an emulator I would be done. But because I want 
         
         In [4]: 4 >> 1
         Out[4]: 2
+```
 
   To workaround that I usually define my own *_LShR* function that does whatever is correct according to the operand types (yes we could also replace *z3.BitVecNumRef.\_\_rshift\_\_* by *LShR* directly):
 
-    :::python mini_mips_symexec_engine@_LShR
+```python
     def _LShR(self, a, b):
       '''Useful hook function if you want to run the emulation
       with/without Z3 as LShR is different from >> in Z3'''
@@ -426,10 +435,11 @@ At that point, if I wanted only an emulator I would be done. But because I want 
           b = BitVecVal(b, 32)
         return LShR(a, b)
       return a >> b
+```
 
   * The other interesting detail to keep in mind is that you can't have any overflow on *BitVec*s of the same size ; the result is automatically truncated. So if you happen to have mathematical operations that need to overflow, like a multiplication (this is used in the challenge), you should store the temporary result in a bigger temporary variable. In my case, I was supposed to store the overflow inside another register, *$hi* which is used to store the high *DWORD* part of the result. But because I wasn't storing the result in a bigger *BitVec*, *$hi* ended up **always** equal to zero which is quite a nice problem when you have to pinpoint this issue in thousands lines of assembly :-).
 
-        :::python mini_mips_symexec_engine@step@multu
+```python
         elif instr == 'multu':
           if self._is_gpr(a0) and self._is_gpr(a1) and a2 is None:
             self.logger.info('$lo = ($%s * $%s) & 0xffffffff', a0, a1)
@@ -450,10 +460,11 @@ At that point, if I wanted only an emulator I would be done. But because I want 
             x = self.gpr[a0] * self.gpr[a1]
             self.gpr['lo'] = x & 0xffffffff
             self.gpr['hi'] = self._LShR(x, 32)
+```
 
 I think this is it really, you can now impress girls with your brand new shiny toy, check this out:
 
-    :::python mini_mips_symexec_engine@main
+```python
     def main(argc, argv):
         print '=' * 50
         sym = MiniMipsSymExecEngine('donotcare.log')
@@ -491,10 +502,11 @@ I think this is it really, you can now impress girls with your brand new shiny t
         print 'Resulting value when `a` is 0xdeadb44: %#.8x' % emu.gpr['v0']
         print '=' * 50
         return 1
+```
 
 Which results in:
 
-    :::text w00t, emu & symbolic execution works
+```text
     PS D:\Codes\NoSuchCon2014> python .\mini_mips_symexec_engine.py
     ==================================================
     Symbolic mode:
@@ -509,6 +521,7 @@ Which results in:
     Emulator mode:
     Resulting value when `a` is 0xdeadb44: 0x98f42d24
     ==================================================
+```
 
 Of course, I didn't mention a lot of details that still need to be addressed to have something working: simulating data areas, memory layouts, etc. If you are interested in those, you should read the codes in my [NoSuchCon2014 folder](https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014).
 
@@ -518,7 +531,7 @@ Here comes the important bits!
 ### Extracting the function that generates the magic value from the son program counter
 All right, the main objective in this part is to extract the formula that generates the first magic value. As we said earlier, this big block can be seen as a function that takes two arguments (or symbolic variables) and generates the *magic DWORD* in output. The first thing to do is to copy the code somewhere to feed it to our engine ; I decided to stick all the codes I needed into a separate Python file called *code.py*.
 
-    :::python code.py
+```python
     block_generate_magic_from_pc_son = '''.text:00400B8C                 lw      $v0, 0x318+pc_son($fp)  # Load Word
     .text:00400B90                 sw      $v0, 0x318+tmp_pc($fp)  # Store Word
     .text:00400B94                 la      $v0, loc_400A78  # Load Address
@@ -538,9 +551,11 @@ All right, the main objective in this part is to extract the formula that genera
     .text:00401434                 sllv    $v0, $a0, $v0    # Shift Left Logical Variable
     .text:00401438                 or      $v0, $v1, $v0    # OR
     .text:0040143C                 sw      $v0, 0x318+tmp_pc($fp)  # Store Word'''.split('\n')
+```
+
 Then we have to prepare the environment of our engine: the two symbolic variables are stack-variables, so we have to insert them in the context of our virtual environment. The resulting formula is going to be in *$v0* at the end of the execution ; this the holy grail, the formula we are after.
 
-    :::python solve_nsc2014_step1_z3.py@extract_equation_of_function_that_generates_magic_value
+```python
     def extract_equation_of_function_that_generates_magic_value():
       '''Here we do some magic to transform our mini MIPS emulator
       into a symbolic execution engine ; the purpose is to extract
@@ -559,10 +574,11 @@ Then we have to prepare the environment of our engine: the two symbolic variable
         f.write(to_SMT2(compute_magic_equation, name = 'generate_magic_from_pc_son'))
     
       return pc_son, n_break, simplify(compute_magic_equation)
+```
 
 You can now keep in memory the formula & wrap this function in another one so that you can reuse it every time you need it:
 
-    :::python solve_nsc2014_step1_z3.py@generate_magic_from_son_pc_using_z3
+```python
     var_magic, var_n_break, expr_magic = [None]*3
     def generate_magic_from_son_pc_using_z3(pc_son, n_break):
       '''Generates the 32 bits magic value thanks to the output
@@ -577,10 +593,11 @@ You can now keep in memory the formula & wrap this function in another one so th
         (var_magic, BitVecVal(pc_son, 32)),
         (var_n_break, BitVecVal(n_break, 32))
       ).as_long()
+```
 
 The power of using symbolic variables here lies in the fact that we don't need to run the emulator every single time you need to call this function ; you get once the generic formula and you just have to substitute the symbolic variables by the concrete values you want. This comes for free with our code, so let's use it heh :-).
 
-    :::text resulting formula in SMT2 format
+```text
     ; generate_magic_from_pc_son
     (declare-fun n_break () (_ BitVec 32))
     (declare-fun pc_son () (_ BitVec 32))
@@ -662,13 +679,14 @@ The power of using symbolic variables here lies in the fact that we don't need t
     (let ((?x494 (concat (bvnot (bvor ((_ extract 31 31) (bvshl ?x392 ?x20)) ((_ extract 31 31) ?x388))) (bvor ((_ extract 30 30) (bvshl ?x392 ?x20)) ((_ extract 30 30) ?x388)) (bvnot (bvor ((_ extract 29 27) (bvshl ?x392 ?x20)) ((_ extract 29 27) ?x388))) (bvor ((_ extract 26 25) (bvshl ?x392 ?x20)) ((_ extract 26 25) ?x388)) (bvnot (bvor ((_ extract 24 23) (bvshl ?x392 ?x20)) ((_ extract 24 23) ?x388))) (bvor ((_ extract 22 21) (bvshl ?x392 ?x20)) ((_ extract 22 21) ?x388)) (bvnot (bvor ((_ extract 20 16) (bvshl ?x392 ?x20)) ((_ extract 20 16) ?x388))) (bvor ((_ extract 15 15) (bvshl ?x392 ?x20)) ((_ extract 15 15) ?x388)) (bvnot (bvor ((_ extract 14 14) (bvshl ?x392 ?x20)) ((_ extract 14 14) ?x388))) (bvor ((_ extract 13 12) (bvshl ?x392 ?x20)) ((_ extract 13 12) ?x388)) (bvnot (bvor ((_ extract 11 10) (bvshl ?x392 ?x20)) ((_ extract 11 10) ?x388))) (bvor ((_ extract 9 8) (bvshl ?x392 ?x20)) ((_ extract 9 8) ?x388)) (bvnot (bvor ((_ extract 7 2) (bvshl ?x392 ?x20)) ((_ extract 7 2) ?x388))) (bvor ((_ extract 1 1) (bvshl ?x392 ?x20)) ((_ extract 1 1) ?x388)) (bvnot (bvor ((_ extract 0 0) (bvshl ?x392 ?x20)) ((_ extract 0 0) ?x388))))))
     (let ((?x450 (bvor (bvlshr ?x494 ?x20) (bvshl ?x494 ?x24))))
     (bvor (bvlshr ?x450 ?x20) (bvshl ?x450 ?x24)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+```
 
 Quite happy we don't have to study that right?
 
 ### Extracting the function that generates the new program counter from the second magic value
 For the second big block of code, we can do exactly the same thing: copy the code, configure the virtual environment with our symbolic variables and wrap the function:
 
-    :::python solve_nsc2014_step1_z3.py@generate_new_pc_from_magic_high/extract_equation_of_function_that_generates_new_son_pc
+```python
     def extract_equation_of_function_that_generates_new_son_pc():
       '''Extract the formula of the function generating the new son's $pc'''
       x = mini_mips_symexec_engine.MiniMipsSymExecEngine('function_that_generates_new_son_pc.log')
@@ -696,18 +714,20 @@ For the second big block of code, we can do exactly the same thing: copy the cod
           (var_new_pc, BitVecVal(magic_high, 32)),
           (var_n_loop, BitVecVal(n_loop, 32))
       ).as_long()
+```
 
 If you are interested in what the formula looks like, it is also available in the [NoSuchCon2014 folder](https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014) on my [github](https://github.com/0vercl0k).
 
 ### Putting it all together: building a function that computes the new program counter of the son
 Obviously, we don't really care about those two previous functions, we just want to combine them together to implement the computation of the new program counter from both the round number & where the son *SIGTRAP*'d. The only missing bits is the lookup in the *QWORD*s array to extract the *second magic value*. We just have to dump the array inside another file called *memory.py*. This is done with a simple IDA Python one-liner:
 
-    :::python Dump the QWORD array with IDAPy
+```python
     values = dict((0x00414130+i*8, Qword(0x00414130+i*8)) for i in range(0x25E))
+```
 
 Now, we can build the whole function easily by combining all those pieces:
 
-    :::python solve_nsc2014_step1_z3.py@generate_new_pc_from_pc_son_using_z3
+```python
     def generate_new_pc_from_pc_son_using_z3(pc_son, n_break):
       '''Generate the new program counter from the address where the son SIGTRAP'd and
       the number of SIGTRAP the son encountered'''
@@ -721,6 +741,7 @@ Now, we can build the whole function easily by combining all those pieces:
     
       assert(idx != None)
       return generate_new_pc_from_magic_high(memory.pcs[idx] >> 32, loop_n)
+```
 
 Sweet. Really sweet.
 
@@ -744,7 +765,7 @@ So basically to unscramble the code, we just need to simulate what the father wo
 
 Here is the function I used:
 
-    :::python solve_nsc2014_step1_z3.py@generate_son_code_reordered
+```python
     def generate_son_code_reordered(debug = False):
         '''This functions puts in the right order the son's block of codes without
         relying on the father to set a new $pc value when a break is executed in the son.
@@ -804,6 +825,7 @@ Here is the function I used:
                     i += 1
     
         return cleaned_code
+```
 
 And there it is :-)
 
@@ -818,7 +840,7 @@ Now that we have the code unscrambled, we can directly feed it to our engine but
 
 As previously, we need to copy the code we want to execute. Note that we can also use *generate_son_code_reorganized* to generate it dynamically. Next step is to configure the virtual environment and we are good to finally run the code:
 
-    :::python solve_nsc2014_step1_z3@get_serial first part
+```python
     def get_serial():
       print '> Instantiating the symbolic execution engine..'
       x = mini_mips_symexec_engine.MiniMipsSymExecEngine('decrypt_serial.log')
@@ -846,12 +868,13 @@ As previously, we need to copy the code we want to execute. Note that we can als
     
       print '> Running the code..'
       x.run()
+```
 
 The thing that matters this time is to find *a, b, c, d, e, f* so that they generate specific outputs ; so this is where [Z3](https://z3.codeplex.com/) is going to help us a **lot**. Thanks to that guy we don't need to manually invert the algorithm.
 
 The final bit now is basically just about setting up the solver, setting the correct constraints and generating the serial you guys have been waiting for so long:
 
-    :::python solve_nsc2014_step1_z3@get_serial second part
+```python
       print '> Instantiating & configuring the solver..'
       s = Solver()
       s.add(
@@ -870,10 +893,11 @@ The final bit now is basically just about setting up the solver, setting the cor
         print '> Serial:', ''.join(('%.8x' % m[i].as_long())[::-1] for i in (a, b, c, d, e, f)).upper()
       else:
         print '! Constraints unsolvable'
+```
 
 There we are, the final moment; *drum roll*
 
-    :::text python solve_nsc2014_step1_z3.py + YAY
+```text
     PS D:\Codes\NoSuchCon2014> python .\solve_nsc2014_step1_z3.py
     ==================================================
     Tests OK -- you are fine to go
@@ -905,6 +929,7 @@ There we are, the final moment; *drum roll*
     root@debian-mipsel:~# /home/user/crackmips 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
     good job!
     Next level is there: http://nsc2014.synacktiv.com:65480/oob4giekee4zaeW9/
+```
 
 Boom :-).
 
@@ -920,7 +945,7 @@ As Axel has previously explained, the first step is to recover the child's execu
 
 The parent's main loop is obfuscated, but by browsing cross-references of stack variables in IDA, we can see where each one is used. After a bit of analysis, we can try to decompile by hand the algorithm, and write a pseudo-Python code description of what the `debug` function does (it is really simplified):
 
-    :::python debug_pseudo_code.py
+```python
     counter = 0
     waitpid()
     
@@ -947,6 +972,7 @@ The parent's main loop is obfuscated, but by browsing cross-references of stack 
     
         if(not waitpid()):
             break
+```
 
 The "big blocks" are the two long assembly blocks preceding and following the inner loop. Without looking at the gory details, we understand that a `param` value is derived from the counter using a function that I call `f`, and then used to obfuscate the original child's `pc`. The result is then searched in a `pcs` array (stored at address `0414130`), the next dword is extracted and used in a 2nd obfuscation pass to finally produce the new `pc` value injected into the child.
 
@@ -968,7 +994,7 @@ Tracing is pretty straightforward with GDB using `bp` and `commands`. In order t
 
 Here is the script:
 
-    :::text gdb_trace1_script.txt
+```text
     ##################################
     # A few handy functions
     ##################################
@@ -1017,10 +1043,11 @@ Here is the script:
     end
     
     c
+```
 
 To run that script within GDB, we first need to start `crackmips` with gdbserver in our `qemu` VM. After a few minutes, we get the following (cleaned) trace:
 
-    :::text gdb_trace1.txt
+```text
     New round
     counter = 0
     regs.pc = 0x0040228c
@@ -1043,6 +1070,7 @@ To run that script within GDB, we first need to start `crackmips` with gdbserver
     regs.pc = 0x00402da8
     
     [...]
+```
 
 By reading the trace further, we realize that `param` is always equal to `counter/101`. This is actually the child's own loop counter, since its big loop is made of 101 pseudo basic blocks. We also notice that the `pc` sequence is different for each child's loop: round 0 is not equal to round 101, etc.
 
@@ -1050,7 +1078,7 @@ By reading the trace further, we realize that `param` is always equal to `counte
 
 Since we're only interested in the final `pc` value for each round, we can make a simpler script that just outputs those values. And organize them in a parsable format to be able to use them later in another script. Here is the version 2 of the script:
 
-    :::text gdb_trace2_script.txt
+```text
     def print_context_pc
         printf "0x%08x\n", *(int*)($fp-0x1cc)
     end
@@ -1069,10 +1097,11 @@ Since we're only interested in the final `pc` value for each round, we can make 
     end
     
     c
+```
 
 The cleaned trace only contains the 606 `pc` values, one on each line:
 
-    :::text gdb_trace.txt
+```text
     0x00402290
     0x00402ce0
     0x00402da8
@@ -1080,6 +1109,7 @@ The cleaned trace only contains the 606 `pc` values, one on each line:
     [...]
     0x004030e4
     0x004039dc
+```
 
 Mission 1: accomplished!
 
@@ -1093,17 +1123,18 @@ Even though [writing a symbolic execution engine from scratch](#writing_symbolic
 
 Before scripting everything, let's first see how to use Miasm to perform symbolic execution of one basic block. For the sake of simplicity, let's work on the first basic block of the child's main loop.
 
-    :::python miasm_example.py (1/5)
+```python
     from miasm2.analysis.machine import Machine
     from miasm2.analysis import binary
     
     bi = binary.Container("crackmips")
     machine = Machine('mips32l')
     mn, dis_engine_cls, ira_cls = machine.mn, machine.dis_engine, machine.ira
+```
 
 First, we open the crackme using the generic `Container` class. It automatically detects the executable format and uses *Elfesteem* to parse it. Then we use the handy `Machine` class to get references to useful classes we'll use to disassemble and analyze the binary.
 
-    :::python miasm_example.py (2/5)
+```python
     BB_BEGIN = 0x00402290
     BB_END = 0x004022BC
     
@@ -1112,10 +1143,11 @@ First, we open the crackme using the generic `Container` class. It automatically
     dis_engine.dont_dis = [BB_END]
     bloc = dis_engine.dis_bloc(BB_BEGIN)
     print '\n'.join(map(str, bloc.lines))
+```
 
 Here, we disassemble a single basic block, by explicitly telling Miasm its start and end address. The disassembler is created by instantiating the `dis_engine_cls` class. `bi.bs` represents the binary stream we are working on. I admit the `dont_dis` syntax is a bit weird; it is used to tell Miasm to stop disassembling when it reaches a given address. We do it here because the next instruction is a `break`, and Miasm does not normally think it is the end of a basic block. When you run those lines, you should get this output:
 
-    :::text miasm_example.py output
+```text
     LW         V1, 0x38(FP)
     SLL        V0, V1, 0x2
     ADDIU      A0, FP, 0x18
@@ -1127,18 +1159,20 @@ Here, we disassemble a single basic block, by explicitly telling Miasm its start
     ADDIU      V1, FP, 0x18
     ADDU       V0, V1, V0
     SW         A0, 0x8(V0)
+```
 
 Okay, so we know how to disassemble a block with Miasm. Let's now see how to convert it into the Intermediate Representation:
 
-    :::python miasm_example.py (3/5)
+```python
     # Transform to IR
     ira = ira_cls()
     irabloc = ira.add_bloc(bloc)[0]
     print '\n'.join(map(lambda b: str(b[0]), irabloc.irs))
+```
 
 We instantiated the `ira_cls` class and called its `add_bloc` method. It takes a basic block as input and outputs a list of IR basic blocs; here we know that we'll get only one, so we use `[0]`. Let's see what is the output of those lines:
 
-    :::text miasm_sample.py output
+```text
     V1 = @32[(FP+0x38)]
     V0 = (V1 << 0x2)
     A0 = (FP+0x18)
@@ -1151,12 +1185,13 @@ We instantiated the `ira_cls` class and called its `add_bloc` method. It takes a
     V0 = (V1+V0)
     @32[(V0+0x8)] = A0
     IRDst = loc_00000000004022BC:0x004022bc
+```
 
 Each one of those lines are instructions in Miasm's IR language. It is pretty easy: each instruction is described as a list of side-effects it has on some variables, using expressions and affectations. `@32[...]` represents a 32-bit memory access; when it's on the left of an `=` sign, it's a *write* access, when it's on the right it's a *read*. The last line uses the pseudo-register `IRDst`, which is kind of the IR's `pc` register. It tells Miasm where is located the next basic block.
 
 Great! Let's see now how to perform symbolic execution on this IR basic block.
 
-    :::python miasm_example.py (4/5)
+```python
     from miasm2.expression.expression import *
     from miasm2.ir.symbexec import symbexec
     from miasm2.expression.simplifications import expr_simp
@@ -1174,17 +1209,19 @@ Great! Let's see now how to perform symbolic execution on this IR basic block.
     print "Memory changed at %s :" % mem
     print "\tbefore:", exprs[0]
     print "\tafter:", exprs[1]
+```
 
 The first lines are initializing the symbol pool used for symbolic execution. We then use the `symbexec` module to create an execution engine, and we give it our fresh IR basic block. The result of the execution is readable by browsing the attributes of `sb.symbols`. Here I am mainly interested on the memory side-effects, so I use `symbols_mem.items()` to list them. `symbols_mem` is actually a dict whose keys are the memory locations that changed during execution, and values are pairs containing both the previous value that was in that memory cell, and the new one. There's only one change, and here it is:
 
-    :::text miasm_example.py output
+```text
     Memory changed at (FP_init+(@32[(FP_init+0x38)] << 0x2)+0x20) :
       before: @32[(FP_init+(@32[(FP_init+0x38)] << 0x2)+0x20)]
       after: (@32[(FP_init+(@32[(FP_init+0x38)] << 0x2)+0x20)]+(- @32[(FP_init+0x38)]))
+```
 
 The expressions are getting a bit more complex, but still pretty readable. `FP_init` represents the value of the `fp` register at the beginning of execution. We can clearly see that a memory location as modified since a value was subtracted from it. But we can do better: we can give Miasm simplification rules in order to make this output much more readable. Let's do it!
 
-    :::python miasm_example.py (5/5)
+```python
     # Simplifications
     fp_init = ExprId('FP_init', 32)
     zero_init = ExprId('ZERO_init', 32)
@@ -1202,6 +1239,7 @@ The expressions are getting a bit more complex, but still pretty readable. `FP_i
         return expr2
     
     print "%s = %s" % (my_simplify(exprs[0]) ,my_simplify(exprs[1]))
+```
 
 Here we declare 3 replacement rules:
 
@@ -1211,8 +1249,9 @@ Here we declare 3 replacement rules:
 
 There is actually a more generic way to do it using pattern matching rules with jokers, but we don't really need this machinery here. This the result we get after simplification:
 
-    :::text miasm_example.py final output
+```text
     pwd[i] = (pwd[i]+(- i))
+```
 
 That's all! So all this basic block does is a subtraction. What is nice is that the output is actually valid Python code :). This will be very useful in the last part.
 
@@ -1222,7 +1261,7 @@ So in less than 60 lines, we were able to disassemble an arbitrary basic block, 
 
 Here is an extract of the script automating all of this:
 
-    :::python miasm_symbexec.py
+```python
     def load_trace(filename):
         return [int(x.strip(), 16) for x in open(filename).readlines()]
     
@@ -1249,12 +1288,13 @@ Here is an extract of the script automating all of this:
         bb_index = bb_starts.index(bb_ea)
         #print "%x : %s" % (bb_ea, exprs2str(bb_exprs[bb_index]))
         print exprs2str(bb_exprs[bb_index])
+```
 
 The `analyse_bb()` function perform symbolic execution on a single basic block, given its start and end addresses. This is just wrapping what we've been doing so far into a function. The GDB trace is opened, parsed, and a list of basic block addresses is built from it (we cheat a little bit for the last one of the loop, by hardcoding it). Each basic block is analyzed and the resulting expressions are pushed into the `bb_exprs` list. Then the GDB trace is processed, by outputting the expressions corresponding to each basic block.
 
 This is what we get:
 
-    :::python output_algo.py
+```python
     # Building IR blocs & expressions for all basic blocks
     # Reconstructing the whole algorithm based on GDB trace
     pwd[i] = (pwd[i]+(- i))
@@ -1267,12 +1307,13 @@ This is what we get:
     pwd[i] = ((pwd[i] << 0x14)|(pwd[i] >> 0xC))
     pwd[i] = ((pwd[i] << ((i+0x1)&0x1F))|(pwd[i] >> ((((0x0|i)^0xFFFFFFFF)+0x20)&0x1F)))
     i = (i+0x1)
+```
 
 ## Solving with Z3
 
 Okay, so now we have a Python (and even C ;) file describing the operations performed on the 6 dwords containing the input key. We could try to bruteforce it, but using a constraint solver is much more elegant and faster. I also chose Z3 because it has nice Python bindings. And since its expression syntax is mostly compatible with Python, we just need to add a few things to our generated file!
 
-    :::python sample_solver.py
+```python
     from z3 import *
     import struct
     
@@ -1309,14 +1350,16 @@ Okay, so now we have a Python (and even C ;) file describing the operations perf
     key = ''.join(("%08x" % dw)[::-1].upper() for dw in sol_dw)
     
     print "KEY = %s" % key
+```
 
 We've declared the valid solution, the list of 6 32-bit variables (`pwd`), pasted the algorithm, and ran the solver. We just need to be careful with the `>>` operation, since Z3 [treats](http://stackoverflow.com/a/25535854) it as an arithmetic shift, and we want a logical one. So we replace it with a dirty hook.
  
 The solution should come almost instantly:
 
-    :::bash
+```bash
     $ python sample_solver.py
     KEY = 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
+```
 
 ## Alternative solution - conclusion
 

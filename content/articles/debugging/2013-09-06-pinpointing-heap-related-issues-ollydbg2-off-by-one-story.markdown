@@ -25,7 +25,7 @@ In this post, I will show you how I've manage to pinpoint where the bug was, usi
 # The crash
 The first thing I did was to launch WinDbg to debug OllyDbg2 to debug my binary (yeah.). Once OllyDbg2 has been started up, I reproduced exactly the same steps as previously to trigger the bug and here is what WinDbg was telling me:
 
-    :::text
+```text
     HEAP[ollydbg.exe]: Heap block at 00987AB0 modified at 00987D88 past
     requested size of 2d0
     
@@ -35,10 +35,11 @@ The first thing I did was to launch WinDbg to debug OllyDbg2 to debug my binary 
     cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
     ntdll!RtlpBreakPointHeap+0x23:
     76f90574 cc              int     3
+```
 
 We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like *after*, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:
 
-    :::text
+```text
     0:000> k
     ChildEBP RetAddr  
     00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
@@ -50,6 +51,7 @@ We got a debug message from the heap allocator informing us the process has writ
     00189cc8 00403cfc KERNELBASE!GlobalFree+0x27
     00189cd4 004cefc0 ollydbg!Memfree+0x3c
     ...
+```
 
 As we said just above, the message from the heap allocator has been probably triggered when OllyDbg2 wanted to free a chunk of memory.
 
@@ -74,7 +76,7 @@ To enable it for *ollydbg.exe*, it's trivial. We just launch the *gflags.exe* bi
 <center>![gflags.png](/images/pinpointing_heap_related_issues__ollydbg2_off_by_one_story/gflags.png)</center>
 Now, you just have to relaunch your target in WinDbg, reproduce the bug and here is what I get now:
 
-    :::text
+```text
     (f48.1140): Access violation - code c0000005 (first chance)
     First chance exceptions are reported before any exception handling.
     This exception may be expected and handled.
@@ -84,10 +86,11 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
     ollydbg!Findfreehardbreakslot+0x21d9:
     004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
+```
 
 Woot, this is very cool, because now we know **exactly** where something is going wrong. Let's get more information about the heap chunk now:
 
-    :::text
+```text
     0:000> !heap -p -a ecx
         address 0f00ed30 found in
         _DPH_HEAP_ROOT @ 4f11000
@@ -108,6 +111,7 @@ Woot, this is very cool, because now we know **exactly** where something is goin
         004570f4 ollydbg!Checkfordebugevent+0x00003f38
         0040fc51 ollydbg!Setstatus+0x00006441
         004ef9ef ollydbg!Pluginshowoptions+0x0001214f
+```
 
 With this really handy command we got a lot of relevant information:
 
@@ -119,7 +123,8 @@ With this really handy command we got a lot of relevant information:
 # Looking inside OllyDbg2
 We are kind of lucky, the routines involved with this bug are quite simple to reverse-engineer, and Hexrays works just like a charm. Here is the C code (the interesting part at least) of the buggy function:
 
-    :::c ollydbg!buggy @ 0x004CE424
+```c 
+//ollydbg!buggy @ 0x004CE424
     signed int buggy(struct_a1 *u)
     {
       int file_size;
@@ -164,6 +169,7 @@ We are kind of lucky, the routines involved with this bug are quite simple to re
         // ...
       }
     }
+```
 
 So, let me explain what this routine does:
 
@@ -174,9 +180,11 @@ So, let me explain what this routine does:
 * From line 12 to 18: we have a loop counting the total number of lines in your source code.
 * At line 20: we have the allocation of our chunk. It allocates 12*(nb_lines + 1) bytes. We saw previously in WinDbg that the size of the chunk was 0x2d0: it should means we have exactly ((0x2d0 / 12) - 1) = 59 lines in our source code:
 
-    :::text
+```text
     D:\TODO\crashes\odb2-OOB-write-heap>wc -l OOB-write-heap-OllyDbg2h-trigger.c
     59 OOB-write-heap-OllyDbg2h-trigger.c
+```
+
 Good.
 
 * From line 24 to 39: we have a loop similar to previous one. It's basically counting lines again and initializing the memory we just allocated with some information.
@@ -184,16 +192,17 @@ Good.
 
 At this point, we have fully explained the bug. If you want to do some dynamic analysis in order to follow important routines, I've made several breakpoints, here they are:
 
-    :::text
+```text
     bp 004CF1BF ".printf \"[Getsourceline] %mu\\n[Getsourceline] struct: 0x%x\", poi(esp + 4), eax ; .if(eax != 0){ .if(poi(eax + 0x218) == 0){ .printf \" field: 0x%x\\n\", poi(eax + 0x218); gc }; } .else { .printf \"\\n\\n\" ; gc; };"
     bp 004CE5DD ".printf \"[buggy] Nbline: 0x%x \\n\", eax ; gc"
     bp 004CE5E7 ".printf \"[buggy] Nbbytes to alloc: 0x%x \\n\", poi(esp) ; gc"
     bp 004CE742 ".printf \"[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\", eax, poi(ebp - 1C), poi(ebp - 8) ; gc"
     bp 004CE769 ".printf \"[buggy] mov [0x%x + 0x%x], 0x%x\\n\", ecx, eax * 4, edx"
+```
 
 On my environment, it gives me something like:
 
-    :::text
+```text
     [Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
     [Getsourceline] struct: 0x0
     [...]
@@ -215,6 +224,7 @@ On my environment, it gives me something like:
     cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
     ollydbg!Findfreehardbreakslot+0x21d9:
     004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
+```
 
 # Repro@home
 1. Download the last version of OllyDbg2 [here](http://ollydbg.de/odbg201h.zip), extract the files

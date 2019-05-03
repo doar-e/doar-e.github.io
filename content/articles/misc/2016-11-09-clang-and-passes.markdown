@@ -64,7 +64,7 @@ When you are writing a pass, you write a class that subclasses a `*Pass` parent 
 
 For today's use-case I have chosen to subclass `BasicBlockPass` because our analysis doesn't need anything else than a `BasicBlock` to work. This is the case because we are mainly interested to capture certain arguments passed to certain function calls. Here is what looks like a function call in the [LLVM IR](http://llvm.org/docs/LangRef.html) world:
 
-    :::text
+```text
     %retval = call i32 @test(i32 %argc)
     call i32 (i8*, ...)* @printf(i8* %msg, i32 12, i8 42)   ; yields i32
     %X = tail call i32 @foo()                               ; yields i32
@@ -77,10 +77,11 @@ For today's use-case I have chosen to subclass `BasicBlockPass` because our anal
     %gr1 = extractvalue %struct.A %r, 1    ; yields i8
     %Z = call void @foo() noreturn         ; indicates that %foo never returns normally
     %ZZ = call zeroext i32 @bar()          ; Return value is %zero extended
+```
 
 Every time `AFLTokenCap::runOnBasicBlock` is called, the LLVM mid-end will call into our analysis pass (either statically linked into clang/opt or will dynamically load it) with a `BasicBlock` passed by reference. From there, we can iterate through the set of instructions contained in the basic block and find the [call](http://llvm.org/docs/LangRef.html#call-instruction) instructions. Every instructions subclass the top level [llvm::Instruction](http://llvm.org/docs/doxygen/html/classllvm_1_1Instruction.html) class - in order to filter you can use the `dyn_cast<T>` template function that works like the `dynamic_cast<T>` operator but does not rely on RTTI (and is more efficient - according to the [LLVM coding standards](http://llvm.org/docs/CodingStandards.html)). Used in conjunction with a [range-based for loop](http://en.cppreference.com/w/cpp/language/range-for) on the `BasicBlock` object you can iterate through all the instructions you want.
 
-    :::c++
+```c++
     bool AFLTokenCap::runOnBasicBlock(BasicBlock &B) {
     
       for(auto &I_ : B) {
@@ -92,6 +93,7 @@ Every time `AFLTokenCap::runOnBasicBlock` is called, the LLVM mid-end will call 
         }
       }
     }
+```
 
 Once we have found a [llvm::CallInst](http://llvm.org/docs/doxygen/html/classllvm_1_1CallInst.html) instance, we need to:
 
@@ -108,12 +110,13 @@ In order to detect hard-coded strings in the arguments passed to function calls,
 
 The end goal, is to find `llvm::ConstantDataArray`s and to retrieve their raw values - those will be the hard-coded strings we are looking for.
 
-    :::text
+```text
     /home/over/workz/afl-2.35b/afl-clang-fast -c -W -Wall -O3 -funroll-loops   -fPIC -o png.pic.o png.c
     [...]
     afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
     [...]
     [+] Call to memcmp with constant "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3" found in png.c/png_icc_check_header
+```
 
 At this point, the pass basically does what the token capture library is able to do.
 
@@ -121,7 +124,8 @@ At this point, the pass basically does what the token capture library is able to
 
 After playing around with it on libpng though, I quickly was wondering why the pass would not extract all the constants I could find in [one of the dictionary](https://github.com/rc0r/afl-fuzz/blob/master/dictionaries/png.dict) already generated and shipped with afl:
 
-    :::text png.dict
+```text
+// png.dict
     section_IDAT="IDAT"
     section_IEND="IEND"
     section_IHDR="IHDR"
@@ -137,9 +141,12 @@ After playing around with it on libpng though, I quickly was wondering why the p
     section_iCCP="iCCP"
     section_iTXt="iTXt"
     ...
+```
+
 Some of those can be found in the function [png_push_read_chunk](https://github.com/glennrp/libpng/blob/libpng16/pngpread.c#L226) in the file [pngpread.c](https://github.com/glennrp/libpng/blob/libpng16/pngpread.c) for example:
 
-    :::c png_push_read_chunk
+```c 
+//png_push_read_chunk
     #define png_IHDR PNG_U32( 73,  72,  68,  82)
     // ...
     if (chunk_name == png_IHDR)
@@ -163,12 +170,13 @@ Some of those can be found in the function [png_push_read_chunk](https://github.
       PNG_PUSH_SAVE_BUFFER_IF_FULL
       png_handle_PLTE(png_ptr, info_ptr, png_ptr->push_length);
     }
+```
 
 In order to also grab those guys, I have decided to add the support for compare instructions with integer immediate (in one of the operand). Again, thanks to LLVM this is really easy to pull that off: we just need to find the [llvm::ICmpInst](http://llvm.org/docs/doxygen/html/classllvm_1_1ICmpInst.html) instructions. The only thing to keep in mind is  false positives. In order to lower the false positives rate, I have chosen to consider an integer immediate as a token only if only it is fully ASCII (like the `libpng` tokens above)
 
 We can even push it a bit more, and handle switch statements via the same strategy. The only additional step is to retrieve every `cases` from in the `switch` statement: [llvm::SwitchInst::cases](http://llvm.org/docs/doxygen/html/classllvm_1_1SwitchInst.html#a8e7005748409a956c8875e259716559b).
 
-    :::c++
+```c++
     /* Handle switch/case with integer immediates */
     else if(SwitchInst *SI = dyn_cast<SwitchInst>(&I_)) {
       for(auto &CIT : SI->cases()) {
@@ -177,6 +185,7 @@ We can even push it a bit more, and handle switch statements via the same strate
         dump_integer_token(CI);
       }
     }
+```
 
 ## Limitations
 
@@ -184,7 +193,7 @@ The main limitation is that as you are supposed to run the pass as part of the c
 
 A partial solution (as in, it reduces the noise, but does not remove it entirely) I have implemented is just to not process any functions called `main`. Most of the cases I have seen (the set of samples is pretty small I won't lie >:]), this argument parsing is made in the `main` function and it is very easy to not process it by blacklisting it as you can see below:
 
-    :::c++
+```c++
     bool AFLTokenCap::runOnBasicBlock(BasicBlock &B) {
     // [...]
       Function *F = B.getParent();
@@ -192,6 +201,7 @@ A partial solution (as in, it reduces the noise, but does not remove it entirely
     
       if(strcmp(m_FunctionName, "main") == 0)
         return false;
+```
 
 Another thing I wanted to experiment on, but did not, was to provide a regular expression like string (think "test/*") and not process every files/path that are matching it. You could easily blacklist a whole directory of tests with this.
 
@@ -199,7 +209,7 @@ Another thing I wanted to experiment on, but did not, was to provide a regular e
 
 I have not spent much time trying it out on a lot of code-bases (feel free to send me your feedbacks if you run it on yours though!), but here are some example results with various degree of success.. or not. Starting with `libpng`:
 
-    :::text lpng
+```text
     over@bubuntu:~/workz/lpng1625$ AFL_TOKEN_FILE=/tmp/png.dict make
     cp scripts/pnglibconf.h.prebuilt pnglibconf.h
     /home/over/workz/afl-2.35b/afl-clang-fast -c -I../zlib  -W -Wall -O3 -funroll-loops   -o png.o png.c
@@ -256,10 +266,11 @@ I have not spent much time trying it out on a lot of code-bases (feel free to se
     "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3"
     "XYZ "
     "zTXt"
+```
 
 On [sqlite3](https://github.com/mackyle/sqlite) ([sqlite.dict]()):
 
-    :::text sqlite3
+```text
     over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
     [...]
     afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
@@ -326,10 +337,11 @@ On [sqlite3](https://github.com/mackyle/sqlite) ([sqlite.dict]()):
     "weekday "
     "\xd9\xd5\x05\xf9 \xa1c"
     "year"
+```
 
 On [libxml2](https://github.com/GNOME/libxml2) (here is a library with a lot of test cases / utilities that raises the noise ratio in the tokens extracted - cf `xmlShell*` for example):
 
-    :::text libxml2
+```text
     over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh && AFL_TOKEN_FILE=/tmp/xml.dict make
     [...]
     afl-clang-fast 2.35b by <lszekeres@google.com>
@@ -522,10 +534,12 @@ On [libxml2](https://github.com/GNOME/libxml2) (here is a library with a lot of 
     "xpath"
     "xpathInternals"
     "xpointer"
+```
 
 Performance wise - here is what we are looking at on `libpng` (+0.283s):
 
-    :::text time difference on lpng
+```text 
+//time difference on lpng
     over@bubuntu:~/workz/lpng1625$ make clean && time AFL_TOKEN_FILE=/tmp/png.dict make && make clean && time make
     [...]
     real    0m12.320s
@@ -535,6 +549,7 @@ Performance wise - here is what we are looking at on `libpng` (+0.283s):
     real    0m12.037s
     user    0m11.436s
     sys     0m0.384s
+```
 
 # Last words
 

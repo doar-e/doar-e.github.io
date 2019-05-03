@@ -34,10 +34,11 @@ Before coding, we need to talk a bit about what we really want. This is simple, 
 
 I think it's time to code now: first, let's define several data structures in order to store the information we need:
 
-    :::cpp
+```cpp
     typedef std::map<std::string, std::pair<ADDRINT, ADDRINT> > MODULE_BLACKLIST_T;
     typedef MODULE_BLACKLIST_T MODULE_LIST_T;
     typedef std::map<ADDRINT, UINT32> BASIC_BLOCKS_INFO_T;
+```
 
 The two first types will be used to hold modules related information: path of the module, start address and end address. The third one is simple: the key is the basic block address and the value is its number of instructions.
 
@@ -46,7 +47,7 @@ Then we are going to define our instrumentation callback:
 
 * one to know whenever a module is loaded in order to store its base/end address, one for the traces. You can set the callbacks using *IMG_AddInstrumentationFunction* and *TRACE_AddInstrumentationFunction*.
 
-        :::cpp
+```cpp
         VOID image_instrumentation(IMG img, VOID * v)
         {
             ADDRINT module_low_limit = IMG_LowAddress(img), module_high_limit = IMG_HighAddress(img); 
@@ -70,12 +71,13 @@ Then we are going to define our instrumentation callback:
             if(is_module_should_be_blacklisted(image_path))
                 modules_blacklisted.insert(module_info);
         }
+```
 
  * one to be able to insert calls before every basic blocks.
 
 The thing is: Pin doesn't have a *BBL_AddInstrumentationFunction*, so we have to instrument the traces, iterate through them to get the basic block. It's done really easily with *TRACE_BblHead*, *BBL_Valid* and *BBL_Next* functions. Of course, if the basic block address is in a blacklisted range address, we don't insert a call to our analysis function.
 
-    :::cpp
+```cpp
     VOID trace_instrumentation(TRACE trace, VOID *v)
     {
         for(BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
@@ -99,20 +101,22 @@ The thing is: Pin doesn't have a *BBL_AddInstrumentationFunction*, so we have to
             );
         }
     }
+```
 
 For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function *handle_basic_block* ; we also use the fast linkage (it basically means the function will be called using the [__fastcall](http://msdn.microsoft.com/en-us/library/6xa169sk.aspx) calling convention).
 
 The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.
 
-    :::cpp
+```cpp
     VOID PIN_FAST_ANALYSIS_CALL handle_basic_block(UINT32 number_instruction_in_bb, ADDRINT address_bb)
     {
         basic_blocks_info[address_bb] = number_instruction_in_bb;
     }
+```
 
 Finally, just before the process ends we serialize our data in a simple JSON report thanks to [jansson](http://www.digip.org/jansson/). You may also want to use a binary serialization to have smaller report.
 
-    :::cpp
+```cpp
     VOID save_instrumentation_infos()
     {
         /// basic_blocks_info section
@@ -143,10 +147,11 @@ Finally, just before the process ends we serialize our data in a simple JSON rep
         json_dumpf(root, f, JSON_COMPACT | JSON_ENSURE_ASCII);
         fclose(f);
     }
+```
 
 If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the [SystemCallStub](http://www.nynaeve.net/?p=131) (you know the "JMP FAR"). To do that, we simply use the *__readfsdword* intrinsic in order to read the field [TEB32.WOW32Reserved](http://msdn.moonsols.com/win7rtm_x64/TEB32.html) that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.
 
-    :::cpp
+```cpp
     ADDRINT wow64stub = __readfsdword(0xC0);
     modules_blacklisted.insert(
         std::make_pair(
@@ -157,6 +162,7 @@ If like me you are on a x64 Windows system, but you are instrumenting x86 proces
             )
         )
     );
+```
 
 The entire Pintool source code is here: [pin-code-coverage-measure.cpp](https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/pin-code-coverage-measure.cpp).
 
@@ -165,7 +171,8 @@ I agree that's neat to have a JSON report with the basic blocks executed by our 
 
 To color an instruction you have to use the functions: *idaapi.set_item_color* and *idaapi.del_item_color* (if you want to reset the color). You can also use *idc.GetItemSize* to know the size of an instruction, like that you can iterate for a specific number of instruction (remember, we stored that in our JSON report!).
 
-    :::python idapy_color_path_from_json.py
+```python 
+# idapy_color_path_from_json.py
     import json
     import idc
     import idaapi
@@ -200,6 +207,7 @@ To color an instruction you have to use the functions: *idaapi.set_item_color* a
     
     if __name__ == '__main__':
         main()
+```
 
 Here is an example generated by launching "ping google.fr", we can clearly see in black the nodes reached by the ping utility:
 
@@ -224,7 +232,8 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 
 Cool for us because that's pretty easy to implement via IDAPython, here is the script:
 
-    :::python idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py
+```python 
+# idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py
     import json
     import idc
     import idaapi
@@ -282,6 +291,7 @@ Cool for us because that's pretty easy to implement via IDAPython, here is the s
     
     if __name__ == '__main__':
         main()
+```
 
 By the way, you must keep in mind we are only talking about **deterministic** program (will always execute the same path if you give it the same inputs). If the same inputs aren't giving the exact same outputs **every time**, your program is not deterministic.
 
@@ -293,32 +303,36 @@ These tests have been done on my Windows 7 x64 laptop with Wow64 processes (4GB 
 ## Portable Python 2.7.5.1
 ### Without instrumentation
 
-    :::text
+```text
     PS D:\> Measure-Command {start-process python.exe "-c 'quit()'" -Wait}
-    
+
     TotalMilliseconds : 73,1953
+```
 
 ### With instrumentation and JSON report serialization
 
-    :::text
-    PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- python.exe -c 'quit()'" -Wait}
+```text
+    PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- python.exe -c 'quit()'" -Wait} 
     
     TotalMilliseconds : 13122,4683
+```
 
 ## VLC 2.0.8
 ### Without instrumentation
 
-    :::text
+```text
     PS D:\> Measure-Command {start-process vlc.exe "--play-and-exit hu" -Wait}
     
     TotalMilliseconds : 369,4677
+```
 
 ### With instrumentation and JSON report serialization
 
-    :::text
+```text
     PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu" -Wait}
     
     TotalMilliseconds : 60109,204
+```
 
 To optimize the process you may want to blacklist some of the VLC plugins (there are a tons!), otherwise your VLC instrumented is 160 times slower than the normal one (and I didn't even try to launch the instrumentation when decoding x264 videos).
 

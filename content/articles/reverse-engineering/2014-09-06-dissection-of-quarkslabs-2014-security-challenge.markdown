@@ -32,7 +32,7 @@ Anyway, sit down, make yourself at home and let me pour you a cup of tea before 
 ## Very one-liner, much lambdas, such a pain ##
 The first part of the challenge is to retrieve an url hidden in the following Python one-liner:
 
-    :::python Very one-liner, much lambdas
+```python
     (lambda g, c, d: (lambda _: (_.__setitem__('$', ''.join([(_['chr'] if ('chr'
     in _) else chr)((_['_'] if ('_' in _) else _)) for _['_'] in (_['s'] if ('s'
     in _) else s)[::(-1)]])), _)[-1])( (lambda _: (lambda f, _: f(f, _))((lambda
@@ -58,6 +58,7 @@ The first part of the challenge is to retrieve an url hidden in the following Py
     1371, 1354, 1370, 1356, 1354, 1355, 1370, 1357, 1357, 1302, 1366, 1303,1368,
     1354, 1355, 1356, 1303, 1366, 1371]), _.__setitem__('l0', _['!']), _)[(-1)])
                 ({ 'g': g, 'c': c, 'd': d, '$': None})))))))['$'])
+```
 
 I think that was the first time I was seeing obfuscated Python and believe me I did a really strange face when seeing that snippet. But well, with a bit of patience we should manage to get a better understanding of how it is working, let's get to it!
 
@@ -75,7 +76,7 @@ Before doing that here are things we can directly observe just by looking closel
 
 With all that information in our sleeve, the first thing I did was to try to clean it up, starting from the last lambda in the snippet. It gives something like:
 
-    :::python Last lambda cleaned
+```python
     tab0 = [
         1375, 1368, 1294, 1293, 1373, 1295, 1290, 1373, 1290, 1293,
         1280, 1368, 1368, 1294, 1293, 1368, 1372, 1292, 1290, 1291,
@@ -89,13 +90,14 @@ With all that information in our sleeve, the first thing I did was to try to cle
         x.__setitem__('l0', x['!']),
         x
     )[-1]
+```
 
 That lambda takes a dictionary *x*, sets two items, generates a tuple with a reference to the dictionary at the end of the tuple ; finally the lambda is going to return that same dictionary.
 It also uses *x['!']* as a temporary variable to then assign its value to *x['l0']*.
 
 Long story short, it basically takes a dictionary, updates it and returns it to the caller: clever trick to pass that same object across lambdas. We can also see that easily in Python directly:
 
-    :::text lambda, dictionary & setitem
+```text
     In [8]: d = {}
     In [9]: z(d)
     Out[9]:
@@ -104,11 +106,12 @@ Long story short, it basically takes a dictionary, updates it and returns it to 
      'l0': [1375,
       ...
     }
+```
 
 That lambda is even called with a dictionary that will contain, among other things, the three user controlled variable: *g*, *c*, *d*.
 That dictionary seems to be some kind of storage used to keep track of all the variables that will be used across those lambdas.
 
-    :::python lambda & the resulting dictionary
+```python
     # Returns { 'g' : g, 'c', 'd': d, '$':None, '!':tab0, 'l0':tab0}
     last_res = (
         (
@@ -120,12 +123,13 @@ That dictionary seems to be some kind of storage used to keep track of all the v
         )
         ({ 'g': g, 'c': c, 'd': d, '$': None})
     )
+```
 
 ## ..then the one before... ##
 
 Now if we repeat that same operation with the one before the last lambda, we have the exact same pattern:
 
-    :::python lambda before the last one
+```python
     tab1 = [
         1373, 1281, 1288, 1373, 1290, 1294, 1375, 1371, 1289, 1281,
         1280, 1293, 1289, 1280, 1373, 1294, 1289, 1280, 1372, 1288,
@@ -139,10 +143,11 @@ Now if we repeat that same operation with the one before the last lambda, we hav
         x.__setitem__('l1', x['!']),
         x
     )[-1]
+```
 
 Perfect, now let's repeat the same operations over and over again. At some point, the whole thing becomes crystal clear (sort-of):
 
-    :::python cleaned nested lambdas
+```python
     # Returns { 
       # 'g':g, 'c':c, 'd':d,
       # '!':[],
@@ -204,6 +209,7 @@ Perfect, now let's repeat the same operations over and over again. At some point
         )
       )
     )
+```
 
 ## Putting it all together ##
 
@@ -217,7 +223,7 @@ After doing all of that, we know now the types of the three variables the functi
 
 We don't need anything else really now: no more lambdas, no more pain, no more tears. It is time to write what I call, an [*educated* brute-forcer](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/bf_with_lambdas_cleaned.py), to find the correct value of *c*:
 
-    :::python bf_with_lambdas_cleaned.py
+```python
     import sys
     
     def main(argc, argv):
@@ -337,32 +343,36 @@ We don't need anything else really now: no more lambdas, no more pain, no more t
     
     if __name__ == '__main__':
         sys.exit(main(len(sys.argv), sys.argv))
+```
 
 And after running it, we are good to go:
 
-    :::text w00tw00t
+```text
     D:\Codes\challenges\ql-python>bf_with_lambdas_cleaned.py
     /blog.quarkslab.com/static/resources/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
+```
 
 # A custom ELF64 Python interpreter you shall debug
 ## Recon
 All right, here we are: we now have the real challenge. First, let's see what kind of information we get for free:
 
-    :::bash recon
+```bash
     overclok@wildout:~/chall/ql-py$ file b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf: ELF 64-bit LSB  executable, x86-64, version 1 (SYSV), dynamically linked (uses shared libs),
     for GNU/Linux 2.6.26, not stripped
     overclok@wildout:~/chall/ql-py$ ls -lah b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     -rwxrw-r-x 1 overclok overclok 7.9M Sep  8 21:03 b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
+```
 
 The binary is quite big, not good for us. But on the other hand, the binary isn't stripped so we might find useful debugging information at some point.
 
-    :::bash ./b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
+```bash
     overclok@wildout:~/chall/ql-py$ /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     Python 2.7.8+ (nvcs/newopcodes:a9bd62e4d5f2+, Sep  1 2014, 11:41:46)
     [GCC 4.8.2] on linux2
     Type "help", "copyright", "credits" or "license" for more information.
     >>>
+```
 
 That does explain the size of the binary then: we basically have something that looks like a custom Python interpreter. Note that I also remembered reading *[Building an obfuscated Python interpreter: we need more opcodes](http://blog.quarkslab.com/building-an-obfuscated-python-interpreter-we-need-more-opcodes.html)* on *Quarkslab*'s blog where Serge described how you could tweak the interpreter sources to add / change some opcodes either for optimization or obfuscation purposes.
 
@@ -372,16 +382,17 @@ The next step is to figure out what part of the binary is interesting, what func
 
 To do so I just grabbed *Python278*'s sources and compiled them by myself:
 
-    :::bash compiling Py278
+```bash
     overclok@wildout:~/chall/ql-py$ wget https://www.python.org/ftp/python/2.7.8/Python-2.7.8.tgz && tar xzvf Python-2.7.8.tgz
     overclok@wildout:~/chall/ql-py$ tar xzvf Python-2.7.8.tgz
     overclok@wildout:~/chall/ql-py$ cd Python-2.7.8/ && ./configure && make
     overclok@wildout:~/chall/ql-py/Python-2.7.8$ ls -lah ./python
     -rwxrwxr-x 1 overclok overclok 8.0M Sep  5 00:13 ./python
+```
 
 The resulting binary has a similar size, so it should do the job even if I'm not using *GCC 4.8.2* and the same compilation/optimization options. To perform the *diffing* I used *IDA Pro* and [Patchdiff v2.0.10](https://code.google.com/p/patchdiff2/).
 
-    :::text Patchdiff result
+```text
     ---------------------------------------------------
     PatchDiff Plugin v2.0.10
     Copyright (c) 2010-2011, Nicolas Pouvesle
@@ -397,6 +408,7 @@ The resulting binary has a similar size, so it should do the job even if I'm not
     Unmatched functions 1: 23
     Unmatched functions 2: 85
     done!
+```
 
 Once the tool has finished its analysis we just have to check the list of unmatched function names (around one hundred of them, so it's pretty quick), and eventually we see that:
 
@@ -406,7 +418,7 @@ That function directly caught my eyes (you can even check it doesn't exist in th
 <center>![initdonotrunme_assembly.png](/images/dissection_of_quarkslab_s_2014_security_challenge/initdonotrunme_assembly.png)</center>
 Let's import it:
 
-    :::python do_not_run_me module
+```python
     overclok@wildout:~/chall/ql-py$ /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     iPython 2.7.8+ (nvcs/newopcodes:a9bd62e4d5f2+, Sep  1 2014, 11:41:46)
     [GCC 4.8.2] on linux2
@@ -420,6 +432,7 @@ Let's import it:
     There are two kinds of people in the world: those who say there is no such thing as infinite recursion, and those who say ``There are two kinds of people in the world: those who say there is no such thing as infinite recursion, and those who say ...
     >>> do_not_run_me.run_me('doar-e')
     Segmentation fault
+```
 
 All right, we now have something to look at and we are going to do so from a low level point of view because that's what I like ; so don't expect big/magic hacks here :).
 
@@ -437,7 +450,7 @@ The function is quite small, so it should be pretty quick to analyze:
 ### First marshaled function
 To understand it we have to dump it first, to unmarshal it and to analyze the resulting code object:
 
-    :::text unmarshaling the first function
+```text
     overclok@wildout:~/chall/ql-py$ gdb -q /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     Reading symbols from /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf...done.
     gdb$ set disassembly-flavor intel
@@ -477,12 +490,13 @@ To understand it we have to dump it first, to unmarshal it and to analyze the re
     gdb$ r -c 'import do_not_run_me as v; v.run_me("")'
     Starting program: /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf -c 'import do_not_run_me as v; v.run_me("")'
     [...]
+```
 
 To start, we can set two software breakpoints *@0x0000000000513dd0* and *@0x0000000000513dd5* to inspect both the marshaled string and the resulting code object.
 
 Just a little reminder though on the *Linux/x64 ABI*: "The first six integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8, and R9".
 
-    :::text unmarshaled string inspection
+```text
     gdb$ p /x $rsi
     $2 = 0x91
     gdb$ x/145bx $rdi
@@ -505,10 +519,11 @@ Just a little reminder though on the *Linux/x64 ABI*: "The first six integer or 
     0x56c9c0 <+128>: 0x6f    0x6f    0x05    0x00    0x00    0x00    0x73    0x06
     0x56c9c8 <+136>: 0x00    0x00    0x00    0x00    0x01    0x06    0x02    0x0a
     0x56c9d0 <+144>: 0x01
+```
 
 And obviously you can't use the Python *marshal* module to load & inspect the resulting object as the author seems to have removed the methods *loads* and *dumps*:
 
-    :::text fuu
+```text
     overclok@wildout:~/chall/ql-py$ /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     Python 2.7.8+ (nvcs/newopcodes:a9bd62e4d5f2+, Sep  1 2014, 11:41:46)
     [GCC 4.8.2] on linux2
@@ -516,10 +531,11 @@ And obviously you can't use the Python *marshal* module to load & inspect the re
     >>> import marshal
     >>> dir(marshal)
     ['__doc__', '__name__', '__package__', 'version']
+```
 
 We could still try to run the marshaled string in our fresh compiled original Python though:
 
-    :::python unmarshal in an original Python278
+```python
     >>> import marshal
     >>> part_1 = marshal.loads('c\x00\x00\x00\x00\x01\x00\x00\x00\x02\x00\x00\x00C\x00\x00\x00s\x14\x00\x00\x00d\x01\x00\x87\x00\x00|\x00\x00d\x01\x00<a\x00\x00|\x00\x00\x1b(\x02\x00\x00\x00Ni\x01\x00\x00\x00(\x01\x00\x00\x00t\x04\x00\x00\x00True(\x01\x00\x00\x00t\x0e\x00\x00\x00Robert_Forsyth(\x00\x00\x00\x00(\x00\x00\x00\x00s\x10\x00\x00\x00obfuscate/gen.pyt\x03\x00\x00\x00foo\x05\x00\x00\x00s\x06\x00\x00\x00\x00\x01\x06\x02\n\x01')
     >>> part_1.co_code
@@ -528,10 +544,11 @@ We could still try to run the marshaled string in our fresh compiled original Py
     ('Robert_Forsyth',)
     >>> part_1.co_names
     ('True',)
+```
 
 We can also go further by trying to create a function out of this code object, to call it and/or to disassemble it even:
 
-    :::python fuu2
+```python
     >>> from types import FunctionType
     >>> def a():
     ...     pass
@@ -553,13 +570,14 @@ We can also go further by trying to create a function out of this code object, t
       File "/home/overclok/chall/ql-py/Python-2.7.8/Lib/dis.py", line 107, in disassemble
         print '(' + free[oparg] + ')',
     IndexError: tuple index out of range
+```
 
 ### Introducing *dpy.py*
 
 All right, as expected this does not work at all: seems like the custom interpreter uses different opcodes which the original virtual CPU doesn't know about.
 Anyway, let's have a look at this object directly from memory because we like low level things (remember?):
 
-    :::text inspecting the code object created
+```text
     gdb$ p *(PyObject*)$rax
     $3 = {ob_refcnt = 0x1, ob_type = 0x7d3da0 <PyCode_Type>}
     
@@ -581,6 +599,7 @@ Anyway, let's have a look at this object directly from memory because we like lo
       co_zombieframe = 0x0,
       co_weakreflist = 0x0
     }
+```
 
 Perfect, and you can do that for every single field of this structure:
 
@@ -591,7 +610,7 @@ Perfect, and you can do that for every single field of this structure:
 
 Yes, this is annoying, very much so. That is exactly why there is *[dpy](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/dpy.py)*, a *GDB* Python command I wrote to dump Python objects in a much easy way directly from memory:
 
-    :::text show-casing dpy
+```text
     gdb$ r
     Starting program: /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     [...]
@@ -602,18 +621,20 @@ Yes, this is annoying, very much so. That is exactly why there is *[dpy](https:/
     Program received signal SIGINT, Interrupt.
     gdb$ dpy 0x7ffff7ef1050
     dict -> {1: [1, 2, 3], 3: (1, 'lul', [3, 4, 5]), 'two': 31337}
+```
 
 ### I need a disassembler now dad
 
 But let's get back to our second breakpoint now, and see what *dpy* gives us with the resulting code object:
 
-    :::text dpy code object
+```text
     gdb$ dpy $rax
     code -> {'co_code': 'd\x01\x00\x87\x00\x00|\x00\x00d\x01\x00<a\x00\x00|\x00\x00\x1b',
      'co_consts': (None, 1),
      'co_name': 'foo',
      'co_names': ('True',),
      'co_varnames': ('Robert_Forsyth',)}
+```
 
 Because we know the bytecode used by this interpreter is different than the original one, we have to figure out the equivalent between the instructions and their opcodes:
 
@@ -622,7 +643,7 @@ Because we know the bytecode used by this interpreter is different than the orig
 
 I guess we can mix both of them to be more efficient:
 
-    :::text deducing equivalent opcodes
+```text
     Python 2.7.8 (default, Sep  5 2014, 00:13:07)
     [GCC 4.8.2] on linux2
     Type "help", "copyright", "credits" or "license" for more information.
@@ -696,11 +717,13 @@ I guess we can mix both of them to be more efficient:
      # 0x1b -> RETURN_VALUE
      # 0x8f -> LOAD_FAST
      # 0x3d -> BINARY_ADD
+```
 
 OK I think you got the idea, and if you don't manage to find all of them you can just debug the virtual CPU by putting a software breakpoint *@0x4b0960*:
 
-    :::text opcode fetching
+```text
     => 0x4b0923 <PyEval_EvalFrameEx+867>:   movzx  eax,BYTE PTR [r13+0x0]
+```
 
 For the interested readers: there is at least one interesting opcode that you wouldn't find in a normal Python interpreter, check what *0xA0* is doing especially when followed by *0x87* :-).
 
@@ -708,7 +731,7 @@ For the interested readers: there is at least one interesting opcode that you wo
 
 Thanks to our [disassembler.py](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/disassembler_ql_chall.py), we can now disassemble easily the first part:
 
-    :::text disassembling
+```text
     PS D:\Codes\ql-chall-python-2014> python .\disassembler_ql_chall.py
       6           0 LOAD_CONST               1 (1)
                   3 STORE_FAST               0 (Robert_Forsyth)
@@ -721,18 +744,20 @@ Thanks to our [disassembler.py](https://github.com/0vercl0k/stuffz/blob/master/q
       9          16 LOAD_GLOBAL              0 (True)
                  19 RETURN_VALUE
     ================================================================================
+```
 
 It seems the author has been really (too) kind with us: the function is really small and we can rewrite it in Python straightaway:
 
-    :::python part_1
+```python
     def part1():
         global True
         Robert_Forsyth = 1
         True += 1
+```
 
 You can also make sure with [dpy](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/dpy.py) that the code of *part1* is the exact same than the unmarshaled function we dumped earlier.
 
-    :::text part_1 successfully decompiled
+```text
     >>> def part_1():
     ...  global True
     ...  Robert_Forsyth = 1
@@ -752,12 +777,13 @@ You can also make sure with [dpy](https://github.com/0vercl0k/stuffz/blob/master
      'func_doc': None,
      'func_module': '__main__',
      'func_name': 'part_1'}
+```
 
 ### Run my bytecode
 
 The second part is also quite simple according to the following disassembly:
 
-    :::text run my bytecode
+```text
     gdb$ disass run_me
     Dump of assembler code for function run_me:
     [...]
@@ -800,6 +826,7 @@ The second part is also quite simple according to the following disassembly:
        0x0000000000513e1c <+140>:   mov    rdi,rbp
        0x0000000000513e1f <+143>:   mov    rsi,rax
        0x0000000000513e22 <+146>:   call   0x422b40 <PyObject_Call>
+```
 
 Basically, the string you pass to *run_me* is treated as a marshaled function: it explains why you get *segmentation faults* when you call the function with random strings.
 We can just *jump over* that part of the function because we don't really need it so far: *set $eip=0x513e27* and job done!
@@ -809,7 +836,7 @@ We can just *jump over* that part of the function because we don't really need i
 By the way I hope you are still reading -- hold tight, we are nearly done!
 Let's dump the function object with [dpy](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/dpy.py):
 
-    :::text Second part inspection with dpy
+```text
     -----------------------------------------------------------------------------------------------------------------------[regs]
       RAX: 0x00007FFFF7FA7050  RBX: 0x00007FFFF7F0F758  RBP: 0x00000000007B0270  RSP: 0x00007FFFFFFFE040  o d I t s Z a P c
       RDI: 0x00007FFFF7F0F758  RSI: 0x00007FFFF7FA7050  RDX: 0x0000000000000000  RCX: 0x0000000000000828  RIP: 0x0000000000513E56
@@ -856,6 +883,7 @@ Let's dump the function object with [dpy](https://github.com/0vercl0k/stuffz/blo
      'func_doc': None,
      'func_module': '__main__',
      'func_name': 'foo'}
+```
 
 Even before studying / disassembling the code, we see some interesting things: *chr*, *quarkslab*, *append*, *join*, etc. It definitely feels like that function is generating the flag we are looking for.
 
@@ -863,7 +891,7 @@ Seeing *append*, *join* and another code object (in *co_consts*) suggests that a
 
 Let's use our magic [disassembler.py](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/disassembler_ql_chall.py) to see those codes objects:
 
-    :::text part2 & its generator disassembled
+```text
      19     >>    0 LOAD_GLOBAL              0 (True)
                   3 LOAD_CONST               1 (3)
                   6 COMPARE_OP               3 (!=)
@@ -929,6 +957,7 @@ Let's use our magic [disassembler.py](https://github.com/0vercl0k/stuffz/blob/ma
                  24 JUMP_ABSOLUTE            3
             >>   27 LOAD_CONST               1 (None)
                  30 RETURN_VALUE
+```
 
 Great, that definitely sounds like what we described earlier.
 
@@ -940,7 +969,7 @@ I won't bother you with how I managed to do it though ; long story short: it is 
 
 So here is [decompiler.py](https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/decompiler_ql_chall.py) working on the two code objects of the challenge:
 
-    :::text decompiiiiiilation
+```text
     PS D:\Codes\ql-chall-python-2014> python .\decompiler_ql_chall.py
     PART1 ====================
     Robert_Forsyth = 1
@@ -951,6 +980,7 @@ So here is [decompiler.py](https://github.com/0vercl0k/stuffz/blob/master/ql-cha
         True = True - 1
     else:
         quarkslab.append(''.join(chr(_ ^ 13) for _ in [75, 98, 127, 45, 89, 101, 104, 45, 67, 104, 122, 45, 65, 120, 99, 108, 127, 45, 95, 104, 125, 120, 111, 97, 100, 110]))
+```
 
 Brilliant -- time to get a flag now :-).
 Here are the things we need to do:
@@ -960,7 +990,7 @@ Here are the things we need to do:
 3. Jump over the middle part of the function where it will run the bytecode you gave as argument (or give a valid marshaled string that won't crash the interpreter) 
 4. Profit!
 
-        :::text win
+```text
         overclok@wildout:~/chall/ql-py$ /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
         Python 2.7.8+ (nvcs/newopcodes:a9bd62e4d5f2+, Sep  1 2014, 11:41:46)
         [GCC 4.8.2] on linux2
@@ -971,6 +1001,7 @@ Here are the things we need to do:
         >>> v.run_me("c\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00C\x00\x00\x00s\x04\x00\x00\x00d\x00\x00\x1B(\x01\x00\x00\x00N(\x00\x00\x00\x00(\x00\x00\x00\x00(\x00\x00\x00\x00(\x00\x00\x00\x00s\x07\x00\x00\x00rstdinrt\x01\x00\x00\x00a\x01\x00\x00\x00s\x02\x00\x00\x00\x00\x01")
         >>> quarkslab
         ['For The New Lunar Republic']
+```
 
 # Conclusion
 This was definitely entertaining, so thanks to Serge and [Quarkslab](http://blog.quarkslab.com/) for putting this challenge together! I feel like it would have been cooler to force people to write a disassembler or/and a decompiler to study the code of *run_me* though ; because as I mentioned at the very beginning of the article you don't really need any tool to guess/know roughly where the flag is, and how to get it. I still did write all those little scripts because it was fun and cool that's all!

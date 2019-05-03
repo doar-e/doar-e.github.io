@@ -32,19 +32,21 @@ One really interesting property of this exposed information is that it becomes *
 
 Say you would like to find what modules the current `@rip` is pointing into, you can easily express this through a query using LINQ operators and the data model:
 
-    :::text
+```text
     0:001> dx @$curprocess.Modules.Where(p => @rip >= p.BaseAddress && @rip < (p.BaseAddress+p.Size))
     @$curprocess.Modules.Where(p => @rip >= p.BaseAddress && @rip < (p.BaseAddress+p.Size))                
         [0x8]            : C:\WINDOWS\SYSTEM32\ntdll.dll
+```
 
 ..and you can even check all the information related to this module by clicking on the DML `[0x8]` link:
 
-    :::text
+```text
     0:001> dx -r1 @$curprocess.Modules.Where(p => @rip >= p.BaseAddress && @rip < (p.BaseAddress+p.Size))[8]
     @$curprocess.Modules.Where(p => @rip >= p.BaseAddress && @rip < (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
         BaseAddress      : 0x7ffc985a0000
         Name             : C:\WINDOWS\SYSTEM32\ntdll.dll
         Size             : 0x1db000
+```
 
 In the previous two samples, there are several interesting points to highlight:
 
@@ -52,7 +54,7 @@ In the previous two samples, there are several interesting points to highlight:
 
 2) `@$name` is how you access a variable that you have defined during a debugging session. The debugger itself defines several variables right off the bat just to make querying the model easier: `@$curprocess` is equivalent to `host.currentProcess` in Javascript, `@cursession` is `host.currentSession`, and `@$curthread` is `host.currentThread`. You can also define custom variables yourself, for example:
 
-    :::text
+```text
     0:001> dx @$doare = "Diary of a reverse-engineer"
     @$doare = "Diary of a reverse-engineer" : Diary of a reverse-engineer
         Length           : 0x1b
@@ -63,10 +65,11 @@ In the previous two samples, there are several interesting points to highlight:
     Bad register error at '@$doare'
     0:001> ? @$doare
     Bad register error at '@$doare'
+```
 
 3) To query all the nodes in the `@$curprocess` hierarchy (if you want to wander through the data model you can just use `dx Debugger` and click through the DML links):
 
-    :::text
+```text
     0:001> dx @$curprocess
     @$curprocess                 : cmd.exe [Switch To]
         Name             : cmd.exe
@@ -74,10 +77,11 @@ In the previous two samples, there are several interesting points to highlight:
         Threads         
         Modules         
         Environment
+```
 
 You can also check `Debugger.State.DebuggerVariables` where you can see the definitions for the variables we just mentioned:
 
-    :::text
+```text
     0:001> dx Debugger.State.DebuggerVariables
     Debugger.State.DebuggerVariables                
         cursession       : Live user mode: <Local>
@@ -91,12 +95,14 @@ You can also check `Debugger.State.DebuggerVariables` where you can see the defi
     0:001> dx Debugger.State.DebuggerVariables.vars
     Debugger.State.DebuggerVariables.vars                
         doare            : Diary of a reverse-engineer
+```
 
 4) Last but not least, most of (all?) the iterable objects can be queried through LINQ-style operators. If you’ve never used these it can be a bit weird at the beginning but at some point it will click and then it is just goodness.
 
 Here is the list of the currently available operators on iterable objects in the data model:
 
-    :::text linq operators
+```text 
+linq operators
     Aggregate        [Aggregate(AggregateMethod) | Aggregate(InitialSeed, AggregateMethod) | Aggregate(InitialSeed, AggregateMethod, ResultSelectorMethod) - LINQ equivalent method which iterates through the items in the given collection, running the aggregate method on each one and storing the returned result as the current aggregate value. Once the collection has been exhausted, the final accumulated value is returned. An optional result selector method can be specified which transforms the final accumulator value before returning it.]
     All              [All(PredicateMethod) - LINQ equivalent method which returns whether all elements in the collection match a given predicate]
     AllNonError      [AllNonError(PredicateMethod) - LINQ equivalent method which returns whether all elements in the collection match a given predicate. Errors are ignored if all non-error results match the predicate.]
@@ -130,6 +136,7 @@ Here is the list of the currently available operators on iterable objects in the
     TakeWhile        [TakeWhile(PredicateMethod) - LINQ equivalent method which runs the predicate for each element and returns it only if the result is successful. Once the predicate fails, no more elements will be taken.]
     Union            [Union(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects from the given and inner collection. An optional comparator method can also be specified.]
     Where            [Where(FilterMethod) - LINQ equivalent method which filters elements in the collection according to when a filter method returns true for a given element]
+```
 
 Now you may be wondering if the model is available with every possible *configuration* of Windbg? By configuration I mean that you can use the debugger live in user-mode attached to a process, offline looking at a crash-dump of a process, live in kernel-mode, offline looking at a system crash-dump, or off-line looking at a *TTD* trace.
 
@@ -145,7 +152,8 @@ The first thing you need to be aware with Javascript is the fact that integers a
 
 You can construct an `Int64` directly using a native Javascript integers (so at most 53 bits long as described above), or you can use the `host.parseInt64` method that takes a string as input. The other very important method you are going to need is `Int64.compareTo` which returns `1` if the instance is bigger than the argument, `0` if equal and `-1` if smaller. The below script shows a summary of the points we touched on:
 
-    :::javascript Int64.js
+```javascript
+// Int64.js
     "use strict";
     
     let logln = function (e) {
@@ -177,6 +185,7 @@ You can construct an `Int64` directly using a native Javascript integers (so at 
         // -1
         logln(a.compareTo(1338));
     }
+```
 
 For more information I would recommend looking at this page [JavaScript Debugger Scripting](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/javascript-debugger-scripting#bitvalues).
 
@@ -188,7 +197,8 @@ Registers are accessible in the `host.currentThread.Registers` object. You can a
 
 You can read raw memory via the `host.memory.readMemoryValues` function. It allows you to read memory as an array of items whose size you can specify. You can also use `host.memory.readString` and `host.memory.readWideString` for reading (narrow/wide) strings directly from memory.
 
-    :::javascript readmemory.js
+```javascript 
+//readmemory.js
     "use strict";
     
     let logln = function (e) {
@@ -208,6 +218,7 @@ You can read raw memory via the `host.memory.readMemoryValues` function. It allo
         let WideStrAddress = WideStr.address;
         logln(host.memory.readWideString(WideStrAddress));
     }
+```
 
 ## Executing / evaluating commands
 
@@ -215,7 +226,8 @@ Even though a bunch of data is accessible programmatically via the data model, n
 
 The API call `ExecuteCommand` evaluates a command and returns the output of the command as a string:
 
-    :::javascript eval.js
+```javascript 
+//eval.js
     "use strict";
     
     let logln = function (e) {
@@ -228,6 +240,7 @@ The API call `ExecuteCommand` evaluates a command and returns the output of the 
             logln('Line: ' + Line);
         }
     }
+```
 
 There is at least one pitfall with this function to be aware of: the API executes *until* it completes. So, if you use `ExecuteCommand` to execute let's say `gc` the call will return only when you encounter any sort of break. If you don't encounter any break, the call will never end.
 
@@ -239,7 +252,8 @@ Hopefully these APIs will become more powerful and more suited for scripting in 
 
 Here is a simple example:
 
-    :::javascript breakpoint.js
+```javascript 
+//breakpoint.js
     "use strict";
     
     let logln = function (e) {
@@ -276,10 +290,12 @@ Here is a simple example:
         //     logln('Line: ' + Line);
         // }
     }
+```
 
 This gives:
 
-    :::text breakpoint.js output
+```text 
+breakpoint.js output
     0:000>
     Press "g" to run the target.
     0:000> g-
@@ -299,12 +315,14 @@ This gives:
     RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
     @$scriptContents.handle_bp()
     ...
+```
 
 Now, I find this interface not well suited for scenarios where you need to have a breakpoint that just dumps stuff and keep going, but hopefully in the future this will improve. Let's say you have a function and you’re interested in dumping its arguments/state every time it gets called. If you attempt to do this with the above code, every time the breakpoint is hit the debugger will execute your callback *and* stop. At this point you have to tell it to keep executing. (Also, feel free to uncomment the last lines of the script to see what happens if you `ExecuteCommand('gc')` :-)). 
 
 One way I found around this limitation is to use evaluation and the `bp` command:
 
-    :::javascript breakpoint2.js
+```javascript 
+//breakpoint2.js
     "use strict";
     
     let logln = function (e) {
@@ -343,10 +361,11 @@ One way I found around this limitation is to use evaluation and the `bp` command
         }
         logln('Press "g" to run the target.');
     }
-
+```
 Which gives this output:
 
-    :::text breakpoint2.js output
+```text 
+breakpoint2.js output
     0:000>
     RltAllocateHeap @ 0x7fffc07587a0
     Press "g" to run the target.
@@ -359,11 +378,13 @@ Which gives this output:
     Time Travel Position: 2A51:314
     ntdll!RtlAllocateHeap:
     00007fff`c07587a0 48895c2408      mov     qword ptr [rsp+8],rbx ss:000000b8`7f39e9a0=000000b87f39e9b0
+```
 
 Of course, yet another way of approaching this problem would be to wrap the script invocation into the command of a breakpoint like this:
 
-    :::text bp & .scriptrun
-    bp ntdll!RtlAllocateHeap ".scriptrun c:\foo\script.js"
+```text 
+bp ntdll!RtlAllocateHeap ".scriptrun c:\foo\script.js"
+```
 
 ## TTD
 
@@ -375,16 +396,19 @@ Even though I won’t cover how recording and replaying a *TTD* trace in this ar
 
 The first feature I wanted to talked about is `TTD.Calls`. This API goes through an entire execution trace and finds every unique point in the trace where an API has been called.
 
-    :::text TTD.Calls description
+```text 
+TTD.Calls description
     0:000> dx -v @$cursession.TTD
     @$cursession.TTD                 : [object Object]
         Calls            [Returns call information from the trace for the specified set of symbols: TTD.Calls("module!symbol1", "module!symbol2", ...)]
+```
 
 For each of those points, you have an object describing the call: time travel position (that you can travel to: see `TimeStart` and `TimeEnd` below), parameters (leveraging symbols if you have any to know how many parameters the API expects), return value, the thread id, etc.
 
 Here is what it looks like:
 
-    :::text TTD.Calls object
+```text 
+TTD.Calls object
     0:000> dx -r1 @$cursession.TTD.Calls("ntdll!RtlAllocateHeap").Count()
     @$cursession.TTD.Calls("ntdll!RtlAllocateHeap").Count() : 0x267
     0:000> dx @$cursession.TTD.Calls("ntdll!RtlAllocateHeap").First()
@@ -405,14 +429,17 @@ Here is what it looks like:
         [0x1]            : 0x8
         [0x2]            : 0x2d8
         [0x3]            : 0x57
+```
 
 Obviously, the collection returned by `TTD.Calls` can be queried via the same [LINQ](https://docs.microsoft.com/en-us/dotnet/csharp/linq/query-expression-basics)-like operators we mentioned earlier which is awesome. As an example, asking the following question has never been easier: "How many times did the allocator fail to allocate memory?":
 
-    :::text TTD.Calls query
+```text 
+TTD.Calls query
     0:000> dx @$Calls=@$cursession.TTD.Calls("ntdll!RtlAllocateHeap").Where(c => c.ReturnValue == 0)
     @$Calls=@$cursession.TTD.Calls("ntdll!RtlAllocateHeap").Where(c => c.ReturnValue == 0)                
     0:000> dx @$Calls.Count()
     @$Calls.Count()  : 0x0
+```
 
 Note that because the API has been designed in a way that abstracts away ABI-specific details, you can have your query / code working on both x86 & x64 seamlessly. Another important point is that this is much faster than setting a breakpoint manually and running the trace forward to collect this information yourself.
 
@@ -420,7 +447,8 @@ Note that because the API has been designed in a way that abstracts away ABI-spe
 
 The other **very** powerful feature that was announced fairly [recently](https://blogs.msdn.microsoft.com/windbg/2017/12/18/windbg-preview-1-1712-15003-release-notes/) in version 1.1712.15003 is `TTD.Memory`. A bit like `TTD.Calls`, this feature lets you go and find every memory accesses that happened in an execution trace on a specific memory range. And again, it returns to the user a nice object that has all the information you could be potentially interested in (time travel positions, access type, the instruction pointer address, the address of the memory accessed, etc.):
 
-    :::text TTD.Memory object
+```text 
+TTD.Memory object
     0:000> dx @$Accesses[0]
     @$Accesses[0]                
         EventType        : MemoryAccess
@@ -433,10 +461,12 @@ The other **very** powerful feature that was announced fairly [recently](https:/
         Address          : 0xb87f67fa70
         Size             : 0x4
         Value            : 0x0
+```
 
 Here is how you would go and ask it to find out every piece of code that write-accessed (read and execute are also other valid type of access you can query for and combine) the TEB region of the current thread:
 
-    :::text TTD.Memory write-access TEB
+```text 
+TTD.Memory write-access TEB
     0:001> ? @$teb
     Evaluate expression: 792409825280 = 000000b8`7f4e6000
     0:001> ?? sizeof(_TEB)
@@ -455,10 +485,12 @@ Here is how you would go and ask it to find out every piece of code that write-a
         Address          : 0xb87f4e7710
         Size             : 0x10
         Value            : 0x0
+```
 
 The other beauty of it is that you can travel to the position ID and find out what happened:
 
-    :::text time traveling!
+```text 
+time traveling!
     0:001> !tt F79:1B
     Setting position: F79:1B
     (1cfc.15e8): Break instruction exception - code 80000003 (first/second chance not available)
@@ -469,6 +501,7 @@ The other beauty of it is that you can travel to the position ID and find out wh
     0:001> dt _TEB ActivityId
     ntdll!_TEB
        +0x1710 ActivityId : _GUID
+```
 
 In the above example, you can see that the `TppWorkCallbackPrologRelease` function is zeroing the `ActivityId` GUID of the current TEB - magical.
 
@@ -478,7 +511,8 @@ The two previous features were mostly building blocks; this utility consumes the
 
 This is extremely useful when debugging or root-causing issues, and here is what it looks like on a dummy trace:
 
-    :::text GetHeapAddress demo
+```text 
+GetHeapAddress demo
     0:000> dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
     ========================================================================================================================================
     =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
@@ -488,12 +522,14 @@ This is extremely useful when debugging or root-causing issues, and here is what
     = [0x6c] : [object Object]  - Free     - 0x21b5dcd0000    - 0x21b5dce40a0    -         - 0x0    - 107:8D        - 109:1D      - 0x1    =
     = [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
     ========================================================================================================================================
+```
 
 The attentive reader has probably noticed something maybe unexpected with entries 0x59 and entries 0x276 where we are seeing two different allocations of the same chunk without any free in between. The answer to this question lies in the way the `GetHeapAddress` function is implemented (check out the *TTD\Analyzers\HeapAnalysis.js* file) - it basically looks for every heap related operation and only shows you the ones where `address + size` is a range containing the argument you passed. In this example we gave the function the address `0x21b5dce40a0`, 0x59 is an allocation and `0x21b5dce40a0` is in the range `0x21b5dce4030 + 0xAA` so we display it. Now, a free does not know the size of the chunk, the only thing it knows is the base pointer. In this case if we have a free of `0x21b5dce4030` the utility function would just not display it to us which explains how we can have two heap chunks allocated without a free in the following time frame: `ED:7D7, E59:3A7`.
 
 We can even go ahead and prove this by finding the free by running the below command:
 
-    :::text GetHeapAddress finding the free of 0x21b5dce4030
+```text
+ GetHeapAddress finding the free of 0x21b5dce4030
     0:000> dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p => p.Address == 0x21b5dce4030)
     ========================================================================================================================================
     =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
@@ -502,6 +538,7 @@ We can even go ahead and prove this by finding the free by running the below com
     = [0x64] : [object Object]  - Free     - 0x21b5dcd0000    - 0x21b5dce4030    -         - 0x0    - EF:247        - F1:1D       - 0x1    =
     = [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
     ========================================================================================================================================
+```
 
 As expected, the entry 0x64 is our free operation and it also happens in between the two allocation operations we were seeing earlier - solved.
 
@@ -509,7 +546,8 @@ Pretty neat uh?
 
 It is nice enough to ask the utility for a specific heap address, but it would also be super nice if we had access to the whole heap activity that has happened during the session and that is what `TTD.Data.Heap` gives you:
 
-    :::text TTD.Data.Heap demo
+```text 
+TTD.Data.Heap demo
     0:000> dx @$HeapOps=@$cursession.TTD.Data.Heap()
     ...
     0:000> dx @$HeapOps.Count()
@@ -523,10 +561,12 @@ It is nice enough to ask the utility for a specific heap address, but it would a
         Result           : 0x1
         TimeStart        : 13A1:184 [Time Travel]
         TimeEnd          : 13A2:27 [Time Travel]
+```
 
 And of course do not forget that all these collections are queryable. We can easily find out what are all the other heap operations that are not `alloc` or `free` with the below query:
 
-    :::text TTD.Data.Heap() & query
+```text 
+TTD.Data.Heap() & query
     0:000> dx @$NoFreeAlloc=@$HeapOps.Where(c => c.Action != "Free" && c.Action != "Alloc")
     ...
     0:000> dx -g @$NoFreeAlloc
@@ -540,12 +580,14 @@ And of course do not forget that all these collections are queryable. We can eas
     = [0x397] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1BF0:5F4      - 1BF1:14     =
     = [0x399] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1BF1:335      - 1C1E:13     =
     ...
+```
 
 ## Extend the data model
 
 After consuming all the various features available in the data model, I am sure you guys are wondering how you can go and add your own node and extend it. In order to do this, you can use the API `host.namedModelParent`.
 
-    :::text host.namedModelParent
+```text 
+host.namedModelParent
     class host.namedModelParent
     
     An object representing a modification of the object model of the debugger.
@@ -555,6 +597,7 @@ After consuming all the various features available in the data model, I am sure 
     
     An instance of this object can be returned in the array of records returned from
     the initializeScript method.
+```
 
 Let's say we would like to add a node that is associated with a `Process` called `DiaryOfAReverseEngineer` which has the following properties:
 
@@ -574,7 +617,8 @@ Extension and imperative scripts are basically the same but they have different 
 
 Anyway, let's attach a node called `DiaryOfAReverseEngineer` to the `Process` model:
 
-    :::javascript extendmodel_1.js
+```javascript 
+//extendmodel_1.js
     "use strict";
     
     class ProcessModelParent {
@@ -589,10 +633,12 @@ Anyway, let's attach a node called `DiaryOfAReverseEngineer` to the `Process` mo
             'Debugger.Models.Process'
         )];
     }
+```
 
 Once loaded you can go ahead and check that the node has been added:
 
-    :::text hello new node
+```text 
+hello new node
     0:000> dx @$curprocess
     @$curprocess                 : PING.EXE [Switch To]
         Name             : PING.EXE
@@ -602,6 +648,7 @@ Once loaded you can go ahead and check that the node has been added:
         Environment     
         TTD             
         DiaryOfAReverseEngineer : hello from PING.EXE
+```
 
 One important thing to be aware of in the previous example is that the `this` pointer is effectively an instance of the data model you attached to. In our case it is an instance of the `Process` model and as a result you can access every property available on this node, like its `Name` for example.
 
@@ -609,7 +656,8 @@ One important thing to be aware of in the previous example is that the `this` po
 
 What we want to do now is to have our top node exposing two string properties and one function (we’ll deal with `Sub` later). This is done by creating a new Javascript class that represents this level, and we can return an instance of this said class in the `DiaryOfReverseEngineer` property. Simple enough uh?
 
-    :::javascript extendmodel_2.js
+```javascript 
+//extendmodel_2.js
     "use strict";
     
     class DiaryOfAReverseEngineer {
@@ -642,10 +690,12 @@ What we want to do now is to have our top node exposing two string properties an
             'Debugger.Models.Process'
         )];
     }
+```
 
 Which gives:
 
-    :::text DiaryOfAReverseEngineer is now a node with properties
+```text 
+DiaryOfAReverseEngineer is now a node with properties
     0:000> dx @$curprocess
     @$curprocess                 : PING.EXE [Switch To]
         Name             : PING.EXE
@@ -660,6 +710,7 @@ Which gives:
         process          : PING.EXE [Switch To]
         Foo              : Foo from PING.EXE
         Bar              : Bar from PING.EXE
+```
 
 From the previous dumps there are at least two things we can do better:
 
@@ -671,7 +722,8 @@ From the previous dumps there are at least two things we can do better:
 
 After fixing the two above points, here is what we have:
 
-    :::javascript extendmodel_2_1.js
+```javascript 
+// extendmodel_2_1.js
     "use strict";
     
     class DiaryOfAReverseEngineer {
@@ -708,10 +760,12 @@ After fixing the two above points, here is what we have:
             'Debugger.Models.Process'
         )];
     }
+```
 
 And now if we display the `Process` model:
 
-    :::text Hiding process & adding a toString
+```text 
+Hiding process & adding a toString
     0:000> dx @$curprocess
     @$curprocess                 : PING.EXE [Switch To]
         Name             : PING.EXE
@@ -727,6 +781,7 @@ And now if we display the `Process` model:
         Bar              : Bar from PING.EXE
     0:000> dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
     @$curprocess.DiaryOfAReverseEngineer.Add(1, 2) : 0x3
+```
 
 ### Step 3: Adding another level and an iterable class
 
@@ -736,7 +791,8 @@ The last concept I wanted to touch on before moving on is how to add the `iterab
 
 If you want to have the debugger be able to iterate on your instance you can define a `*[Symbol.iterator]() ` method like this:
 
-    :::javascript Attributes iterable
+```javascript 
+// Attributes iterable
     class Attribute {
         constructor(Process, Name, Value) {
             this.__process = Process;
@@ -771,10 +827,12 @@ If you want to have the debugger be able to iterate on your instance you can def
             return 'Attributes';
         }
     }
+```
 
 Now if we put it all together we have:
 
-    :::javascript extendmodel.js
+```javascript 
+// extendmodel.js
     "use strict";
     
     class Attribute {
@@ -875,10 +933,12 @@ Now if we put it all together we have:
             'Debugger.Models.Process'
         )];
     }
+```
 
 And we can play with the node in the model:
 
-    :::text node is ready!
+```text 
+node is ready!
     0:000> dx @$curprocess
     @$curprocess                 : PING.EXE [Switch To]
         Name             : PING.EXE
@@ -906,6 +966,7 @@ And we can play with the node in the model:
     @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]                 : Process: PING.EXE, Name: attr0, Value: value0
         Name             : attr0
         Value            : value0
+```
 
 Another simpler example is available in [Determining process architecture with JavaScript and LINQ](https://blogs.msdn.microsoft.com/windbg/2017/04/13/determining-process-architecture-with-javascript-and-linq/) where the author adds a node to the `Process` node that tells you with which bitness the process is running on, either 64 or 32 bits.
 
@@ -921,7 +982,8 @@ One of the things I quickly was bothered with at first is not being able to run 
 
 A way to work around that is to load a script and to use the `@$scriptContents` variable from where you can access the `host` object.
 
-    :::text access host object from command window
+```text 
+access host object from command window
     0:000> dx -v @$scriptContents.host
     @$scriptContents.host                 : [object Object]
         currentApiVersionSupported : [object Object]
@@ -961,6 +1023,7 @@ A way to work around that is to load a script and to use the `@$scriptContents` 
         memory           : [object Object]
         typeSystem       : [object Object]
         ToDisplayString  [ToDisplayString([FormatSpecifier]) - Method which converts the object to its display string representation according to an optional format specifier]
+```
 
 Note that this is also super useful if you want to wander around and get a feel for the various features / APIs that have not been documented yet (or you were just not aware of).
 
@@ -976,7 +1039,8 @@ Similar to above, you can use the `.scriptrun` command for that.
 
 Nope it is not! You can load your Javascript scripts from the latest SDK's Windbg. You can use the `.scriptproviders` command to know what the various script providers currently loaded are, and if you do not see the Javascript provider you can just run `.load jsprovider.dll` to load it.
 
-    :::text loading the js provider
+```text 
+loading the js provider
     0:003> .scriptproviders
     Available Script Providers:
         NatVis (extension '.NatVis')
@@ -985,6 +1049,7 @@ Nope it is not! You can load your Javascript scripts from the latest SDK's Windb
     Available Script Providers:
         NatVis (extension '.NatVis')
         JavaScript (extension '.js')
+```
 
 ### How to debug a script?
 
@@ -998,7 +1063,8 @@ I did not cover how to write custom visualizer in Javascript but you should look
 
 Sometimes you are accessing a Javascript object that behaves like a structure instance -- you can access its various fields seamlessly (e.g. you want to access the TEB through the `EnvironmentBlock` object). This is great. However, for various reasons you might need to get the raw value of a field (e.g. for doing arithmetic) and for that you can use the `address` property:
 
-    :::javascript address property
+```javascript 
+// address property
     "use strict";
     
     let logln = function (e) {
@@ -1011,14 +1077,18 @@ Sometimes you are accessing a Javascript object that behaves like a structure in
         logln(TEB.FlsData);
         logln(TEB.FlsData.address);  
     }
+```
+
 Which gives:
 
-    :::text address property
+```text 
+address property
     0:000>
     [object Object]
     2316561115408
     0:000> dx @$curthread.Environment.EnvironmentBlock.FlsData
     @$curthread.Environment.EnvironmentBlock.FlsData : 0x21b5dcd6910 [Type: void *]
+```
 
 ### Evaluate expressions
 
@@ -1026,7 +1096,8 @@ Another interesting function I wanted to mention is `host.evaluateExpression`. A
 
 Here is a small example showing what I am trying to explain:
 
-    :::javascript host.evaluateExpression
+```javascript 
+// host.evaluateExpression
     "use strict";
     
     let logln = function (e) {
@@ -1047,16 +1118,19 @@ Here is a small example showing what I am trying to explain:
         // not valid: @rsp is not part of the language - logln(host.evaluateExpression('(unsigned __int64)@rsp'));
         // not valid: '!' is not part of the language - logln(host.evaluateExpression('((ntdll!_TEB*)0)'))
     }
+```
 
 Resulting in:
 
-    :::text host.evaluateExpression examples
+```text 
+host.evaluateExpression examples
     0:000>
     0
     [object Object]
     [object Object]
     2316561115408
     Error: Unable to read memory at Address 0x0
+```
 
 ### How to access global from modules
 If you need to get access to a global in a specific module, you can use the function `host.getModuleSymbol` which returns one of those magic Javascript object behaving like a structure. You can check out an example in the following article: [Implementation logic for the COM global interface table](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/native-objects-in-javascript-extensions).
@@ -1069,7 +1143,8 @@ I am sure you guys all already know all of this but Windows revisited how except
 
 Anyway, you might know about Windbg's [!exchains](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-exchain) command that displays the current exception handler chain. This is what the output looks like:
 
-    :::text !exchains
+```text 
+!exchains
     (9a0.14d4): Access violation - code c0000005 (first chance)
     First chance exceptions are reported before any exception handling.
     This exception may be expected and handled.
@@ -1083,10 +1158,12 @@ Anyway, you might know about Windbg's [!exchains](https://docs.microsoft.com/en-
       ehandler except!ILT+840(__C_specific_handler) (00007ff7`a900134d)
     Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
       ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
+```
 
 And here is the associated C code:
 
-    :::c except.c
+```c
+// except.c
     __declspec(noinline) void Fault(uintptr_t *x) {
         printf("I'm about to fault!");
         *(uintptr_t*)x= 1;
@@ -1103,6 +1180,7 @@ And here is the associated C code:
         }
         return EXIT_SUCCESS;
     }
+```
 
 As you can see, it is not obvious from the dump above to identify the `Filter` function and the `__except` code block.
 
@@ -1118,10 +1196,11 @@ The unwinding information is mainly described by the [UNWIND_INFO](https://docs.
 
 What follows this array is variable though (documented [here](https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info)): if the `Flags` field of `UNWIND_INFO` specifies the `EHHANDLER` flag then we have what I call a `UNWIND_INFO_END` structure defined like this:
 
-    :::text UNWIND_INFO_END
+```text 
     0:000> dt UNWIND_INFO_END
        +0x000 ExceptionHandler : Uint4B
        +0x004 ExceptionData    : Uint4B
+```
 
 This is basically where `!exchains` stops -- the `ehhandler` address in the output is the `ExceptionHandler` field. This is basically an RVA to a function that encapsulates the exception handling for this function. This is not to be confused with either your `Filter` function or your `__except` block, this is a generic entry-point that the compiler generates and can be used for other functions too. This function is invoked by the exception dispatching / handling code with an argument that is the value of `ExceptionData`. `ExceptionData` is basically an RVA to a blob of memory that the `ExceptionHandler` function knows how to read and takes actions on. This is where the information we are after is stored.
 
@@ -1131,7 +1210,8 @@ Obviously we can easily make an assumption and assume that the `ExceptionData` i
 
 The type of `ExceptionData` that we are interested in is what I call a `SEH_SCOPE_TABLE` which is an array of `SCOPE_RECORD`s that are defined like this:
 
-    :::text SEH_SCOPE_TABLE
+```text 
+SEH_SCOPE_TABLE
     0:000> dt SEH_SCOPE_TABLE
       +0x000 Count            : Uint4B
       +0x004 ScopeRecord      : [1] SCOPE_RECORD
@@ -1140,6 +1220,7 @@ The type of `ExceptionData` that we are interested in is what I call a `SEH_SCOP
       +0x004 EndAddress       : Uint4B
       +0x008 HandlerAddress   : Uint4B
       +0x00c JumpTarget       : Uint4B
+```
 
 `BeginAddress` and `EndAddress` give you the `__try` block RVA, `HandlerAddress` encodes either the `Filter` function or the start of the `__finally` block. The `JumpTarget` field tells you if you are looking at either a `__try / __except` or a `__try / __finally`. Also, the current heuristic I use to know if the `SCOPE_RECORD` looks legit or not is to ensure that the `__try` block resides in between the boundaries of the function the handler is defined in. This has been working well so far - at least on the binaries I have tried it on, but I would not be that surprised if there exists some edge cases to this; if you know any feel free to hit me up!
 
@@ -1161,7 +1242,8 @@ With the same source of information we can easily filter and shape the way we wa
 
 And just in case you forgot about it, all this information is now accessible from the command window for query purposes. You can ask things like *Which function defines the most exception handlers?* very easily:
 
-    :::text Which function defines the most exception handlers?
+```text 
+Which function defines the most exception handlers?
     0:000> dx @$curprocess.Functions.OrderByDescending(c => c.ExceptionHandlers.Count()).First()
     @$curprocess.Functions.OrderByDescending(c => c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -> RVA:0x7ff83563e5a2, 12 exception handlers
         EHHandlerRVA     : 0x221d6
@@ -1174,12 +1256,14 @@ And just in case you forgot about it, all this information is now accessible fro
     0:000> u 0x7ff83563e170 l1
     KERNEL32!LoadModule:
     00007ff8`3563e170 4053            push    rbx
+```
 
 In this example, the function `KERNEL32!LoadModule` seems to be the function that has registered the largest number of exception handlers (12 of them).
 
 Now that we have this new source of information, we can also push it a bit further and implement a command that does a very similar job than `!exchain` by just mining information from the nodes we just added to the data model:
 
-    :::text !ehhandlers VS !exchain
+```text 
+!ehhandlers VS !exchain
     0:000> !ehhandlers
     9 stack frames, scanning for handlers...
     Frame 0x1: EHHandler: 0x7ff7a9001389: except!ILT+900(__GSHandlerCheck_SEH):
@@ -1201,6 +1285,7 @@ Now that we have this new source of information, we can also push it a bit furth
       ehandler except!ILT+840(__C_specific_handler) (00007ff7`a900134d)
     Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
       ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
+```
 
 We could even push it a bit more and have our command returns structured data instead of displaying text on the output so that other commands and extensions could build on top of it.
 

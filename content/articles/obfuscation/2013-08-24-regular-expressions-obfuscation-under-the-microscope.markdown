@@ -25,7 +25,7 @@ Now, if from that string representation we extract an FSM, we can have that one:
 <center>![FSM_example.png](/images/regular_expressions_obfuscation_under_the_microscope/FSM_example.png)</center>
 Here is this automaton implemented in C:
 
-    :::c fsm_example.c
+```C
     #include <stdio.h>
     #include <string.h>
 
@@ -97,10 +97,11 @@ Here is this automaton implemented in C:
 
         return 1;
     }
+```
 
 If we try to execute the program:
 
-    :::text
+```text
     > fsm_example.exe garbage-Hi-1337-garbage
     Good boy.
     
@@ -112,6 +113,7 @@ If we try to execute the program:
     
     > fsm_example.exe Hi-dudies
     Bad boy.
+```
 
 The purpose of that trivial example was just to show you how a regex string representation can be compiled into something harder to analyze but also more efficient (it doesn't need a compilation step, that's the reason why you may encounter that kind of thing in real (?) softwares). Even if the code seems trivial at the first sight, when you look at it at the assembly level, it takes a bit of time to figure out it's a simple "Hi-[0-9]{4}" regex.
 
