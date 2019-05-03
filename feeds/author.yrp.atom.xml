@@ -833,12 +833,11 @@ uid=1000(x) gid=1000(x) groups=1000(x),27(sudo)
 &lt;h2 id="compiling-and-baking"&gt;Compiling and ‘Baking’&lt;/h2&gt;
 &lt;p&gt;In a rumpkernel application, we have a standard POSIX environment, minus anything involving multiple processes. Standard memory, file system, and networking calls all work as expected. The only differences lie in the multi-process related calls such as &lt;code&gt;fork()&lt;/code&gt;, &lt;code&gt;signal()&lt;/code&gt;, &lt;code&gt;pthread_create()&lt;/code&gt;, etc. The scope of these differences can be found in the &lt;a href="http://www.fixup.fi/misc/rumpkernel-book/rumpkernel-bookv2-20160802.pdf"&gt;The Design and Implementation of the Anykernel and Rump Kernels [pdf]&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;From a super basic, standard ‘hello world’ program:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;amp;lt;stdio.h&amp;amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
-
-&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;span class="p"&gt;{&lt;/span&gt;
-   &lt;span class="n"&gt;printf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Hello&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
+    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;{&lt;/span&gt;
+       &lt;span class="n"&gt;printf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Hello&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -859,14 +858,14 @@ uid=1000(x) gid=1000(x) groups=1000(x),27(sudo)
 &lt;h2 id="reason-why-this-doesnt-work"&gt;Reason Why This Doesn’t Work&lt;/h2&gt;
 &lt;p&gt;CVE-2013-2028 is a stack buffer overflow in the nginx handler for chunked requests. I thought this would be a good test as the user controls much of the data on the stack, however, various attempts to trigger the overflow failed. Running the VM in a debugger you could see the bug was not triggered despite the size value being large enough. In fact, the syscall returned an error.&lt;/p&gt;
 &lt;p&gt;It turns out however that NetBSD has code to prevent against this inside the kernel:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;do_sys_recvmsg_so&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;lwp&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;l&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;so&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;msghdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;mp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-      &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;mbuf&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;from&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;mbuf&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;control&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;register_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;retsize&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
-&lt;span class="c1"&gt;// …&lt;/span&gt;
-        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tiov&lt;/span&gt;&lt;span class="o"&gt;-&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="n"&gt;iov_len&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;SSIZE_MAX&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;auio&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;uio_resid&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;SSIZE_MAX&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
-            &lt;span class="n"&gt;error&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;EINVAL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-            &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-        &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;span class="c1"&gt;// …&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;do_sys_recvmsg_so&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;lwp&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;l&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;so&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;msghdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;mp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+          &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;mbuf&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;from&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;mbuf&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;control&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;register_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;retsize&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;// …&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tiov&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;iov_len&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;SSIZE_MAX&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;auio&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;uio_resid&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;SSIZE_MAX&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;error&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;EINVAL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+                &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="c1"&gt;// …&lt;/span&gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -876,9 +875,9 @@ uid=1000(x) gid=1000(x) groups=1000(x),27(sudo)
 &lt;p&gt;In practice, the point is moot because the stack cookies are always zero. The compiler creates and checks the cookies, it just never populates &lt;code&gt;fs:0x28&lt;/code&gt; (the location of the cookie value), so it’s always a constant value and assuming you can write null bytes, this should pose no problem.&lt;/p&gt;
 &lt;h1 id="aslr"&gt;ASLR&lt;/h1&gt;
 &lt;p&gt;I was curious if unikernels would implement some form of ASLR, as during the build process they get compiled to an ELF (which is quite nice for analysis!) which might make position independent code easier to deal with. They don’t: all images are loaded at &lt;code&gt;0x100000&lt;/code&gt;. There is however "natures ASLR" as these images aren’t distributed in binary form. Thus, as everyone must compile their own images, these will vary slightly depending on compiler version, software version, etc. However, even this constraint gets made easier. If you look at the format of the loaded images, they look something like this:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nt"&gt;0x100000&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nt"&gt;lt&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;&lt;span class="nt"&gt;unikernel&lt;/span&gt; &lt;span class="nt"&gt;init&lt;/span&gt; &lt;span class="nt"&gt;code&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nt"&gt;gt&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
-&lt;span class="err"&gt;…&lt;/span&gt;
-&lt;span class="nt"&gt;0x110410&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nt"&gt;lt&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;&lt;span class="nt"&gt;application&lt;/span&gt; &lt;span class="nt"&gt;code&lt;/span&gt; &lt;span class="nt"&gt;starts&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nt"&gt;gt&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    0x100000: &amp;lt;unikernel init code&amp;gt;
+    …
+    0x110410: &amp;lt;application code starts&amp;gt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -896,42 +895,42 @@ uid=1000(x) gid=1000(x) groups=1000(x),27(sudo)
 &lt;p&gt;You can find most of the relevant heap source &lt;a href="https://github.com/rumpkernel/rumprun/blob/master/lib/libbmk_core/memalloc.c"&gt;here&lt;/a&gt;&lt;/p&gt;
 &lt;h1 id="symbol-resolution"&gt;Symbol Resolution&lt;/h1&gt;
 &lt;p&gt;Rumpkernels helpfully include an entire syscall table under the &lt;code&gt;mysys&lt;/code&gt; symbol. When rumpkernel images get loaded, the ELF header gets stripped, but the rest of the memory is loaded contigiously:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;gef➤  info file
-Symbols from &amp;quot;/home/x/rumprun-packages/php5/bin/php.bin&amp;quot;.
-Remote serial target in gdb-specific protocol:
-Debugging a target over a serial line.
-        While running this, GDB does not access memory from...
-Local exec file:
-        `/home/x/rumprun-packages/php5/bin/php.bin&amp;#39;, file type elf64-x86-64.
-        Entry point: 0x104000
-        0x0000000000100000 - 0x0000000000101020 is .bootstrap
-        0x0000000000102000 - 0x00000000008df31c is .text
-        0x00000000008df31c - 0x00000000008df321 is .init
-        0x00000000008df340 - 0x0000000000bba9f0 is .rodata
-        0x0000000000bba9f0 - 0x0000000000cfbcd0 is .eh_frame
-        0x0000000000cfbcd0 - 0x0000000000cfbd28 is link_set_sysctl_funcs
-        0x0000000000cfbd28 - 0x0000000000cfbd50 is link_set_bufq_strats
-        0x0000000000cfbd50 - 0x0000000000cfbde0 is link_set_modules
-        0x0000000000cfbde0 - 0x0000000000cfbf18 is link_set_rump_components
-        0x0000000000cfbf18 - 0x0000000000cfbf60 is link_set_domains
-        0x0000000000cfbf60 - 0x0000000000cfbf88 is link_set_evcnts
-        0x0000000000cfbf88 - 0x0000000000cfbf90 is link_set_dkwedge_methods
-        0x0000000000cfbf90 - 0x0000000000cfbfd0 is link_set_prop_linkpools
-        0x0000000000cfbfd0 - 0x0000000000cfbfe0 is .initfini
-        0x0000000000cfc000 - 0x0000000000d426cc is .data
-        0x0000000000d426d0 - 0x0000000000d426d8 is .got
-        0x0000000000d426d8 - 0x0000000000d426f0 is .got.plt
-        0x0000000000d426f0 - 0x0000000000d42710 is .tbss
-        0x0000000000d42700 - 0x0000000000e57320 is .bss
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    gef➤  info file
+    Symbols from &amp;quot;/home/x/rumprun-packages/php5/bin/php.bin&amp;quot;.
+    Remote serial target in gdb-specific protocol:
+    Debugging a target over a serial line.
+            While running this, GDB does not access memory from...
+    Local exec file:
+            `/home/x/rumprun-packages/php5/bin/php.bin&amp;#39;, file type elf64-x86-64.
+            Entry point: 0x104000
+            0x0000000000100000 - 0x0000000000101020 is .bootstrap
+            0x0000000000102000 - 0x00000000008df31c is .text
+            0x00000000008df31c - 0x00000000008df321 is .init
+            0x00000000008df340 - 0x0000000000bba9f0 is .rodata
+            0x0000000000bba9f0 - 0x0000000000cfbcd0 is .eh_frame
+            0x0000000000cfbcd0 - 0x0000000000cfbd28 is link_set_sysctl_funcs
+            0x0000000000cfbd28 - 0x0000000000cfbd50 is link_set_bufq_strats
+            0x0000000000cfbd50 - 0x0000000000cfbde0 is link_set_modules
+            0x0000000000cfbde0 - 0x0000000000cfbf18 is link_set_rump_components
+            0x0000000000cfbf18 - 0x0000000000cfbf60 is link_set_domains
+            0x0000000000cfbf60 - 0x0000000000cfbf88 is link_set_evcnts
+            0x0000000000cfbf88 - 0x0000000000cfbf90 is link_set_dkwedge_methods
+            0x0000000000cfbf90 - 0x0000000000cfbfd0 is link_set_prop_linkpools
+            0x0000000000cfbfd0 - 0x0000000000cfbfe0 is .initfini
+            0x0000000000cfc000 - 0x0000000000d426cc is .data
+            0x0000000000d426d0 - 0x0000000000d426d8 is .got
+            0x0000000000d426d8 - 0x0000000000d426f0 is .got.plt
+            0x0000000000d426f0 - 0x0000000000d42710 is .tbss
+            0x0000000000d42700 - 0x0000000000e57320 is .bss
 &lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;This means you should be able to just run simple linear scan, looking for the &lt;code&gt;mysys&lt;/code&gt; table. A basic heuristic should be fine, 8 byte syscall number, 8 byte address. In the PHP5 interpreter, this table has 67 entries, giving it a big, fat footprint:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;gef➤  x/6g mysys
-0xaeea60 &amp;amp;lt;mysys&amp;amp;gt;:       0x0000000000000003      0x000000000080b790 -- &amp;amp;lt;sys_read&amp;amp;gt;
-0xaeea70 &amp;amp;lt;mysys+16&amp;amp;gt;:    0x0000000000000004      0x000000000080b9d0 -- &amp;amp;lt;sys_write&amp;amp;gt;
-0xaeea80 &amp;amp;lt;mysys+32&amp;amp;gt;:    0x0000000000000006      0x000000000080c8e0 -- &amp;amp;lt;sys_close&amp;amp;gt;
-...
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    gef➤  x/6g mysys
+    0xaeea60 &amp;lt;mysys&amp;gt;:       0x0000000000000003      0x000000000080b790 -- &amp;lt;sys_read&amp;gt;
+    0xaeea70 &amp;lt;mysys+16&amp;gt;:    0x0000000000000004      0x000000000080b9d0 -- &amp;lt;sys_write&amp;gt;
+    0xaeea80 &amp;lt;mysys+32&amp;gt;:    0x0000000000000006      0x000000000080c8e0 -- &amp;lt;sys_close&amp;gt;
+    ...
 &lt;/pre&gt;&lt;/div&gt;
 
 

