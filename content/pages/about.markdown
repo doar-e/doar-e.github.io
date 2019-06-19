@@ -8,7 +8,7 @@ You can also contact the owners:
 
   - Axel Souchet: [twitter][1], [github][2]
   - Jonathan Salwan: [twitter][3], [github][4]
-  - Jérémy Fetiveau: [twitter][5], [github][6]
+  - Jeremy Fetiveau: [twitter][5], [github][6]
   - yrp: [twitter][7], [github][8]
 
 We are also hanging out on IRC ([#doar-e@irc.w3challs.com](irc://#doar-e@irc.w3challs.com)) and on twitter ([@doar_e](https://twitter.com/doar_e)) ; don't be shy & join us!
