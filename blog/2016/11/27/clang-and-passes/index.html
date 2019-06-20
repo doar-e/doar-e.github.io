@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="Axel '0vercl0k' Souchet">
-    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../theme/css/bootstrap.min.css" type="text/css" />
     <style type="text/css">
       body {
         padding-top: 60px;
@@ -28,16 +28,16 @@
         font-size: 6pt;
      }
     </style>
-    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
-    <link href="/theme/css/font-awesome.css" rel="stylesheet" />
-    <link href="/theme/css/pygments.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/pygments.css" rel="stylesheet" />
 
     <!--[if lt IE 9]>
       <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <link href="/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
-    <link href="/feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+    <link href="../../../../../feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="../../../../../feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
 
   </head>
 
@@ -51,41 +51,41 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <a class="brand" href="../../../../../index.html">Diary of a reverse-engineer </a>
           <div class="nav-collapse">
             <ul class="nav">
               <ul class="nav">
-                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+                    <li><a href="../../../../../archives.html"><i class="icon-th-list"></i>Archives</a></li>
               </ul>
 
                 <li >
-                    <a href="/category/debugging.html">
+                    <a href="../../../../../category/debugging.html">
                       <i class="icon-folder-open icon-large"></i>debugging
                     </a>
                 </li>
                 <li >
-                    <a href="/category/exploitation.html">
+                    <a href="../../../../../category/exploitation.html">
                       <i class="icon-folder-open icon-large"></i>exploitation
                     </a>
                 </li>
                 <li class="active">
-                    <a href="/category/misc.html">
+                    <a href="../../../../../category/misc.html">
                       <i class="icon-folder-open icon-large"></i>misc
                     </a>
                 </li>
                 <li >
-                    <a href="/category/obfuscation.html">
+                    <a href="../../../../../category/obfuscation.html">
                       <i class="icon-folder-open icon-large"></i>obfuscation
                     </a>
                 </li>
                 <li >
-                    <a href="/category/reverse-engineering.html">
+                    <a href="../../../../../category/reverse-engineering.html">
                       <i class="icon-folder-open icon-large"></i>reverse-engineering
                     </a>
                 </li>
 
-                <li><a href="/pages/about.html">About</a></li>
-                <li><a href="/pages/presentations.html">Presentations</a></li>
+                <li><a href="../../../../../pages/about.html">About</a></li>
+                <li><a href="../../../../../pages/presentations.html">Presentations</a></li>
 
             </ul>
           </div><!--/.nav-collapse -->
@@ -115,17 +115,17 @@
         <i class="icon-calendar"></i>Sun 27 November 2016
 </abbr>
 <span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<a href="../../../../../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
 <span class="label">Category</span>
-<a href="/category/misc.html"><i class="icon-folder-open"></i>misc</a>
+<a href="../../../../../category/misc.html"><i class="icon-folder-open"></i>misc</a>
 
 
 <span class="label">Tags</span>
-	<a href="/tag/fuzzing.html"><i class="icon-tag"></i>fuzzing</a>
-	<a href="/tag/clang.html"><i class="icon-tag"></i>clang</a>
-	<a href="/tag/llvm.html"><i class="icon-tag"></i>llvm</a>
-	<a href="/tag/analysis-pass.html"><i class="icon-tag"></i>analysis pass</a>
-	<a href="/tag/pass.html"><i class="icon-tag"></i>pass</a>
+	<a href="../../../../../tag/fuzzing.html"><i class="icon-tag"></i>fuzzing</a>
+	<a href="../../../../../tag/clang.html"><i class="icon-tag"></i>clang</a>
+	<a href="../../../../../tag/llvm.html"><i class="icon-tag"></i>llvm</a>
+	<a href="../../../../../tag/analysis-pass.html"><i class="icon-tag"></i>analysis pass</a>
+	<a href="../../../../../tag/pass.html"><i class="icon-tag"></i>pass</a>
 </footer><!-- /.post-info -->                </div>
                 <h1 id="introduction">Introduction</h1>
 <p>About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as <a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf">Latner</a> said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that could be used in a lot of (different) domains: code-optimization (think <a href="https://github.com/JonathanSalwan/Tigress_protection">deobfuscation</a>), (architecture independent) <a href="https://github.com/0vercl0k/articles/blob/master/Obfuscation%20of%20steel%20meet%20Kryptonite.pdf">code obfuscation</a>, static code instrumentation (think <a href="https://github.com/google/sanitizers/wiki">sanitizers</a>), <a href="http://clang-analyzer.llvm.org/index.html">static analysis</a>, for runtime software exploitation mitigations (think <a href="http://clang.llvm.org/docs/ControlFlowIntegrity.html">cfi</a>, <a href="http://clang.llvm.org/docs/SafeStack.html">safestack</a>), power a fuzzing framework (think <a href="http://llvm.org/docs/LibFuzzer.html">libFuzzer</a>), ..you name it.</p>
@@ -683,7 +683,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     </div><!--/.fluid-container-->
 
 
-    <script src="/theme/js/jquery-1.7.2.min.js"></script>
-    <script src="/theme/js/bootstrap.min.js"></script>
+    <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
+    <script src="../../../../../theme/js/bootstrap.min.js"></script>
   </body>
 </html>

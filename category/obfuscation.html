@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="Axel '0vercl0k' Souchet">
-    <link rel="stylesheet" href="/theme/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../theme/css/bootstrap.min.css" type="text/css" />
     <style type="text/css">
       body {
         padding-top: 60px;
@@ -28,16 +28,16 @@
         font-size: 6pt;
      }
     </style>
-    <link href="/theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
-    <link href="/theme/css/font-awesome.css" rel="stylesheet" />
-    <link href="/theme/css/pygments.css" rel="stylesheet" />
+    <link href="../theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="../theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="../theme/css/pygments.css" rel="stylesheet" />
 
     <!--[if lt IE 9]>
       <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <link href="/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
-    <link href="/feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+    <link href="../feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="../feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
 
   </head>
 
@@ -51,41 +51,41 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="/index.html">Diary of a reverse-engineer </a>
+          <a class="brand" href="../index.html">Diary of a reverse-engineer </a>
           <div class="nav-collapse">
             <ul class="nav">
               <ul class="nav">
-                    <li><a href="/archives.html"><i class="icon-th-list"></i>Archives</a></li>
+                    <li><a href="../archives.html"><i class="icon-th-list"></i>Archives</a></li>
               </ul>
 
                 <li >
-                    <a href="/category/debugging.html">
+                    <a href="../category/debugging.html">
                       <i class="icon-folder-open icon-large"></i>debugging
                     </a>
                 </li>
                 <li >
-                    <a href="/category/exploitation.html">
+                    <a href="../category/exploitation.html">
                       <i class="icon-folder-open icon-large"></i>exploitation
                     </a>
                 </li>
                 <li >
-                    <a href="/category/misc.html">
+                    <a href="../category/misc.html">
                       <i class="icon-folder-open icon-large"></i>misc
                     </a>
                 </li>
                 <li class="active">
-                    <a href="/category/obfuscation.html">
+                    <a href="../category/obfuscation.html">
                       <i class="icon-folder-open icon-large"></i>obfuscation
                     </a>
                 </li>
                 <li >
-                    <a href="/category/reverse-engineering.html">
+                    <a href="../category/reverse-engineering.html">
                       <i class="icon-folder-open icon-large"></i>reverse-engineering
                     </a>
                 </li>
 
-                <li><a href="/pages/about.html">About</a></li>
-                <li><a href="/pages/presentations.html">Presentations</a></li>
+                <li><a href="../pages/about.html">About</a></li>
+                <li><a href="../pages/presentations.html">Presentations</a></li>
 
             </ul>
           </div><!--/.nav-collapse -->
@@ -97,61 +97,61 @@
       <div class="row">
         <div class="span9" id="content">
         <div class="article">
-                <h1><a href="/blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">Spotlight on an unprotected AES128 white-box implementation</a></h1>
+                <h1><a href="../blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">Spotlight on an unprotected AES128 white-box implementation</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
 <abbr class="published" title="2015-02-08T22:59:00-08:00">
         <i class="icon-calendar"></i>Sun 08 February 2015
 </abbr>
 <span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<a href="../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
 <span class="label">Category</span>
-<a href="/category/obfuscation.html"><i class="icon-folder-open"></i>obfuscation</a>
+<a href="../category/obfuscation.html"><i class="icon-folder-open"></i>obfuscation</a>
 
 
 <span class="label">Tags</span>
-	<a href="/tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
-	<a href="/tag/white-box.html"><i class="icon-tag"></i>white-box</a>
-	<a href="/tag/practical-cryptography.html"><i class="icon-tag"></i>practical cryptography</a>
-	<a href="/tag/aes128.html"><i class="icon-tag"></i>aes128</a>
-	<a href="/tag/encryption.html"><i class="icon-tag"></i>encryption</a>
+	<a href="../tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
+	<a href="../tag/white-box.html"><i class="icon-tag"></i>white-box</a>
+	<a href="../tag/practical-cryptography.html"><i class="icon-tag"></i>practical cryptography</a>
+	<a href="../tag/aes128.html"><i class="icon-tag"></i>aes128</a>
+	<a href="../tag/encryption.html"><i class="icon-tag"></i>encryption</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>I think it all began when I've worked on the <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2013">NSC2013</a> crackme made by <a href="https://twitter.com/elvanderb">@elvanderb</a>, long story short you had an AES128 heavily obfuscated white-box implementation to break. The thing was you could actually solve the challenge in different ways: </p>
 <ol>
 <li>the first one was the easiest one: you didn't …</li></ol>
-                        <a class="btn primary xsmall" href="/blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">more ...</a>
+                        <a class="btn primary xsmall" href="../blog/2015/02/08/spotlight-on-an-unprotected-aes128-whitebox-implementation/">more ...</a>
                 </div>
         </div>
         <hr />
         <div class="article">
-                <h1><a href="/blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">Regular expressions obfuscation under the microscope</a></h1>
+                <h1><a href="../blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">Regular expressions obfuscation under the microscope</a></h1>
                 <div class="well small"><footer class="post-info">
 <span class="label">Date</span>
 <abbr class="published" title="2013-08-24T12:35:00-07:00">
         <i class="icon-calendar"></i>Sat 24 August 2013
 </abbr>
 <span class="label">By</span>
-<a href="/author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<a href="../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
 <span class="label">Category</span>
-<a href="/category/obfuscation.html"><i class="icon-folder-open"></i>obfuscation</a>
+<a href="../category/obfuscation.html"><i class="icon-folder-open"></i>obfuscation</a>
 
 
 <span class="label">Tags</span>
-	<a href="/tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
-	<a href="/tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
+	<a href="../tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
+	<a href="../tag/obfuscation.html"><i class="icon-tag"></i>obfuscation</a>
 </footer><!-- /.post-info --></div>
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>Some months ago I came across a strange couple of functions that was kind of playing with a <a href="http://en.wikipedia.org/wiki/Finite-state_machine">finite-state automaton</a> to validate an input. At first glance, I didn't really notice it was in fact a regex being processed, that's exactly why I spent quite some time to understand …</p>
-                        <a class="btn primary xsmall" href="/blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">more ...</a>
+                        <a class="btn primary xsmall" href="../blog/2013/08/24/regular-expressions-obfuscation-under-the-microscope/">more ...</a>
                 </div>
         </div>
         <hr />
 
                 <section id="content" class="body">
                 <h1>Pages</h1>
-                        <li><a href="/pages/about.html">About</a></li>
-                        <li><a href="/pages/presentations.html">Presentations</a></li>
+                        <li><a href="../pages/about.html">About</a></li>
+                        <li><a href="../pages/presentations.html">Presentations</a></li>
                 </section>
         </div><!--/span-->
       </div><!--/row-->
@@ -172,7 +172,7 @@
     </div><!--/.fluid-container-->
 
 
-    <script src="/theme/js/jquery-1.7.2.min.js"></script>
-    <script src="/theme/js/bootstrap.min.js"></script>
+    <script src="../theme/js/jquery-1.7.2.min.js"></script>
+    <script src="../theme/js/bootstrap.min.js"></script>
   </body>
 </html>
