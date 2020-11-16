@@ -151,7 +151,7 @@ Let's say we want to have an automaton that matches "Hi-[0-9]{4}".</p>
 <p>Now, if from that string representation we extract an FSM, we can have that one:</p>
 <p><center><img alt="FSM_example.png" src="/images/regular_expressions_obfuscation_under_the_microscope/FSM_example.png"></center>
 Here is this automaton implemented in C:</p>
-<div class="highlight"><pre><span></span>    <span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><code>    <span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
     <span class="cp">#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp"></span>
 
     <span class="kt">unsigned</span> <span class="kt">char</span> <span class="nf">checkinput</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">s</span><span class="p">)</span>
@@ -222,11 +222,10 @@ Here is this automaton implemented in C:</p>
 
         <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
     <span class="p">}</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>If we try to execute the program:</p>
-<div class="highlight"><pre><span></span>    &gt; fsm_example.exe garbage-Hi-1337-garbage
+<div class="highlight"><pre><span></span><code>    &gt; fsm_example.exe garbage-Hi-1337-garbage
     Good boy.
 
     &gt; fsm_example.exe garbage-Hi-1337
@@ -237,8 +236,7 @@ Here is this automaton implemented in C:</p>
 
     &gt; fsm_example.exe Hi-dudies
     Bad boy.
-</pre></div>
-
+</code></pre></div>
 
 <p>The purpose of that trivial example was just to show you how a regex string representation can be compiled into something harder to analyze but also more efficient (it doesn't need a compilation step, that's the reason why you may encounter that kind of thing in real (?) softwares). Even if the code seems trivial at the first sight, when you look at it at the assembly level, it takes a bit of time to figure out it's a simple "Hi-[0-9]{4}" regex.</p>
 <p><center><img alt="cfg.png" src="/images/regular_expressions_obfuscation_under_the_microscope/cfg.png"></center>

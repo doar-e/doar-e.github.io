@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - misc</title><link href="https://doar-e.github.io/" rel="alternate"></link><link href="https://doar-e.github.io%5Cfeeds/category.misc.atom.xml" rel="self"></link><id>https://doar-e.github.io/</id><updated>2017-08-05T16:08:00-07:00</updated><entry><title>Binary rewriting with syzygy, Pt. I</title><link href="https://doar-e.github.io%5Cblog/2017/08/05/binary-rewriting-with-syzygy/" rel="alternate"></link><published>2017-08-05T16:08:00-07:00</published><updated>2017-08-05T16:08:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io\blog,2017-08-05:/2017/08/05/binary-rewriting-with-syzygy/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer - misc</title><link href="https://doar-e.github.io/" rel="alternate"></link><link href="https://doar-e.github.io/feeds/category.misc.atom.xml" rel="self"></link><id>https://doar-e.github.io/</id><updated>2017-08-05T16:08:00-07:00</updated><entry><title>Binary rewriting with syzygy, Pt. I</title><link href="https://doar-e.github.io/blog/2017/08/05/binary-rewriting-with-syzygy/" rel="alternate"></link><published>2017-08-05T16:08:00-07:00</published><updated>2017-08-05T16:08:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io,2017-08-05:/blog/2017/08/05/binary-rewriting-with-syzygy/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via &lt;a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/"&gt;clang&lt;/a&gt;, or at runtime with dynamic binary instrumentation frameworks like &lt;a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool"&gt;Pin&lt;/a&gt; or &lt;a href="http://www.dynamorio.org/"&gt;DynamoRIO&lt;/a&gt;. One thing I have always looked for though, is a framework able to statically instrument a PE image. A …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via &lt;a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/"&gt;clang&lt;/a&gt;, or at runtime with dynamic binary instrumentation frameworks like &lt;a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool"&gt;Pin&lt;/a&gt; or &lt;a href="http://www.dynamorio.org/"&gt;DynamoRIO&lt;/a&gt;. One thing I have always looked for though, is a framework able to statically instrument a PE image. A framework designed a bit like &lt;a href="https://clang.llvm.org/"&gt;clang&lt;/a&gt; where you can write 'passes' doing various things: transformation of the image, analysis of code blocks, etc. Until a couple of months ago, I wasn't aware of any public and robust projects providing this capability (as in, able to instrument real-world scale programs like Chrome or similar).&lt;/p&gt;
 &lt;p&gt;In this post (it's been a while I know!), I'll introduce the &lt;a href="https://github.com/google/syzygy"&gt;syzygy&lt;/a&gt; transformation tool chain with a focus on its &lt;a href="https://github.com/google/syzygy/tree/master/syzygy/instrument"&gt;instrumenter&lt;/a&gt;, and give an overview of the framework, its capabilities, its limitations, and how you can write transformations yourself. As examples, I'll walk through two simple examples: an analysis pass generating a call-graph, and a transformation pass rewriting the function &lt;code&gt;__report_gsfailure&lt;/code&gt; in &lt;a href="https://msdn.microsoft.com/en-us/library/8dbf701c.aspx"&gt;/GS&lt;/a&gt; protected binaries.&lt;/p&gt;
@@ -44,14 +44,13 @@
 &lt;h2 id="compiling"&gt;Compiling&lt;/h2&gt;
 &lt;p&gt;In order to get a development environment setup you need to follow specific steps to get all the chromium build/dev tools installed. &lt;a href="https://dev.chromium.org/developers/how-tos/install-depot-tools"&gt;depot_tools&lt;/a&gt; is the name of the package containing everything you need to properly build the various chromium projects; it includes things like Python, &lt;a href="https://gyp.gsrc.io/"&gt;GYP&lt;/a&gt;, &lt;a href="https://ninja-build.org/"&gt;Ninja&lt;/a&gt;, git, etc.&lt;/p&gt;
 &lt;p&gt;Once depot_tools is installed, it is just a matter of executing the below commands for getting the code and compiling it:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &amp;gt; set PATH=D:\Codes\depot_tools;%PATH%
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &amp;gt; set PATH=D:\Codes\depot_tools;%PATH%
     &amp;gt; mkdir syzygy
     &amp;gt; cd syzygy
     &amp;gt; fetch syzygy
     &amp;gt; cd syzygy\src
     &amp;gt; ninja -C out\Release instrument
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;If you would like more information on the matter, I suggest you read this wiki page: &lt;a href="https://github.com/google/syzygy/wiki/SyzygyDevelopmentGuide"&gt;SyzygyDevelopmentGuide&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="terminology"&gt;Terminology&lt;/h2&gt;
@@ -61,7 +60,7 @@
 &lt;p&gt;Oh, one last thing: the instrumenter is basically the application that decomposes an input binary (comparable to a front-end), present the deconstructed binary (functions, blocks, instructions) to transforms (comparable to a mid-end) that modifies, and finally the back-end part that reconstruct your instrumented binary.&lt;/p&gt;
 &lt;h2 id="debugging-session"&gt;Debugging session&lt;/h2&gt;
 &lt;p&gt;To make things clearer - and because I like debugging sessions - I think it is worthwhile to spend a bit of time in a debugger actually seeing the various structures and how they map to some code we know. Let's take the following C program and compile it in debug mode (don't forget to enable the full PDB generation with the following linker flag: &lt;code&gt;/PROFILE&lt;/code&gt;):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
 
     &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="k"&gt;for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -74,80 +73,75 @@
       &lt;span class="n"&gt;foo&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Throw it to your favorite debugger with the following command - we will use the afl transformation as an example transform to analyze the data we have available to us:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;And let's place this breakpoint:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    bm instrument!*AFLTransform::OnBlock &amp;quot;.if(@@c++(block-&amp;gt;type_ == 0)){ }.else{ g }&amp;quot;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    bm instrument!*AFLTransform::OnBlock &amp;quot;.if(@@c++(block-&amp;gt;type_ == 0)){ }.else{ g }&amp;quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Now it's time to inspect the Block associated with our function &lt;code&gt;foo&lt;/code&gt; from above:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    0:000&amp;gt; g
-    eax=002dcf80 ebx=00000051 ecx=00482da8 edx=004eaba0 esi=004bd398 edi=004bd318
-    eip=002dcf80 esp=0113f4b8 ebp=0113f4c8 iopl=0         nv up ei pl nz na po nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000202
-    instrument!instrument::transforms::AFLTransform::OnBlock:
-    002dcf80 55              push    ebp
-    0:000&amp;gt; dx block
-      [+0x000] id_              : 0x51
-      [+0x004] type_            : CODE_BLOCK (0)
-      [+0x008] size_            : 0x5b
-      [+0x00c] alignment_       : 0x1
-      [+0x010] alignment_offset_ : 0
-      [+0x014] padding_before_  : 0x0
-      [+0x018] name_            : 0x4ffc70 : &amp;quot;foo&amp;quot;
-      [+0x01c] compiland_name_  : 0x4c50b0 : &amp;quot;D:\tmp\test\Debug\main.obj&amp;quot;
-      [+0x020] addr_            [Type: core::detail::AddressImpl&amp;lt;0&amp;gt;]
-      [+0x024] block_graph_     : 0x48d10c
-      [+0x028] section_         : 0x0
-      [+0x02c] attributes_      : 0x8
-      [+0x030] references_      : { size=0x3 }
-      [+0x038] referrers_       : { size=0x1 }
-      [+0x040] source_ranges_   [Type: core::AddressRangeMap&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt;]
-      [+0x04c] labels_          : { size=0x3 }
-      [+0x054] owns_data_       : false
-      [+0x058] data_            : 0x49ef50 : 0x55
-      [+0x05c] data_size_       : 0x5b
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    0:000&amp;gt; g&lt;/span&gt;
+&lt;span class="err"&gt;    eax=002dcf80 ebx=00000051 ecx=00482da8 edx=004eaba0 esi=004bd398 edi=004bd318&lt;/span&gt;
+&lt;span class="err"&gt;    eip=002dcf80 esp=0113f4b8 ebp=0113f4c8 iopl=0         nv up ei pl nz na po nc&lt;/span&gt;
+&lt;span class="err"&gt;    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000202&lt;/span&gt;
+&lt;span class="err"&gt;    instrument!instrument::transforms::AFLTransform::OnBlock:&lt;/span&gt;
+&lt;span class="err"&gt;    002dcf80 55              push    ebp&lt;/span&gt;
+&lt;span class="err"&gt;    0:000&amp;gt; dx block&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x000] id_              : 0x51&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x004] type_            : CODE_BLOCK (0)&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x008] size_            : 0x5b&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x00c] alignment_       : 0x1&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x010] alignment_offset_ : 0&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x014] padding_before_  : 0x0&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x018] name_            : 0x4ffc70 : &amp;quot;foo&amp;quot;&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x01c] compiland_name_  : 0x4c50b0 : &amp;quot;D:\tmp\test\Debug\main.obj&amp;quot;&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x020] addr_            [Type: core::detail::AddressImpl&amp;lt;0&amp;gt;]&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x024] block_graph_     : 0x48d10c&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x028] section_         : 0x0&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x02c] attributes_      : 0x8&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x030] references_      : { size=0x3 }&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x038] referrers_       : { size=0x1 }&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x040] source_ranges_   [Type: core::AddressRangeMap&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt;]&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x04c] labels_          : { size=0x3 }&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x054] owns_data_       : false&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x058] data_            : 0x49ef50 : 0x55&lt;/span&gt;
+&lt;span class="err"&gt;      [+0x05c] data_size_       : 0x5b&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The above shows us every the different properties available in a Block; we can see it is named &lt;code&gt;foo&lt;/code&gt;, has the identifier 0x51 and has a size of 0x5B bytes.&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="foo_idaview.png" src="/images/binary_rewriting_with_syzygy/foo_idaview.png"&gt;&lt;/center&gt;
 It also has one referrer and 3 references, what could they be? With the explanation I gave above, we can guess that the referrer (or cross-ref) must be the &lt;code&gt;main&lt;/code&gt; function as it calls into &lt;code&gt;foo&lt;/code&gt;.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    0:000&amp;gt; dx -r1 (*((instrument!std::pair&amp;lt;block_graph::BlockGraph::Block *,int&amp;gt; *)0x4f87c0))
-      first            : 0x4bd3ac
-      second           : 48
-    0:000&amp;gt; dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd3ac))
-        [+0x000] id_              : 0x52
-        [+0x004] type_            : CODE_BLOCK (0)
-        [+0x008] size_            : 0x4d
-        [+0x00c] alignment_       : 0x1
-        [+0x010] alignment_offset_ : 0
-        [+0x014] padding_before_  : 0x0
-        [+0x018] name_            : 0x4c51a0 : &amp;quot;main&amp;quot;
-        [+0x01c] compiland_name_  : 0x4c50b0 : &amp;quot;D:\tmp\test\Debug\main.obj&amp;quot;
-        [+0x020] addr_            [Type: core::detail::AddressImpl&amp;lt;0&amp;gt;]
-        [+0x024] block_graph_     : 0x48d10c
-        [+0x028] section_         : 0x0
-        [+0x02c] attributes_      : 0x8
-        [+0x030] references_      : { size=0x4 }
-        [+0x038] referrers_       : { size=0x1 }
-        [+0x040] source_ranges_   [Type: core::AddressRangeMap&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt;]
-        [+0x04c] labels_          : { size=0x3 }
-        [+0x054] owns_data_       : false
-        [+0x058] data_            : 0x49efb0 : 0x55
-        [+0x05c] data_size_       : 0x4d
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    0:000&amp;gt; dx -r1 (*((instrument!std::pair&amp;lt;block_graph::BlockGraph::Block *,int&amp;gt; *)0x4f87c0))&lt;/span&gt;
+&lt;span class="err"&gt;      first            : 0x4bd3ac&lt;/span&gt;
+&lt;span class="err"&gt;      second           : 48&lt;/span&gt;
+&lt;span class="err"&gt;    0:000&amp;gt; dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd3ac))&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x000] id_              : 0x52&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x004] type_            : CODE_BLOCK (0)&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x008] size_            : 0x4d&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x00c] alignment_       : 0x1&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x010] alignment_offset_ : 0&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x014] padding_before_  : 0x0&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x018] name_            : 0x4c51a0 : &amp;quot;main&amp;quot;&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x01c] compiland_name_  : 0x4c50b0 : &amp;quot;D:\tmp\test\Debug\main.obj&amp;quot;&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x020] addr_            [Type: core::detail::AddressImpl&amp;lt;0&amp;gt;]&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x024] block_graph_     : 0x48d10c&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x028] section_         : 0x0&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x02c] attributes_      : 0x8&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x030] references_      : { size=0x4 }&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x038] referrers_       : { size=0x1 }&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x040] source_ranges_   [Type: core::AddressRangeMap&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt;]&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x04c] labels_          : { size=0x3 }&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x054] owns_data_       : false&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x058] data_            : 0x49efb0 : 0x55&lt;/span&gt;
+&lt;span class="err"&gt;        [+0x05c] data_size_       : 0x4d&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Something to keep in mind when it comes to &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L1046"&gt;references&lt;/a&gt; is that they are not simply a pointer to a block. A reference does indeed reference a block (duh), but it also has an offset associated to this block to point exactly at where the data is being referenced from.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Represents a reference from one block to another. References may be offset.&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Represents a reference from one block to another. References may be offset.&lt;/span&gt;
     &lt;span class="c1"&gt;// That is, they may refer to an object at a given location, but actually point&lt;/span&gt;
     &lt;span class="c1"&gt;// to a location that is some fixed distance away from that object. This allows,&lt;/span&gt;
     &lt;span class="c1"&gt;// for example, non-zero based indexing into a table. The object that is&lt;/span&gt;
@@ -172,12 +166,11 @@ It also has one referrer and 3 references, what could they be? With the explanat
     &lt;span class="c1"&gt;//        +---------------------------+      B = base&lt;/span&gt;
     &lt;span class="c1"&gt;//  \-----/                                  O = offset&lt;/span&gt;
     &lt;span class="c1"&gt;//&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Let's have a look at the references associated with the &lt;code&gt;foo&lt;/code&gt; block now. If you look closely at the block, the set of references is of size 3... what could they be?&lt;/p&gt;
 &lt;p&gt;One for the &lt;code&gt;printf&lt;/code&gt; function, one for the data Block for the string passed to &lt;code&gt;printf&lt;/code&gt; maybe?&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    First reference:
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    First reference:
     ----------------
 
     0:000&amp;gt; dx -r1 (*((instrument!std::pair&amp;lt;int const ,block_graph::BlockGraph::Reference&amp;gt; *)0x4f5640))
@@ -240,23 +233,20 @@ It also has one referrer and 3 references, what could they be? With the explanat
         [+0x018] name_            : 0xbb96c8 : &amp;quot;_RTC_CheckEsp&amp;quot;
         [+0x01c] compiland_name_  : 0x4c5260 : &amp;quot;f:\binaries\Intermediate\vctools\msvcrt.nativeproj_607447030\objd\x86\_stack_.obj&amp;quot;
     [...]
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Perfect - that's what we sort of guessed! The last one is just the compiler adding &lt;a href="https://msdn.microsoft.com/en-us/library/8wtf2dfz.aspx"&gt;Run-Time Error Checks&lt;/a&gt; on us.&lt;/p&gt;
 &lt;p&gt;Let's have a closer look to the first reference. The &lt;code&gt;references_&lt;/code&gt; member is a hash table of offsets and instances of reference.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Map of references that this block makes to other blocks.&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Map of references that this block makes to other blocks.&lt;/span&gt;
     &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Offset&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Reference&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;ReferenceMap&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The offset tells you where exactly in the &lt;code&gt;foo&lt;/code&gt; block there is a reference; in our case we can see that the first reference is at offset 57 from the base of the block. If you start IDA real quick and browse at this address, you will see that it points one byte after the PUSH opcode (pointing exactly on the reference to the &lt;code&gt;_Format&lt;/code&gt; string):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    .text:004010C8 68 20 41 40 00 push    offset _Format  ; &amp;quot;Binary rewriting with syzygy\n&amp;quot;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    .text:004010C8 68 20 41 40 00 push    offset _Format  ; &amp;quot;Binary rewriting with syzygy\n&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Another interesting bit I didn't mention earlier is that naturally the &lt;code&gt;data_&lt;/code&gt; field backs the actual content of the Block:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    0:000&amp;gt; u @@c++(block-&amp;gt;data_)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:000&amp;gt; u @@c++(block-&amp;gt;data_)
     0049ef50 55              push    ebp
     0049ef51 8bec            mov     ebp,esp
     0049ef53 81eccc000000    sub     esp,0CCh
@@ -265,12 +255,11 @@ It also has one referrer and 3 references, what could they be? With the explanat
     0049ef5b 57              push    edi
     0049ef5c 8dbd34ffffff    lea     edi,[ebp-0CCh]
     0049ef62 b933000000      mov     ecx,33h
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;&lt;center&gt;&lt;img alt="foo_disassview.png" src="/images/binary_rewriting_with_syzygy/foo_disassview.png"&gt;&lt;/center&gt;
 Last but not least, I mentioned SourceRanges (you can see it as a vector of pairs describing data ranges from the binary to the content in memory) before, so let's dump it to see what it looks like:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    0:000&amp;gt; dx -r1 (*((instrument!core::AddressRangeMap&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt; *)0x4bd36c))
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:000&amp;gt; dx -r1 (*((instrument!core::AddressRangeMap&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt; *)0x4bd36c))
         [+0x000] range_pairs_     : { size=1 }
     0:000&amp;gt; dx -r1 (*((instrument!std::vector&amp;lt;std::pair&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt;,std::allocator&amp;lt;std::pair&amp;lt;core::AddressRange&amp;lt;int,unsigned int&amp;gt;,core::AddressRange&amp;lt;core::detail::AddressImpl&amp;lt;0&amp;gt;,unsigned int&amp;gt; &amp;gt; &amp;gt; &amp;gt; *)0x4bd36c))
         [0]              : {...}, {...}
@@ -285,11 +274,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
         [+0x004] size_            : 0x5b
     0:000&amp;gt; dx -r1 (*((instrument!core::detail::AddressImpl&amp;lt;0&amp;gt; *)0x4da1d0))
         [+0x000] value_           : 0x1090 [Type: unsigned int]
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;In this SourceRanges, we have a mapping from the &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L568"&gt;DataRange&lt;/a&gt; (RVA 0, size 0x5B), to the &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L571"&gt;SourceRange&lt;/a&gt; (RVA 0x1090, size 0x5B - which matches the previous IDA screen shot, obviously). We will come back to those once we have actually modified / rewritten the blocks to see what happens to the SourceRanges.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;enum&lt;/span&gt; &lt;span class="nl"&gt;AddressType&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;enum&lt;/span&gt; &lt;span class="nl"&gt;AddressType&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="n"&gt;kRelativeAddressType&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
       &lt;span class="n"&gt;kAbsoluteAddressType&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
       &lt;span class="n"&gt;kFileOffsetAddressType&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
@@ -311,14 +299,13 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="c1"&gt;// A virtual address relative to the image base, often termed RVA in&lt;/span&gt;
     &lt;span class="c1"&gt;// documentation and in data structure comments.&lt;/span&gt;
     &lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="n"&gt;RelativeAddress&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;detail&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;AddressImpl&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;kRelativeAddressType&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Now that you have been introduced to the main concepts, it is time for me to walk you through two small applications.&lt;/p&gt;
 &lt;h2 id="callgraphanalysis"&gt;CallGraphAnalysis&lt;/h2&gt;
 &lt;h3 id="the-plan"&gt;The plan&lt;/h3&gt;
 &lt;p&gt;As the framework exposes all the information you need to rewrite and analyze binary, you are also free to &lt;em&gt;just&lt;/em&gt; analyze a binary and not modify a single bit. In this example let's make a Block transform and generate a graph of the relationship between code Blocks (functions). As we are interested in exploring the whole binary and every single code Block, we subclass &lt;code&gt;IterativeTransformImpl&lt;/code&gt;:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Declares a BlockGraphTransform implementation wrapping the common transform&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Declares a BlockGraphTransform implementation wrapping the common transform&lt;/span&gt;
     &lt;span class="c1"&gt;// that iterates over each block in the image.&lt;/span&gt;
 
 
@@ -334,8 +321,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="k"&gt;template&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;DerivedType&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;
     &lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;IterativeTransformImpl&lt;/span&gt;
         &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;NamedBlockGraphTransformImpl&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;DerivedType&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="p"&gt;};&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Doing so allows us define &lt;code&gt;Pre&lt;/code&gt; / &lt;code&gt;Post&lt;/code&gt; functions, and an &lt;code&gt;OnBlock&lt;/code&gt; function that gets called for every Block encountered in the image. This is pretty handy as I can define an &lt;code&gt;OnBlock&lt;/code&gt; callback to mine the information we want for every Block, and define &lt;code&gt;Post&lt;/code&gt; to process the data I have accumulated if necessary.&lt;/p&gt;
 &lt;p&gt;The &lt;code&gt;OnBlock&lt;/code&gt; function should be pretty light as we only want to achieve a couple of things:&lt;/p&gt;
@@ -345,18 +331,17 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
 &lt;/ol&gt;
 &lt;h3 id="implementation"&gt;Implementation&lt;/h3&gt;
 &lt;p&gt;The first thing to do is to create a C++ class named &lt;code&gt;CallGraphAnalysis&lt;/code&gt;, declared in &lt;code&gt;doare_transform.h&lt;/code&gt; and defined in &lt;code&gt;doare_transform.cc&lt;/code&gt;. Those files are put in the &lt;code&gt;syzygy/instrument/transforms&lt;/code&gt; directory where all others transforms live in:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    D:\syzygy\src&amp;gt;git status
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git status
     On branch dev-doare1
     Changes to be committed:
       (use &amp;quot;git reset HEAD &amp;lt;file&amp;gt;...&amp;quot; to unstage)
 
             new file:   syzygy/instrument/transforms/doare_transforms.cc
             new file:   syzygy/instrument/transforms/doare_transforms.h
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;In order to get it compiled we also need to modify the &lt;code&gt;instrument.gyp&lt;/code&gt; project file:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument.gyp
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
     index 464c5566..c0eceb87 100644
     --- a/syzygy/instrument/instrument.gyp
@@ -370,12 +355,11 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
              &amp;#39;transforms/entry_call_transform.cc&amp;#39;,
              &amp;#39;transforms/entry_call_transform.h&amp;#39;,
              &amp;#39;transforms/entry_thunk_transform.cc&amp;#39;,
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The gyp file is basically used to generate Ninja project files - which means that if you don't regenerate the Ninja files from the updated version of this gyp file, you will not be compiling your new code. In order to force a regeneration, you can invoke the &lt;code&gt;depot_tools&lt;/code&gt; command: &lt;code&gt;gclient runhooks&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;At this point we are ready to get our class coded up; here is the class declaration I have:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
 
     &lt;span class="cp"&gt;#ifndef SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_&lt;/span&gt;
     &lt;span class="cp"&gt;#define SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_&lt;/span&gt;
@@ -422,11 +406,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;  &lt;span class="c1"&gt;// namespace instrument&lt;/span&gt;
 
     &lt;span class="cp"&gt;#endif  &lt;/span&gt;&lt;span class="c1"&gt;// SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;After declaring it, the interesting part for us is to have a look at the &lt;code&gt;OnBlock&lt;/code&gt; method:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;CallGraphAnalysis&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;OnBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;TransformPolicyInterface&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;policy&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;CallGraphAnalysis&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;OnBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;TransformPolicyInterface&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;policy&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
                                     &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
                                     &lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="n"&gt;total_blocks_&lt;/span&gt;&lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
@@ -460,25 +443,23 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
       &lt;span class="n"&gt;total_code_blocks_&lt;/span&gt;&lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The first step of the method is to make sure that the Block we are dealing with is a block we want to analyze. As I have explained before, Blocks are not exclusive code Blocks. That is the reason why we check the type of the block to only accepts code Blocks. Another type of Block that syzygy artificially creates (it has no existence in the image being analyzed) is called a &lt;code&gt;GAP_BLOCK&lt;/code&gt;; which is basically a block that fills a gap in the address space. For that reason we also skip those blocks.&lt;/p&gt;
 &lt;p&gt;At this point we have a code Block and we can start to mine whatever information needed: name, size, referrers, etc. As the thing we are mostly interested about is the relationships between the code Blocks, we have to walk the referrers. The only thing to be wary about is to also exclude data Blocks (a function pointer table would be a data Block referencing a code Block for example) there. After this minor filtering we can just add the two pointers into the container.&lt;/p&gt;
 &lt;p&gt;I am sure at this stage you are interested in compiling it, and get it to run on a binary. To do that we need to add the &lt;em&gt;plumbing&lt;/em&gt; necessary to surface it to &lt;code&gt;instrument.exe&lt;/code&gt; tool. First thing you need is an &lt;code&gt;instrumenter&lt;/code&gt;, we declare it in &lt;code&gt;doare_instrumenter.h&lt;/code&gt; and define it in &lt;code&gt;doare_instrumenter.cc&lt;/code&gt; in the &lt;code&gt;syzygy/instrument/instrumenters&lt;/code&gt; directory:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    D:\syzygy\src&amp;gt;git status
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git status
     On branch dev-doare1
     Changes to be committed:
       (use &amp;quot;git reset HEAD &amp;lt;file&amp;gt;...&amp;quot; to unstage)
 
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.cc
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.h
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;An instrumenter is basically a class that encapsulate the configuration and the invocation of one or several transforms. The instrumenter can receive options passed by the application, thus can set configuration flags when invoking the transforms, etc. You could imagine parsing a configuration file here, or doing any preparation needed by your transform. Then, the instrumenter registers the transform against the &lt;code&gt;Relinker&lt;/code&gt; object (a bit like the pass manager in LLVM if you want to think about it this way).&lt;/p&gt;
 &lt;p&gt;Anyway, as our transform is trivial we basically don't need any of this "preparation"; so let's settle for the least required:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
 
     &lt;span class="cp"&gt;#ifndef SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_&lt;/span&gt;
     &lt;span class="cp"&gt;#define SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_&lt;/span&gt;
@@ -514,11 +495,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;  &lt;span class="c1"&gt;// namespace instrument&lt;/span&gt;
 
     &lt;span class="cp"&gt;#endif  &lt;/span&gt;&lt;span class="c1"&gt;// SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The &lt;code&gt;InstrumentPrepare&lt;/code&gt; method is where the instrumenter registers the transform against the relinker object:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
 
     &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;quot;syzygy/instrument/instrumenters/doare_instrumenter.h&amp;quot;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
 
@@ -549,11 +529,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;  &lt;span class="c1"&gt;// namespace instrumenters&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;  &lt;span class="c1"&gt;// namespace instrument&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Like before, we also need to add those two files in the &lt;code&gt;instrument.gyp&lt;/code&gt; file and regenerate the Ninja project files via the &lt;code&gt;gclient runhooks&lt;/code&gt; command:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument.gyp
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
     index 464c5566..c0eceb87 100644
     --- a/syzygy/instrument/instrument.gyp
@@ -576,11 +555,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
              &amp;#39;transforms/entry_call_transform.cc&amp;#39;,
              &amp;#39;transforms/entry_call_transform.h&amp;#39;,
              &amp;#39;transforms/entry_thunk_transform.cc&amp;#39;,
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The last step for us is to surface our instrumenter to the main of the application. I just add a mode called &lt;code&gt;doare&lt;/code&gt; that you can set via the &lt;code&gt;--mode&lt;/code&gt; switch, and if the flag is specified it instantiates the newly born &lt;code&gt;DoareInstrumenter&lt;/code&gt;.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument_app.cc
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument_app.cc
     diff --git a/syzygy/instrument/instrument_app.cc b/syzygy/instrument/instrument_app.cc
     index 72bb40b8..c54258d8 100644
     --- a/syzygy/instrument/instrument_app.cc
@@ -611,11 +589,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
          } else if (base::LowerCaseEqualsASCII(mode, &amp;quot;flummox&amp;quot;)) {
            instrumenter_.reset(new instrumenters::FlummoxInstrumenter());
          } else if (base::LowerCaseEqualsASCII(mode, &amp;quot;profile&amp;quot;)) {
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;This should be it! Recompiling the &lt;code&gt;instrument&lt;/code&gt; project should be enough to be able to invoke the transform and see some of our debug messages:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    D:\Downloads\syzygy\src&amp;gt;ninja -C out\Release instrument
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\Downloads\syzygy\src&amp;gt;ninja -C out\Release instrument
     ninja: Entering directory `out\Release&amp;#39;
     [4/4] LINK_EMBED instrument.exe
     D:\Downloads\syzygy\src&amp;gt;out\Release\instrument.exe --input-image=out\Release\instrument.exe --output-image=nul --mode=doare --verbose
@@ -624,12 +601,11 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace&amp;#39;::Decompose -&amp;gt; block_graph::BlockGraph::AddressSpace::GetBlockByAddress
     [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace&amp;#39;::Decompose -&amp;gt; block_graph::BlockGraph::AddressSpace::GetBlockByAddress
     [...]
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h3 id="visualize-it"&gt;Visualize it?&lt;/h3&gt;
 &lt;p&gt;As I was writing this I figured it might be worth to spend a bit of time trying to visualize this network to make it more attractive for the readers. So I decided to use &lt;a href="http://visjs.org/network_examples.html"&gt;visjs&lt;/a&gt; and the &lt;code&gt;Post&lt;/code&gt; callback to output the call-graph in a way visjs would understand:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;CallGraphAnalysis&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;PostBlockGraphIteration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;CallGraphAnalysis&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;PostBlockGraphIteration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
         &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;TransformPolicyInterface&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;policy&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
         &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
         &lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;header_block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -728,15 +704,14 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
       &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;]);&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;endl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;true&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The above function basically starts to walk the network from the &lt;code&gt;main&lt;/code&gt; function and do a BFS algorithm (that allows us to define &lt;em&gt;levels&lt;/em&gt; for each Block). It then outputs two sets of data: the nodes, and the edges.&lt;/p&gt;
 &lt;p&gt;If you would like to check out the result I have uploaded an interactive network graph here: &lt;a href="/images/binary_rewriting_with_syzygy/network.afl-fuzz.exe.html"&gt;network.afl-fuzz.exe.html&lt;/a&gt;. Even though it sounds pretty useless, it looks pretty cool!&lt;/p&gt;
 &lt;h2 id="securitycookiecheckhooktransform"&gt;SecurityCookieCheckHookTransform&lt;/h2&gt;
 &lt;h3 id="the-problem"&gt;The problem&lt;/h3&gt;
 &lt;p&gt;The idea for this transform came back when I was playing around with &lt;a href="https://github.com/ivanfratric/winafl"&gt;WinAFL&lt;/a&gt;; I encountered a case where one of the test-case triggered a &lt;a href="https://msdn.microsoft.com/en-us/library/8dbf701c.aspx"&gt;/GS&lt;/a&gt; violation in a harness program I was fuzzing. Buffer security checks are a set of compiler and runtime instrumentation aiming at detecting and preventing the exploitation of stack-based buffer overflows. A cookie is placed on the stack by the prologue of the protected function in between the local variables of the stack-frame and the saved stack pointer / saved instruction pointer. The compiler instruments the code so that before the function returns, it invokes a check function (called &lt;code&gt;__security_check_cookie&lt;/code&gt;) that ensure the integrity of the cookie.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    ; void __fastcall __security_check_cookie(unsigned int cookie)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ; void __fastcall __security_check_cookie(unsigned int cookie)
     @__security_check_cookie@4 proc near
     cookie= dword ptr -4
        cmp     ecx, ___security_cookie
@@ -745,12 +720,11 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     failure:
        repne jmp ___report_gsfailure
     @__security_check_cookie@4 endp
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;If the cookie matches the secret, everything is fine, the function returns and life goes on. If it does not, it means something overwrote it and as a result the process needs to be killed. The way the check function achieves this is by raising an exception that the process cannot even catch itself; which makes sense if you think about it as you don't want an attacker to be able to hijack the exception.&lt;/p&gt;
 &lt;p&gt;On recent version of Windows, this is achieved via a &lt;a href="http://www.alex-ionescu.com/?p=69"&gt;fail-fast exception&lt;/a&gt; or by invoking [UnhandledExceptionFilter](https://msdn.microsoft.com/en-us/library/windows/desktop/ms681401(v=vs.85).aspx) (after forcing the top level exception filter to 0) and terminating the process (done by &lt;code&gt;__raise_securityfailure&lt;/code&gt;).&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    ; void __cdecl __raise_securityfailure(_EXCEPTION_POINTERS *const exception_pointers)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ; void __cdecl __raise_securityfailure(_EXCEPTION_POINTERS *const exception_pointers)
     ___raise_securityfailure proc near
     exception_pointers= dword ptr  8
        push    ebp
@@ -767,15 +741,14 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
        pop     ebp
        retn
     ___raise_securityfailure endp
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Funny enough - if this sounds familiar - turns out I have encountered this very problem a while back and you can read the story here: &lt;a href="http://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/"&gt;Having a Look at the Windows' User/Kernel Exceptions Dispatcher&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;The thing is when you are fuzzing, this is exactly the type of thing you would like to be aware of. WinAFL uses an in-process exception handler to do the crash monitoring part which means that this type of crashes would not go through the crash monitoring. Bummer.&lt;/p&gt;
 &lt;h3 id="the-solution"&gt;The solution&lt;/h3&gt;
 &lt;p&gt;I started evaluating syzygy with this simple task: making the program crash with a &lt;em&gt;regular&lt;/em&gt; exception (that can get caught by an in-process exception handler). I figured it would be a walk in the park, as I basically needed to apply very little transformation to the binary to make this work.&lt;/p&gt;
 &lt;p&gt;First step is to define a transform as in the previous example. This time I subclass &lt;code&gt;NamedBlockGraphTransformImpl&lt;/code&gt; which wants me to implement a &lt;code&gt;TransformBlockGraph&lt;/code&gt; method that receives: a transform policy (used to make decision before applying transformation), the graph (block_graph) and a data Block that represents the PE header of our image (header_block):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SecurityCookieCheckHookTransform&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SecurityCookieCheckHookTransform&lt;/span&gt;
         &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;transforms&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;NamedBlockGraphTransformImpl&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;
               &lt;span class="n"&gt;SecurityCookieCheckHookTransform&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
      &lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
@@ -791,11 +764,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
                                &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
                                &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;header_block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;final&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;};&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;As I explained a bit earlier, the BlockGraph is the top level container of Blocks. This is what I walk through in order to find our Block of interest. The Block of interest for us has the name &lt;code&gt;__report_gsfailure&lt;/code&gt;:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;report_gsfailure&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;nullptr&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;report_gsfailure&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;nullptr&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;BlockMap&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;blocks&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;blocks_mutable&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
     &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;auto&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="nl"&gt;block&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;blocks&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt; &lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;second&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
@@ -809,11 +781,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
       &lt;span class="n"&gt;LOG&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Could not find &amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;kReportGsFailure&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;.&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The transform tries to be careful by checking that the Block only has a single referrer: which should be the &lt;code&gt;__security_cookie_check&lt;/code&gt; Block. If not, I gracefully exit and don't apply the transformation as I am not sure with what I am dealing with.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;report_gsfailure&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;referrers&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;report_gsfailure&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;referrers&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="c1"&gt;// We bail out if we don&amp;#39;t have a single referrer as the only&lt;/span&gt;
       &lt;span class="c1"&gt;// expected referrer is supposed to be __security_cookie_check.&lt;/span&gt;
       &lt;span class="c1"&gt;// If there is more than one, we would rather bail out than take&lt;/span&gt;
@@ -822,11 +793,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
                  &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot; is expected.&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;At this point, I create a new Block that has only a single instruction designed to trigger a fault every time; to do so I can even use the basic Intel assembler integrated in syzygy. After this, I place this new Block inside the &lt;code&gt;.text&lt;/code&gt; section the image (tracked by the BlockGraph as mentioned earlier).&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Section&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;section_text&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;FindOrAddSection&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Section&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;section_text&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;FindOrAddSection&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
         &lt;span class="n"&gt;pe&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kCodeSectionName&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;pe&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;kCodeCharacteristics&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 
     &lt;span class="c1"&gt;// All of the below is needed to build the instrumentation via the assembler.&lt;/span&gt;
@@ -848,11 +818,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;
 
     &lt;span class="n"&gt;DCHECK_EQ&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1u&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;block_builder&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;new_blocks&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Finally, I update all the referrers to point to our new Block, and remove the &lt;code&gt;__report_gsfailure&lt;/code&gt; Block as it is effectively now dead-code:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="c1"&gt;// Transfer the referrers to the new block, and delete the old one.&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Transfer the referrers to the new block, and delete the old one.&lt;/span&gt;
     &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;syzygy_report_gsfailure&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
         &lt;span class="n"&gt;block_builder&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;new_blocks&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;front&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
     &lt;span class="n"&gt;report_gsfailure&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;TransferReferrers&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
@@ -864,11 +833,10 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
       &lt;span class="n"&gt;LOG&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Removing &amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;kReportGsFailure&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot; failed.&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Here is what it looks like after our transformation:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    ; void __fastcall __security_check_cookie(unsigned int cookie)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ; void __fastcall __security_check_cookie(unsigned int cookie)
     @__security_check_cookie@4 proc near
     cookie = ecx
                     cmp     cookie, ___security_cookie
@@ -879,8 +847,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
 
     loc_426EE6:
                     mov     ds:0DEADBEEFh, eax
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h3 id="one-does-not-simply-binary-rewrite"&gt;One does not simply binary rewrite&lt;/h3&gt;
 &lt;p&gt;It may look like an easy problem without any pitfall, but before settling down on the solution above I actually first tried to rewrite the &lt;code&gt;__security_check_cookie&lt;/code&gt; function. I thought it would be cleaner and it was also very easy to do with syzygy. I had to create a new Block, and transfer the referrers to my new block and.. that was it!&lt;/p&gt;
@@ -892,7 +859,7 @@ All of this to say that even though the framework is robust, binary rewriting ca
 &lt;p&gt;In this post I have introduced the syzygy framework, presented some of its strengths as well as limitations, and illustrated what can you do with it on two simple examples. I am hoping to be able to write a second post where I can talk a bit more of two other transforms I have designed to built the &lt;a href="https://github.com/ivanfratric/winafl#statically-instrument-a-binary-via-syzygy"&gt;static instrumentation&lt;/a&gt; mode of &lt;a href="https://github.com/ivanfratric/winafl"&gt;WinAFL&lt;/a&gt; and how every pieces work together. I would also like to try to see if I can't cook some obfuscation or something of the sort.&lt;/p&gt;
 &lt;p&gt;As usual you can find the codes on my github here: &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/syzygy/binary_rewriting_with_syzygy_pt._i.diff"&gt;stuffz/syzygy&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;If you can't wait for the next post, you can have already a look at &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/instrument/transforms/add_implicit_tls_transform.cc"&gt;add_implicit_tls_transform.cc&lt;/a&gt; and &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/instrument/transforms/afl_transform.cc"&gt;afl_transform.cc&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;Last but not least, special shout-outs to my proofreader &lt;a href="https://twitter.com/yrp604"&gt;yrp&lt;/a&gt;.&lt;/p&gt;</content><category term="binary rewriting"></category><category term="syzygy"></category><category term="program analysis"></category></entry><entry><title>Token capture via an llvm-based analysis pass</title><link href="https://doar-e.github.io%5Cblog/2016/11/27/clang-and-passes/" rel="alternate"></link><published>2016-11-27T20:43:00-08:00</published><updated>2016-11-27T20:43:00-08:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io\blog,2016-11-27:/2016/11/27/clang-and-passes/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;Last but not least, special shout-outs to my proofreader &lt;a href="https://twitter.com/yrp604"&gt;yrp&lt;/a&gt;.&lt;/p&gt;</content><category term="misc"></category><category term="binary rewriting"></category><category term="syzygy"></category><category term="program analysis"></category></entry><entry><title>Token capture via an llvm-based analysis pass</title><link href="https://doar-e.github.io/blog/2016/11/27/clang-and-passes/" rel="alternate"></link><published>2016-11-27T20:43:00-08:00</published><updated>2016-11-27T20:43:00-08:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io,2016-11-27:/blog/2016/11/27/clang-and-passes/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as &lt;a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf"&gt;Latner&lt;/a&gt; said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as &lt;a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf"&gt;Latner&lt;/a&gt; said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that could be used in a lot of (different) domains: code-optimization (think &lt;a href="https://github.com/JonathanSalwan/Tigress_protection"&gt;deobfuscation&lt;/a&gt;), (architecture independent) &lt;a href="https://github.com/0vercl0k/articles/blob/master/Obfuscation%20of%20steel%20meet%20Kryptonite.pdf"&gt;code obfuscation&lt;/a&gt;, static code instrumentation (think &lt;a href="https://github.com/google/sanitizers/wiki"&gt;sanitizers&lt;/a&gt;), &lt;a href="http://clang-analyzer.llvm.org/index.html"&gt;static analysis&lt;/a&gt;, for runtime software exploitation mitigations (think &lt;a href="http://clang.llvm.org/docs/ControlFlowIntegrity.html"&gt;cfi&lt;/a&gt;, &lt;a href="http://clang.llvm.org/docs/SafeStack.html"&gt;safestack&lt;/a&gt;), power a fuzzing framework (think &lt;a href="http://llvm.org/docs/LibFuzzer.html"&gt;libFuzzer&lt;/a&gt;), ..you name it.&lt;/p&gt;
 &lt;p&gt;A lot of the power that came with this giant library was partly because it would operate in mainly three stages, and you were free to hook your code in any of those: front-end, mid-end, back-end. Other strengths included: the high number of back-ends, the documentation, the C/C++ APIs, the community, ease of use compared to gcc (see below from kcc's &lt;a href="https://gcc.gnu.org/wiki/cauldron2012?action=AttachFile&amp;amp;do=get&amp;amp;target=kcc.pdf"&gt;presentation&lt;/a&gt;), etc.&lt;/p&gt;
@@ -948,7 +915,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
 &lt;p&gt;The most important part of this file is the &lt;code&gt;AFLTokenCap&lt;/code&gt; class which is walking through the LLVM IL instructions looking for tokens. LLVM gives you the possibility to work at &lt;a href="http://llvm.org/docs/WritingAnLLVMPass.html"&gt;different granularity levels&lt;/a&gt; when writing a pass (more granular to the less granular): BasicBlockPass, FunctionPass, ModulePass, etc. Note that those are not the only ones, there are quite a few others that work slightly differently: MachineFunctionPass, RegionPass, LoopPass, etc.&lt;/p&gt;
 &lt;p&gt;When you are writing a pass, you write a class that subclasses a &lt;code&gt;*Pass&lt;/code&gt; parent class. Doing that means you are expected to implement different virtual methods that will be called under specific circumstances - but basically you have three functions: &lt;code&gt;doInitialization&lt;/code&gt;, &lt;code&gt;runOn*&lt;/code&gt; and &lt;code&gt;doFinalization&lt;/code&gt;. The first one and the last one are rarely used, but they can provide you a way to execute code once all the basic-blocks have been run through or prior. The &lt;code&gt;runOn*&lt;/code&gt; function is important though: this is the function that is going to get called with an LLVM object you are free to walk-through (&lt;em&gt;Analysis&lt;/em&gt; passes according to the &lt;a href="http://llvm.org/docs/Passes.html"&gt;LLVM nomenclature&lt;/a&gt;) or modify (&lt;em&gt;Transformation&lt;/em&gt; passes) it. As I said above, the LLVM objects are basically &lt;code&gt;Module&lt;/code&gt;/&lt;code&gt;Function&lt;/code&gt;/&lt;code&gt;BasicBlock&lt;/code&gt; instances. In case it is not that obvious, a &lt;code&gt;Module&lt;/code&gt; (a &lt;code&gt;.c&lt;/code&gt; file) is made of &lt;code&gt;Function&lt;/code&gt;s, and a &lt;code&gt;Function&lt;/code&gt; is made of &lt;code&gt;BasicBlock&lt;/code&gt;s, and a &lt;code&gt;BasicBlock&lt;/code&gt; is a set of &lt;code&gt;Instruction&lt;/code&gt;s. I also suggest you take a look at the &lt;a href="http://llvm.org/docs/WritingAnLLVMPass.html#writing-an-llvm-pass-basiccode"&gt;HelloWorld pass&lt;/a&gt; from the LLVM wiki, it should give you another simple example to wrap your head around the concept of pass.&lt;/p&gt;
 &lt;p&gt;For today's use-case I have chosen to subclass &lt;code&gt;BasicBlockPass&lt;/code&gt; because our analysis doesn't need anything else than a &lt;code&gt;BasicBlock&lt;/code&gt; to work. This is the case because we are mainly interested to capture certain arguments passed to certain function calls. Here is what looks like a function call in the &lt;a href="http://llvm.org/docs/LangRef.html"&gt;LLVM IR&lt;/a&gt; world:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    %retval = call i32 @test(i32 %argc)
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    %retval = call i32 @test(i32 %argc)
     call i32 (i8*, ...)* @printf(i8* %msg, i32 12, i8 42)   ; yields i32
     %X = tail call i32 @foo()                               ; yields i32
     %Y = tail call fastcc i32 @foo()                        ; yields i32
@@ -960,11 +927,10 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     %gr1 = extractvalue %struct.A %r, 1    ; yields i8
     %Z = call void @foo() noreturn         ; indicates that %foo never returns normally
     %ZZ = call zeroext i32 @bar()          ; Return value is %zero extended
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Every time &lt;code&gt;AFLTokenCap::runOnBasicBlock&lt;/code&gt; is called, the LLVM mid-end will call into our analysis pass (either statically linked into clang/opt or will dynamically load it) with a &lt;code&gt;BasicBlock&lt;/code&gt; passed by reference. From there, we can iterate through the set of instructions contained in the basic block and find the &lt;a href="http://llvm.org/docs/LangRef.html#call-instruction"&gt;call&lt;/a&gt; instructions. Every instructions subclass the top level &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1Instruction.html"&gt;llvm::Instruction&lt;/a&gt; class - in order to filter you can use the &lt;code&gt;dyn_cast&amp;lt;T&amp;gt;&lt;/code&gt; template function that works like the &lt;code&gt;dynamic_cast&amp;lt;T&amp;gt;&lt;/code&gt; operator but does not rely on RTTI (and is more efficient - according to the &lt;a href="http://llvm.org/docs/CodingStandards.html"&gt;LLVM coding standards&lt;/a&gt;). Used in conjunction with a &lt;a href="http://en.cppreference.com/w/cpp/language/range-for"&gt;range-based for loop&lt;/a&gt; on the &lt;code&gt;BasicBlock&lt;/code&gt; object you can iterate through all the instructions you want.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AFLTokenCap&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;runOnBasicBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BasicBlock&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AFLTokenCap&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;runOnBasicBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BasicBlock&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 
       &lt;span class="k"&gt;for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;auto&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nl"&gt;I_&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 
@@ -975,8 +941,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="p"&gt;}&lt;/span&gt;
       &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Once we have found a &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1CallInst.html"&gt;llvm::CallInst&lt;/a&gt; instance, we need to:&lt;/p&gt;
 &lt;ul&gt;
@@ -989,18 +954,17 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
 &lt;h2 id="detecting-hard-coded-strings"&gt;Detecting hard-coded strings&lt;/h2&gt;
 &lt;p&gt;In order to detect hard-coded strings in the arguments passed to function calls, I decided to filter out the &lt;code&gt;llvm::ConstantExpr&lt;/code&gt;. As its name suggests, this class handles "a constant value that is initialized with an expression using other constant values".&lt;/p&gt;
 &lt;p&gt;The end goal, is to find &lt;code&gt;llvm::ConstantDataArray&lt;/code&gt;s and to retrieve their raw values - those will be the hard-coded strings we are looking for.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    /home/over/workz/afl-2.35b/afl-clang-fast -c -W -Wall -O3 -funroll-loops   -fPIC -o png.pic.o png.c
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    /home/over/workz/afl-2.35b/afl-clang-fast -c -W -Wall -O3 -funroll-loops   -fPIC -o png.pic.o png.c
     [...]
     afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
     [...]
     [+] Call to memcmp with constant &amp;quot;\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3&amp;quot; found in png.c/png_icc_check_header
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;At this point, the pass basically does what the token capture library is able to do.&lt;/p&gt;
 &lt;h2 id="harvesting-integer-immediate"&gt;Harvesting integer immediate&lt;/h2&gt;
 &lt;p&gt;After playing around with it on libpng though, I quickly was wondering why the pass would not extract all the constants I could find in &lt;a href="https://github.com/rc0r/afl-fuzz/blob/master/dictionaries/png.dict"&gt;one of the dictionary&lt;/a&gt; already generated and shipped with afl:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;// png.dict
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;// png.dict
     section_IDAT=&amp;quot;IDAT&amp;quot;
     section_IEND=&amp;quot;IEND&amp;quot;
     section_IHDR=&amp;quot;IHDR&amp;quot;
@@ -1016,11 +980,10 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     section_iCCP=&amp;quot;iCCP&amp;quot;
     section_iTXt=&amp;quot;iTXt&amp;quot;
     ...
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Some of those can be found in the function &lt;a href="https://github.com/glennrp/libpng/blob/libpng16/pngpread.c#L226"&gt;png_push_read_chunk&lt;/a&gt; in the file &lt;a href="https://github.com/glennrp/libpng/blob/libpng16/pngpread.c"&gt;pngpread.c&lt;/a&gt; for example:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;//png_push_read_chunk&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;//png_push_read_chunk&lt;/span&gt;
     &lt;span class="cp"&gt;#define png_IHDR PNG_U32( 73,  72,  68,  82)&lt;/span&gt;
     &lt;span class="c1"&gt;// ...&lt;/span&gt;
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;chunk_name&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;png_IHDR&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
@@ -1044,12 +1007,11 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
       &lt;span class="n"&gt;PNG_PUSH_SAVE_BUFFER_IF_FULL&lt;/span&gt;
       &lt;span class="n"&gt;png_handle_PLTE&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;png_ptr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;info_ptr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;png_ptr&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;push_length&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;In order to also grab those guys, I have decided to add the support for compare instructions with integer immediate (in one of the operand). Again, thanks to LLVM this is really easy to pull that off: we just need to find the &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1ICmpInst.html"&gt;llvm::ICmpInst&lt;/a&gt; instructions. The only thing to keep in mind is  false positives. In order to lower the false positives rate, I have chosen to consider an integer immediate as a token only if only it is fully ASCII (like the &lt;code&gt;libpng&lt;/code&gt; tokens above)&lt;/p&gt;
 &lt;p&gt;We can even push it a bit more, and handle switch statements via the same strategy. The only additional step is to retrieve every &lt;code&gt;cases&lt;/code&gt; from in the &lt;code&gt;switch&lt;/code&gt; statement: &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1SwitchInst.html#a8e7005748409a956c8875e259716559b"&gt;llvm::SwitchInst::cases&lt;/a&gt;.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="cm"&gt;/* Handle switch/case with integer immediates */&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cm"&gt;/* Handle switch/case with integer immediates */&lt;/span&gt;
     &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="nf"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;SwitchInst&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;SI&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;dyn_cast&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;SwitchInst&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;I_&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="k"&gt;for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;auto&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="nl"&gt;CIT&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;SI&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;cases&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 
@@ -1057,26 +1019,24 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="n"&gt;dump_integer_token&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;CI&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
       &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h2 id="limitations"&gt;Limitations&lt;/h2&gt;
 &lt;p&gt;The main limitation is that as you are supposed to run the pass as part of the compilation process, it is most likely going to end-up compiling tests or utilities that the library ships with. Now, this is annoying as it may add some noise to your tokens - especially with utility programs. Those ones usually parse input arguments and some use &lt;code&gt;strcmp&lt;/code&gt; like function with hard-coded strings to do their parsing.&lt;/p&gt;
 &lt;p&gt;A partial solution (as in, it reduces the noise, but does not remove it entirely) I have implemented is just to not process any functions called &lt;code&gt;main&lt;/code&gt;. Most of the cases I have seen (the set of samples is pretty small I won't lie &amp;gt;:]), this argument parsing is made in the &lt;code&gt;main&lt;/code&gt; function and it is very easy to not process it by blacklisting it as you can see below:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AFLTokenCap&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;runOnBasicBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BasicBlock&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AFLTokenCap&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;runOnBasicBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BasicBlock&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="c1"&gt;// [...]&lt;/span&gt;
       &lt;span class="n"&gt;Function&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;F&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getParent&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
       &lt;span class="n"&gt;m_FunctionName&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;F&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;hasName&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;?&lt;/span&gt; &lt;span class="n"&gt;F&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;getName&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;unknown&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 
       &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;strcmp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m_FunctionName&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;main&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Another thing I wanted to experiment on, but did not, was to provide a regular expression like string (think "test/*") and not process every files/path that are matching it. You could easily blacklist a whole directory of tests with this.&lt;/p&gt;
 &lt;h2 id="demo"&gt;Demo&lt;/h2&gt;
 &lt;p&gt;I have not spent much time trying it out on a lot of code-bases (feel free to send me your feedbacks if you run it on yours though!), but here are some example results with various degree of success.. or not. Starting with &lt;code&gt;libpng&lt;/code&gt;:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    over@bubuntu:~/workz/lpng1625$ AFL_TOKEN_FILE=/tmp/png.dict make
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    over@bubuntu:~/workz/lpng1625$ AFL_TOKEN_FILE=/tmp/png.dict make
     cp scripts/pnglibconf.h.prebuilt pnglibconf.h
     /home/over/workz/afl-2.35b/afl-clang-fast -c -I../zlib  -W -Wall -O3 -funroll-loops   -o png.o png.c
     afl-clang-fast 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
@@ -1132,11 +1092,10 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &amp;quot;\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3&amp;quot;
     &amp;quot;XYZ &amp;quot;
     &amp;quot;zTXt&amp;quot;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;On &lt;a href="https://github.com/mackyle/sqlite"&gt;sqlite3&lt;/a&gt; (&lt;a href=""&gt;sqlite.dict&lt;/a&gt;):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
     [...]
     afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
     afl-llvm-pass 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
@@ -1202,11 +1161,10 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &amp;quot;weekday &amp;quot;
     &amp;quot;\xd9\xd5\x05\xf9 \xa1c&amp;quot;
     &amp;quot;year&amp;quot;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;On &lt;a href="https://github.com/GNOME/libxml2"&gt;libxml2&lt;/a&gt; (here is a library with a lot of test cases / utilities that raises the noise ratio in the tokens extracted - cf &lt;code&gt;xmlShell*&lt;/code&gt; for example):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh &amp;amp;&amp;amp; AFL_TOKEN_FILE=/tmp/xml.dict make
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh &amp;amp;&amp;amp; AFL_TOKEN_FILE=/tmp/xml.dict make
     [...]
     afl-clang-fast 2.35b by &amp;lt;lszekeres@google.com&amp;gt;
     afl-llvm-tokencap-pass 2.35b by &amp;lt;0vercl0k@tuxfamily.org&amp;gt;
@@ -1398,11 +1356,10 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &amp;quot;xpath&amp;quot;
     &amp;quot;xpathInternals&amp;quot;
     &amp;quot;xpointer&amp;quot;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Performance wise - here is what we are looking at on &lt;code&gt;libpng&lt;/code&gt; (+0.283s):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;//time difference on lpng
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;//time difference on lpng
     over@bubuntu:~/workz/lpng1625$ make clean &amp;amp;&amp;amp; time AFL_TOKEN_FILE=/tmp/png.dict make &amp;amp;&amp;amp; make clean &amp;amp;&amp;amp; time make
     [...]
     real    0m12.320s
@@ -1412,8 +1369,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     real    0m12.037s
     user    0m11.436s
     sys     0m0.384s
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h1 id="last-words"&gt;Last words&lt;/h1&gt;
 &lt;p&gt;I am very interested in hearing from you if you give a shot to this analysis pass on your code-base and / or your fuzzing sessions, so feel free to hit me up! Also, note that &lt;a href="http://llvm.org/docs/LibFuzzer.html"&gt;libfuzzer&lt;/a&gt; supports the same feature and is compatible with afl's dictionary syntax - so you get it for free!&lt;/p&gt;
@@ -1426,7 +1382,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
 &lt;li&gt;&lt;a href="https://github.com/llvm-mirror/llvm/tree/master/lib/Transforms"&gt;llvm/lib/Transforms&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;Special shout-outs to my proofreaders: &lt;a href="https://twitter.com/yrp604"&gt;yrp&lt;/a&gt;, &lt;a href="https://twitter.com/mongobug"&gt;mongo&lt;/a&gt; &amp;amp; &lt;a href="https://twitter.com/JonathanSalwan"&gt;jonathan&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;Go hax clang and or LLVM!&lt;/p&gt;</content><category term="fuzzing"></category><category term="clang"></category><category term="llvm"></category><category term="analysis pass"></category><category term="pass"></category></entry><entry><title>Some thoughts about code-coverage measurement with Pin</title><link href="https://doar-e.github.io%5Cblog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/" rel="alternate"></link><published>2013-08-31T18:57:00-07:00</published><updated>2013-08-31T18:57:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io\blog,2013-08-31:/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;Go hax clang and or LLVM!&lt;/p&gt;</content><category term="misc"></category><category term="fuzzing"></category><category term="clang"></category><category term="llvm"></category><category term="analysis pass"></category><category term="pass"></category></entry><entry><title>Some thoughts about code-coverage measurement with Pin</title><link href="https://doar-e.github.io/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/" rel="alternate"></link><published>2013-08-31T18:57:00-07:00</published><updated>2013-08-31T18:57:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io,2013-08-31:/blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic, anything) and you want to have the same coverage with only a subset of them. Or maybe, you are not really interested in the measure, but only with the coverage differences between two executions of your target: to locate where your program is handling a specific feature for example.&lt;/p&gt;
 &lt;p&gt;But it's not a trivial problem, usually you don't have the source-code of the target, and you want it to be quick. The other thing, is that you don't have an input that covers the whole code base, you don't even know if it's possible ; so you can't compare your analysis to that "ideal one". Long story short, you can't say to the user "OK, this input covers 10% of your binary". But you can clearly register what your program is doing with input A, what it is doing with input B and then analyzing the differences. With that way you can have a (more precise?) idea about which input seems to have better coverage than another.&lt;/p&gt;
@@ -1472,18 +1428,17 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
 &lt;li&gt;doesn't instrument Windows APIs. We don't want to waste our CPU time being in the native libraries of the system ; it's part of our little "tricks" to improve the speed of our Pintool.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;I think it's time to code now: first, let's define several data structures in order to store the information we need:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;pair&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;ADDRINT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ADDRINT&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;MODULE_BLACKLIST_T&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;pair&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;ADDRINT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ADDRINT&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;MODULE_BLACKLIST_T&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;MODULE_BLACKLIST_T&lt;/span&gt; &lt;span class="n"&gt;MODULE_LIST_T&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;ADDRINT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;UINT32&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;BASIC_BLOCKS_INFO_T&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The two first types will be used to hold modules related information: path of the module, start address and end address. The third one is simple: the key is the basic block address and the value is its number of instructions.&lt;/p&gt;
 &lt;p&gt;Then we are going to define our instrumentation callback:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;one to know whenever a module is loaded in order to store its base/end address, one for the traces. You can set the callbacks using &lt;em&gt;IMG_AddInstrumentationFunction&lt;/em&gt; and &lt;em&gt;TRACE_AddInstrumentationFunction&lt;/em&gt;.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;        &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;image_instrumentation&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;IMG&lt;/span&gt; &lt;span class="n"&gt;img&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;        &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;image_instrumentation&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;IMG&lt;/span&gt; &lt;span class="n"&gt;img&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="p"&gt;{&lt;/span&gt;
             &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;module_low_limit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;IMG_LowAddress&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;img&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;module_high_limit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;IMG_HighAddress&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;img&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; 
 
@@ -1506,14 +1461,13 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
             &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;is_module_should_be_blacklisted&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;image_path&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
                 &lt;span class="n"&gt;modules_blacklisted&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;insert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;module_info&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
         &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;ul&gt;
 &lt;li&gt;one to be able to insert calls before every basic blocks.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;The thing is: Pin doesn't have a &lt;em&gt;BBL_AddInstrumentationFunction&lt;/em&gt;, so we have to instrument the traces, iterate through them to get the basic block. It's done really easily with &lt;em&gt;TRACE_BblHead&lt;/em&gt;, &lt;em&gt;BBL_Valid&lt;/em&gt; and &lt;em&gt;BBL_Next&lt;/em&gt; functions. Of course, if the basic block address is in a blacklisted range address, we don't insert a call to our analysis function.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;trace_instrumentation&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;TRACE&lt;/span&gt; &lt;span class="n"&gt;trace&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;trace_instrumentation&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;TRACE&lt;/span&gt; &lt;span class="n"&gt;trace&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="k"&gt;for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BBL&lt;/span&gt; &lt;span class="n"&gt;bbl&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;TRACE_BblHead&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;trace&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="n"&gt;BBL_Valid&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bbl&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="n"&gt;bbl&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;BBL_Next&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bbl&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
         &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1536,20 +1490,18 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
             &lt;span class="p"&gt;);&lt;/span&gt;
         &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function &lt;em&gt;handle_basic_block&lt;/em&gt; ; we also use the fast linkage (it basically means the function will be called using the &lt;a href="http://msdn.microsoft.com/en-us/library/6xa169sk.aspx"&gt;__fastcall&lt;/a&gt; calling convention).&lt;/p&gt;
 &lt;p&gt;The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="n"&gt;PIN_FAST_ANALYSIS_CALL&lt;/span&gt; &lt;span class="nf"&gt;handle_basic_block&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;UINT32&lt;/span&gt; &lt;span class="n"&gt;number_instruction_in_bb&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;address_bb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="n"&gt;PIN_FAST_ANALYSIS_CALL&lt;/span&gt; &lt;span class="nf"&gt;handle_basic_block&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;UINT32&lt;/span&gt; &lt;span class="n"&gt;number_instruction_in_bb&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;address_bb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="n"&gt;basic_blocks_info&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;address_bb&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;number_instruction_in_bb&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Finally, just before the process ends we serialize our data in a simple JSON report thanks to &lt;a href="http://www.digip.org/jansson/"&gt;jansson&lt;/a&gt;. You may also want to use a binary serialization to have smaller report.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;save_instrumentation_infos&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;save_instrumentation_infos&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="c1"&gt;/// basic_blocks_info section&lt;/span&gt;
         &lt;span class="n"&gt;json_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;bbls_info&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;json_object&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
@@ -1579,11 +1531,10 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="n"&gt;json_dumpf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;root&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;JSON_COMPACT&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt; &lt;span class="n"&gt;JSON_ENSURE_ASCII&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
         &lt;span class="n"&gt;fclose&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the &lt;a href="http://www.nynaeve.net/?p=131"&gt;SystemCallStub&lt;/a&gt; (you know the "JMP FAR"). To do that, we simply use the &lt;em&gt;__readfsdword&lt;/em&gt; intrinsic in order to read the field &lt;a href="http://msdn.moonsols.com/win7rtm_x64/TEB32.html"&gt;TEB32.WOW32Reserved&lt;/a&gt; that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;wow64stub&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;__readfsdword&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0xC0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;wow64stub&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;__readfsdword&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0xC0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="n"&gt;modules_blacklisted&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;insert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
         &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;make_pair&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
             &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;wow64stub&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
@@ -1593,14 +1544,13 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
             &lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="p"&gt;);&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;The entire Pintool source code is here: &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/pin-code-coverage-measure.cpp"&gt;pin-code-coverage-measure.cpp&lt;/a&gt;.&lt;/p&gt;
 &lt;h1 id="i-want-to-see-the-results"&gt;I want to see the results.&lt;/h1&gt;
 &lt;p&gt;I agree that's neat to have a JSON report with the basic blocks executed by our program, but it's not really readable for a human. We can use an &lt;a href="https://github.com/0vercl0k/stuffz/tree/master/pin-code-coverage-measure"&gt;IDAPython&lt;/a&gt; script that will parse our report, and will color all the instructions executed. It should be considerably better to see the execution path used by your program.&lt;/p&gt;
 &lt;p&gt;To color an instruction you have to use the functions: &lt;em&gt;idaapi.set_item_color&lt;/em&gt; and &lt;em&gt;idaapi.del_item_color&lt;/em&gt; (if you want to reset the color). You can also use &lt;em&gt;idc.GetItemSize&lt;/em&gt; to know the size of an instruction, like that you can iterate for a specific number of instruction (remember, we stored that in our JSON report!).&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# idapy_color_path_from_json.py&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;# idapy_color_path_from_json.py&lt;/span&gt;
     &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;json&lt;/span&gt;
     &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;idc&lt;/span&gt;
     &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;idaapi&lt;/span&gt;
@@ -1624,19 +1574,18 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;idc&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;AskStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;black&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;Which color do you want ?&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;lower&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
         &lt;span class="n"&gt;report&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;json&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;report&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;basic_blocks_info&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;list&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt;
-            &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%x&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;address&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+            &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%x&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;address&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
             &lt;span class="k"&gt;try&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
                 &lt;span class="n"&gt;color&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;address&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;nbins&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-                &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;ok&amp;#39;&lt;/span&gt;
+                &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;ok&amp;#39;&lt;/span&gt;
             &lt;span class="k"&gt;except&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-                &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;fail: &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;done&amp;#39;&lt;/span&gt;    
+                &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;fail: &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;done&amp;#39;&lt;/span&gt;    
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
 
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="vm"&gt;__name__&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;Here is an example generated by launching "ping google.fr", we can clearly see in black the nodes reached by the ping utility:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="ping.png" src="/images/some_thoughts_about_code-coverage_measurement_with_pin/ping.png"&gt;&lt;/center&gt;
@@ -1655,7 +1604,7 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 &lt;li&gt;You remove the basic blocks executed in the first run in the second trace ; in order to keep only the part that does the "do something" thing. That way you filter the noise induced by the GUI to focus only on the interesting part.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;Cool for us because that's pretty easy to implement via IDAPython, here is the script:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;# idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py&lt;/span&gt;
     &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;json&lt;/span&gt;
     &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;idc&lt;/span&gt;
     &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;idaapi&lt;/span&gt;
@@ -1690,9 +1639,9 @@ A lot of software are built around a really annoying GUI (for the reverser at le
         &lt;span class="n"&gt;dic_l2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;dict&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;k&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;address&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;k&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;nbins&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;k&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;l2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 
         &lt;span class="n"&gt;diff&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;addresses_l2&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;addresses_l1&lt;/span&gt;
-        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; bbls in the first execution&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addresses_l1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; bbls in the second execution&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addresses_l2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;Differences between the two executions: &lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; bbls&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;diff&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; bbls in the first execution&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addresses_l1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; bbls in the second execution&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addresses_l2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;Differences between the two executions: &lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; bbls&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;diff&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 
         &lt;span class="k"&gt;assert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addresses_l1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addresses_l2&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 
@@ -1702,19 +1651,18 @@ A lot of software are built around a really annoying GUI (for the reverser at le
                 &lt;span class="n"&gt;color&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;dic_l2&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
                 &lt;span class="n"&gt;funcs&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;get_func&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;startEA&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;append&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
             &lt;span class="k"&gt;except&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-                &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;fail &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+                &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;fail &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;e&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 
-        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;A total of &lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; different sub:&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;funcs&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;A total of &lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; different sub:&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;funcs&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;funcs&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;keys&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
-            &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%x&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;
+            &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%x&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;
 
-        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;done&amp;#39;&lt;/span&gt;    
+        &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;done&amp;#39;&lt;/span&gt;    
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
 
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="vm"&gt;__name__&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;By the way, you must keep in mind we are only talking about &lt;strong&gt;deterministic&lt;/strong&gt; program (will always execute the same path if you give it the same inputs). If the same inputs aren't giving the exact same outputs &lt;strong&gt;every time&lt;/strong&gt;, your program is not deterministic.&lt;/p&gt;
 &lt;p&gt;Also, don't forget about &lt;a href="http://fr.wikipedia.org/wiki/Address_space_layout_randomization"&gt;ASLR&lt;/a&gt; because if you want to compare basic block addresses executed at two different times, trust me you want your binary loaded at the same base address. However, if you want to patch quickly a simple file I've made a little Python script that can be handy sometimes: &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/remove_aslr_bin.py"&gt;remove_aslr_bin.py&lt;/a&gt; ; otherwise, booting your Windows XP virtual machine is the easy solution.&lt;/p&gt;
@@ -1722,33 +1670,29 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 &lt;p&gt;These tests have been done on my Windows 7 x64 laptop with Wow64 processes (4GB RAM, i7 Q720 @ 1.6GHz). All the modules living in &lt;em&gt;C:\Windows&lt;/em&gt; have been blacklisted. Also, note those tests are not really accurate, I didn't launch each thing thousand times, it's just here to give you a vague idea.&lt;/p&gt;
 &lt;h2 id="portable-python-2751"&gt;Portable Python 2.7.5.1&lt;/h2&gt;
 &lt;h3 id="without-instrumentation"&gt;Without instrumentation&lt;/h3&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    PS D:\&amp;gt; Measure-Command {start-process python.exe &amp;quot;-c &amp;#39;quit()&amp;#39;&amp;quot; -Wait}
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\&amp;gt; Measure-Command {start-process python.exe &amp;quot;-c &amp;#39;quit()&amp;#39;&amp;quot; -Wait}
 
     TotalMilliseconds : 73,1953
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h3 id="with-instrumentation-and-json-report-serialization"&gt;With instrumentation and JSON report serialization&lt;/h3&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    PS D:\&amp;gt; Measure-Command {start-process pin.exe &amp;quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &amp;#39;quit()&amp;#39;&amp;quot; -Wait} 
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\&amp;gt; Measure-Command {start-process pin.exe &amp;quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &amp;#39;quit()&amp;#39;&amp;quot; -Wait} 
 
     TotalMilliseconds : 13122,4683
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h2 id="vlc-208"&gt;VLC 2.0.8&lt;/h2&gt;
 &lt;h3 id="without-instrumentation_1"&gt;Without instrumentation&lt;/h3&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    PS D:\&amp;gt; Measure-Command {start-process vlc.exe &amp;quot;--play-and-exit hu&amp;quot; -Wait}
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\&amp;gt; Measure-Command {start-process vlc.exe &amp;quot;--play-and-exit hu&amp;quot; -Wait}
 
     TotalMilliseconds : 369,4677
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;h3 id="with-instrumentation-and-json-report-serialization_1"&gt;With instrumentation and JSON report serialization&lt;/h3&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;    PS D:\&amp;gt; Measure-Command {start-process pin.exe &amp;quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&amp;quot; -Wait}
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\&amp;gt; Measure-Command {start-process pin.exe &amp;quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&amp;quot; -Wait}
 
     TotalMilliseconds : 60109,204
-&lt;/pre&gt;&lt;/div&gt;
-
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 &lt;p&gt;To optimize the process you may want to blacklist some of the VLC plugins (there are a tons!), otherwise your VLC instrumented is 160 times slower than the normal one (and I didn't even try to launch the instrumentation when decoding x264 videos).&lt;/p&gt;
 &lt;h2 id="browsers"&gt;Browsers ?&lt;/h2&gt;
@@ -1766,4 +1710,4 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 &lt;li&gt;&lt;a href="http://joxeankoret.com/blog/2010/05/02/mynav-a-python-plugin-for-ida-pro/"&gt;MyNav, a python plugin&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href="http://www.zynamics.com/binnavi.html#videos"&gt;zynamics BinNavi Videos&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href="http://bitblaze.cs.berkeley.edu/papers/diffslicing_oakland11.pdf"&gt;Differential Slicing: Identifying Causal Execution Differences for Security Applications&lt;/a&gt; (thanks for the reference &lt;a href="https://twitter.com/joancalvet"&gt;j04n&lt;/a&gt;!)&lt;/li&gt;
-&lt;/ul&gt;</content><category term="reverse-engineering"></category><category term="dynamic-binary-instrumentation"></category></entry></feed>
+&lt;/ul&gt;</content><category term="misc"></category><category term="reverse-engineering"></category><category term="dynamic-binary-instrumentation"></category></entry></feed>

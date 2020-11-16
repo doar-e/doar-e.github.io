@@ -169,18 +169,17 @@
 <li>doesn't instrument Windows APIs. We don't want to waste our CPU time being in the native libraries of the system ; it's part of our little "tricks" to improve the speed of our Pintool.</li>
 </ul>
 <p>I think it's time to code now: first, let's define several data structures in order to store the information we need:</p>
-<div class="highlight"><pre><span></span>    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">MODULE_BLACKLIST_T</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">MODULE_BLACKLIST_T</span><span class="p">;</span>
     <span class="k">typedef</span> <span class="n">MODULE_BLACKLIST_T</span> <span class="n">MODULE_LIST_T</span><span class="p">;</span>
     <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">UINT32</span><span class="o">&gt;</span> <span class="n">BASIC_BLOCKS_INFO_T</span><span class="p">;</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The two first types will be used to hold modules related information: path of the module, start address and end address. The third one is simple: the key is the basic block address and the value is its number of instructions.</p>
 <p>Then we are going to define our instrumentation callback:</p>
 <ul>
 <li>one to know whenever a module is loaded in order to store its base/end address, one for the traces. You can set the callbacks using <em>IMG_AddInstrumentationFunction</em> and <em>TRACE_AddInstrumentationFunction</em>.</li>
 </ul>
-<div class="highlight"><pre><span></span>        <span class="n">VOID</span> <span class="nf">image_instrumentation</span><span class="p">(</span><span class="n">IMG</span> <span class="n">img</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code>        <span class="n">VOID</span> <span class="nf">image_instrumentation</span><span class="p">(</span><span class="n">IMG</span> <span class="n">img</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span>
         <span class="p">{</span>
             <span class="n">ADDRINT</span> <span class="n">module_low_limit</span> <span class="o">=</span> <span class="n">IMG_LowAddress</span><span class="p">(</span><span class="n">img</span><span class="p">),</span> <span class="n">module_high_limit</span> <span class="o">=</span> <span class="n">IMG_HighAddress</span><span class="p">(</span><span class="n">img</span><span class="p">);</span> 
 
@@ -203,14 +202,13 @@
             <span class="k">if</span><span class="p">(</span><span class="n">is_module_should_be_blacklisted</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
                 <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
         <span class="p">}</span>
-</pre></div>
-
+</code></pre></div>
 
 <ul>
 <li>one to be able to insert calls before every basic blocks.</li>
 </ul>
 <p>The thing is: Pin doesn't have a <em>BBL_AddInstrumentationFunction</em>, so we have to instrument the traces, iterate through them to get the basic block. It's done really easily with <em>TRACE_BblHead</em>, <em>BBL_Valid</em> and <em>BBL_Next</em> functions. Of course, if the basic block address is in a blacklisted range address, we don't insert a call to our analysis function.</p>
-<div class="highlight"><pre><span></span>    <span class="n">VOID</span> <span class="nf">trace_instrumentation</span><span class="p">(</span><span class="n">TRACE</span> <span class="n">trace</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span><span class="n">v</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">VOID</span> <span class="nf">trace_instrumentation</span><span class="p">(</span><span class="n">TRACE</span> <span class="n">trace</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span><span class="n">v</span><span class="p">)</span>
     <span class="p">{</span>
         <span class="k">for</span><span class="p">(</span><span class="n">BBL</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">TRACE_BblHead</span><span class="p">(</span><span class="n">trace</span><span class="p">);</span> <span class="n">BBL_Valid</span><span class="p">(</span><span class="n">bbl</span><span class="p">);</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">BBL_Next</span><span class="p">(</span><span class="n">bbl</span><span class="p">))</span>
         <span class="p">{</span>
@@ -233,20 +231,18 @@
             <span class="p">);</span>
         <span class="p">}</span>
     <span class="p">}</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function <em>handle_basic_block</em> ; we also use the fast linkage (it basically means the function will be called using the <a href="http://msdn.microsoft.com/en-us/library/6xa169sk.aspx">__fastcall</a> calling convention).</p>
 <p>The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.</p>
-<div class="highlight"><pre><span></span>    <span class="n">VOID</span> <span class="n">PIN_FAST_ANALYSIS_CALL</span> <span class="nf">handle_basic_block</span><span class="p">(</span><span class="n">UINT32</span> <span class="n">number_instruction_in_bb</span><span class="p">,</span> <span class="n">ADDRINT</span> <span class="n">address_bb</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">VOID</span> <span class="n">PIN_FAST_ANALYSIS_CALL</span> <span class="nf">handle_basic_block</span><span class="p">(</span><span class="n">UINT32</span> <span class="n">number_instruction_in_bb</span><span class="p">,</span> <span class="n">ADDRINT</span> <span class="n">address_bb</span><span class="p">)</span>
     <span class="p">{</span>
         <span class="n">basic_blocks_info</span><span class="p">[</span><span class="n">address_bb</span><span class="p">]</span> <span class="o">=</span> <span class="n">number_instruction_in_bb</span><span class="p">;</span>
     <span class="p">}</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Finally, just before the process ends we serialize our data in a simple JSON report thanks to <a href="http://www.digip.org/jansson/">jansson</a>. You may also want to use a binary serialization to have smaller report.</p>
-<div class="highlight"><pre><span></span>    <span class="n">VOID</span> <span class="nf">save_instrumentation_infos</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">VOID</span> <span class="nf">save_instrumentation_infos</span><span class="p">()</span>
     <span class="p">{</span>
         <span class="c1">/// basic_blocks_info section</span>
         <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
@@ -276,11 +272,10 @@
         <span class="n">json_dumpf</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">JSON_COMPACT</span> <span class="o">|</span> <span class="n">JSON_ENSURE_ASCII</span><span class="p">);</span>
         <span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
     <span class="p">}</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the <a href="http://www.nynaeve.net/?p=131">SystemCallStub</a> (you know the "JMP FAR"). To do that, we simply use the <em>__readfsdword</em> intrinsic in order to read the field <a href="http://msdn.moonsols.com/win7rtm_x64/TEB32.html">TEB32.WOW32Reserved</a> that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.</p>
-<div class="highlight"><pre><span></span>    <span class="n">ADDRINT</span> <span class="n">wow64stub</span> <span class="o">=</span> <span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">ADDRINT</span> <span class="n">wow64stub</span> <span class="o">=</span> <span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">);</span>
     <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span>
         <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
             <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="s">&quot;wow64stub&quot;</span><span class="p">),</span>
@@ -290,14 +285,13 @@
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="p">);</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The entire Pintool source code is here: <a href="https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/pin-code-coverage-measure.cpp">pin-code-coverage-measure.cpp</a>.</p>
 <h1 id="i-want-to-see-the-results">I want to see the results.</h1>
 <p>I agree that's neat to have a JSON report with the basic blocks executed by our program, but it's not really readable for a human. We can use an <a href="https://github.com/0vercl0k/stuffz/tree/master/pin-code-coverage-measure">IDAPython</a> script that will parse our report, and will color all the instructions executed. It should be considerably better to see the execution path used by your program.</p>
 <p>To color an instruction you have to use the functions: <em>idaapi.set_item_color</em> and <em>idaapi.del_item_color</em> (if you want to reset the color). You can also use <em>idc.GetItemSize</em> to know the size of an instruction, like that you can iterate for a specific number of instruction (remember, we stored that in our JSON report!).</p>
-<div class="highlight"><pre><span></span><span class="c1"># idapy_color_path_from_json.py</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># idapy_color_path_from_json.py</span>
     <span class="kn">import</span> <span class="nn">json</span>
     <span class="kn">import</span> <span class="nn">idc</span>
     <span class="kn">import</span> <span class="nn">idaapi</span>
@@ -321,19 +315,18 @@
         <span class="n">c</span> <span class="o">=</span> <span class="n">idc</span><span class="o">.</span><span class="n">AskStr</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;Which color do you want ?&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]:</span>
-            <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span>
+            <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">color</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">],</span> <span class="n">c</span><span class="p">)</span>
-                <span class="k">print</span> <span class="s1">&#39;ok&#39;</span>
+                <span class="nb">print</span> <span class="s1">&#39;ok&#39;</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">print</span> <span class="s1">&#39;fail: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-        <span class="k">print</span> <span class="s1">&#39;done&#39;</span>    
+                <span class="nb">print</span> <span class="s1">&#39;fail: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s1">&#39;done&#39;</span>    
         <span class="k">return</span> <span class="mi">1</span>
 
     <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
         <span class="n">main</span><span class="p">()</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Here is an example generated by launching "ping google.fr", we can clearly see in black the nodes reached by the ping utility:</p>
 <p><center><img alt="ping.png" src="/images/some_thoughts_about_code-coverage_measurement_with_pin/ping.png"></center>
@@ -352,7 +345,7 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 <li>You remove the basic blocks executed in the first run in the second trace ; in order to keep only the part that does the "do something" thing. That way you filter the noise induced by the GUI to focus only on the interesting part.</li>
 </ul>
 <p>Cool for us because that's pretty easy to implement via IDAPython, here is the script:</p>
-<div class="highlight"><pre><span></span><span class="c1"># idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py</span>
     <span class="kn">import</span> <span class="nn">json</span>
     <span class="kn">import</span> <span class="nn">idc</span>
     <span class="kn">import</span> <span class="nn">idaapi</span>
@@ -387,9 +380,9 @@ A lot of software are built around a really annoying GUI (for the reverser at le
         <span class="n">dic_l2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span> <span class="n">k</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">l2</span><span class="p">)</span>
 
         <span class="n">diff</span> <span class="o">=</span> <span class="n">addresses_l2</span> <span class="o">-</span> <span class="n">addresses_l1</span>
-        <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the first execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span>
-        <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the second execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">)</span>
-        <span class="k">print</span> <span class="s1">&#39;Differences between the two executions: </span><span class="si">%d</span><span class="s1"> bbls&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the first execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the second execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s1">&#39;Differences between the two executions: </span><span class="si">%d</span><span class="s1"> bbls&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
 
         <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">))</span>
 
@@ -399,19 +392,18 @@ A lot of software are built around a really annoying GUI (for the reverser at le
                 <span class="n">color</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dic_l2</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c</span><span class="p">)</span>
                 <span class="n">funcs</span><span class="p">[</span><span class="n">get_func</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">startEA</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">print</span> <span class="s1">&#39;fail </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="nb">print</span> <span class="s1">&#39;fail </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
-        <span class="k">print</span> <span class="s1">&#39;A total of </span><span class="si">%d</span><span class="s1"> different sub:&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s1">&#39;A total of </span><span class="si">%d</span><span class="s1"> different sub:&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">funcs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">s</span>
+            <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">s</span>
 
-        <span class="k">print</span> <span class="s1">&#39;done&#39;</span>    
+        <span class="nb">print</span> <span class="s1">&#39;done&#39;</span>    
         <span class="k">return</span> <span class="mi">1</span>
 
     <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
         <span class="n">main</span><span class="p">()</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>By the way, you must keep in mind we are only talking about <strong>deterministic</strong> program (will always execute the same path if you give it the same inputs). If the same inputs aren't giving the exact same outputs <strong>every time</strong>, your program is not deterministic.</p>
 <p>Also, don't forget about <a href="http://fr.wikipedia.org/wiki/Address_space_layout_randomization">ASLR</a> because if you want to compare basic block addresses executed at two different times, trust me you want your binary loaded at the same base address. However, if you want to patch quickly a simple file I've made a little Python script that can be handy sometimes: <a href="https://github.com/0vercl0k/stuffz/blob/master/remove_aslr_bin.py">remove_aslr_bin.py</a> ; otherwise, booting your Windows XP virtual machine is the easy solution.</p>
@@ -419,33 +411,29 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 <p>These tests have been done on my Windows 7 x64 laptop with Wow64 processes (4GB RAM, i7 Q720 @ 1.6GHz). All the modules living in <em>C:\Windows</em> have been blacklisted. Also, note those tests are not really accurate, I didn't launch each thing thousand times, it's just here to give you a vague idea.</p>
 <h2 id="portable-python-2751">Portable Python 2.7.5.1</h2>
 <h3 id="without-instrumentation">Without instrumentation</h3>
-<div class="highlight"><pre><span></span>    PS D:\&gt; Measure-Command {start-process python.exe &quot;-c &#39;quit()&#39;&quot; -Wait}
+<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process python.exe &quot;-c &#39;quit()&#39;&quot; -Wait}
 
     TotalMilliseconds : 73,1953
-</pre></div>
-
+</code></pre></div>
 
 <h3 id="with-instrumentation-and-json-report-serialization">With instrumentation and JSON report serialization</h3>
-<div class="highlight"><pre><span></span>    PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &#39;quit()&#39;&quot; -Wait} 
+<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &#39;quit()&#39;&quot; -Wait} 
 
     TotalMilliseconds : 13122,4683
-</pre></div>
-
+</code></pre></div>
 
 <h2 id="vlc-208">VLC 2.0.8</h2>
 <h3 id="without-instrumentation_1">Without instrumentation</h3>
-<div class="highlight"><pre><span></span>    PS D:\&gt; Measure-Command {start-process vlc.exe &quot;--play-and-exit hu&quot; -Wait}
+<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process vlc.exe &quot;--play-and-exit hu&quot; -Wait}
 
     TotalMilliseconds : 369,4677
-</pre></div>
-
+</code></pre></div>
 
 <h3 id="with-instrumentation-and-json-report-serialization_1">With instrumentation and JSON report serialization</h3>
-<div class="highlight"><pre><span></span>    PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&quot; -Wait}
+<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&quot; -Wait}
 
     TotalMilliseconds : 60109,204
-</pre></div>
-
+</code></pre></div>
 
 <p>To optimize the process you may want to blacklist some of the VLC plugins (there are a tons!), otherwise your VLC instrumented is 160 times slower than the normal one (and I didn't even try to launch the instrumentation when decoding x264 videos).</p>
 <h2 id="browsers">Browsers ?</h2>
