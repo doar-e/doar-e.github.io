@@ -527,7 +527,7 @@ The left hand side of the addition is the operand 0 (<code>[42]</code> in this c
 <h4 id="propagating-truncations">Propagating truncations</h4>
 <p>To understand how truncations get propagated, we want to trace the simplified lowering using <code>--trace-representation</code> and look at the sea of nodes in Turbolizer right before the simplified lowering phase, which is by selecting the escape analysis phase in the menu.</p>
 <p>The first phase starts from the <code>End</code> node. It visits the node and then enqueues its inputs. It doesn't truncate any of its inputs. The output is <code>tagged</code>.</p>
-<p><center><img src="\images\deoptimizer\truncations\1.png" width="20%"></img></center></p>
+<p><center><img src="\images\deoptimization\truncations\1.png" width="20%"></img></center></p>
 <div class="highlight"><pre><span></span><code> visit #31: End (trunc: no-value-use)
   initial #30: no-value-use
 </code></pre></div>
@@ -545,9 +545,9 @@ The left hand side of the addition is the operand 0 (<code>[42]</code> in this c
 
 <p>Then, for every node in the queue, the corresponding visitor is called. In that case, only a <code>Return</code> node is in the queue.</p>
 <!--
-<center>![truncation2](\images\deoptimizer\truncations\2.png)</center>
+<center>![truncation2](\images\deoptimization\truncations\2.png)</center>
 -->
-<p><center><img src="\images\deoptimizer\truncations\2.png" width="20%"></img></center></p>
+<p><center><img src="\images\deoptimization\truncations\2.png" width="20%"></img></center></p>
 <p>The visitor indicates use informations. The first input is truncated to a word32. The other inputs are not truncated.
 The output is <code>tagged</code>.</p>
 <div class="highlight"><pre><span></span><code>  <span class="kt">void</span> <span class="nf">VisitNode</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">,</span> <span class="n">Truncation</span> <span class="n">truncation</span><span class="p">,</span>
@@ -590,8 +590,8 @@ The output is <code>tagged</code>.</p>
 </code></pre></div>
 
 <p>All the inputs (29, 28 21) are set in the queue and now have to be visited.</p>
-<!--<center>![truncation3](\images\deoptimizer\truncations\3.png)</center>-->
-<p><center><img src="\images\deoptimizer\truncations\3.png" width="45%"></img></center></p>
+<!--<center>![truncation3](\images\deoptimization\truncations\3.png)</center>-->
+<p><center><img src="\images\deoptimization\truncations\3.png" width="45%"></img></center></p>
 <p>We can see that the truncation to word32 has been propagated to the node 29.</p>
 <div class="highlight"><pre><span></span><code> visit #29: NumberConstant (trunc: truncate-to-word32)
 </code></pre></div>
@@ -675,8 +675,8 @@ The output is <code>tagged</code>.</p>
   initial #0: no-value-use
 </code></pre></div>
 
-<!--<center>![truncation4](\images\deoptimizer\truncations\4.png)</center>-->
-<p><center><img src="\images\deoptimizer\truncations\4.png" width="70%"></img></center></p>
+<!--<center>![truncation4](\images\deoptimization\truncations\4.png)</center>-->
+<p><center><img src="\images\deoptimization\truncations\4.png" width="70%"></img></center></p>
 <p>Now let's have a look at the phi visitor. It simply forwards the propagations to its inputs and adds them to the queue. The output representation is inferred from the phi node's type.</p>
 <div class="highlight"><pre><span></span><code>  <span class="c1">// Helper for handling phis.</span>
   <span class="kt">void</span> <span class="nf">VisitPhi</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">,</span> <span class="n">Truncation</span> <span class="n">truncation</span><span class="p">,</span>
@@ -704,8 +704,8 @@ The output is <code>tagged</code>.</p>
   <span class="p">}</span>
 </code></pre></div>
 
-<!--<center>![truncation5](\images\deoptimizer\truncations\5.png)</center>-->
-<p><center><img src="\images\deoptimizer\truncations\5.png" width="70%"></img></center></p>
+<!--<center>![truncation5](\images\deoptimization\truncations\5.png)</center>-->
+<p><center><img src="\images\deoptimization\truncations\5.png" width="70%"></img></center></p>
 <p>Finally, the phi node's inputs get visited.</p>
 <div class="highlight"><pre><span></span><code> visit #20: NumberConstant (trunc: truncate-to-word32)
  visit #22: NumberConstant (trunc: truncate-to-word32)
@@ -767,8 +767,8 @@ The output is <code>tagged</code>.</p>
 <span class="p">}</span>
 </code></pre></div>
 
-<!--<center>![side by side - input 1](\images\deoptimizer\lowering_conversions\side_by_side_input1.png)</center>-->
-<p><center><img src="\images\deoptimizer\lowering_conversions\side_by_side_input1.png" width="70%"></img></center></p>
+<!--<center>![side by side - input 1](\images\deoptimization\lowering_conversions\side_by_side_input1.png)</center>-->
+<p><center><img src="\images\deoptimization\lowering_conversions\side_by_side_input1.png" width="70%"></img></center></p>
 <div class="highlight"><pre><span></span><code>visit #30: Return
   change: #30:Return(@0 #29:NumberConstant)  from kRepTaggedSigned to kRepWord32:truncate-to-word32
 </code></pre></div>
@@ -781,8 +781,8 @@ The output is <code>tagged</code>.</p>
     <span class="p">}</span>
 </code></pre></div>
 
-<!--<center>![side by side - input 2](\images\deoptimizer\lowering_conversions\side_by_side_input2.png)</center>-->
-<p><center><img src="\images\deoptimizer\lowering_conversions\side_by_side_input2.png" width="90%"></img></center></p>
+<!--<center>![side by side - input 2](\images\deoptimization\lowering_conversions\side_by_side_input2.png)</center>-->
+<p><center><img src="\images\deoptimization\lowering_conversions\side_by_side_input2.png" width="90%"></img></center></p>
 <div class="highlight"><pre><span></span><code>visit #30: Return
   change: #30:Return(@1 #28:SpeculativeNumberModulus)  from kRepWord32 to kRepTagged:no-truncation (but distinguish zeros)
 </code></pre></div>
@@ -801,11 +801,11 @@ defer replacement #28:SpeculativeNumberModulus with #60:Phi
 <li>node #28 has been replaced by the phi node #60 ... but it also leads to the creation of all the other nodes in the orange rectangle</li>
 </ul>
 <p>This is before simplified lowering : </p>
-<!--<center>![speculative modulus before](\images\deoptimizer\lowering_conversions\speculative_mod_1_before.png)</center>-->
-<p><center><img src="\images\deoptimizer\lowering_conversions\speculative_mod_1_before.png" width="80%"></img></center></p>
+<!--<center>![speculative modulus before](\images\deoptimization\lowering_conversions\speculative_mod_1_before.png)</center>-->
+<p><center><img src="\images\deoptimization\lowering_conversions\speculative_mod_1_before.png" width="80%"></img></center></p>
 <p>This is after :</p>
-<!--<center>![speculative modulus after](\images\deoptimizer\lowering_conversions\speculative_mod_2_after.png)</center>-->
-<p><center><img src="\images\deoptimizer\lowering_conversions\speculative_mod_2_after.png"></img></center></p>
+<!--<center>![speculative modulus after](\images\deoptimization\lowering_conversions\speculative_mod_2_after.png)</center>-->
+<p><center><img src="\images\deoptimization\lowering_conversions\speculative_mod_2_after.png"></img></center></p>
 <p>The creation of all the nodes inside the green rectangle is done by <code>SimplifiedLowering::Uint32Mod</code> which is called by the SpeculativeNumberModulus visitor.</p>
 <div class="highlight"><pre><span></span><code>  <span class="kt">void</span> <span class="nf">VisitSpeculativeNumberModulus</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">,</span> <span class="n">Truncation</span> <span class="n">truncation</span><span class="p">,</span>
                                      <span class="n">SimplifiedLowering</span><span class="o">*</span> <span class="n">lowering</span><span class="p">)</span> <span class="p">{</span>
@@ -932,14 +932,14 @@ defer replacement #28:SpeculativeNumberModulus with #60:Phi
 <p>We are only discussing the case where optimized assembly code deoptimizes to ignition interpreted bytecode, that is the constructed output frame is called an <code>interpreted frame</code>. However, there are other kinds of frames we are not going to discuss in this article (ex: adaptor frames, builtin continuation frames, etc). Michael Stanton, a V8 dev, <a href="https://ripsawridge.github.io/">wrote a few interesting blog posts you may want to check</a>.</p>
 <p>We know that javascript first gets translated to ignition bytecode (and a feedback vector is associated to that bytecode). Then, TurboFan might kick in and generate optimized code based on speculations (using the aforementioned feedback vector). It associates <code>deoptimization input data</code> to this optimized code.
 When executing optimized code, if an assumption is violated (let's say, a type guard for instance), the flow of execution gets redirected to the deoptimizer. The <code>deoptimizer</code> takes those <code>deoptimization input data</code> to translate the current <code>input frame</code> and compute an <code>output frame</code>. The deoptimization input data tell the deoptimizer what kind of deoptimization is to be done (for instance, are we going back to some standard ignition bytecode? That implies building an <code>interpreted frame</code> as an output frame). They also indicate where to deoptimize to (such as the bytecode offset), what values to put in the output frame and how to <code>translate</code> them. Finally, once everything is ready, it returns to the ignition interpreter.</p>
-<!--<center>![deopt_full](\images\deoptimizer\deopt_full.png)</center>-->
-<p><center><img src="\images\deoptimizer\deopt_full.png" width="90%"></img></center></p>
+<!--<center>![deopt_full](\images\deoptimization\deopt_full.png)</center>-->
+<p><center><img src="\images\deoptimization\deopt_full.png" width="90%"></img></center></p>
 <p>During <code>code generation</code>, for every instruction that has a flag indicating a possible deoptimization, a branch is generated. It either branches to a continuation block (normal execution) or to a <code>deoptimization exit</code> to which is attached a <code>Translation</code>.</p>
-<!--<center>![assemble_code_deopt](\images\deoptimizer\assemble_code_deopt.png)</center>-->
-<p><center><img src="\images\deoptimizer\assemble_code_deopt.png" width="70%"></img></center></p>
+<!--<center>![assemble_code_deopt](\images\deoptimization\assemble_code_deopt.png)</center>-->
+<p><center><img src="\images\deoptimization\assemble_code_deopt.png" width="70%"></img></center></p>
 <p>To build the translation, code generation uses information from structures such as a <code>FrameStateDescriptor</code> and a list of <code>StateValueDescriptor</code>. They obviously correspond to <code>FrameState</code> and <code>StateValues</code> nodes. Those structures are built during <code>instruction selection</code>, not when visiting those nodes (no code generation is directly associated to those nodes, therefore they don't have associated visitors in the instruction selector).</p>
-<!--<center>![translation](\images\deoptimizer\translation.png)</center>-->
-<p><center><img src="\images\deoptimizer\translation.png" width="90%"></img></center></p>
+<!--<center>![translation](\images\deoptimization\translation.png)</center>-->
+<p><center><img src="\images\deoptimization\translation.png" width="90%"></img></center></p>
 <h4 id="tracing-a-deoptimization">Tracing a deoptimization</h4>
 <p>Let's get through a quick experiment using the following script.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">function</span> <span class="nx">add_prop</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
@@ -1262,14 +1262,14 @@ If we look at the visitor of <code>FrameState</code> nodes, we can see that even
 </code></pre></div>
 
 <p>So if we look at the sea of node right after the escape analysis phase and before the simplified lowering phase, it looks like this : </p>
-<!--<center>![before_typed_state_value](\images\deoptimizer\before_adding_typed_state_values.png)</center>-->
-<p><center><img src="\images\deoptimizer\before_adding_typed_state_values.png" width="25%"></img></center></p>
+<!--<center>![before_typed_state_value](\images\deoptimization\before_adding_typed_state_values.png)</center>-->
+<p><center><img src="\images\deoptimization\before_adding_typed_state_values.png" width="25%"></img></center></p>
 <p>And after the simplified lowering phase, we can confirm that a <code>TypedStateValues</code> node was indeed inserted.</p>
-<!--<center>![after](\images\deoptimizer\simplified_lowering_vuln-1576726613725.png)</center>-->
-<p><center><img src="\images\deoptimizer\simplified_lowering_vuln-1576726613725.png" width="25%"></img></center></p>
+<!--<center>![after](\images\deoptimization\simplified_lowering_vuln-1576726613725.png)</center>-->
+<p><center><img src="\images\deoptimization\simplified_lowering_vuln-1576726613725.png" width="25%"></img></center></p>
 <p>After effect control linearization, the <code>BigIntAsUintN</code> node gets lowered to a <code>Word64And</code> node. </p>
-<!--<center>![full_vuln](\images\deoptimizer\full_vuln.png)</center>-->
-<p><center><img src="\images\deoptimizer\full_vuln.png" width="60%"></img></center></p>
+<!--<center>![full_vuln](\images\deoptimization\full_vuln.png)</center>-->
+<p><center><img src="\images\deoptimization\full_vuln.png" width="60%"></img></center></p>
 <p>As we learned earlier, the <code>FrameState</code> and <code>TypedStateValues</code> nodes do not directly correspond to any code generation. </p>
 <div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="n">InstructionSelector</span><span class="o">::</span><span class="n">VisitNode</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
   <span class="k">switch</span> <span class="p">(</span><span class="n">node</span><span class="o">-&gt;</span><span class="n">opcode</span><span class="p">())</span> <span class="p">{</span>
@@ -1282,8 +1282,8 @@ If we look at the visitor of <code>FrameState</code> nodes, we can see that even
 </code></pre></div>
 
 <p>However, other nodes may make use of <code>FrameState</code> and <code>TypedStateValues</code> nodes. This is the case for instance of the various <code>Deoptimize</code> nodes and also <code>Call</code> nodes.</p>
-<!--<center>![check_property_foo_or_deopt](\images\deoptimizer\check_property_foo_or_deopt.png)</></center>-->
-<p><center><img src="\images\deoptimizer\check_property_foo_or_deopt.png" width="60%"></img></center></p>
+<!--<center>![check_property_foo_or_deopt](\images\deoptimization\check_property_foo_or_deopt.png)</></center>-->
+<p><center><img src="\images\deoptimization\check_property_foo_or_deopt.png" width="60%"></img></center></p>
 <p>They will make the <code>instruction selector</code> build the necessary <code>FrameStateDescriptor</code> and <code>StateValueList</code> of <code>StateValueDescriptor</code>.</p>
 <p>Using those structures, the <code>code generator</code> will then build the necessary <code>DeoptimizationExit</code>s to which a <code>Translation</code> will be associated with. The function <code>BuildTranslation</code> will handle the the <code>InstructionOperand</code>s in <code>CodeGenerator::AddTranslationForOperand</code>. And this is where the (AnyTagged) <code>MachineType</code> corresponding to the <code>BigIntAsUintN</code> node is used! When building the translation, we are using the BigInt value as if it was a pointer (second branch) and not a double value (first branch)!</p>
 <div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="n">CodeGenerator</span><span class="o">::</span><span class="n">AddTranslationForOperand</span><span class="p">(</span><span class="n">Translation</span><span class="o">*</span> <span class="n">translation</span><span class="p">,</span>
