@@ -145,10 +145,10 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
 <li><a href="#lets-get-our-hands-dirty">Let's get our hands dirty</a><ul>
 <li><a href="#fathers-in-charge">Father's in charge</a><ul>
 <li><a href="#nanomites-101">Nanomites 101</a></li>
-<li><a href="#how-the-father-works"><a id="static_analysis_father"></a> How the father works</a></li>
+<li><a href="#how-the-father-works"> How the father works</a></li>
 </ul>
 </li>
-<li><a href="#gearing-up-writing-a-symbolic-executing-engine">Gearing up: Writing a symbolic executing engine <a id="writing_symbolic_exec"></a></a></li>
+<li><a href="#gearing-up-writing-a-symbolic-executing-engine">Gearing up: Writing a symbolic executing engine </a></li>
 <li><a href="#back-into-the-battlefield">Back into the battlefield</a><ul>
 <li><a href="#extracting-the-function-that-generates-the-magic-value-from-the-son-program-counter">Extracting the function that generates the magic value from the son program counter</a></li>
 <li><a href="#extracting-the-function-that-generates-the-new-program-counter-from-the-second-magic-value">Extracting the function that generates the new program counter from the second magic value</a></li>
@@ -194,7 +194,7 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
 </ul>
 <h2 id="setting-up-a-proper-debugging-environment">Setting up a proper debugging environment</h2>
 <p>The answer to that question is <a href="http://wiki.qemu.org/Main_Page">Qemu</a>, as expected. You can even download already fully prepared &amp; working Debian images on <a href="https://people.debian.org/~aurel32/qemu/mipsel/">aurel32</a>'s website.</p>
-<div class="highlight"><pre><span></span>    overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
+<div class="highlight"><pre><span></span><code>    overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
     overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/vmlinux-3.2.0-4-4kc-malta
     overclok@wildout:~/chall/nsc2014$ cat start_vm.sh
     qemu-system-mipsel -M malta -kernel vmlinux-3.2.0-4-4kc-malta -hda debian_wheezy_mipsel_standard.qcow2 -vga none -append <span class="s2">&quot;root=/dev/sda1 console=tty0&quot;</span> -nographic
@@ -216,11 +216,10 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
     permitted by applicable law.
     root@debian-mipsel:~# uname -a
     Linux debian-mipsel <span class="m">3</span>.2.0-4-4kc-malta <span class="c1">#1 Debian 3.2.51-1 mips GNU/Linux</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Feel free to install your essentials in the virtual environment, some tools might come handy (it should take a bit of time to install them though):</p>
-<div class="highlight"><pre><span></span>    root@debian-mipsel:~# aptitude install strace gdb gcc python
+<div class="highlight"><pre><span></span><code>    root@debian-mipsel:~# aptitude install strace gdb gcc python
     root@debian-mipsel:~# wget https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
     root@debian-mipsel:~# mv gdbinit-mips ~/.gdbinit
     root@debian-mipsel:~# gdb -q /home/user/crackmips
@@ -249,16 +248,14 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
        0x402038 &lt;main+20&gt;:  sw      a1,76<span class="o">(</span>s8<span class="o">)</span>
        0x40203c &lt;main+24&gt;:  lw      v1,72<span class="o">(</span>s8<span class="o">)</span>
        0x402040 &lt;main+28&gt;:  li      v0,2
-</pre></div>
-
+</code></pre></div>
 
 <p>And finally you should be able to run the wild beast:</p>
-<div class="highlight"><pre><span></span>    root@debian-mipsel:~# /home/user/crackmips
+<div class="highlight"><pre><span></span><code>    root@debian-mipsel:~# /home/user/crackmips
     usage: /home/user/crackmips password
     root@debian-mipsel:~# /home/user/crackmips <span class="s1">&#39;doar-e ftw&#39;</span>
     WRONG PASSWORD
-</pre></div>
-
+</code></pre></div>
 
 <p>Brilliant :-).</p>
 <h2 id="the-big-picture">The big picture</h2>
@@ -278,7 +275,7 @@ it works and what parts we will have to target to get the <em>good boy</em> mess
 </ol>
 <p>Basically, we need to find the 6 input <em>DWORD</em>s that are going to generate the following ones in <em>output</em>: <em>0x7953205b</em>, <em>0x6b63616e</em>, <em>0x20766974</em>, <em>0x534e202b</em>, <em>0x203d2043</em>, <em>0x5d20333c</em>. We also know that the father is going to interact with its son, so we need to study both codes to be sure to understand the challenge properly.
 If you prefer code, here is the big picture in C:</p>
-<div class="highlight"><pre><span></span>    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
     <span class="p">{</span>
         <span class="n">DWORD</span> <span class="n">serial_dwords</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
         <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
@@ -306,14 +303,13 @@ If you prefer code, here is the big picture in C:</p>
                 <span class="n">BadBoy</span><span class="p">();</span>
         <span class="p">}</span>
     <span class="p">}</span>
-</pre></div>
-
+</code></pre></div>
 
 <h1 id="lets-get-our-hands-dirty">Let's get our hands dirty</h1>
 <h2 id="fathers-in-charge">Father's in charge</h2>
 <p>The first thing I did after having the big picture was to look at the code of the father. Why? The code seemed a bit simpler than the son's one, so I figured studying the father would make more sense to understand what kind of protection we need to subvert.
 You can even crank up <a href="http://linux.die.net/man/1/strace">strace</a> to have a clearer overview of the syscalls used:</p>
-<div class="highlight"><pre><span></span>    root@debian-mipsel:~# strace -i /home/user/crackmips $(python -c &#39;print &quot;1&quot;*48&#39;)
+<div class="highlight"><pre><span></span><code>    root@debian-mipsel:~# strace -i /home/user/crackmips $(python -c &#39;print &quot;1&quot;*48&#39;)
     [7734e224] execve(&quot;/home/user/crackmips&quot;, [&quot;/home/user/crackmips&quot;, &quot;11111111111111111111111111111111&quot;...], [/* 12 vars */]) = 0
     [...]
     [77335e70] clone(child_stack=0, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x77491068) = 2539
@@ -353,8 +349,7 @@ You can even crank up <a href="http://linux.die.net/man/1/strace">strace</a> to 
     [7737052c] ptrace(PTRACE_SETREGS, 2539, 0, 0x7f8f87c4) = 0
     [7737052c] ptrace(PTRACE_CONT, 2539, 0, SIG_0) = 0
     [...]
-</pre></div>
-
+</code></pre></div>
 
 <p>That's an interesting output that I didn't expect at all actually. What we are seeing here is the father driving its son by modifying, potentially (we will find out that later), its context every time the son is <em>SIGTRAP</em>ing (note <em>waitpid</em> second argument).</p>
 <p>From here, if you are quite familiar with the different existing type of software protections (I'm not saying I am an expert in this field but I just happened to know that one :-P) you can pretty much guess what that is: nanomites this is!</p>
@@ -406,21 +401,20 @@ It usually works this way:</p>
 <li>But the other interesting point is that you still can use the extracted <a href="https://z3.codeplex.com/">Z3</a> expressions as some kind of black-box <em>functions</em>. You know what the function is doing, kind of, but you don't know how ; and you are not interested in the how. You know the inputs, and the outputs. To obtain a concrete output value, you can just replace the symbolic variables by concrete values. This is really handy, especially when you are not only interested in finding input values to generate specific output values ; sometimes you just want to go both ways :-).</li>
 </ol>
 <p>Anyway, after this long theoretical speech let's have a look at some code. The first important job of the engine is to be able to parse MIPS assembly: fortunately for us this is really easy. We are directly feeding plain-text MIPS disassembly directly copied from IDA to our engine:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">_parse_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
-      <span class="n">addr_seg</span><span class="p">,</span> <span class="n">instr</span><span class="p">,</span> <span class="n">rest</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_parse_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+      <span class="n">addr_seg</span><span class="p">,</span> <span class="n">instr</span><span class="p">,</span> <span class="n">rest</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="n">args</span> <span class="o">=</span> <span class="n">rest</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)):</span>
         <span class="k">if</span> <span class="s1">&#39;#&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-            <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">_</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
       <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span>
-        <span class="n">args</span> <span class="o">+</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mi">3</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">args</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mi">3</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
       <span class="p">)</span>
       <span class="n">_</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">addr_seg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">instr</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>From here you have all the information you need: the instruction and its operands (<em>None</em> if an operand doesn't exist as you can have up to 3 operands). The other important job that follows is to handle the different type of operands ; here are the ones I encountered in the challenge:</p>
 <ul>
@@ -429,7 +423,7 @@ It usually works this way:</p>
 <li>Immediate value.</li>
 </ul>
 <p>To handle / convert those I created a bunch of dull / helper functions:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">_is_gpr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_is_gpr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Is it a valid GPR name?&#39;&#39;&#39;</span>
       <span class="k">return</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span>
 
@@ -438,16 +432,16 @@ It usually works this way:</p>
       <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;loc_&#39;</span><span class="p">,</span> <span class="s1">&#39;0x&#39;</span><span class="p">)</span>
       <span class="k">try</span><span class="p">:</span>
         <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="kc">True</span>
       <span class="k">except</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">def</span> <span class="nf">_to_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Get an integer from a string immediate&#39;&#39;&#39;</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_imm</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;loc_&#39;</span><span class="p">,</span> <span class="s1">&#39;0x&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="k">return</span> <span class="bp">None</span>
+      <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="nf">_is_memderef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Is it a memory dereference?&#39;&#39;&#39;</span>
@@ -461,22 +455,21 @@ It usually works this way:</p>
       <span class="sd">&#39;&#39;&#39;Get the stack variable name&#39;&#39;&#39;</span>
       <span class="n">_</span><span class="p">,</span> <span class="n">var_name</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">var_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(fp)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Finally, we have to handle every different instructions and their encodings. Of course, you need to implement only the instructions you want: most likely the ones that are used in the code you are interested int. In a nutshell, this is the core of the engine. You can also use it to output valid Python/C lines if you fancy having a decompiler in your sleeve ; might be handy right?</p>
 <p>This is what the core function looks like, it is really simple, dumb and so unoptimized ; but at least it's clear to me:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;This is the core of the engine -- you are supposed to implement the semantics</span>
 <span class="sd">      of all the instructions you want to emulate here.&#39;&#39;&#39;</span>
       <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pc</span><span class="p">]</span>
       <span class="n">addr</span><span class="p">,</span> <span class="n">instr</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">instr</span> <span class="o">==</span> <span class="s1">&#39;sw&#39;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stackvar</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stackvar</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">var_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_stackvar</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> = $</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">a0</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_memderef</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_memderef</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">idx</span><span class="p">,</span> <span class="n">base</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)</span>
           <span class="n">base</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
           <span class="n">computed_address</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">base</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_imm</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
@@ -485,19 +478,19 @@ It usually works this way:</p>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;sw not implemented&#39;</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">instr</span> <span class="o">==</span> <span class="s1">&#39;lw&#39;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stackvar</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stackvar</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">var_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_stackvar</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">var_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39; WARNING: Assuming </span><span class="si">%s</span><span class="s1"> was 0&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;$</span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">a0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_memderef</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_memderef</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">idx</span><span class="p">,</span> <span class="n">base</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)</span>
           <span class="n">base</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
           <span class="n">computed_address</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">base</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_imm</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">computed_address</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="nb">raw_input</span><span class="p">(</span><span class="s1">&#39; WARNING </span><span class="si">%.8x</span><span class="s1"> is not in your memory store -- what value is there @0x</span><span class="si">%.8x</span><span class="s1">?&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">computed_address</span><span class="p">,</span> <span class="n">computed_address</span><span class="p">))</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">raw_input</span><span class="p">(</span><span class="s1">&#39; WARNING </span><span class="si">%.8x</span><span class="s1"> is not in your memory store -- what value is there @0x</span><span class="si">%.8x</span><span class="s1">?&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">computed_address</span><span class="p">,</span> <span class="n">computed_address</span><span class="p">))</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">computed_address</span><span class="p">]</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;$</span><span class="si">%s</span><span class="s1"> = [</span><span class="si">%s</span><span class="s1">+</span><span class="si">%s</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
@@ -505,11 +498,10 @@ It usually works this way:</p>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;lw not implemented&#39;</span><span class="p">)</span>
     <span class="p">[</span><span class="o">...</span><span class="p">]</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The first level of <em>if</em> handles the different instructions, the second level of <em>if</em> handles the different encodings an instruction can have. The <em>self.logger</em> thingy is just my way to save the execution traces in files to let the console clean:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trace_name</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trace_name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;zero&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
         <span class="s1">&#39;at&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
@@ -525,10 +517,10 @@ It usually works this way:</p>
       <span class="bp">self</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="p">{}</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">stack_offsets</span> <span class="o">=</span> <span class="p">{}</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">False</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="bp">False</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="kc">False</span>
 
-      <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">&#39;traces&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">&#39;traces&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
           <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="s1">&#39;traces&#39;</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">trace_name</span><span class="p">)</span>
@@ -546,14 +538,13 @@ It usually works this way:</p>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>At that point, if I wanted only an emulator I would be done. But because I want to use <a href="https://z3.codeplex.com/">Z3</a> and symbolic variables I want to get your attention on two common pitfalls that can cost you hours of debugging (trust me on that one :-():</p>
 <ul>
 <li>The first one is that the operator <em>__rshift__</em> isn't the logical right shift but the arithmetical one; which is quite different and can generate results you don't expect:</li>
 </ul>
-<div class="highlight"><pre><span></span>        <span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">from</span> <span class="nn">z3</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight"><pre><span></span><code>        <span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">from</span> <span class="nn">z3</span> <span class="kn">import</span> <span class="o">*</span>
 
         <span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="n">simplify</span><span class="p">(</span><span class="n">BitVecVal</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">Out</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="mi">6</span>
@@ -563,35 +554,33 @@ It usually works this way:</p>
 
         <span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="mi">4</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span>
         <span class="n">Out</span><span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="mi">2</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>To workaround that I usually define my own <em>_LShR</em> function that does whatever is correct according to the operand types (yes we could also replace <em>z3.BitVecNumRef.__rshift__</em> by <em>LShR</em> directly):</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">_LShR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_LShR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Useful hook function if you want to run the emulation</span>
 <span class="sd">      with/without Z3 as LShR is different from &gt;&gt; in Z3&#39;&#39;&#39;</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_z3</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
           <span class="n">a</span> <span class="o">=</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="nb">long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
           <span class="n">b</span> <span class="o">=</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">LShR</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">a</span> <span class="o">&gt;&gt;</span> <span class="n">b</span>
-</pre></div>
-
+</code></pre></div>
 
 <ul>
 <li>The other interesting detail to keep in mind is that you can't have any overflow on <em>BitVec</em>s of the same size ; the result is automatically truncated. So if you happen to have mathematical operations that need to overflow, like a multiplication (this is used in the challenge), you should store the temporary result in a bigger temporary variable. In my case, I was supposed to store the overflow inside another register, <em>$hi</em> which is used to store the high <em>DWORD</em> part of the result. But because I wasn't storing the result in a bigger <em>BitVec</em>, <em>$hi</em> ended up <strong>always</strong> equal to zero which is quite a nice problem when you have to pinpoint this issue in thousands lines of assembly :-).</li>
 </ul>
-<div class="highlight"><pre><span></span>        <span class="k">elif</span> <span class="n">instr</span> <span class="o">==</span> <span class="s1">&#39;multu&#39;</span><span class="p">:</span>
-          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code>        <span class="k">elif</span> <span class="n">instr</span> <span class="o">==</span> <span class="s1">&#39;multu&#39;</span><span class="p">:</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gpr</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;$lo = ($</span><span class="si">%s</span><span class="s1"> * $</span><span class="si">%s</span><span class="s1">) &amp; 0xffffffff&#39;</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;$hi = ($</span><span class="si">%s</span><span class="s1"> * $</span><span class="si">%s</span><span class="s1">) &gt;&gt; 32&#39;</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_z3</span><span class="p">:</span>
               <span class="n">a0bis</span><span class="p">,</span> <span class="n">a1bis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">a0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">a1</span><span class="p">]</span>
-              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a0bis</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a0bis</span><span class="p">,</span> <span class="nb">long</span><span class="p">):</span>
+              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a0bis</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a0bis</span><span class="p">,</span> <span class="n">long</span><span class="p">):</span>
                 <span class="n">a0bis</span> <span class="o">=</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">a0bis</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
-              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a1bis</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a1bis</span><span class="p">,</span> <span class="nb">long</span><span class="p">):</span>
+              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a1bis</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a1bis</span><span class="p">,</span> <span class="n">long</span><span class="p">):</span>
                 <span class="n">a1bis</span> <span class="o">=</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">a1bis</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
 
               <span class="n">a064</span> <span class="o">=</span> <span class="n">ZeroExt</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">a0bis</span><span class="p">)</span>
@@ -603,15 +592,14 @@ It usually works this way:</p>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">a0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="n">a1</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;lo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;hi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LShR</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>I think this is it really, you can now impress girls with your brand new shiny toy, check this out:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">):</span>
-        <span class="k">print</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">):</span>
+        <span class="nb">print</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span>
         <span class="n">sym</span> <span class="o">=</span> <span class="n">MiniMipsSymExecEngine</span><span class="p">(</span><span class="s1">&#39;donotcare.log&#39;</span><span class="p">)</span>
         <span class="c1"># DO NOT FORGET TO ENABLE Z3 :)</span>
-        <span class="n">sym</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="n">sym</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
         <span class="n">sym</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span>
         <span class="n">sym</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;var2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0xdeadbeef</span>
@@ -625,13 +613,13 @@ It usually works this way:</p>
 <span class="s1">    .doare:DEADBEEF                 subu    $v0, $v1         # Subtract Unsigned&#39;&#39;&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 
-        <span class="k">print</span> <span class="s1">&#39;Symbolic mode:&#39;</span>
-        <span class="k">print</span> <span class="s1">&#39;Resulting equation: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sym</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">]</span>
-        <span class="k">print</span> <span class="s1">&#39;Resulting value if `a` is 0xdeadb44: </span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">substitute</span><span class="p">(</span>
+        <span class="nb">print</span> <span class="s1">&#39;Symbolic mode:&#39;</span>
+        <span class="nb">print</span> <span class="s1">&#39;Resulting equation: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sym</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;Resulting value if `a` is 0xdeadb44: </span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">substitute</span><span class="p">(</span>
             <span class="n">sym</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">],</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="mh">0xdeadb44</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
         <span class="p">)</span><span class="o">.</span><span class="n">as_long</span><span class="p">()</span>
 
-        <span class="k">print</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span>
+        <span class="nb">print</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span>
         <span class="n">emu</span> <span class="o">=</span> <span class="n">MiniMipsSymExecEngine</span><span class="p">(</span><span class="s1">&#39;donotcare.log&#39;</span><span class="p">)</span>
         <span class="n">emu</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">stack</span>
         <span class="n">emu</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0xdeadb44</span>
@@ -640,15 +628,14 @@ It usually works this way:</p>
         <span class="n">emu</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">code</span>
         <span class="n">emu</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 
-        <span class="k">print</span> <span class="s1">&#39;Emulator mode:&#39;</span>
-        <span class="k">print</span> <span class="s1">&#39;Resulting value when `a` is 0xdeadb44: </span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">emu</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">]</span>
-        <span class="k">print</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span>
+        <span class="nb">print</span> <span class="s1">&#39;Emulator mode:&#39;</span>
+        <span class="nb">print</span> <span class="s1">&#39;Resulting value when `a` is 0xdeadb44: </span><span class="si">%#.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">emu</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span>
         <span class="k">return</span> <span class="mi">1</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Which results in:</p>
-<div class="highlight"><pre><span></span>    PS D:\Codes\NoSuchCon2014&gt; python .\mini_mips_symexec_engine.py
+<div class="highlight"><pre><span></span><code>    PS D:\Codes\NoSuchCon2014&gt; python .\mini_mips_symexec_engine.py
     ==================================================
     Symbolic mode:
     Resulting equation: 3735928559 +
@@ -662,15 +649,14 @@ It usually works this way:</p>
     Emulator mode:
     Resulting value when `a` is 0xdeadb44: 0x98f42d24
     ==================================================
-</pre></div>
-
+</code></pre></div>
 
 <p>Of course, I didn't mention a lot of details that still need to be addressed to have something working: simulating data areas, memory layouts, etc. If you are interested in those, you should read the codes in my <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014">NoSuchCon2014 folder</a>.</p>
 <h2 id="back-into-the-battlefield">Back into the battlefield</h2>
 <p>Here comes the important bits!</p>
 <h3 id="extracting-the-function-that-generates-the-magic-value-from-the-son-program-counter">Extracting the function that generates the magic value from the son program counter</h3>
 <p>All right, the main objective in this part is to extract the formula that generates the first magic value. As we said earlier, this big block can be seen as a function that takes two arguments (or symbolic variables) and generates the <em>magic DWORD</em> in output. The first thing to do is to copy the code somewhere to feed it to our engine ; I decided to stick all the codes I needed into a separate Python file called <em>code.py</em>.</p>
-<div class="highlight"><pre><span></span>    <span class="n">block_generate_magic_from_pc_son</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;.text:00400B8C                 lw      $v0, 0x318+pc_son($fp)  # Load Word</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">block_generate_magic_from_pc_son</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;.text:00400B8C                 lw      $v0, 0x318+pc_son($fp)  # Load Word</span>
 <span class="s1">    .text:00400B90                 sw      $v0, 0x318+tmp_pc($fp)  # Store Word</span>
 <span class="s1">    .text:00400B94                 la      $v0, loc_400A78  # Load Address</span>
 <span class="s1">    .text:00400B9C                 lw      $v1, 0x318+tmp_pc($fp)  # Load Word</span>
@@ -689,39 +675,37 @@ It usually works this way:</p>
 <span class="s1">    .text:00401434                 sllv    $v0, $a0, $v0    # Shift Left Logical Variable</span>
 <span class="s1">    .text:00401438                 or      $v0, $v1, $v0    # OR</span>
 <span class="s1">    .text:0040143C                 sw      $v0, 0x318+tmp_pc($fp)  # Store Word&#39;&#39;&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Then we have to prepare the environment of our engine: the two symbolic variables are stack-variables, so we have to insert them in the context of our virtual environment. The resulting formula is going to be in <em>$v0</em> at the end of the execution ; this the holy grail, the formula we are after.</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_magic_value</span><span class="p">():</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_magic_value</span><span class="p">():</span>
       <span class="sd">&#39;&#39;&#39;Here we do some magic to transform our mini MIPS emulator</span>
 <span class="sd">      into a symbolic execution engine ; the purpose is to extract</span>
 <span class="sd">      the formula of the function generating the 32-bits magic value&#39;&#39;&#39;</span>
 
       <span class="n">x</span> <span class="o">=</span> <span class="n">mini_mips_symexec_engine</span><span class="o">.</span><span class="n">MiniMipsSymExecEngine</span><span class="p">(</span><span class="s1">&#39;function_that_generates_magic_value.log&#39;</span><span class="p">)</span>
-      <span class="n">x</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">False</span>
-      <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="bp">True</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">pc_son</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;pc_son&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
       <span class="n">n_break</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;n_break&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
       <span class="n">x</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;pc_son&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">pc_son</span>
       <span class="n">x</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;var_300&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_break</span>
-      <span class="n">emu_generate_magic_from_son_pc</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">print_final_state</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+      <span class="n">emu_generate_magic_from_son_pc</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">print_final_state</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
       <span class="n">compute_magic_equation</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">]</span>
       <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;formulas&#39;</span><span class="p">,</span> <span class="s1">&#39;generate_magic_value_from_pc_son.smt2&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">to_SMT2</span><span class="p">(</span><span class="n">compute_magic_equation</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;generate_magic_from_pc_son&#39;</span><span class="p">))</span>
 
       <span class="k">return</span> <span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">,</span> <span class="n">simplify</span><span class="p">(</span><span class="n">compute_magic_equation</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>You can now keep in memory the formula &amp; wrap this function in another one so that you can reuse it every time you need it:</p>
-<div class="highlight"><pre><span></span>    <span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
     <span class="k">def</span> <span class="nf">generate_magic_from_son_pc_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Generates the 32 bits magic value thanks to the output</span>
 <span class="sd">      of the symbolic execution engine: run the analysis once, extract</span>
 <span class="sd">      the complete equation &amp; reuse it as much as you want&#39;&#39;&#39;</span>
       <span class="k">global</span> <span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span>
-      <span class="k">if</span> <span class="n">var_magic</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">var_n_break</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">expr_magic</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">var_magic</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">var_n_break</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">expr_magic</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span> <span class="o">=</span> <span class="n">extract_equation_of_function_that_generates_magic_value</span><span class="p">()</span>
 
       <span class="k">return</span> <span class="n">substitute</span><span class="p">(</span>
@@ -729,11 +713,10 @@ It usually works this way:</p>
         <span class="p">(</span><span class="n">var_magic</span><span class="p">,</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="mi">32</span><span class="p">)),</span>
         <span class="p">(</span><span class="n">var_n_break</span><span class="p">,</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">n_break</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
       <span class="p">)</span><span class="o">.</span><span class="n">as_long</span><span class="p">()</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The power of using symbolic variables here lies in the fact that we don't need to run the emulator every single time you need to call this function ; you get once the generic formula and you just have to substitute the symbolic variables by the concrete values you want. This comes for free with our code, so let's use it heh :-).</p>
-<div class="highlight"><pre><span></span>    ; generate_magic_from_pc_son
+<div class="highlight"><pre><span></span><code>    ; generate_magic_from_pc_son
     (declare-fun n_break () (_ BitVec 32))
     (declare-fun pc_son () (_ BitVec 32))
     (let ((?x14 (bvadd n_break (bvmul (_ bv4294967295 32) ((_ extract 63 32) (bvmul (_ bv1148159575 64) (concat (_ bv0 32) n_break)))))))
@@ -814,32 +797,31 @@ It usually works this way:</p>
     (let ((?x494 (concat (bvnot (bvor ((_ extract 31 31) (bvshl ?x392 ?x20)) ((_ extract 31 31) ?x388))) (bvor ((_ extract 30 30) (bvshl ?x392 ?x20)) ((_ extract 30 30) ?x388)) (bvnot (bvor ((_ extract 29 27) (bvshl ?x392 ?x20)) ((_ extract 29 27) ?x388))) (bvor ((_ extract 26 25) (bvshl ?x392 ?x20)) ((_ extract 26 25) ?x388)) (bvnot (bvor ((_ extract 24 23) (bvshl ?x392 ?x20)) ((_ extract 24 23) ?x388))) (bvor ((_ extract 22 21) (bvshl ?x392 ?x20)) ((_ extract 22 21) ?x388)) (bvnot (bvor ((_ extract 20 16) (bvshl ?x392 ?x20)) ((_ extract 20 16) ?x388))) (bvor ((_ extract 15 15) (bvshl ?x392 ?x20)) ((_ extract 15 15) ?x388)) (bvnot (bvor ((_ extract 14 14) (bvshl ?x392 ?x20)) ((_ extract 14 14) ?x388))) (bvor ((_ extract 13 12) (bvshl ?x392 ?x20)) ((_ extract 13 12) ?x388)) (bvnot (bvor ((_ extract 11 10) (bvshl ?x392 ?x20)) ((_ extract 11 10) ?x388))) (bvor ((_ extract 9 8) (bvshl ?x392 ?x20)) ((_ extract 9 8) ?x388)) (bvnot (bvor ((_ extract 7 2) (bvshl ?x392 ?x20)) ((_ extract 7 2) ?x388))) (bvor ((_ extract 1 1) (bvshl ?x392 ?x20)) ((_ extract 1 1) ?x388)) (bvnot (bvor ((_ extract 0 0) (bvshl ?x392 ?x20)) ((_ extract 0 0) ?x388))))))
     (let ((?x450 (bvor (bvlshr ?x494 ?x20) (bvshl ?x494 ?x24))))
     (bvor (bvlshr ?x450 ?x20) (bvshl ?x450 ?x24)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-</pre></div>
-
+</code></pre></div>
 
 <p>Quite happy we don't have to study that right?</p>
 <h3 id="extracting-the-function-that-generates-the-new-program-counter-from-the-second-magic-value">Extracting the function that generates the new program counter from the second magic value</h3>
 <p>For the second big block of code, we can do exactly the same thing: copy the code, configure the virtual environment with our symbolic variables and wrap the function:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_new_son_pc</span><span class="p">():</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_new_son_pc</span><span class="p">():</span>
       <span class="sd">&#39;&#39;&#39;Extract the formula of the function generating the new son&#39;s $pc&#39;&#39;&#39;</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">mini_mips_symexec_engine</span><span class="o">.</span><span class="n">MiniMipsSymExecEngine</span><span class="p">(</span><span class="s1">&#39;function_that_generates_new_son_pc.log&#39;</span><span class="p">)</span>
-      <span class="n">x</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">False</span>
-      <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="bp">True</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">tmp_pc</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;magic&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
       <span class="n">n_loop</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;n_loop&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
       <span class="n">x</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;tmp_pc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp_pc</span>
       <span class="n">x</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="s1">&#39;var_2F0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_loop</span>
-      <span class="n">emu_generate_new_pc_for_son</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">print_final_state</span> <span class="o">=</span> <span class="bp">False</span><span class="p">)</span>
+      <span class="n">emu_generate_new_pc_for_son</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">print_final_state</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
       <span class="n">compute_pc_equation</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">])</span>
       <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;formulas&#39;</span><span class="p">,</span> <span class="s1">&#39;generate_new_pc_son.smt2&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">to_SMT2</span><span class="p">(</span><span class="n">compute_pc_equation</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;generate_new_pc_son&#39;</span><span class="p">))</span>
 
       <span class="k">return</span> <span class="n">tmp_pc</span><span class="p">,</span> <span class="n">n_loop</span><span class="p">,</span> <span class="n">compute_pc_equation</span>
 
-    <span class="n">var_new_pc</span><span class="p">,</span> <span class="n">var_n_loop</span><span class="p">,</span> <span class="n">expr_new_pc</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
+    <span class="n">var_new_pc</span><span class="p">,</span> <span class="n">var_n_loop</span><span class="p">,</span> <span class="n">expr_new_pc</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
     <span class="k">def</span> <span class="nf">generate_new_pc_from_magic_high</span><span class="p">(</span><span class="n">magic_high</span><span class="p">,</span> <span class="n">n_loop</span><span class="p">):</span>
       <span class="k">global</span> <span class="n">var_new_pc</span><span class="p">,</span> <span class="n">var_n_loop</span><span class="p">,</span> <span class="n">expr_new_pc</span>
-      <span class="k">if</span> <span class="n">var_new_pc</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">var_n_loop</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">expr_new_pc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">var_new_pc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">var_n_loop</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">expr_new_pc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">var_new_pc</span><span class="p">,</span> <span class="n">var_n_loop</span><span class="p">,</span> <span class="n">expr_new_pc</span> <span class="o">=</span> <span class="n">extract_equation_of_function_that_generates_new_son_pc</span><span class="p">()</span>
 
       <span class="k">return</span> <span class="n">substitute</span><span class="p">(</span>
@@ -847,32 +829,29 @@ It usually works this way:</p>
           <span class="p">(</span><span class="n">var_new_pc</span><span class="p">,</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">magic_high</span><span class="p">,</span> <span class="mi">32</span><span class="p">)),</span>
           <span class="p">(</span><span class="n">var_n_loop</span><span class="p">,</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">n_loop</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
       <span class="p">)</span><span class="o">.</span><span class="n">as_long</span><span class="p">()</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>If you are interested in what the formula looks like, it is also available in the <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014">NoSuchCon2014 folder</a> on my <a href="https://github.com/0vercl0k">github</a>.</p>
 <h3 id="putting-it-all-together-building-a-function-that-computes-the-new-program-counter-of-the-son">Putting it all together: building a function that computes the new program counter of the son</h3>
 <p>Obviously, we don't really care about those two previous functions, we just want to combine them together to implement the computation of the new program counter from both the round number &amp; where the son <em>SIGTRAP</em>'d. The only missing bits is the lookup in the <em>QWORD</em>s array to extract the <em>second magic value</em>. We just have to dump the array inside another file called <em>memory.py</em>. This is done with a simple IDA Python one-liner:</p>
-<div class="highlight"><pre><span></span>    <span class="n">values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="mh">0x00414130</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="n">Qword</span><span class="p">(</span><span class="mh">0x00414130</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="mi">8</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0x25E</span><span class="p">))</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code>    <span class="n">values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="mh">0x00414130</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="n">Qword</span><span class="p">(</span><span class="mh">0x00414130</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="mi">8</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0x25E</span><span class="p">))</span>
+</code></pre></div>
 
 <p>Now, we can build the whole function easily by combining all those pieces:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">generate_new_pc_from_pc_son_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">generate_new_pc_from_pc_son_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Generate the new program counter from the address where the son SIGTRAP&#39;d and</span>
 <span class="sd">      the number of SIGTRAP the son encountered&#39;&#39;&#39;</span>
       <span class="n">loop_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_break</span> <span class="o">/</span> <span class="mi">101</span><span class="p">)</span>
       <span class="n">magic</span> <span class="o">=</span> <span class="n">generate_magic_from_son_pc_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">)</span>
-      <span class="n">idx</span> <span class="o">=</span> <span class="bp">None</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">memory</span><span class="o">.</span><span class="n">pcs</span><span class="p">)):</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">memory</span><span class="o">.</span><span class="n">pcs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span><span class="p">)</span> <span class="o">==</span> <span class="n">magic</span><span class="p">:</span>
           <span class="n">idx</span> <span class="o">=</span> <span class="n">i</span>
           <span class="k">break</span>
 
-      <span class="k">assert</span><span class="p">(</span><span class="n">idx</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">)</span>
+      <span class="k">assert</span><span class="p">(</span><span class="n">idx</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">generate_new_pc_from_magic_high</span><span class="p">(</span><span class="n">memory</span><span class="o">.</span><span class="n">pcs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="mi">32</span><span class="p">,</span> <span class="n">loop_n</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Sweet. Really sweet.</p>
 <p>This basically means we are now able to <em>unscramble</em> the code of the son and reordering it completely without even physically running the binary nor generating traces.</p>
@@ -892,7 +871,7 @@ It usually works this way:</p>
 <li>The son is executing 6 <em>rounds</em> ; that's exactly why the <em>QWORD</em> array has 6*101 entries.</li>
 </ul>
 <p>Here is the function I used:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">generate_son_code_reordered</span><span class="p">(</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">False</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">generate_son_code_reordered</span><span class="p">(</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;This functions puts in the right order the son&#39;s block of codes without</span>
 <span class="sd">        relying on the father to set a new $pc value when a break is executed in the son.</span>
 <span class="sd">        With this output we are good to go to create a nanomites-less binary:</span>
@@ -901,7 +880,7 @@ It usually works this way:</p>
 <span class="sd">        It will also be quite useful when we want to execute symbolic-ly its code.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
-            <span class="n">addr_seg</span><span class="p">,</span> <span class="n">instr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">addr_seg</span><span class="p">,</span> <span class="n">instr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">addr_seg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
             <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="s1">&#39;0x</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">addr</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">instr</span>
 
@@ -920,7 +899,7 @@ It usually works this way:</p>
                         <span class="n">new_pc</span> <span class="o">=</span> <span class="n">generate_new_pc_from_pc_son_using_z3</span><span class="p">(</span><span class="n">break_addr</span><span class="p">,</span> <span class="n">n_break</span><span class="p">)</span>
                         <span class="n">n_break</span> <span class="o">+=</span> <span class="mi">1</span>
                         <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
-                            <span class="k">print</span> <span class="s1">&#39;; Found the </span><span class="si">%d</span><span class="s1">th break (@</span><span class="si">%.8x</span><span class="s1">) ; new pc will be </span><span class="si">%.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">break_addr</span><span class="p">,</span> <span class="n">new_pc</span><span class="p">)</span>
+                            <span class="nb">print</span> <span class="s1">&#39;; Found the </span><span class="si">%d</span><span class="s1">th break (@</span><span class="si">%.8x</span><span class="s1">) ; new pc will be </span><span class="si">%.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">break_addr</span><span class="p">,</span> <span class="n">new_pc</span><span class="p">)</span>
                         <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;Begin&#39;</span>
                         <span class="n">block</span> <span class="o">=</span> <span class="p">[]</span>
                         <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
@@ -944,15 +923,14 @@ It usually works this way:</p>
                             <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
 
                         <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
-                            <span class="k">print</span> <span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">25</span><span class="p">,</span> <span class="s1">&#39;BLOCK </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">z</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">25</span>
-                            <span class="k">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                            <span class="nb">print</span> <span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">25</span><span class="p">,</span> <span class="s1">&#39;BLOCK </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">z</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">25</span>
+                            <span class="nb">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
                         <span class="n">cleaned_code</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
                         <span class="k">break</span>
                     <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="k">return</span> <span class="n">cleaned_code</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>And there it is :-)</p>
 <p>The function outputs the unrolled and ordered code of the son. If you want to push further, you could theoretically perform an open-heart surgery to completely remove the nanomites from the original binary, isn't it cool? This is left as an exercise for the interested reader though :-)).</p>
@@ -964,17 +942,17 @@ It usually works this way:</p>
 <li>We have 6 <em>rounds</em> because the input serial is broken into 6 <em>DWORD</em>s (so 6 symbolic variables) ; so basically each round is going to generate an output <em>DWORD</em></li>
 </ul>
 <p>As previously, we need to copy the code we want to execute. Note that we can also use <em>generate_son_code_reorganized</em> to generate it dynamically. Next step is to configure the virtual environment and we are good to finally run the code:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">get_serial</span><span class="p">():</span>
-      <span class="k">print</span> <span class="s1">&#39;&gt; Instantiating the symbolic execution engine..&#39;</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">get_serial</span><span class="p">():</span>
+      <span class="nb">print</span> <span class="s1">&#39;&gt; Instantiating the symbolic execution engine..&#39;</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">mini_mips_symexec_engine</span><span class="o">.</span><span class="n">MiniMipsSymExecEngine</span><span class="p">(</span><span class="s1">&#39;decrypt_serial.log&#39;</span><span class="p">)</span>
-      <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="bp">True</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="kc">True</span>
 
-      <span class="k">print</span> <span class="s1">&#39;&gt; Generating dynamically the code of the son &amp; reorganizing/cleaning it..&#39;</span>
+      <span class="nb">print</span> <span class="s1">&#39;&gt; Generating dynamically the code of the son &amp; reorganizing/cleaning it..&#39;</span>
       <span class="c1"># If you don&#39;t want to generate it dynamically like a sir, I&#39;ve copied a version inside</span>
       <span class="c1"># code.block_code_of_son_reorganized_loop_unrolled :-)</span>
       <span class="n">x</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="n">generate_son_code_reorganized</span><span class="p">()</span>
 
-      <span class="k">print</span> <span class="s1">&#39;&gt; Configuring the virtual environement..&#39;</span>
+      <span class="nb">print</span> <span class="s1">&#39;&gt; Configuring the virtual environement..&#39;</span>
       <span class="n">x</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;fp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x7fff6cb0</span>
       <span class="n">x</span><span class="o">.</span><span class="n">stack_offsets</span><span class="p">[</span><span class="s1">&#39;var_30&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
       <span class="n">start_addr</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;fp&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">stack_offsets</span><span class="p">[</span><span class="s1">&#39;var_30&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">8</span>
@@ -989,14 +967,13 @@ It usually works this way:</p>
       <span class="n">x</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">start_addr</span> <span class="o">+</span> <span class="mi">16</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
       <span class="n">x</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">start_addr</span> <span class="o">+</span> <span class="mi">20</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
 
-      <span class="k">print</span> <span class="s1">&#39;&gt; Running the code..&#39;</span>
+      <span class="nb">print</span> <span class="s1">&#39;&gt; Running the code..&#39;</span>
       <span class="n">x</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The thing that matters this time is to find <em>a, b, c, d, e, f</em> so that they generate specific outputs ; so this is where <a href="https://z3.codeplex.com/">Z3</a> is going to help us a <strong>lot</strong>. Thanks to that guy we don't need to manually invert the algorithm.</p>
 <p>The final bit now is basically just about setting up the solver, setting the correct constraints and generating the serial you guys have been waiting for so long:</p>
-<div class="highlight"><pre><span></span>      <span class="k">print</span> <span class="s1">&#39;&gt; Instantiating &amp; configuring the solver..&#39;</span>
+<div class="highlight"><pre><span></span><code>      <span class="nb">print</span> <span class="s1">&#39;&gt; Instantiating &amp; configuring the solver..&#39;</span>
       <span class="n">s</span> <span class="o">=</span> <span class="n">Solver</span><span class="p">()</span>
       <span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
         <span class="n">x</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">start_addr</span> <span class="o">+</span>   <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mh">0x7953205b</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">start_addr</span> <span class="o">+</span>   <span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="mh">0x6b63616e</span><span class="p">,</span>
@@ -1004,21 +981,20 @@ It usually works this way:</p>
         <span class="n">x</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">start_addr</span> <span class="o">+</span>  <span class="mi">16</span><span class="p">]</span> <span class="o">==</span> <span class="mh">0x203d2043</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">start_addr</span> <span class="o">+</span>  <span class="mi">20</span><span class="p">]</span> <span class="o">==</span> <span class="mh">0x5d20333c</span><span class="p">,</span>
       <span class="p">)</span>
 
-      <span class="k">print</span> <span class="s1">&#39;&gt; Solving..&#39;</span>
+      <span class="nb">print</span> <span class="s1">&#39;&gt; Solving..&#39;</span>
       <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="o">==</span> <span class="n">sat</span><span class="p">:</span>
-        <span class="k">print</span> <span class="s1">&#39;&gt; Constraints solvable, here are the 6 DWORDs:&#39;</span>
+        <span class="nb">print</span> <span class="s1">&#39;&gt; Constraints solvable, here are the 6 DWORDs:&#39;</span>
         <span class="n">m</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">model</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
-          <span class="k">print</span> <span class="s1">&#39; </span><span class="si">%r</span><span class="s1"> = 0x</span><span class="si">%.8X</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">as_long</span><span class="p">())</span>
+          <span class="nb">print</span> <span class="s1">&#39; </span><span class="si">%r</span><span class="s1"> = 0x</span><span class="si">%.8X</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">as_long</span><span class="p">())</span>
 
-        <span class="k">print</span> <span class="s1">&#39;&gt; Serial:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s1">&#39;</span><span class="si">%.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">as_long</span><span class="p">())[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="nb">print</span> <span class="s1">&#39;&gt; Serial:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s1">&#39;</span><span class="si">%.8x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">as_long</span><span class="p">())[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">print</span> <span class="s1">&#39;! Constraints unsolvable&#39;</span>
-</pre></div>
-
+        <span class="nb">print</span> <span class="s1">&#39;! Constraints unsolvable&#39;</span>
+</code></pre></div>
 
 <p>There we are, the final moment; <em>drum roll</em></p>
-<div class="highlight"><pre><span></span>    PS D:\Codes\NoSuchCon2014&gt; python .\solve_nsc2014_step1_z3.py
+<div class="highlight"><pre><span></span><code>    PS D:\Codes\NoSuchCon2014&gt; python .\solve_nsc2014_step1_z3.py
     ==================================================
     Tests OK -- you are fine to go
     ==================================================
@@ -1049,8 +1025,7 @@ It usually works this way:</p>
     root@debian-mipsel:~# /home/user/crackmips 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
     good job!
     Next level is there: http://nsc2014.synacktiv.com:65480/oob4giekee4zaeW9/
-</pre></div>
-
+</code></pre></div>
 
 <p>Boom :-).</p>
 <h1 id="alternative-solution">Alternative solution</h1>
@@ -1059,10 +1034,10 @@ It usually works this way:</p>
 <h3 id="quick-recap-of-the-parents-behaviour">Quick recap of the parent's behaviour</h3>
 <p>As Axel has previously explained, the first step is to recover the child's execution flow. Because of <em>nanomites</em>, the child is driven by the parent; we have to analyze the parent (i.e. the <code>debug</code> function) first to determine the correct sequence of the child's <code>pc</code> values.</p>
 <p>The parent's main loop is obfuscated, but by browsing cross-references of stack variables in IDA, we can see where each one is used. After a bit of analysis, we can try to decompile by hand the algorithm, and write a pseudo-Python code description of what the <code>debug</code> function does (it is really simplified):</p>
-<div class="highlight"><pre><span></span>    <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">waitpid</span><span class="p">()</span>
 
-    <span class="k">while</span><span class="p">(</span><span class="bp">True</span><span class="p">):</span>
+    <span class="k">while</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">regs</span> <span class="o">=</span> <span class="n">ptrace</span><span class="p">(</span><span class="n">GETREGS</span><span class="p">)</span>
 
         <span class="c1"># big block 1</span>
@@ -1085,8 +1060,7 @@ It usually works this way:</p>
 
         <span class="k">if</span><span class="p">(</span><span class="ow">not</span> <span class="n">waitpid</span><span class="p">()):</span>
             <span class="k">break</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The "big blocks" are the two long assembly blocks preceding and following the inner loop. Without looking at the gory details, we understand that a <code>param</code> value is derived from the counter using a function that I call <code>f</code>, and then used to obfuscate the original child's <code>pc</code>. The result is then searched in a <code>pcs</code> array (stored at address <code>0414130</code>), the next dword is extracted and used in a 2nd obfuscation pass to finally produce the new <code>pc</code> value injected into the child.</p>
 <p>The most important fact here is that that this process does not involve the input key at anytime. <strong>The output <code>pc</code> sequence is deterministic and constant</strong>; two executions with two different keys will produce the same sequence of <code>pc</code>'s. Since we know the first value of <code>pc</code> (the first <code>break</code> instruction at 040228C), we can theoretically compute the correct sequence and then reorder the child's instructions according to this sequence.</p>
@@ -1103,7 +1077,7 @@ It usually works this way:</p>
 <li>The second one before the <code>ptrace</code> call at the end of the second block (0x0401D8C), in order to be able to read the child's <code>pc</code> manipulated by the parent.</li>
 </ul>
 <p>Here is the script:</p>
-<div class="highlight"><pre><span></span>    ##################################
+<div class="highlight"><pre><span></span><code>    ##################################
     # A few handy functions
     ##################################
 
@@ -1151,11 +1125,10 @@ It usually works this way:</p>
     end
 
     c
-</pre></div>
-
+</code></pre></div>
 
 <p>To run that script within GDB, we first need to start <code>crackmips</code> with gdbserver in our <code>qemu</code> VM. After a few minutes, we get the following (cleaned) trace:</p>
-<div class="highlight"><pre><span></span>    New round
+<div class="highlight"><pre><span></span><code>    New round
     counter = 0
     regs.pc = 0x0040228c
     param = 0x00000000
@@ -1177,13 +1150,12 @@ It usually works this way:</p>
     regs.pc = 0x00402da8
 
     [...]
-</pre></div>
-
+</code></pre></div>
 
 <p>By reading the trace further, we realize that <code>param</code> is always equal to <code>counter/101</code>. This is actually the child's own loop counter, since its big loop is made of 101 pseudo basic blocks. We also notice that the <code>pc</code> sequence is different for each child's loop: round 0 is not equal to round 101, etc.</p>
 <h3 id="getting-a-clean-trace">Getting a clean trace</h3>
 <p>Since we're only interested in the final <code>pc</code> value for each round, we can make a simpler script that just outputs those values. And organize them in a parsable format to be able to use them later in another script. Here is the version 2 of the script:</p>
-<div class="highlight"><pre><span></span>    def print_context_pc
+<div class="highlight"><pre><span></span><code>    def print_context_pc
         printf &quot;0x%08x\n&quot;, *(int*)($fp-0x1cc)
     end
 
@@ -1201,19 +1173,17 @@ It usually works this way:</p>
     end
 
     c
-</pre></div>
-
+</code></pre></div>
 
 <p>The cleaned trace only contains the 606 <code>pc</code> values, one on each line:</p>
-<div class="highlight"><pre><span></span>    0x00402290
+<div class="highlight"><pre><span></span><code>    0x00402290
     0x00402ce0
     0x00402da8
     0x00403550
     [...]
     0x004030e4
     0x004039dc
-</pre></div>
-
+</code></pre></div>
 
 <p>Mission 1: accomplished!</p>
 <h2 id="shortcut-2-symbolic-execution-using-miasm">Shortcut #2 : Symbolic execution using Miasm</h2>
@@ -1221,29 +1191,27 @@ It usually works this way:</p>
 <p>Even though <a href="#writing_symbolic_exec">writing a symbolic execution engine from scratch</a> is certainly a fun and interesting exercise, I chose to play with <a href="https://code.google.com/p/miasm/">Miasm</a>. This excellent framework can disassemble binaries in various architectures (among which x86, x64, ARM, MIPS, etc.), and convert them into an intermediate language called IR (<em>intermediate representation</em>). It is then able to perform symbolic execution on this IR in order to find what are the side effects of a basic block on registers and memory locations. Although there is not so much documentation, Miasm contains various <a href="https://code.google.com/p/miasm/source/browse/#hg%2Fexample">examples</a> that should make the API easier to dig in. Don't tell me that it is hard to install, it is really not (well, I haven't tried on Windows ;). And there is even a <a href="https://registry.hub.docker.com/u/miasm/base/">docker image</a>, so you have no excuse to not try it!</p>
 <h3 id="miasm-symbolic-execution-101">Miasm symbolic execution 101</h3>
 <p>Before scripting everything, let's first see how to use Miasm to perform symbolic execution of one basic block. For the sake of simplicity, let's work on the first basic block of the child's main loop.</p>
-<div class="highlight"><pre><span></span>    <span class="kn">from</span> <span class="nn">miasm2.analysis.machine</span> <span class="kn">import</span> <span class="n">Machine</span>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">miasm2.analysis.machine</span> <span class="kn">import</span> <span class="n">Machine</span>
     <span class="kn">from</span> <span class="nn">miasm2.analysis</span> <span class="kn">import</span> <span class="n">binary</span>
 
     <span class="n">bi</span> <span class="o">=</span> <span class="n">binary</span><span class="o">.</span><span class="n">Container</span><span class="p">(</span><span class="s2">&quot;crackmips&quot;</span><span class="p">)</span>
     <span class="n">machine</span> <span class="o">=</span> <span class="n">Machine</span><span class="p">(</span><span class="s1">&#39;mips32l&#39;</span><span class="p">)</span>
     <span class="n">mn</span><span class="p">,</span> <span class="n">dis_engine_cls</span><span class="p">,</span> <span class="n">ira_cls</span> <span class="o">=</span> <span class="n">machine</span><span class="o">.</span><span class="n">mn</span><span class="p">,</span> <span class="n">machine</span><span class="o">.</span><span class="n">dis_engine</span><span class="p">,</span> <span class="n">machine</span><span class="o">.</span><span class="n">ira</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>First, we open the crackme using the generic <code>Container</code> class. It automatically detects the executable format and uses <em>Elfesteem</em> to parse it. Then we use the handy <code>Machine</code> class to get references to useful classes we'll use to disassemble and analyze the binary.</p>
-<div class="highlight"><pre><span></span>    <span class="n">BB_BEGIN</span> <span class="o">=</span> <span class="mh">0x00402290</span>
+<div class="highlight"><pre><span></span><code>    <span class="n">BB_BEGIN</span> <span class="o">=</span> <span class="mh">0x00402290</span>
     <span class="n">BB_END</span> <span class="o">=</span> <span class="mh">0x004022BC</span>
 
     <span class="c1"># Disassemble between BB_BEGIN and BB_END</span>
     <span class="n">dis_engine</span> <span class="o">=</span> <span class="n">dis_engine_cls</span><span class="p">(</span><span class="n">bs</span><span class="o">=</span><span class="n">bi</span><span class="o">.</span><span class="n">bs</span><span class="p">)</span>
     <span class="n">dis_engine</span><span class="o">.</span><span class="n">dont_dis</span> <span class="o">=</span> <span class="p">[</span><span class="n">BB_END</span><span class="p">]</span>
     <span class="n">bloc</span> <span class="o">=</span> <span class="n">dis_engine</span><span class="o">.</span><span class="n">dis_bloc</span><span class="p">(</span><span class="n">BB_BEGIN</span><span class="p">)</span>
-    <span class="k">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">bloc</span><span class="o">.</span><span class="n">lines</span><span class="p">))</span>
-</pre></div>
-
+    <span class="nb">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">bloc</span><span class="o">.</span><span class="n">lines</span><span class="p">))</span>
+</code></pre></div>
 
 <p>Here, we disassemble a single basic block, by explicitly telling Miasm its start and end address. The disassembler is created by instantiating the <code>dis_engine_cls</code> class. <code>bi.bs</code> represents the binary stream we are working on. I admit the <code>dont_dis</code> syntax is a bit weird; it is used to tell Miasm to stop disassembling when it reaches a given address. We do it here because the next instruction is a <code>break</code>, and Miasm does not normally think it is the end of a basic block. When you run those lines, you should get this output:</p>
-<div class="highlight"><pre><span></span>    LW         V1, 0x38(FP)
+<div class="highlight"><pre><span></span><code>    LW         V1, 0x38(FP)
     SLL        V0, V1, 0x2
     ADDIU      A0, FP, 0x18
     ADDU       V0, A0, V0
@@ -1254,19 +1222,17 @@ It usually works this way:</p>
     ADDIU      V1, FP, 0x18
     ADDU       V0, V1, V0
     SW         A0, 0x8(V0)
-</pre></div>
-
+</code></pre></div>
 
 <p>Okay, so we know how to disassemble a block with Miasm. Let's now see how to convert it into the Intermediate Representation:</p>
-<div class="highlight"><pre><span></span>    <span class="c1"># Transform to IR</span>
+<div class="highlight"><pre><span></span><code>    <span class="c1"># Transform to IR</span>
     <span class="n">ira</span> <span class="o">=</span> <span class="n">ira_cls</span><span class="p">()</span>
     <span class="n">irabloc</span> <span class="o">=</span> <span class="n">ira</span><span class="o">.</span><span class="n">add_bloc</span><span class="p">(</span><span class="n">bloc</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">irabloc</span><span class="o">.</span><span class="n">irs</span><span class="p">))</span>
-</pre></div>
-
+    <span class="nb">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">irabloc</span><span class="o">.</span><span class="n">irs</span><span class="p">))</span>
+</code></pre></div>
 
 <p>We instantiated the <code>ira_cls</code> class and called its <code>add_bloc</code> method. It takes a basic block as input and outputs a list of IR basic blocs; here we know that we'll get only one, so we use <code>[0]</code>. Let's see what is the output of those lines:</p>
-<div class="highlight"><pre><span></span>    V1 = @32[(FP+0x38)]
+<div class="highlight"><pre><span></span><code>    V1 = @32[(FP+0x38)]
     V0 = (V1 &lt;&lt; 0x2)
     A0 = (FP+0x18)
     V0 = (A0+V0)
@@ -1278,12 +1244,11 @@ It usually works this way:</p>
     V0 = (V1+V0)
     @32[(V0+0x8)] = A0
     IRDst = loc_00000000004022BC:0x004022bc
-</pre></div>
-
+</code></pre></div>
 
 <p>Each one of those lines are instructions in Miasm's IR language. It is pretty easy: each instruction is described as a list of side-effects it has on some variables, using expressions and affectations. <code>@32[...]</code> represents a 32-bit memory access; when it's on the left of an <code>=</code> sign, it's a <em>write</em> access, when it's on the right it's a <em>read</em>. The last line uses the pseudo-register <code>IRDst</code>, which is kind of the IR's <code>pc</code> register. It tells Miasm where is located the next basic block.</p>
 <p>Great! Let's see now how to perform symbolic execution on this IR basic block.</p>
-<div class="highlight"><pre><span></span>    <span class="kn">from</span> <span class="nn">miasm2.expression.expression</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">miasm2.expression.expression</span> <span class="kn">import</span> <span class="o">*</span>
     <span class="kn">from</span> <span class="nn">miasm2.ir.symbexec</span> <span class="kn">import</span> <span class="n">symbexec</span>
     <span class="kn">from</span> <span class="nn">miasm2.expression.simplifications</span> <span class="kn">import</span> <span class="n">expr_simp</span>
 
@@ -1297,21 +1262,19 @@ It usually works this way:</p>
     <span class="n">sb</span><span class="o">.</span><span class="n">emulbloc</span><span class="p">(</span><span class="n">irabloc</span><span class="p">)</span>
 
     <span class="n">mem</span><span class="p">,</span> <span class="n">exprs</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">symbols</span><span class="o">.</span><span class="n">symbols_mem</span><span class="o">.</span><span class="n">items</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">print</span> <span class="s2">&quot;Memory changed at </span><span class="si">%s</span><span class="s2"> :&quot;</span> <span class="o">%</span> <span class="n">mem</span>
-    <span class="k">print</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">before:&quot;</span><span class="p">,</span> <span class="n">exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">print</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">after:&quot;</span><span class="p">,</span> <span class="n">exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-</pre></div>
-
+    <span class="nb">print</span> <span class="s2">&quot;Memory changed at </span><span class="si">%s</span><span class="s2"> :&quot;</span> <span class="o">%</span> <span class="n">mem</span>
+    <span class="nb">print</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">before:&quot;</span><span class="p">,</span> <span class="n">exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="nb">print</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">after:&quot;</span><span class="p">,</span> <span class="n">exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</code></pre></div>
 
 <p>The first lines are initializing the symbol pool used for symbolic execution. We then use the <code>symbexec</code> module to create an execution engine, and we give it our fresh IR basic block. The result of the execution is readable by browsing the attributes of <code>sb.symbols</code>. Here I am mainly interested on the memory side-effects, so I use <code>symbols_mem.items()</code> to list them. <code>symbols_mem</code> is actually a dict whose keys are the memory locations that changed during execution, and values are pairs containing both the previous value that was in that memory cell, and the new one. There's only one change, and here it is:</p>
-<div class="highlight"><pre><span></span>    Memory changed at (FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20) :
+<div class="highlight"><pre><span></span><code>    Memory changed at (FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20) :
       before: @32[(FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20)]
       after: (@32[(FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20)]+(- @32[(FP_init+0x38)]))
-</pre></div>
-
+</code></pre></div>
 
 <p>The expressions are getting a bit more complex, but still pretty readable. <code>FP_init</code> represents the value of the <code>fp</code> register at the beginning of execution. We can clearly see that a memory location as modified since a value was subtracted from it. But we can do better: we can give Miasm simplification rules in order to make this output much more readable. Let's do it!</p>
-<div class="highlight"><pre><span></span>    <span class="c1"># Simplifications</span>
+<div class="highlight"><pre><span></span><code>    <span class="c1"># Simplifications</span>
     <span class="n">fp_init</span> <span class="o">=</span> <span class="n">ExprId</span><span class="p">(</span><span class="s1">&#39;FP_init&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
     <span class="n">zero_init</span> <span class="o">=</span> <span class="n">ExprId</span><span class="p">(</span><span class="s1">&#39;ZERO_init&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
     <span class="n">e_i_pattern</span> <span class="o">=</span> <span class="n">expr_simp</span><span class="p">(</span><span class="n">ExprMem</span><span class="p">(</span><span class="n">fp_init</span> <span class="o">+</span> <span class="n">ExprInt32</span><span class="p">(</span><span class="mh">0x38</span><span class="p">),</span> <span class="mi">32</span><span class="p">))</span>
@@ -1327,9 +1290,8 @@ It usually works this way:</p>
         <span class="n">expr2</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">replace_expr</span><span class="p">(</span><span class="n">simplifications</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">expr2</span>
 
-    <span class="k">print</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">my_simplify</span><span class="p">(</span><span class="n">exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">,</span><span class="n">my_simplify</span><span class="p">(</span><span class="n">exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
-</pre></div>
-
+    <span class="nb">print</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">my_simplify</span><span class="p">(</span><span class="n">exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">,</span><span class="n">my_simplify</span><span class="p">(</span><span class="n">exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</code></pre></div>
 
 <p>Here we declare 3 replacement rules:</p>
 <ul>
@@ -1338,15 +1300,14 @@ It usually works this way:</p>
 <li>Replace <code>ZERO_init</code> with 0 (although it is not really useful here)</li>
 </ul>
 <p>There is actually a more generic way to do it using pattern matching rules with jokers, but we don't really need this machinery here. This the result we get after simplification:</p>
-<div class="highlight"><pre><span></span>    pwd[i] = (pwd[i]+(- i))
-</pre></div>
-
+<div class="highlight"><pre><span></span><code>    pwd[i] = (pwd[i]+(- i))
+</code></pre></div>
 
 <p>That's all! So all this basic block does is a subtraction. What is nice is that the output is actually valid Python code :). This will be very useful in the last part.</p>
 <h3 id="generating-the-childs-algorithm">Generating the child's algorithm</h3>
 <p>So in less than 60 lines, we were able to disassemble an arbitrary basic block, perform symbolic execution on it and get a pretty understandable result. We just need to apply this logic to the 100 remaining blocks, and we'll have a pythonic version of each one of them. Then, we simply reorder them using the GDB trace we got from the previous part, and we'll be able to generate 606 python lines describing the whole algorithm. </p>
 <p>Here is an extract of the script automating all of this:</p>
-<div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">load_trace</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">load_trace</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
 
     <span class="k">def</span> <span class="nf">boundaries_from_trace</span><span class="p">(</span><span class="n">trace</span><span class="p">):</span>
@@ -1361,23 +1322,22 @@ It usually works this way:</p>
     <span class="n">trace</span> <span class="o">=</span> <span class="n">load_trace</span><span class="p">(</span><span class="s2">&quot;gdb_trace.txt&quot;</span><span class="p">)</span>
     <span class="n">boundaries</span> <span class="o">=</span> <span class="n">boundaries_from_trace</span><span class="p">(</span><span class="n">trace</span><span class="p">)</span>
 
-    <span class="k">print</span> <span class="s2">&quot;# Building IR blocs &amp; expressions for all basic blocks&quot;</span>
+    <span class="nb">print</span> <span class="s2">&quot;# Building IR blocs &amp; expressions for all basic blocks&quot;</span>
     <span class="n">bb_exprs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="n">boundaries</span><span class="p">:</span>
         <span class="n">bb_exprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">analyse_bb</span><span class="p">(</span><span class="o">*</span><span class="n">zone</span><span class="p">))</span>
 
-    <span class="k">print</span> <span class="s2">&quot;# Reconstructing the whole algorithm based on GDB trace&quot;</span>
+    <span class="nb">print</span> <span class="s2">&quot;# Reconstructing the whole algorithm based on GDB trace&quot;</span>
     <span class="n">bb_starts</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">boundaries</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">bb_ea</span> <span class="ow">in</span> <span class="n">trace</span><span class="p">:</span>
         <span class="n">bb_index</span> <span class="o">=</span> <span class="n">bb_starts</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">bb_ea</span><span class="p">)</span>
         <span class="c1">#print &quot;%x : %s&quot; % (bb_ea, exprs2str(bb_exprs[bb_index]))</span>
-        <span class="k">print</span> <span class="n">exprs2str</span><span class="p">(</span><span class="n">bb_exprs</span><span class="p">[</span><span class="n">bb_index</span><span class="p">])</span>
-</pre></div>
-
+        <span class="nb">print</span> <span class="n">exprs2str</span><span class="p">(</span><span class="n">bb_exprs</span><span class="p">[</span><span class="n">bb_index</span><span class="p">])</span>
+</code></pre></div>
 
 <p>The <code>analyse_bb()</code> function perform symbolic execution on a single basic block, given its start and end addresses. This is just wrapping what we've been doing so far into a function. The GDB trace is opened, parsed, and a list of basic block addresses is built from it (we cheat a little bit for the last one of the loop, by hardcoding it). Each basic block is analyzed and the resulting expressions are pushed into the <code>bb_exprs</code> list. Then the GDB trace is processed, by outputting the expressions corresponding to each basic block.</p>
 <p>This is what we get:</p>
-<div class="highlight"><pre><span></span>    <span class="c1"># Building IR blocs &amp; expressions for all basic blocks</span>
+<div class="highlight"><pre><span></span><code>    <span class="c1"># Building IR blocs &amp; expressions for all basic blocks</span>
     <span class="c1"># Reconstructing the whole algorithm based on GDB trace</span>
     <span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="p">(</span><span class="o">-</span> <span class="n">i</span><span class="p">))</span>
     <span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="mh">0x0</span><span class="o">|</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">^</span><span class="mh">0xFFFFFFFF</span><span class="p">)</span>
@@ -1389,12 +1349,11 @@ It usually works this way:</p>
     <span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mh">0x14</span><span class="p">)</span><span class="o">|</span><span class="p">(</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="mh">0xC</span><span class="p">))</span>
     <span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mh">0x1</span><span class="p">)</span><span class="o">&amp;</span><span class="mh">0x1F</span><span class="p">))</span><span class="o">|</span><span class="p">(</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="p">((((</span><span class="mh">0x0</span><span class="o">|</span><span class="n">i</span><span class="p">)</span><span class="o">^</span><span class="mh">0xFFFFFFFF</span><span class="p">)</span><span class="o">+</span><span class="mh">0x20</span><span class="p">)</span><span class="o">&amp;</span><span class="mh">0x1F</span><span class="p">)))</span>
     <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mh">0x1</span><span class="p">)</span>
-</pre></div>
-
+</code></pre></div>
 
 <h2 id="solving-with-z3">Solving with Z3</h2>
 <p>Okay, so now we have a Python (and even C ;) file describing the operations performed on the 6 dwords containing the input key. We could try to bruteforce it, but using a constraint solver is much more elegant and faster. I also chose Z3 because it has nice Python bindings. And since its expression syntax is mostly compatible with Python, we just need to add a few things to our generated file!</p>
-<div class="highlight"><pre><span></span>    <span class="kn">from</span> <span class="nn">z3</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight"><pre><span></span><code>    <span class="kn">from</span> <span class="nn">z3</span> <span class="kn">import</span> <span class="o">*</span>
     <span class="kn">import</span> <span class="nn">struct</span>
 
     <span class="n">solution_str</span> <span class="o">=</span> <span class="s2">&quot;[ Synacktiv + NSC = &lt;3 ]&quot;</span>
@@ -1429,16 +1388,14 @@ It usually works this way:</p>
     <span class="n">sol_dw</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="n">pwd_orig</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">as_long</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
     <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s2">&quot;</span><span class="si">%08x</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">dw</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">dw</span> <span class="ow">in</span> <span class="n">sol_dw</span><span class="p">)</span>
 
-    <span class="k">print</span> <span class="s2">&quot;KEY = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">key</span>
-</pre></div>
-
+    <span class="nb">print</span> <span class="s2">&quot;KEY = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">key</span>
+</code></pre></div>
 
 <p>We've declared the valid solution, the list of 6 32-bit variables (<code>pwd</code>), pasted the algorithm, and ran the solver. We just need to be careful with the <code>&gt;&gt;</code> operation, since Z3 <a href="http://stackoverflow.com/a/25535854">treats</a> it as an arithmetic shift, and we want a logical one. So we replace it with a dirty hook.</p>
 <p>The solution should come almost instantly:</p>
-<div class="highlight"><pre><span></span>    $ python sample_solver.py
+<div class="highlight"><pre><span></span><code>    $ python sample_solver.py
     <span class="nv">KEY</span> <span class="o">=</span> 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
-</pre></div>
-
+</code></pre></div>
 
 <h2 id="alternative-solution-conclusion">Alternative solution - conclusion</h2>
 <p>I chose this solution not only to get acquainted with Miasm, but also because it required much less effort and pain :). It fits into approximately 20 lines of GDB script, and 120 of python using Miasm and Z3. You can find all of those in this <a href="https://github.com/egirault/NoSuchCon2014/tree/master/">folder</a>.
