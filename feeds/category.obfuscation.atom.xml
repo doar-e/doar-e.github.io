@@ -57,6 +57,7 @@ As usual, all the code are available on my github account; you are encourage to 
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;aes128_enc_base&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;key&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The encryption works in eleven rounds, the first one &amp;amp; the last one are slightly different than the nine others ; but they all rely on four different operations. Those operations are called: AddRoundKey, SubBytes, ShiftRows, MixColumns. Each round modifies a 128 bits state with a 128 bits round-key. Those round-keys are generated from the encryption key after a key expansion (called key schedule) function. Note that the first round-key is actually the encryption key.&lt;/p&gt;
 &lt;p&gt;The first part of an AES encryption is to execute the key schedule in order to get our round-keys ; once we have them all it's just a matter of using the four different operations we saw to generate the encrypted plain-text.&lt;/p&gt;
 &lt;p&gt;I know that I quite like to see how crypto algorithms work in a visual way, if this is also your case check this SWF animation (no exploit in here, don't worry :)): &lt;a href="http://www.formaestudio.com/rijndaelinspector/archivos/Rijndael_Animation_v4_eng.swf"&gt;Rijndael_Animation_v4_eng.swf&lt;/a&gt; ; else you can also read the &lt;a href="http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf"&gt;FIPS-197&lt;/a&gt; document.&lt;/p&gt;
@@ -102,6 +103,7 @@ As usual, all the code are available on my github account; you are encourage to 
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Sweet, feel free to dump the round keys and to compare them with an official test vector to convince you that this thing works. Once we have that function, we need to build the different primitives that the core encryption algorithm will use &amp;amp; reuse to generate the encrypted block. Some of them are like 1 line of C, really simple ; some others are a bit more twisted, but whatever.&lt;/p&gt;
 &lt;h2 id="encryption-process"&gt;Encryption process&lt;/h2&gt;
 &lt;h3 id="transformations"&gt;Transformations&lt;/h3&gt;
@@ -114,6 +116,7 @@ As usual, all the code are available on my github account; you are encourage to 
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h4 id="subbytes"&gt;SubBytes&lt;/h4&gt;
 &lt;p&gt;Another simple one: it takes the state as input &amp;amp; will substitute every byte using the forward substitution box &lt;code&gt;S_box&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;SubBytes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
@@ -122,6 +125,7 @@ As usual, all the code are available on my github account; you are encourage to 
             &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;S_box&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]];&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;If you are interested in how the values of the &lt;code&gt;S_box&lt;/code&gt; are computed, you should read the following blogpost &lt;a href="http://kutioo.blogspot.fr/2013/11/aes-sbox-and-parigp.html"&gt;AES SBox and ParisGP&lt;/a&gt; written by my mate &lt;a href="https://twitter.com/kutioo"&gt;@kutioo&lt;/a&gt;.&lt;/p&gt;
 &lt;h4 id="shiftrows"&gt;ShiftRows&lt;/h4&gt;
@@ -160,6 +164,7 @@ As usual, all the code are available on my github account; you are encourage to 
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h4 id="mixcolumns"&gt;MixColumns&lt;/h4&gt;
 &lt;p&gt;I guess this one is the less trivial one to implement &amp;amp; understand. But basically it is a "matrix multiplication" (in GF(2^8) though hence the double-quotes) between 4 bytes of the state (row matrix) against a fixed 4x4 matrix. That gives you 4 new state bytes, so you do that for every double-words of your state.&lt;/p&gt;
 &lt;p&gt;Now, I kind of cheated for my implementation: instead of implementing the "weird" multiplication, I figured I could use a pre-computed table instead to avoid all the hassle. Because the fixed matrix has only 3 different values (1, 2 &amp;amp; 3) the final table has a really small memory footprint: 3*0x100 bytes basically (if I'm being honest I even stole this table from &lt;a href="https://twitter.com/elvanderb"&gt;@elvanderb&lt;/a&gt;'s &lt;a href="http://pastebin.com/MvXpGZts"&gt;crazy white-box generator&lt;/a&gt;).&lt;/p&gt;
@@ -170,11 +175,13 @@ As usual, all the code are available on my github account; you are encourage to 
 &lt;span class="err"&gt;        };&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Once you have this magic table, the multiplication gets really easy. Let's take an example:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="mixcolumn_example.png" src="/images/spotlight_on_an_unprotected_aes128_white-box_implementation/mixcolumn_example.png"&gt;&lt;/center&gt;
 As I said, the four bytes at the left are from your state &amp;amp; the 4x4 matrix is the fixed one (filled only with 3 different values). To have the result of this multiplication you just have to execute this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;reduce&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;operator&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;xor&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mh"&gt;0xd4&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mh"&gt;0xbf&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mh"&gt;0x5d&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mh"&gt;0x30&lt;/span&gt;&lt;span class="p"&gt;]])&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The first indexes in the table are the actual values taken from the 4x4 matrix minus one (because our array is going to be addressed from index 0). So then you can declare your own 4x4 matrix with proper indexes &amp;amp; do the multiplication four times:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;MixColumns&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
@@ -211,6 +218,7 @@ As I said, the four bytes at the left are from your state &amp;amp; the 4x4 matr
         &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="combine-them-together"&gt;Combine them together&lt;/h3&gt;
 &lt;p&gt;Now we have everything we need, it is going to be easy peasy ; really:&lt;/p&gt;
@@ -290,6 +298,7 @@ As I said, the four bytes at the left are from your state &amp;amp; the 4x4 matr
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Not that bad right? And we can even prepare a function that tests if the encrypted block is valid or not (this is really going to be useful as soon as we start to tweak the implementation):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="nf"&gt;tests&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
@@ -312,6 +321,7 @@ As I said, the four bytes at the left are from your state &amp;amp; the 4x4 matr
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Brilliant.&lt;/p&gt;
 &lt;h1 id="white-boxing-aes128-in-7-steps"&gt;White-boxing AES128 in ~7 steps&lt;/h1&gt;
@@ -348,6 +358,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="step-2-subbytes-then-shiftrows-equals-shiftrows-then-subbytes"&gt;Step 2: &lt;code&gt;SubBytes&lt;/code&gt; then &lt;code&gt;ShiftRows&lt;/code&gt; equals &lt;code&gt;ShiftRows&lt;/code&gt; then &lt;code&gt;SubBytes&lt;/code&gt;&lt;/h2&gt;
 &lt;p&gt;Yet another easy one: because &lt;code&gt;SubBytes&lt;/code&gt; is just replacing a byte by its substitution (stored in &lt;code&gt;S_box&lt;/code&gt;), you can apply &lt;code&gt;ShiftRows&lt;/code&gt; before &lt;code&gt;SubBytes&lt;/code&gt; or &lt;code&gt;SubBytes&lt;/code&gt; before &lt;code&gt;ShiftRows&lt;/code&gt; ; you will get the same result. So let's exchange them:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;aes128_enc_reorg_step2&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;key&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
@@ -374,6 +385,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="step-3-shiftrows-first-but-needs-to-shiftrows-the-round-key"&gt;Step 3: &lt;code&gt;ShiftRows&lt;/code&gt; first, but needs to &lt;code&gt;ShiftRows&lt;/code&gt; the round-key&lt;/h2&gt;
 &lt;p&gt;This one is a bit more tricky, but again it's more about reordering, rewriting the encryption loop than really replacing computation by look-up tables so far. Basically, the idea of this step is to start the encryption loop with a &lt;code&gt;ShiftRows&lt;/code&gt; operation. Because of the way this operation is defined, if you put it first you also need to apply &lt;code&gt;ShiftRows&lt;/code&gt; to the current round key in order to get the same result than &lt;code&gt;AddRoundKey&lt;/code&gt;/&lt;code&gt;ShiftRows&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;aes128_enc_reorg_step3&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;key&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
@@ -399,6 +411,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
         &lt;span class="n"&gt;AddRoundKey&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;round_keys&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="step-4-white-boxing-it-like-its-hot-white-boxing-it-like-its-hot"&gt;Step 4: White-boxing it like it's hot, White-boxing it like it's hot&lt;/h2&gt;
 &lt;p&gt;This step is a really important one for us, it's actually the first one where we are going to be able to both remove the key &amp;amp; start the tables generator project. The tables generator project basically generates everything we need to have our white-box AES encryption working.&lt;/p&gt;
@@ -486,6 +499,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Now that we have this table created, we just need to actually use it in our encryption. Thanks to this table, the encryption loop is way more simple and pretty, check it out:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;aes128_enc_wb_step1&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
@@ -514,6 +528,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="step-5-transforming-mixcolumns-in-a-look-up-table"&gt;Step 5: Transforming &lt;code&gt;MixColumns&lt;/code&gt; in a look-up table&lt;/h2&gt;
 &lt;p&gt;OK, so this is maybe the "most difficult" part of the game: we have to transform our ugly &lt;code&gt;MixColumn&lt;/code&gt; function in four look-up tables. Basically, we want to transform this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
@@ -522,9 +537,11 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;13&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;14&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;gmul&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;matrix&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;15&lt;/span&gt;&lt;span class="p"&gt;]][&lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;by this (where &lt;code&gt;Ty[0-4]&lt;/code&gt; are the look-up tables I mentioned just above):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;DW&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;j&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Ty&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;Ty&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;Ty&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;Ty&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We know that &lt;code&gt;gmul[X]&lt;/code&gt; gives you 1 byte, and we can see those four lines use &lt;code&gt;gmul[X][a]&lt;/code&gt; where &lt;code&gt;X&lt;/code&gt; is constant. You can also see that basically those four lines take 4 bytes as input &lt;code&gt;a&lt;/code&gt;, &lt;code&gt;b&lt;/code&gt;, &lt;code&gt;c&lt;/code&gt; &amp;amp; &lt;code&gt;d&lt;/code&gt; and will generate 4 bytes as output.&lt;/p&gt;
 &lt;p&gt;The idea is to combine &lt;code&gt;gmul[matrix[0]][a]&lt;/code&gt;, &lt;code&gt;gmul[matrix[4]][a]&lt;/code&gt;, &lt;code&gt;gmul[matrix[8]][a]&lt;/code&gt; &amp;amp; &lt;code&gt;gmul[matrix[12]][a]&lt;/code&gt; inside a single double-word. We do the same for &lt;code&gt;b&lt;/code&gt;, &lt;code&gt;c&lt;/code&gt; &amp;amp; &lt;code&gt;d&lt;/code&gt; so that we can directly apply the &lt;code&gt;xor&lt;/code&gt; operation between double-words now ; the result will also be a double-word so we have our 4 output bytes. We just re-factorized 4 individual computations (1 byte as input, 1 byte as output) into a single one (4 bytes as input, 4 bytes as output).&lt;/p&gt;
@@ -573,6 +590,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Glad to replace that &lt;code&gt;MixColumn&lt;/code&gt; call now:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;aes128_enc_wb_step2&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
     &lt;span class="p"&gt;{&lt;/span&gt;
@@ -610,6 +628,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
         &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;You can even make it cleaner by merging the two inner-loops &amp;amp; make them both handle 4 bytes of data by 4 bytes of data:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Unified the loops by treating the state 4 bytes by 4 bytes&lt;/span&gt;
@@ -649,6 +668,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="step-6-adding-a-little-xor-table"&gt;Step 6: Adding a little &lt;em&gt;xor&lt;/em&gt; table&lt;/h2&gt;
 &lt;p&gt;This step is a really simple one (&amp;amp; kind of useless) ; we just want to transform the &lt;em&gt;xor&lt;/em&gt; operation between 2 double-words by a look-up table that does that between 2 nibbles (4 bits). Basically, you combine 8 nibbles to get a full double-word with &lt;em&gt;or&lt;/em&gt; operations &amp;amp; some binary shifts. Easy peasy:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
@@ -682,6 +702,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;EXIT_SUCCESS&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Which is directly used by our implementation:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;aes128_enc_wb_step4&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;in&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
@@ -728,11 +749,13 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="step-7-combining-tboxes-ty-tables"&gt;Step 7: Combining TBoxes &amp;amp; Ty tables&lt;/h2&gt;
 &lt;p&gt;The last step aims to combine the &lt;code&gt;Tboxes&lt;/code&gt; with &lt;code&gt;Ty&lt;/code&gt; tables and if you look at the code it doesn't seem really hard. We basically want the table to work this way: 1 byte as input (&lt;code&gt;a&lt;/code&gt; for example in the previous code) &amp;amp; generate 4 bytes of outputs.&lt;/p&gt;
 &lt;p&gt;To compute such a table, you need to compute the &lt;code&gt;Tboxes&lt;/code&gt; (or not, you can compute everything without relying on the &lt;code&gt;Tboxes&lt;/code&gt; ; it's actually what I'm doing), &amp;amp; then you compute &lt;code&gt;Ty[Y][Tboxes[i][j][X]]&lt;/code&gt; ; this is it, roughly. &lt;code&gt;X&lt;/code&gt;, &lt;code&gt;i&lt;/code&gt; and &lt;code&gt;j&lt;/code&gt; are the unknown variables here, which means we will end-up with a table like that:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;Tyboxes&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;9&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="mh"&gt;0x100&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Makes sense right?&lt;/p&gt;
 &lt;p&gt;So here is the code that generates that big table:&lt;/p&gt;
@@ -804,6 +827,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We just have to take care of the last round which is a bit different as we saw earlier, but no biggie.&lt;/p&gt;
 &lt;h2 id="final-code"&gt;Final code&lt;/h2&gt;
 &lt;p&gt;Yeah, finally, here we are ; the final code of our (not protected) AES128 white-box:&lt;/p&gt;
@@ -841,6 +865,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;It's cute isn't it?&lt;/p&gt;
 &lt;h1 id="attacking-the-white-box-extract-the-key"&gt;Attacking the white-box: extract the key&lt;/h1&gt;
 &lt;p&gt;As the title says, this white-box implementation is really insecure: which means that if you have access to an executable with that kind of white-box you just have to extract &lt;code&gt;Tyboxes[0]&lt;/code&gt; &amp;amp; do a little magic to extract the key.&lt;/p&gt;
@@ -848,6 +873,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;S_box&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="o"&gt;^&lt;/span&gt; &lt;span class="n"&gt;round_keys&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;r&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]];&lt;/span&gt;
     &lt;span class="n"&gt;Tyboxes&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;r&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Ty&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;][&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In our case, &lt;code&gt;r&lt;/code&gt; is 0, &lt;code&gt;i&lt;/code&gt; will be the byte index of the round key 0 (which is the AES key) &amp;amp; we can also set &lt;code&gt;x&lt;/code&gt; to a constant value: let's say 0 or 1 for instance. &lt;code&gt;S_box&lt;/code&gt; is known, &lt;code&gt;Ty&lt;/code&gt; too as this transformation is always the same (it doesn't depend on the key). Basically we just need to brute-force &lt;code&gt;round_keys[r][i]&lt;/code&gt; with every values a byte can take. If the computed value is equal to the one in the dumped &lt;code&gt;Tyboxes&lt;/code&gt;, then we have extracted one byte of the round key &amp;amp; we can go find the next one.&lt;/p&gt;
 &lt;p&gt;Attentive readers noticed that we are not going to actually extract the encryption key per-se, but &lt;code&gt;ShiftRows(key)&lt;/code&gt; instead (remember that we needed to apply this transformation to build our white-box). But again, &lt;code&gt;ShiftRows&lt;/code&gt; being not key-dependent we can invert this operation easily to really have  the plain encryption key this time.&lt;/p&gt;
@@ -896,6 +922,7 @@ Long story short: the first steps are basically going to reorder / rewrite the l
         &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
             &lt;span class="n"&gt;printf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\\&lt;/span&gt;&lt;span class="s"&gt;x%.2x&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;scrambled_key&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h1 id="obfuscating-it"&gt;Obfuscating it?&lt;/h1&gt;
 &lt;p&gt;This is basically the part where you have no limits, where you can exercise your creativity &amp;amp; develop stuff. I'll just talk about ideas &amp;amp; obvious things, a lot of them are directly taken from &lt;a href="https://twitter.com/elvanderb"&gt;@elvanderb&lt;/a&gt;'s challenge so I guess I owe him yet another beer.&lt;/p&gt;
@@ -964,6 +991,7 @@ From here, you have everything you need to move the lines around &amp;amp; gener
             &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;}&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;shuffled_lines&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Anyway, I wish I had time to implement what we just talked about but I unfortunately don't; if you do feel free to shoot me an email &amp;amp; I'll update the post with links to your code :-).&lt;/p&gt;
 &lt;h1 id="last-words"&gt;Last words&lt;/h1&gt;
@@ -1076,6 +1104,7 @@ Here is this automaton implemented in C:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;If we try to execute the program:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &amp;gt; fsm_example.exe garbage-Hi-1337-garbage
     Good boy.
@@ -1089,6 +1118,7 @@ Here is this automaton implemented in C:&lt;/p&gt;
     &amp;gt; fsm_example.exe Hi-dudies
     Bad boy.
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The purpose of that trivial example was just to show you how a regex string representation can be compiled into something harder to analyze but also more efficient (it doesn't need a compilation step, that's the reason why you may encounter that kind of thing in real (?) softwares). Even if the code seems trivial at the first sight, when you look at it at the assembly level, it takes a bit of time to figure out it's a simple "Hi-[0-9]{4}" regex.&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="cfg.png" src="/images/regular_expressions_obfuscation_under_the_microscope/cfg.png"&gt;&lt;/center&gt;

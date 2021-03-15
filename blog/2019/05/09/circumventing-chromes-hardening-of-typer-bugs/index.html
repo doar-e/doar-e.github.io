@@ -181,6 +181,7 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
     Cr-Commit-Position: refs/heads/master@{#59467}
 </code></pre></div>
 
+
 <h2 id="simplified-lowering">Simplified lowering</h2>
 <p>First, what has changed is the CheckBounds node visitor of <code>simplified-lowering.cc</code>:</p>
 <div class="highlight"><pre><span></span><code>  <span class="kt">void</span> <span class="nf">VisitCheckBounds</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">,</span> <span class="n">SimplifiedLowering</span><span class="o">*</span> <span class="n">lowering</span><span class="p">)</span> <span class="p">{</span>
@@ -212,6 +213,7 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
 <span class="c1">// [...]</span>
   <span class="p">}</span>
 </code></pre></div>
+
 
 <p>Before the commit, if condition [1] happens, the bound check <a href="https://doar-e.github.io/blog/2019/01/28/introduction-to-turbofan/#simplified-lowering">would have been removed</a> using a call to <code>DeferReplacement(node, node-&gt;InputAt(0));</code>. Now, what happens instead is that the node gets lowered to a CheckedUint32Bounds with a AbortOnOutOfBounds mode [2].</p>
 <h2 id="effect-linearization">Effect linearization</h2>
@@ -248,6 +250,7 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Long story short, the CheckedUint32Bounds is replaced by an Uint32LessThan node (plus the index and limit nodes). In case of an out-of-bounds there will be no deoptimization possible but instead we will reach an Unreachable node.</p>
 <p>During instruction selection Unreachable nodes are replaced by breakpoint opcodes.</p>
 <div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="n">InstructionSelector</span><span class="o">::</span><span class="n">VisitUnreachable</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
@@ -255,6 +258,7 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
   <span class="n">Emit</span><span class="p">(</span><span class="n">kArchDebugBreak</span><span class="p">,</span> <span class="n">g</span><span class="p">.</span><span class="n">NoOutput</span><span class="p">());</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <h1 id="experimenting">Experimenting</h1>
 <h2 id="ordinary-behaviour">Ordinary behaviour</h2>
@@ -269,6 +273,7 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
 <span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
 <span class="nx">opt_me</span><span class="p">();</span>
 </code></pre></div>
+
 
 <p>With this example, we're going to observe a few things: </p>
 <ul>
@@ -321,6 +326,7 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
 <span class="c1">// [...]</span>
 </code></pre></div>
 
+
 <p><center><img alt="final_replacement_of_bound_check" src="/images/turbofan_bce/final_replacement_of_bound_check.png"></center></p>
 <h3 id="final-scheduling-no-more-bound-checking">Final scheduling : no more bound checking</h3>
 <p>To observe the generated code, let's first look at the final scheduling phase and confirm that eventually, only a Load at index 0 remains.</p>
@@ -347,11 +353,13 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
 <span class="nb">String</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">lastIndexOf</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">str</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">);</span> <span class="c1">// typed as kMaxLength-1 instead of kMaxLength</span>
 </code></pre></div>
 
+
 <p>We can then amplify this typing error.</p>
 <div class="highlight"><pre><span></span><code>  <span class="kd">let</span> <span class="nx">badly_typed</span> <span class="o">=</span> <span class="nb">String</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">lastIndexOf</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">str</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">);</span>
   <span class="nx">badly_typed</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">abs</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">abs</span><span class="p">(</span><span class="nx">badly_typed</span><span class="p">)</span> <span class="o">+</span> <span class="mi">25</span><span class="p">);</span>
   <span class="nx">badly_typed</span> <span class="o">=</span> <span class="nx">badly_typed</span> <span class="o">&gt;&gt;</span> <span class="mi">30</span><span class="p">;</span> <span class="c1">// type is Range(0,0) instead of Range(1,1)</span>
 </code></pre></div>
+
 
 <p>If all of this seems unclear, check my previous <a href="https://doar-e.github.io/blog/2019/01/28/introduction-to-turbofan/">introduction to TurboFan</a> and <a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874/">my github</a>.</p>
 <p>Now, consider the following trigger poc : </p>
@@ -396,10 +404,12 @@ Date:   Fri Feb 8 16:26:18 2019 +0100
 <span class="o">%</span><span class="nx">DisassembleFunction</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span> <span class="c1">// prints nothing on release builds</span>
 </code></pre></div>
 
+
 <p>Checkout the result : </p>
 <div class="highlight"><pre><span></span><code>$ d8 poc.js
 1.5577100569205e-310
 </code></pre></div>
+
 
 <p>It worked despite those aborting bound checks. Why?
 The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds elimination and yet we didn't execute any Unreachable node (aka breakpoint instruction).</p>
@@ -417,6 +427,7 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
           <span class="n">jsgraph</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Constant</span><span class="p">(</span><span class="n">Smi</span><span class="o">::</span><span class="n">kMaxValue</span><span class="p">),</span> <span class="n">effect</span><span class="p">,</span> <span class="n">control</span><span class="p">);</span>
     <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
 </code></pre></div>
+
 
 <p>In this case, the CheckBounds node checks the index against a length of <code>Smi::kMaxValue</code>.</p>
 <p>The actual bound checking nodes are added as follows: </p>
@@ -445,6 +456,7 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
       <span class="p">}</span>
 </code></pre></div>
 
+
 <p>In a nutshell, with this mode : </p>
 <ul>
 <li>CheckBounds checks the index against Smi::kMaxValue (0x7FFFFFFF),</li>
@@ -463,6 +475,7 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
                   <span class="n">simplified</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">LoadField</span><span class="p">(</span><span class="n">AccessBuilder</span><span class="o">::</span><span class="n">ForFixedArrayLength</span><span class="p">()),</span>
                   <span class="n">elements</span><span class="p">,</span> <span class="n">effect</span><span class="p">,</span> <span class="n">control</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>All of this means that TurboFan does generate some bound checking nodes but there won't be any aborting bound check because of the kMaxValue length being used (well technically there is, but the maximum length is unlikely to be reached!).</p>
 <h3 id="type-narrowing-and-constant-folding-of-numberlessthan">Type narrowing and constant folding of NumberLessThan</h3>
@@ -490,6 +503,7 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
     <span class="k">return</span> <span class="nf">Changed</span><span class="p">(</span><span class="n">node</span><span class="p">);</span>
   <span class="p">}</span> 
 </code></pre></div>
+
 
 <p>Thanks to that, the ConstantFoldingReducer will then simply remove the NumberLessThan node and replace it by a HeapConstant node.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Reduction</span> <span class="n">ConstantFoldingReducer</span><span class="o">::</span><span class="n">Reduce</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
@@ -538,10 +552,12 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>We confirm this behaviour using <code>--trace-turbo-reduction</code>: </p>
 <div class="highlight"><pre><span></span><code>- In-place update of 200: NumberLessThan(199, 225) by reducer TypeNarrowingReducer
 - Replacement of 200: NumberLessThan(199, 225) with 94: HeapConstant[0x2584e3440659 &lt;true&gt;] by reducer ConstantFoldingReducer
 </code></pre></div>
+
 
 <p>At this point, there isn't any proper bound check left.</p>
 <h3 id="observing-the-generated-assembly">Observing the generated assembly</h3>
@@ -575,6 +591,7 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
 0x11afad03388   388  cc             int3l // Unreachable node
 </code></pre></div>
 
+
 <p>The second disassembly is much more interesting. Indeed, only the code corresponding to the CheckBounds remains. The actual bound check was removed!</p>
 <div class="highlight"><pre><span></span><code>                     =====  SECOND DISASSEMBLY  ===== 
 
@@ -589,6 +606,7 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
 
 441 0x2e987c304335   315  cc             int3l  // Unreachable node
 </code></pre></div>
+
 
 <p>You can confirm it works by launching <a href="https://github.com/JeremyFetiveau/TurboFan-exploit-for-issue-762874">the full exploit</a> on a patched 7.5 d8 shell.</p>
 <h1 id="conclusion">Conclusion</h1>
@@ -626,6 +644,14 @@ The line <code>leak = arr[bad]</code> didn’t lead to any CheckBounds eliminati
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

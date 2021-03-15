@@ -164,13 +164,16 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The above file can be compiled with the below command:</p>
 <div class="highlight"><pre><span></span><code>    $ clang++ -shared -o lib.so -fPIC lib.cc
 </code></pre></div>
 
+
 <p>Dropping the resulting <code>lib.so</code> shared library file inside the same directory as the challenge should be enough to have it properly run. You can even hook it up to a socket via <a href="https://linux.die.net/man/1/socat">socat</a> to simulate a remote server you have to attack:</p>
 <div class="highlight"><pre><span></span><code>    $ socat -vvv TCP-LISTEN:31337,fork,reuseaddr EXEC:./cha1
 </code></pre></div>
+
 
 <p>If everything worked as advertised, you should now be able to interact with the challenge remotely and be greeted by the below menu when connected to it:</p>
 <div class="highlight"><pre><span></span><code>    Please choose your option:
@@ -185,6 +188,7 @@
     8. Exit
 </code></pre></div>
 
+
 <p>Off you go have fun now :)</p>
 <h1 id="recon">Recon</h1>
 <p>When I start looking at a challenge I always spend time to understand a bit more of the <em>story</em> around it. This both gives me direction as well as helps me identify pitfalls. For example here, the story tells me that we have a secret to exfiltrate and focusing the analysis on the code interacting / managing this secret sounds like a good idea. The challenge was also advertised as a <em>reverse-engineering</em> task so I didn't really expect any <em>pwning</em>. A logical flaw, design issue or a very constrained memory corruption type of issue is what I was looking for.</p>
@@ -195,6 +199,7 @@
     extern:00000000002027A0 ; _QWORD __cdecl encrypt(unsigned __int64)
     extern:00000000002027A0                 extrn _Z7encryptm:near  ; DATA XREF: .got.plt:off_202028↑o
 </code></pre></div>
+
 
 <p>Even though the challenge seems to use C++ and the <a href="https://en.wikipedia.org/wiki/Standard_Template_Library">STL</a>, the disassembled / decompiled code is very easy to read so it doesn't take a whole lot of time to understand a bit more what this thing is doing.</p>
 <p>According to what the menu says, it looks like a store of numbers; whatever that means. Quick reverse-engineering of the getter and setter functions we learn a bit more of what is a number. First, every number (<code>number_t</code>) being stored is encrypted when inserted into the store, and decrypted when retrieved out of the store.</p>
@@ -216,12 +221,14 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Interestingly, the third argument of the function allows you to write a clear-text number into the store but it is apparently not used anywhere in the challenge.. oh well :)</p>
 <p>Once the numbers are encrypted, they also get <em>encoded</em> with a very simple transformation: every bit is written to a byte (0 or 1). As the numbers being stored are 32 bits integers, naturally the store needs 32 bytes per number.</p>
 <div class="highlight"><pre><span></span><code>    00000000 number_t        struc ; (sizeof=0x20)
     00000000 bytes           db 32 dup(?)
     00000020 number_t        ends
 </code></pre></div>
+
 
 <p>After looking a bit more at the other options, and with the above in mind, it is pretty straightforward to recover part of the structure that keeps the global state of the store (<code>state_t</code>). The store has a maximum capacity of 32 slots, the current size of the store is stored in the lower 5 bits (<code>2**5 = 32</code>) of some sort of status variable. At this point I started drafting the structure <code>state_t</code>:</p>
 <div class="highlight"><pre><span></span><code>    00000000 state_t         struc ; (sizeof=0x440, align=0x8)
@@ -240,6 +247,7 @@
     00000438 xxx             dq ?
     00000440 state_t         ends
 </code></pre></div>
+
 
 <p>The <em>Private Key Encryption</em> function is the one that looked a bit more involved than the others. But as far as I was concerned, it was doing ""arithmetic"" on numbers that you previously had stored: one called the message and one called the key.</p>
 <p>Before actually starting to look for issues, I needed to answer two questions:</p>
@@ -264,6 +272,7 @@
          <span class="k">goto</span> <span class="n">OutOfRange</span><span class="p">;</span>
 </code></pre></div>
 
+
 <p>There's a catch though. If we look closer at every instance of code that interacts with the <code>size</code> field of the store there is something a bit weird going on.</p>
 <p><center><img alt="catchme.png" src="/images/bevx-challenge-on-the-operation-table/catchme.png"></center></p>
 <p>In the above screenshot you can see that the highlighted cross-reference looks a bit odd as it is actually changing the size by setting the bit number three (<code>0b1000</code>). If we pull the code for this function we can see the below:</p>
@@ -280,6 +289,7 @@
         <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;Row number is out of range&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">;</span>
 </code></pre></div>
 
+
 <p>I completely overlooked this detail at first as this bit is properly cleared out on error (with the <code>0xF7</code> mask). This bit also sounded to be used as a switch to start or stop the encryption process. I could clearly see it used in the encryption loop like in the below:</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">while</span><span class="p">(</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
       <span class="c1">// do stuff</span>
@@ -292,6 +302,7 @@
       <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The thing is, as this bit overlaps with the 5th bit of the store size, setting it also means that we can now access slots from index 0 up to slot <code>0x10|8=0x18</code>. If the previous is a bit confusing, consider the following C structure:</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">union</span> <span class="p">{</span>
         <span class="k">struct</span> <span class="p">{</span>
@@ -301,6 +312,7 @@
         <span class="kt">size_t</span> <span class="nl">store_size</span> <span class="p">:</span> <span class="mi">5</span><span class="p">;</span>
     <span class="p">}</span> <span class="n">size</span> <span class="o">=</span> <span class="p">{};</span>
 </code></pre></div>
+
 
 <p>And as we said a bit earlier the key material is stored in the slot <code>number_of_rows + 2 = 0n18</code>.</p>
 <div class="highlight"><pre><span></span><code>    <span class="kr">__int64</span> <span class="nf">realmain</span><span class="p">(</span><span class="n">struct_buffer</span> <span class="o">*</span><span class="n">number_store</span><span class="p">)</span> <span class="p">{</span>
@@ -316,6 +328,7 @@
       <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">=</span> <span class="n">nrows</span> <span class="o">&amp;</span> <span class="mh">0x1F</span> <span class="o">|</span> <span class="n">number_store</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">&amp;</span> <span class="mh">0xE0</span><span class="p">;</span>
       <span class="c1">// ...</span>
 </code></pre></div>
+
 
 <p>Cool beans, I guess we now have a way to have the application interact with the slot containing the private key which sounds like... progress, right? </p>
 <h1 id="bending-the-needle-building-an-oracle">Bending the needle: building an oracle</h1>
@@ -345,10 +358,12 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>As you might have figured, we have basically two avenues (technically three I guess.. but one is clearly useless :-D). Either we load the private key as the message, or we load it as the key parameter.</p>
 <p>If we do the former - based on the encryption logic - we end up with no real control over the way the <code>magicnumber</code> is going to be computed. Keep in mind the numbers in the store are all encrypted with the <code>encrypt</code> function and when the key is retrieved out of the store, it isn't decrypted (it is not a normal <em>get</em> operation) but just <code>memcpy</code>'d to the <code>keycpy</code> field like in the below:</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">memmove</span><span class="p">(</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">keycpy</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">number_store</span><span class="o">-&gt;</span><span class="n">numbers</span><span class="p">[</span><span class="n">keyslot</span><span class="p">],</span> <span class="mi">32</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>So even if we can insert a known value in the store, we wouldn't really know what it would look like once encrypted.</p>
 <p>If we load the private key as the key though, we now have.. an oracle! As the user can stop the decryption process whenever wanted, the attack could work as follows (assuming you would like to leak one byte of the private key):</p>
@@ -457,6 +472,7 @@
     <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
+
 <p>Which should result in something like below:</p>
 <p><center><img alt="leakit.gif" src="/images/bevx-challenge-on-the-operation-table/leakit.gif"></center></p>
 <h1 id="conclusion">Conclusion</h1>
@@ -485,6 +501,14 @@
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

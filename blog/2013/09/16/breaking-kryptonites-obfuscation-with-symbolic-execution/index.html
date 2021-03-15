@@ -183,9 +183,11 @@
     mov eax, edx ; EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
 </code></pre></div>
 
+
 <p>So at the end, you can ask the engine to give you the final state of EAX for example and it should give you something like:</p>
 <div class="highlight"><pre><span></span><code>    EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
 </code></pre></div>
+
 
 <p>With that equation you are free to use Z3Py to either simplify it or to try to find how you can have a specific value in EAX controlling only the symbolic variables:</p>
 <div class="highlight"><pre><span></span><code>    In [1]: from z3 import *
@@ -207,6 +209,7 @@
     In [9]: hex((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) &amp; 0xffffffff)
     Out[9]: &#39;0xdeadbeefL&#39;
 </code></pre></div>
+
 
 <p>As you can imagine, that kind of tool is very valuable/handy when you do reverse-engineering tasks or bug-hunting. Unfortunately, our PoC won't be enough accurate/generic/complete to be used in "normal" cases, but never mind.</p>
 <h1 id="lets-code">Let's code</h1>
@@ -241,6 +244,7 @@
                 <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">+=</span> <span class="n">ItemSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
 </code></pre></div>
+
 
 <h2 id="the-symbolic-execution-engine">The symbolic execution engine</h2>
 <p>There are several important parts in our engine:</p>
@@ -425,6 +429,7 @@
             <span class="k">return</span> <span class="n">eq</span>
 </code></pre></div>
 
+
 <h2 id="testing">Testing</h2>
 <p>OK, we just have to instantiate the engine giving him the start/end address of the routine and to ask him to give us the final equation holded in EAX.</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
@@ -443,6 +448,7 @@
     <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
         <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
+
 
 <p>And here is what I saw:</p>
 <div class="highlight"><pre><span></span><code>    Launching the engine..
@@ -479,6 +485,7 @@
     ...
 </code></pre></div>
 
+
 <p>There was two possible explanations for this problem:</p>
 <ul>
 <li>my code is wrong, and it generates equations not simplify-able.</li>
@@ -502,6 +509,7 @@
         <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
+
 <p>Fortunately for us, it printed <em>True</em> ; so our code is correct. But it also means, the simplify function, as is at least, isn't able to simplify that bunch of equations involving bit-vector arithmetics. I still haven't found a clean way to make Z3Py simplify my big equation, so if someone knows how I can do that please contact me. I've also exported the complete equation, and uploaded it <a href="/downloads/code/breaking_kryptonite_s_obfuscation_with_symbolic_execution/eq.txt">here</a> ; you are free to give it a try like this.</p>
 <p>The ugly trick I came up with is just to use Z3Py's prove function, to try to prove that the equation is in fact an addition and if this is the case it returns the simplified equation. Again, if someone manages to simplify the previous equation without that type of trick I'm really interested!</p>
 <div class="highlight"><pre><span></span><code>        <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
@@ -524,6 +532,7 @@
             <span class="k">return</span> <span class="n">eq</span>
 </code></pre></div>
 
+
 <p>And now if you relaunch the script you will get:</p>
 <div class="highlight"><pre><span></span><code>    Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
@@ -531,6 +540,7 @@
     Done, retrieving the equation in EAX, and simplifying..
     EAX=arg0 + arg1
 </code></pre></div>
+
 
 <p>We just successfully simplified two thousands of assembly into a simple addition, wonderful!</p>
 <h1 id="symbolic-execution-vs-kryptonite">Symbolic execution VS Kryptonite</h1>
@@ -553,6 +563,7 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Now, time for a kryptonization:</p>
 <div class="highlight"><pre><span></span><code>    $ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
     $ clang++ llvm-functionpass-kryptonite-obfuscater.cpp <span class="sb">`</span>llvm-config --cxxflags --ldflags --libs core<span class="sb">`</span> -shared -o llvm-functionpass-kryptonite-obfuscater.so
@@ -563,6 +574,7 @@
     $ clang -static add.o -o kryptonite-add
     $ strip --strip-all ./kryptonite-add
 </code></pre></div>
+
 
 <p>At this moment we end up with that binary: <a href="https://github.com/0vercl0k/stuffz/blob/master/llvm-funz/kryptonite-add">kryptonite-add</a>. The target routine for our study starts at 0x804823C and ends at 0x08072284 ; roughly more than 40 thousands assembly instructions and kind of big right?</p>
 <p>Here is our final IDAPython script after some minor adjustments (added one or two more instructions):</p>
@@ -821,6 +833,7 @@
         <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
+
 <p>And here is the final output:</p>
 <div class="highlight"><pre><span></span><code>    Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
@@ -839,6 +852,7 @@
     Retrieving and simplifying the EAX register..
     EAX=arg0 + arg1
 </code></pre></div>
+
 
 <h1 id="conclusion">Conclusion</h1>
 <p>I hope you did enjoy this little introduction to symbolic execution, and how it can be very valuable to remove some semantic-preserving obfuscations. We also have seen that this PoC is not really elaborate: it doesn't handle loops or any branches, doesn't care about EFLAGS, etc ; but it was enough to break our two examples. I hope you also enjoyed the examples used to showcase our tiny symbolic execution engine.</p>
@@ -874,6 +888,14 @@
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>
