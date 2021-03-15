@@ -50,6 +50,7 @@ SOCIAL = (
     ('@0vercl0k', 'https://twitter.com/0vercl0k'),
     ('@jonathansalwan', 'https://twitter.com/jonathansalwan'),
     ('@__x86', 'https://twitter.com/__x86'),
+    ('@yrp604', 'https://twitter.com/yrp604')
 )
 
 DEFAULT_PAGINATION = 10
