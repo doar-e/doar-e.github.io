@@ -218,6 +218,7 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
     Linux debian-mipsel <span class="m">3</span>.2.0-4-4kc-malta <span class="c1">#1 Debian 3.2.51-1 mips GNU/Linux</span>
 </code></pre></div>
 
+
 <p>Feel free to install your essentials in the virtual environment, some tools might come handy (it should take a bit of time to install them though):</p>
 <div class="highlight"><pre><span></span><code>    root@debian-mipsel:~# aptitude install strace gdb gcc python
     root@debian-mipsel:~# wget https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
@@ -250,12 +251,14 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
        0x402040 &lt;main+28&gt;:  li      v0,2
 </code></pre></div>
 
+
 <p>And finally you should be able to run the wild beast:</p>
 <div class="highlight"><pre><span></span><code>    root@debian-mipsel:~# /home/user/crackmips
     usage: /home/user/crackmips password
     root@debian-mipsel:~# /home/user/crackmips <span class="s1">&#39;doar-e ftw&#39;</span>
     WRONG PASSWORD
 </code></pre></div>
+
 
 <p>Brilliant :-).</p>
 <h2 id="the-big-picture">The big picture</h2>
@@ -305,6 +308,7 @@ If you prefer code, here is the big picture in C:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <h1 id="lets-get-our-hands-dirty">Let's get our hands dirty</h1>
 <h2 id="fathers-in-charge">Father's in charge</h2>
 <p>The first thing I did after having the big picture was to look at the code of the father. Why? The code seemed a bit simpler than the son's one, so I figured studying the father would make more sense to understand what kind of protection we need to subvert.
@@ -350,6 +354,7 @@ You can even crank up <a href="http://linux.die.net/man/1/strace">strace</a> to 
     [7737052c] ptrace(PTRACE_CONT, 2539, 0, SIG_0) = 0
     [...]
 </code></pre></div>
+
 
 <p>That's an interesting output that I didn't expect at all actually. What we are seeing here is the father driving its son by modifying, potentially (we will find out that later), its context every time the son is <em>SIGTRAP</em>ing (note <em>waitpid</em> second argument).</p>
 <p>From here, if you are quite familiar with the different existing type of software protections (I'm not saying I am an expert in this field but I just happened to know that one :-P) you can pretty much guess what that is: nanomites this is!</p>
@@ -416,6 +421,7 @@ It usually works this way:</p>
       <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">instr</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span>
 </code></pre></div>
 
+
 <p>From here you have all the information you need: the instruction and its operands (<em>None</em> if an operand doesn't exist as you can have up to 3 operands). The other important job that follows is to handle the different type of operands ; here are the ones I encountered in the challenge:</p>
 <ul>
 <li>General purpose register,</li>
@@ -456,6 +462,7 @@ It usually works this way:</p>
       <span class="n">_</span><span class="p">,</span> <span class="n">var_name</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">var_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(fp)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 </code></pre></div>
+
 
 <p>Finally, we have to handle every different instructions and their encodings. Of course, you need to implement only the instructions you want: most likely the ones that are used in the code you are interested int. In a nutshell, this is the core of the engine. You can also use it to output valid Python/C lines if you fancy having a decompiler in your sleeve ; might be handy right?</p>
 <p>This is what the core function looks like, it is really simple, dumb and so unoptimized ; but at least it's clear to me:</p>
@@ -500,6 +507,7 @@ It usually works this way:</p>
     <span class="p">[</span><span class="o">...</span><span class="p">]</span>
 </code></pre></div>
 
+
 <p>The first level of <em>if</em> handles the different instructions, the second level of <em>if</em> handles the different encodings an instruction can have. The <em>self.logger</em> thingy is just my way to save the execution traces in files to let the console clean:</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trace_name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span> <span class="o">=</span> <span class="p">{</span>
@@ -540,6 +548,7 @@ It usually works this way:</p>
       <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 </code></pre></div>
 
+
 <p>At that point, if I wanted only an emulator I would be done. But because I want to use <a href="https://z3.codeplex.com/">Z3</a> and symbolic variables I want to get your attention on two common pitfalls that can cost you hours of debugging (trust me on that one :-():</p>
 <ul>
 <li>The first one is that the operator <em>__rshift__</em> isn't the logical right shift but the arithmetical one; which is quite different and can generate results you don't expect:</li>
@@ -556,6 +565,7 @@ It usually works this way:</p>
         <span class="n">Out</span><span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="mi">2</span>
 </code></pre></div>
 
+
 <p>To workaround that I usually define my own <em>_LShR</em> function that does whatever is correct according to the operand types (yes we could also replace <em>z3.BitVecNumRef.__rshift__</em> by <em>LShR</em> directly):</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_LShR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
       <span class="sd">&#39;&#39;&#39;Useful hook function if you want to run the emulation</span>
@@ -568,6 +578,7 @@ It usually works this way:</p>
         <span class="k">return</span> <span class="n">LShR</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">a</span> <span class="o">&gt;&gt;</span> <span class="n">b</span>
 </code></pre></div>
+
 
 <ul>
 <li>The other interesting detail to keep in mind is that you can't have any overflow on <em>BitVec</em>s of the same size ; the result is automatically truncated. So if you happen to have mathematical operations that need to overflow, like a multiplication (this is used in the challenge), you should store the temporary result in a bigger temporary variable. In my case, I was supposed to store the overflow inside another register, <em>$hi</em> which is used to store the high <em>DWORD</em> part of the result. But because I wasn't storing the result in a bigger <em>BitVec</em>, <em>$hi</em> ended up <strong>always</strong> equal to zero which is quite a nice problem when you have to pinpoint this issue in thousands lines of assembly :-).</li>
@@ -593,6 +604,7 @@ It usually works this way:</p>
             <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;lo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span><span class="p">[</span><span class="s1">&#39;hi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LShR</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
 </code></pre></div>
+
 
 <p>I think this is it really, you can now impress girls with your brand new shiny toy, check this out:</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">):</span>
@@ -634,6 +646,7 @@ It usually works this way:</p>
         <span class="k">return</span> <span class="mi">1</span>
 </code></pre></div>
 
+
 <p>Which results in:</p>
 <div class="highlight"><pre><span></span><code>    PS D:\Codes\NoSuchCon2014&gt; python .\mini_mips_symexec_engine.py
     ==================================================
@@ -650,6 +663,7 @@ It usually works this way:</p>
     Resulting value when `a` is 0xdeadb44: 0x98f42d24
     ==================================================
 </code></pre></div>
+
 
 <p>Of course, I didn't mention a lot of details that still need to be addressed to have something working: simulating data areas, memory layouts, etc. If you are interested in those, you should read the codes in my <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014">NoSuchCon2014 folder</a>.</p>
 <h2 id="back-into-the-battlefield">Back into the battlefield</h2>
@@ -677,6 +691,7 @@ It usually works this way:</p>
 <span class="s1">    .text:0040143C                 sw      $v0, 0x318+tmp_pc($fp)  # Store Word&#39;&#39;&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 </code></pre></div>
 
+
 <p>Then we have to prepare the environment of our engine: the two symbolic variables are stack-variables, so we have to insert them in the context of our virtual environment. The resulting formula is going to be in <em>$v0</em> at the end of the execution ; this the holy grail, the formula we are after.</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_magic_value</span><span class="p">():</span>
       <span class="sd">&#39;&#39;&#39;Here we do some magic to transform our mini MIPS emulator</span>
@@ -698,6 +713,7 @@ It usually works this way:</p>
       <span class="k">return</span> <span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">,</span> <span class="n">simplify</span><span class="p">(</span><span class="n">compute_magic_equation</span><span class="p">)</span>
 </code></pre></div>
 
+
 <p>You can now keep in memory the formula &amp; wrap this function in another one so that you can reuse it every time you need it:</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
     <span class="k">def</span> <span class="nf">generate_magic_from_son_pc_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
@@ -714,6 +730,7 @@ It usually works this way:</p>
         <span class="p">(</span><span class="n">var_n_break</span><span class="p">,</span> <span class="n">BitVecVal</span><span class="p">(</span><span class="n">n_break</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
       <span class="p">)</span><span class="o">.</span><span class="n">as_long</span><span class="p">()</span>
 </code></pre></div>
+
 
 <p>The power of using symbolic variables here lies in the fact that we don't need to run the emulator every single time you need to call this function ; you get once the generic formula and you just have to substitute the symbolic variables by the concrete values you want. This comes for free with our code, so let's use it heh :-).</p>
 <div class="highlight"><pre><span></span><code>    ; generate_magic_from_pc_son
@@ -799,6 +816,7 @@ It usually works this way:</p>
     (bvor (bvlshr ?x450 ?x20) (bvshl ?x450 ?x24)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 </code></pre></div>
 
+
 <p>Quite happy we don't have to study that right?</p>
 <h3 id="extracting-the-function-that-generates-the-new-program-counter-from-the-second-magic-value">Extracting the function that generates the new program counter from the second magic value</h3>
 <p>For the second big block of code, we can do exactly the same thing: copy the code, configure the virtual environment with our symbolic variables and wrap the function:</p>
@@ -831,11 +849,13 @@ It usually works this way:</p>
       <span class="p">)</span><span class="o">.</span><span class="n">as_long</span><span class="p">()</span>
 </code></pre></div>
 
+
 <p>If you are interested in what the formula looks like, it is also available in the <a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014">NoSuchCon2014 folder</a> on my <a href="https://github.com/0vercl0k">github</a>.</p>
 <h3 id="putting-it-all-together-building-a-function-that-computes-the-new-program-counter-of-the-son">Putting it all together: building a function that computes the new program counter of the son</h3>
 <p>Obviously, we don't really care about those two previous functions, we just want to combine them together to implement the computation of the new program counter from both the round number &amp; where the son <em>SIGTRAP</em>'d. The only missing bits is the lookup in the <em>QWORD</em>s array to extract the <em>second magic value</em>. We just have to dump the array inside another file called <em>memory.py</em>. This is done with a simple IDA Python one-liner:</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="mh">0x00414130</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="n">Qword</span><span class="p">(</span><span class="mh">0x00414130</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="mi">8</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0x25E</span><span class="p">))</span>
 </code></pre></div>
+
 
 <p>Now, we can build the whole function easily by combining all those pieces:</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">generate_new_pc_from_pc_son_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
@@ -852,6 +872,7 @@ It usually works this way:</p>
       <span class="k">assert</span><span class="p">(</span><span class="n">idx</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">generate_new_pc_from_magic_high</span><span class="p">(</span><span class="n">memory</span><span class="o">.</span><span class="n">pcs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="mi">32</span><span class="p">,</span> <span class="n">loop_n</span><span class="p">)</span>
 </code></pre></div>
+
 
 <p>Sweet. Really sweet.</p>
 <p>This basically means we are now able to <em>unscramble</em> the code of the son and reordering it completely without even physically running the binary nor generating traces.</p>
@@ -932,6 +953,7 @@ It usually works this way:</p>
         <span class="k">return</span> <span class="n">cleaned_code</span>
 </code></pre></div>
 
+
 <p>And there it is :-)</p>
 <p>The function outputs the unrolled and ordered code of the son. If you want to push further, you could theoretically perform an open-heart surgery to completely remove the nanomites from the original binary, isn't it cool? This is left as an exercise for the interested reader though :-)).</p>
 <h2 id="attacking-the-son-the-last-man-standing">Attacking the son: the last man standing</h2>
@@ -971,6 +993,7 @@ It usually works this way:</p>
       <span class="n">x</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </code></pre></div>
 
+
 <p>The thing that matters this time is to find <em>a, b, c, d, e, f</em> so that they generate specific outputs ; so this is where <a href="https://z3.codeplex.com/">Z3</a> is going to help us a <strong>lot</strong>. Thanks to that guy we don't need to manually invert the algorithm.</p>
 <p>The final bit now is basically just about setting up the solver, setting the correct constraints and generating the serial you guys have been waiting for so long:</p>
 <div class="highlight"><pre><span></span><code>      <span class="nb">print</span> <span class="s1">&#39;&gt; Instantiating &amp; configuring the solver..&#39;</span>
@@ -992,6 +1015,7 @@ It usually works this way:</p>
       <span class="k">else</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;! Constraints unsolvable&#39;</span>
 </code></pre></div>
+
 
 <p>There we are, the final moment; <em>drum roll</em></p>
 <div class="highlight"><pre><span></span><code>    PS D:\Codes\NoSuchCon2014&gt; python .\solve_nsc2014_step1_z3.py
@@ -1027,6 +1051,7 @@ It usually works this way:</p>
     Next level is there: http://nsc2014.synacktiv.com:65480/oob4giekee4zaeW9/
 </code></pre></div>
 
+
 <p>Boom :-).</p>
 <h1 id="alternative-solution">Alternative solution</h1>
 <p>In this part, I present an alternate solution to solve the challenge. It's somehow a shortcut, since it requires much less coding than Axel's one, and uses the awesome <a href="https://code.google.com/p/miasm/">Miasm</a> framework.</p>
@@ -1061,6 +1086,7 @@ It usually works this way:</p>
         <span class="k">if</span><span class="p">(</span><span class="ow">not</span> <span class="n">waitpid</span><span class="p">()):</span>
             <span class="k">break</span>
 </code></pre></div>
+
 
 <p>The "big blocks" are the two long assembly blocks preceding and following the inner loop. Without looking at the gory details, we understand that a <code>param</code> value is derived from the counter using a function that I call <code>f</code>, and then used to obfuscate the original child's <code>pc</code>. The result is then searched in a <code>pcs</code> array (stored at address <code>0414130</code>), the next dword is extracted and used in a 2nd obfuscation pass to finally produce the new <code>pc</code> value injected into the child.</p>
 <p>The most important fact here is that that this process does not involve the input key at anytime. <strong>The output <code>pc</code> sequence is deterministic and constant</strong>; two executions with two different keys will produce the same sequence of <code>pc</code>'s. Since we know the first value of <code>pc</code> (the first <code>break</code> instruction at 040228C), we can theoretically compute the correct sequence and then reorder the child's instructions according to this sequence.</p>
@@ -1127,6 +1153,7 @@ It usually works this way:</p>
     c
 </code></pre></div>
 
+
 <p>To run that script within GDB, we first need to start <code>crackmips</code> with gdbserver in our <code>qemu</code> VM. After a few minutes, we get the following (cleaned) trace:</p>
 <div class="highlight"><pre><span></span><code>    New round
     counter = 0
@@ -1152,6 +1179,7 @@ It usually works this way:</p>
     [...]
 </code></pre></div>
 
+
 <p>By reading the trace further, we realize that <code>param</code> is always equal to <code>counter/101</code>. This is actually the child's own loop counter, since its big loop is made of 101 pseudo basic blocks. We also notice that the <code>pc</code> sequence is different for each child's loop: round 0 is not equal to round 101, etc.</p>
 <h3 id="getting-a-clean-trace">Getting a clean trace</h3>
 <p>Since we're only interested in the final <code>pc</code> value for each round, we can make a simpler script that just outputs those values. And organize them in a parsable format to be able to use them later in another script. Here is the version 2 of the script:</p>
@@ -1175,6 +1203,7 @@ It usually works this way:</p>
     c
 </code></pre></div>
 
+
 <p>The cleaned trace only contains the 606 <code>pc</code> values, one on each line:</p>
 <div class="highlight"><pre><span></span><code>    0x00402290
     0x00402ce0
@@ -1184,6 +1213,7 @@ It usually works this way:</p>
     0x004030e4
     0x004039dc
 </code></pre></div>
+
 
 <p>Mission 1: accomplished!</p>
 <h2 id="shortcut-2-symbolic-execution-using-miasm">Shortcut #2 : Symbolic execution using Miasm</h2>
@@ -1199,6 +1229,7 @@ It usually works this way:</p>
     <span class="n">mn</span><span class="p">,</span> <span class="n">dis_engine_cls</span><span class="p">,</span> <span class="n">ira_cls</span> <span class="o">=</span> <span class="n">machine</span><span class="o">.</span><span class="n">mn</span><span class="p">,</span> <span class="n">machine</span><span class="o">.</span><span class="n">dis_engine</span><span class="p">,</span> <span class="n">machine</span><span class="o">.</span><span class="n">ira</span>
 </code></pre></div>
 
+
 <p>First, we open the crackme using the generic <code>Container</code> class. It automatically detects the executable format and uses <em>Elfesteem</em> to parse it. Then we use the handy <code>Machine</code> class to get references to useful classes we'll use to disassemble and analyze the binary.</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">BB_BEGIN</span> <span class="o">=</span> <span class="mh">0x00402290</span>
     <span class="n">BB_END</span> <span class="o">=</span> <span class="mh">0x004022BC</span>
@@ -1209,6 +1240,7 @@ It usually works this way:</p>
     <span class="n">bloc</span> <span class="o">=</span> <span class="n">dis_engine</span><span class="o">.</span><span class="n">dis_bloc</span><span class="p">(</span><span class="n">BB_BEGIN</span><span class="p">)</span>
     <span class="nb">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">bloc</span><span class="o">.</span><span class="n">lines</span><span class="p">))</span>
 </code></pre></div>
+
 
 <p>Here, we disassemble a single basic block, by explicitly telling Miasm its start and end address. The disassembler is created by instantiating the <code>dis_engine_cls</code> class. <code>bi.bs</code> represents the binary stream we are working on. I admit the <code>dont_dis</code> syntax is a bit weird; it is used to tell Miasm to stop disassembling when it reaches a given address. We do it here because the next instruction is a <code>break</code>, and Miasm does not normally think it is the end of a basic block. When you run those lines, you should get this output:</p>
 <div class="highlight"><pre><span></span><code>    LW         V1, 0x38(FP)
@@ -1224,12 +1256,14 @@ It usually works this way:</p>
     SW         A0, 0x8(V0)
 </code></pre></div>
 
+
 <p>Okay, so we know how to disassemble a block with Miasm. Let's now see how to convert it into the Intermediate Representation:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1"># Transform to IR</span>
     <span class="n">ira</span> <span class="o">=</span> <span class="n">ira_cls</span><span class="p">()</span>
     <span class="n">irabloc</span> <span class="o">=</span> <span class="n">ira</span><span class="o">.</span><span class="n">add_bloc</span><span class="p">(</span><span class="n">bloc</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="nb">print</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">b</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">irabloc</span><span class="o">.</span><span class="n">irs</span><span class="p">))</span>
 </code></pre></div>
+
 
 <p>We instantiated the <code>ira_cls</code> class and called its <code>add_bloc</code> method. It takes a basic block as input and outputs a list of IR basic blocs; here we know that we'll get only one, so we use <code>[0]</code>. Let's see what is the output of those lines:</p>
 <div class="highlight"><pre><span></span><code>    V1 = @32[(FP+0x38)]
@@ -1245,6 +1279,7 @@ It usually works this way:</p>
     @32[(V0+0x8)] = A0
     IRDst = loc_00000000004022BC:0x004022bc
 </code></pre></div>
+
 
 <p>Each one of those lines are instructions in Miasm's IR language. It is pretty easy: each instruction is described as a list of side-effects it has on some variables, using expressions and affectations. <code>@32[...]</code> represents a 32-bit memory access; when it's on the left of an <code>=</code> sign, it's a <em>write</em> access, when it's on the right it's a <em>read</em>. The last line uses the pseudo-register <code>IRDst</code>, which is kind of the IR's <code>pc</code> register. It tells Miasm where is located the next basic block.</p>
 <p>Great! Let's see now how to perform symbolic execution on this IR basic block.</p>
@@ -1267,11 +1302,13 @@ It usually works this way:</p>
     <span class="nb">print</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">after:&quot;</span><span class="p">,</span> <span class="n">exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 </code></pre></div>
 
+
 <p>The first lines are initializing the symbol pool used for symbolic execution. We then use the <code>symbexec</code> module to create an execution engine, and we give it our fresh IR basic block. The result of the execution is readable by browsing the attributes of <code>sb.symbols</code>. Here I am mainly interested on the memory side-effects, so I use <code>symbols_mem.items()</code> to list them. <code>symbols_mem</code> is actually a dict whose keys are the memory locations that changed during execution, and values are pairs containing both the previous value that was in that memory cell, and the new one. There's only one change, and here it is:</p>
 <div class="highlight"><pre><span></span><code>    Memory changed at (FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20) :
       before: @32[(FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20)]
       after: (@32[(FP_init+(@32[(FP_init+0x38)] &lt;&lt; 0x2)+0x20)]+(- @32[(FP_init+0x38)]))
 </code></pre></div>
+
 
 <p>The expressions are getting a bit more complex, but still pretty readable. <code>FP_init</code> represents the value of the <code>fp</code> register at the beginning of execution. We can clearly see that a memory location as modified since a value was subtracted from it. But we can do better: we can give Miasm simplification rules in order to make this output much more readable. Let's do it!</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1"># Simplifications</span>
@@ -1293,6 +1330,7 @@ It usually works this way:</p>
     <span class="nb">print</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">my_simplify</span><span class="p">(</span><span class="n">exprs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">,</span><span class="n">my_simplify</span><span class="p">(</span><span class="n">exprs</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 </code></pre></div>
 
+
 <p>Here we declare 3 replacement rules:</p>
 <ul>
 <li>Replace <code>@32[(FP_init+0x38)]</code> with <code>i</code></li>
@@ -1302,6 +1340,7 @@ It usually works this way:</p>
 <p>There is actually a more generic way to do it using pattern matching rules with jokers, but we don't really need this machinery here. This the result we get after simplification:</p>
 <div class="highlight"><pre><span></span><code>    pwd[i] = (pwd[i]+(- i))
 </code></pre></div>
+
 
 <p>That's all! So all this basic block does is a subtraction. What is nice is that the output is actually valid Python code :). This will be very useful in the last part.</p>
 <h3 id="generating-the-childs-algorithm">Generating the child's algorithm</h3>
@@ -1335,6 +1374,7 @@ It usually works this way:</p>
         <span class="nb">print</span> <span class="n">exprs2str</span><span class="p">(</span><span class="n">bb_exprs</span><span class="p">[</span><span class="n">bb_index</span><span class="p">])</span>
 </code></pre></div>
 
+
 <p>The <code>analyse_bb()</code> function perform symbolic execution on a single basic block, given its start and end addresses. This is just wrapping what we've been doing so far into a function. The GDB trace is opened, parsed, and a list of basic block addresses is built from it (we cheat a little bit for the last one of the loop, by hardcoding it). Each basic block is analyzed and the resulting expressions are pushed into the <code>bb_exprs</code> list. Then the GDB trace is processed, by outputting the expressions corresponding to each basic block.</p>
 <p>This is what we get:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1"># Building IR blocs &amp; expressions for all basic blocks</span>
@@ -1350,6 +1390,7 @@ It usually works this way:</p>
     <span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mh">0x1</span><span class="p">)</span><span class="o">&amp;</span><span class="mh">0x1F</span><span class="p">))</span><span class="o">|</span><span class="p">(</span><span class="n">pwd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="p">((((</span><span class="mh">0x0</span><span class="o">|</span><span class="n">i</span><span class="p">)</span><span class="o">^</span><span class="mh">0xFFFFFFFF</span><span class="p">)</span><span class="o">+</span><span class="mh">0x20</span><span class="p">)</span><span class="o">&amp;</span><span class="mh">0x1F</span><span class="p">)))</span>
     <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mh">0x1</span><span class="p">)</span>
 </code></pre></div>
+
 
 <h2 id="solving-with-z3">Solving with Z3</h2>
 <p>Okay, so now we have a Python (and even C ;) file describing the operations performed on the 6 dwords containing the input key. We could try to bruteforce it, but using a constraint solver is much more elegant and faster. I also chose Z3 because it has nice Python bindings. And since its expression syntax is mostly compatible with Python, we just need to add a few things to our generated file!</p>
@@ -1391,11 +1432,13 @@ It usually works this way:</p>
     <span class="nb">print</span> <span class="s2">&quot;KEY = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">key</span>
 </code></pre></div>
 
+
 <p>We've declared the valid solution, the list of 6 32-bit variables (<code>pwd</code>), pasted the algorithm, and ran the solver. We just need to be careful with the <code>&gt;&gt;</code> operation, since Z3 <a href="http://stackoverflow.com/a/25535854">treats</a> it as an arithmetic shift, and we want a logical one. So we replace it with a dirty hook.</p>
 <p>The solution should come almost instantly:</p>
 <div class="highlight"><pre><span></span><code>    $ python sample_solver.py
     <span class="nv">KEY</span> <span class="o">=</span> 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
 </code></pre></div>
+
 
 <h2 id="alternative-solution-conclusion">Alternative solution - conclusion</h2>
 <p>I chose this solution not only to get acquainted with Miasm, but also because it required much less effort and pain :). It fits into approximately 20 lines of GDB script, and 120 of python using Miasm and Z3. You can find all of those in this <a href="https://github.com/egirault/NoSuchCon2014/tree/master/">folder</a>.
@@ -1426,6 +1469,14 @@ I hope it gave you an understandable example of symbolic execution and what you 
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

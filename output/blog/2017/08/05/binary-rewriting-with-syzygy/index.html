@@ -177,6 +177,7 @@
     &gt; ninja -C out\Release instrument
 </code></pre></div>
 
+
 <p>If you would like more information on the matter, I suggest you read this wiki page: <a href="https://github.com/google/syzygy/wiki/SyzygyDevelopmentGuide">SyzygyDevelopmentGuide</a>.</p>
 <h2 id="terminology">Terminology</h2>
 <p>The terminology used across the project can be a bit misleading or confusing at first, so it is a good time to describe the key terms and their meanings: a <a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h">BlockGraph</a> is a basically a container of blocks. A <a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L542">BlockGraph::Block</a> can be either a code block, or a data block (the <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms680336(v=vs.85).aspx) of your binary would be a data block for example">IMAGE_NT_HEADERS</a>. Every block has various properties like an identifier, a name, etc. and belongs to a section (as in PE sections). Most of those properties are mutable, and you are free to play with them and they will get picked-up by the back-end when relinking the output image. In addition to being a top-level container of blocks, the BlockGraph also keeps track of the sections in your executable. Blocks also have a concept of referrers and references. A reference is basically a link from Block <code>foo</code> to Block <code>bar</code>; where <code>bar</code> is the referent. A referrer can be seen as a cross-reference (in the IDA sense): <code>foo</code> would be a referrer of <code>bar</code>. These two key concepts are very important when building transforms as they also allow you to walk the graph faster. Transferring referrers to another Block is also a very easy operation for example (and is super powerful).</p>
@@ -200,13 +201,16 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Throw it to your favorite debugger with the following command - we will use the afl transformation as an example transform to analyze the data we have available to us:</p>
 <div class="highlight"><pre><span></span><code><span class="err">    instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe</span>
 </code></pre></div>
 
+
 <p>And let's place this breakpoint:</p>
 <div class="highlight"><pre><span></span><code><span class="err">    bm instrument!*AFLTransform::OnBlock &quot;.if(@@c++(block-&gt;type_ == 0)){ }.else{ g }&quot;</span>
 </code></pre></div>
+
 
 <p>Now it's time to inspect the Block associated with our function <code>foo</code> from above:</p>
 <div class="highlight"><pre><span></span><code><span class="err">    0:000&gt; g</span>
@@ -237,6 +241,7 @@
 <span class="err">      [+0x05c] data_size_       : 0x5b</span>
 </code></pre></div>
 
+
 <p>The above shows us every the different properties available in a Block; we can see it is named <code>foo</code>, has the identifier 0x51 and has a size of 0x5B bytes.</p>
 <p><center><img alt="foo_idaview.png" src="/images/binary_rewriting_with_syzygy/foo_idaview.png"></center>
 It also has one referrer and 3 references, what could they be? With the explanation I gave above, we can guess that the referrer (or cross-ref) must be the <code>main</code> function as it calls into <code>foo</code>.</p>
@@ -265,6 +270,7 @@ It also has one referrer and 3 references, what could they be? With the explanat
 <span class="err">        [+0x05c] data_size_       : 0x4d</span>
 </code></pre></div>
 
+
 <p>Something to keep in mind when it comes to <a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L1046">references</a> is that they are not simply a pointer to a block. A reference does indeed reference a block (duh), but it also has an offset associated to this block to point exactly at where the data is being referenced from.</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">// Represents a reference from one block to another. References may be offset.</span>
     <span class="c1">// That is, they may refer to an object at a given location, but actually point</span>
@@ -292,6 +298,7 @@ It also has one referrer and 3 references, what could they be? With the explanat
     <span class="c1">//  \-----/                                  O = offset</span>
     <span class="c1">//</span>
 </code></pre></div>
+
 
 <p>Let's have a look at the references associated with the <code>foo</code> block now. If you look closely at the block, the set of references is of size 3... what could they be?</p>
 <p>One for the <code>printf</code> function, one for the data Block for the string passed to <code>printf</code> maybe?</p>
@@ -360,15 +367,18 @@ It also has one referrer and 3 references, what could they be? With the explanat
     [...]
 </code></pre></div>
 
+
 <p>Perfect - that's what we sort of guessed! The last one is just the compiler adding <a href="https://msdn.microsoft.com/en-us/library/8wtf2dfz.aspx">Run-Time Error Checks</a> on us.</p>
 <p>Let's have a closer look to the first reference. The <code>references_</code> member is a hash table of offsets and instances of reference.</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">// Map of references that this block makes to other blocks.</span>
     <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">Offset</span><span class="p">,</span> <span class="n">Reference</span><span class="o">&gt;</span> <span class="n">ReferenceMap</span><span class="p">;</span>
 </code></pre></div>
 
+
 <p>The offset tells you where exactly in the <code>foo</code> block there is a reference; in our case we can see that the first reference is at offset 57 from the base of the block. If you start IDA real quick and browse at this address, you will see that it points one byte after the PUSH opcode (pointing exactly on the reference to the <code>_Format</code> string):</p>
 <div class="highlight"><pre><span></span><code>    .text:004010C8 68 20 41 40 00 push    offset _Format  ; &quot;Binary rewriting with syzygy\n&quot;
 </code></pre></div>
+
 
 <p>Another interesting bit I didn't mention earlier is that naturally the <code>data_</code> field backs the actual content of the Block:</p>
 <div class="highlight"><pre><span></span><code>    0:000&gt; u @@c++(block-&gt;data_)
@@ -381,6 +391,7 @@ It also has one referrer and 3 references, what could they be? With the explanat
     0049ef5c 8dbd34ffffff    lea     edi,[ebp-0CCh]
     0049ef62 b933000000      mov     ecx,33h
 </code></pre></div>
+
 
 <p><center><img alt="foo_disassview.png" src="/images/binary_rewriting_with_syzygy/foo_disassview.png"></center>
 Last but not least, I mentioned SourceRanges (you can see it as a vector of pairs describing data ranges from the binary to the content in memory) before, so let's dump it to see what it looks like:</p>
@@ -400,6 +411,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     0:000&gt; dx -r1 (*((instrument!core::detail::AddressImpl&lt;0&gt; *)0x4da1d0))
         [+0x000] value_           : 0x1090 [Type: unsigned int]
 </code></pre></div>
+
 
 <p>In this SourceRanges, we have a mapping from the <a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L568">DataRange</a> (RVA 0, size 0x5B), to the <a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L571">SourceRange</a> (RVA 0x1090, size 0x5B - which matches the previous IDA screen shot, obviously). We will come back to those once we have actually modified / rewritten the blocks to see what happens to the SourceRanges.</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">enum</span> <span class="nl">AddressType</span> <span class="p">:</span> <span class="kt">uint8_t</span> <span class="p">{</span>
@@ -426,6 +438,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="k">using</span> <span class="n">RelativeAddress</span> <span class="o">=</span> <span class="n">detail</span><span class="o">::</span><span class="n">AddressImpl</span><span class="o">&lt;</span><span class="n">kRelativeAddressType</span><span class="o">&gt;</span><span class="p">;</span>
 </code></pre></div>
 
+
 <p>Now that you have been introduced to the main concepts, it is time for me to walk you through two small applications.</p>
 <h2 id="callgraphanalysis">CallGraphAnalysis</h2>
 <h3 id="the-plan">The plan</h3>
@@ -448,6 +461,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
         <span class="o">:</span> <span class="k">public</span> <span class="n">NamedBlockGraphTransformImpl</span><span class="o">&lt;</span><span class="n">DerivedType</span><span class="o">&gt;</span> <span class="p">{</span> <span class="p">};</span>
 </code></pre></div>
 
+
 <p>Doing so allows us define <code>Pre</code> / <code>Post</code> functions, and an <code>OnBlock</code> function that gets called for every Block encountered in the image. This is pretty handy as I can define an <code>OnBlock</code> callback to mine the information we want for every Block, and define <code>Post</code> to process the data I have accumulated if necessary.</p>
 <p>The <code>OnBlock</code> function should be pretty light as we only want to achieve a couple of things:</p>
 <ol>
@@ -465,6 +479,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
             new file:   syzygy/instrument/transforms/doare_transforms.h
 </code></pre></div>
 
+
 <p>In order to get it compiled we also need to modify the <code>instrument.gyp</code> project file:</p>
 <div class="highlight"><pre><span></span><code>    D:\syzygy\src&gt;git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
@@ -481,6 +496,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
              &#39;transforms/entry_call_transform.h&#39;,
              &#39;transforms/entry_thunk_transform.cc&#39;,
 </code></pre></div>
+
 
 <p>The gyp file is basically used to generate Ninja project files - which means that if you don't regenerate the Ninja files from the updated version of this gyp file, you will not be compiling your new code. In order to force a regeneration, you can invoke the <code>depot_tools</code> command: <code>gclient runhooks</code>.</p>
 <p>At this point we are ready to get our class coded up; here is the class declaration I have:</p>
@@ -533,6 +549,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="cp">#endif  </span><span class="c1">// SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_</span>
 </code></pre></div>
 
+
 <p>After declaring it, the interesting part for us is to have a look at the <code>OnBlock</code> method:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">bool</span> <span class="n">CallGraphAnalysis</span><span class="o">::</span><span class="n">OnBlock</span><span class="p">(</span><span class="k">const</span> <span class="n">TransformPolicyInterface</span><span class="o">*</span> <span class="n">policy</span><span class="p">,</span>
                                     <span class="n">BlockGraph</span><span class="o">*</span> <span class="n">block_graph</span><span class="p">,</span>
@@ -570,6 +587,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The first step of the method is to make sure that the Block we are dealing with is a block we want to analyze. As I have explained before, Blocks are not exclusive code Blocks. That is the reason why we check the type of the block to only accepts code Blocks. Another type of Block that syzygy artificially creates (it has no existence in the image being analyzed) is called a <code>GAP_BLOCK</code>; which is basically a block that fills a gap in the address space. For that reason we also skip those blocks.</p>
 <p>At this point we have a code Block and we can start to mine whatever information needed: name, size, referrers, etc. As the thing we are mostly interested about is the relationships between the code Blocks, we have to walk the referrers. The only thing to be wary about is to also exclude data Blocks (a function pointer table would be a data Block referencing a code Block for example) there. After this minor filtering we can just add the two pointers into the container.</p>
 <p>I am sure at this stage you are interested in compiling it, and get it to run on a binary. To do that we need to add the <em>plumbing</em> necessary to surface it to <code>instrument.exe</code> tool. First thing you need is an <code>instrumenter</code>, we declare it in <code>doare_instrumenter.h</code> and define it in <code>doare_instrumenter.cc</code> in the <code>syzygy/instrument/instrumenters</code> directory:</p>
@@ -581,6 +599,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.cc
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.h
 </code></pre></div>
+
 
 <p>An instrumenter is basically a class that encapsulate the configuration and the invocation of one or several transforms. The instrumenter can receive options passed by the application, thus can set configuration flags when invoking the transforms, etc. You could imagine parsing a configuration file here, or doing any preparation needed by your transform. Then, the instrumenter registers the transform against the <code>Relinker</code> object (a bit like the pass manager in LLVM if you want to think about it this way).</p>
 <p>Anyway, as our transform is trivial we basically don't need any of this "preparation"; so let's settle for the least required:</p>
@@ -622,6 +641,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="cp">#endif  </span><span class="c1">// SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_</span>
 </code></pre></div>
 
+
 <p>The <code>InstrumentPrepare</code> method is where the instrumenter registers the transform against the relinker object:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">// Axel &#39;0vercl0k&#39; Souchet - 26 Aug 2017</span>
 
@@ -656,6 +676,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="p">}</span>  <span class="c1">// namespace instrument</span>
 </code></pre></div>
 
+
 <p>Like before, we also need to add those two files in the <code>instrument.gyp</code> file and regenerate the Ninja project files via the <code>gclient runhooks</code> command:</p>
 <div class="highlight"><pre><span></span><code>    D:\syzygy\src&gt;git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
@@ -681,6 +702,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
              &#39;transforms/entry_call_transform.h&#39;,
              &#39;transforms/entry_thunk_transform.cc&#39;,
 </code></pre></div>
+
 
 <p>The last step for us is to surface our instrumenter to the main of the application. I just add a mode called <code>doare</code> that you can set via the <code>--mode</code> switch, and if the flag is specified it instantiates the newly born <code>DoareInstrumenter</code>.</p>
 <div class="highlight"><pre><span></span><code>    D:\syzygy\src&gt;git diff syzygy/instrument/instrument_app.cc
@@ -716,6 +738,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
          } else if (base::LowerCaseEqualsASCII(mode, &quot;profile&quot;)) {
 </code></pre></div>
 
+
 <p>This should be it! Recompiling the <code>instrument</code> project should be enough to be able to invoke the transform and see some of our debug messages:</p>
 <div class="highlight"><pre><span></span><code>    D:\Downloads\syzygy\src&gt;ninja -C out\Release instrument
     ninja: Entering directory `out\Release&#39;
@@ -727,6 +750,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace&#39;::Decompose -&gt; block_graph::BlockGraph::AddressSpace::GetBlockByAddress
     [...]
 </code></pre></div>
+
 
 <h3 id="visualize-it">Visualize it?</h3>
 <p>As I was writing this I figured it might be worth to spend a bit of time trying to visualize this network to make it more attractive for the readers. So I decided to use <a href="http://visjs.org/network_examples.html">visjs</a> and the <code>Post</code> callback to output the call-graph in a way visjs would understand:</p>
@@ -831,6 +855,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The above function basically starts to walk the network from the <code>main</code> function and do a BFS algorithm (that allows us to define <em>levels</em> for each Block). It then outputs two sets of data: the nodes, and the edges.</p>
 <p>If you would like to check out the result I have uploaded an interactive network graph here: <a href="/images/binary_rewriting_with_syzygy/network.afl-fuzz.exe.html">network.afl-fuzz.exe.html</a>. Even though it sounds pretty useless, it looks pretty cool!</p>
 <h2 id="securitycookiecheckhooktransform">SecurityCookieCheckHookTransform</h2>
@@ -846,6 +871,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
        repne jmp ___report_gsfailure
     @__security_check_cookie@4 endp
 </code></pre></div>
+
 
 <p>If the cookie matches the secret, everything is fine, the function returns and life goes on. If it does not, it means something overwrote it and as a result the process needs to be killed. The way the check function achieves this is by raising an exception that the process cannot even catch itself; which makes sense if you think about it as you don't want an attacker to be able to hijack the exception.</p>
 <p>On recent version of Windows, this is achieved via a <a href="http://www.alex-ionescu.com/?p=69">fail-fast exception</a> or by invoking [UnhandledExceptionFilter](https://msdn.microsoft.com/en-us/library/windows/desktop/ms681401(v=vs.85).aspx) (after forcing the top level exception filter to 0) and terminating the process (done by <code>__raise_securityfailure</code>).</p>
@@ -867,6 +893,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
        retn
     ___raise_securityfailure endp
 </code></pre></div>
+
 
 <p>Funny enough - if this sounds familiar - turns out I have encountered this very problem a while back and you can read the story here: <a href="http://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/">Having a Look at the Windows' User/Kernel Exceptions Dispatcher</a>.</p>
 <p>The thing is when you are fuzzing, this is exactly the type of thing you would like to be aware of. WinAFL uses an in-process exception handler to do the crash monitoring part which means that this type of crashes would not go through the crash monitoring. Bummer.</p>
@@ -891,6 +918,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="p">};</span>
 </code></pre></div>
 
+
 <p>As I explained a bit earlier, the BlockGraph is the top level container of Blocks. This is what I walk through in order to find our Block of interest. The Block of interest for us has the name <code>__report_gsfailure</code>:</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">BlockGraph</span><span class="o">::</span><span class="n">Block</span><span class="o">*</span> <span class="n">report_gsfailure</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
     <span class="n">BlockGraph</span><span class="o">::</span><span class="n">BlockMap</span><span class="o">&amp;</span> <span class="n">blocks</span> <span class="o">=</span> <span class="n">block_graph</span><span class="o">-&gt;</span><span class="n">blocks_mutable</span><span class="p">();</span>
@@ -908,6 +936,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The transform tries to be careful by checking that the Block only has a single referrer: which should be the <code>__security_cookie_check</code> Block. If not, I gracefully exit and don't apply the transformation as I am not sure with what I am dealing with.</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">if</span> <span class="p">(</span><span class="n">report_gsfailure</span><span class="o">-&gt;</span><span class="n">referrers</span><span class="p">().</span><span class="n">size</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
       <span class="c1">// We bail out if we don&#39;t have a single referrer as the only</span>
@@ -919,6 +948,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
       <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>At this point, I create a new Block that has only a single instruction designed to trigger a fault every time; to do so I can even use the basic Intel assembler integrated in syzygy. After this, I place this new Block inside the <code>.text</code> section the image (tracked by the BlockGraph as mentioned earlier).</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">BlockGraph</span><span class="o">::</span><span class="n">Section</span><span class="o">*</span> <span class="n">section_text</span> <span class="o">=</span> <span class="n">block_graph</span><span class="o">-&gt;</span><span class="n">FindOrAddSection</span><span class="p">(</span>
@@ -945,6 +975,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="n">DCHECK_EQ</span><span class="p">(</span><span class="mi">1u</span><span class="p">,</span> <span class="n">block_builder</span><span class="p">.</span><span class="n">new_blocks</span><span class="p">().</span><span class="n">size</span><span class="p">());</span>
 </code></pre></div>
 
+
 <p>Finally, I update all the referrers to point to our new Block, and remove the <code>__report_gsfailure</code> Block as it is effectively now dead-code:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">// Transfer the referrers to the new block, and delete the old one.</span>
     <span class="n">BlockGraph</span><span class="o">::</span><span class="n">Block</span><span class="o">*</span> <span class="n">syzygy_report_gsfailure</span> <span class="o">=</span>
@@ -960,6 +991,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Here is what it looks like after our transformation:</p>
 <div class="highlight"><pre><span></span><code>    ; void __fastcall __security_check_cookie(unsigned int cookie)
     @__security_check_cookie@4 proc near
@@ -973,6 +1005,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     loc_426EE6:
                     mov     ds:0DEADBEEFh, eax
 </code></pre></div>
+
 
 <h3 id="one-does-not-simply-binary-rewrite">One does not simply binary rewrite</h3>
 <p>It may look like an easy problem without any pitfall, but before settling down on the solution above I actually first tried to rewrite the <code>__security_check_cookie</code> function. I thought it would be cleaner and it was also very easy to do with syzygy. I had to create a new Block, and transfer the referrers to my new block and.. that was it!</p>
@@ -1006,6 +1039,14 @@ All of this to say that even though the framework is robust, binary rewriting ca
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

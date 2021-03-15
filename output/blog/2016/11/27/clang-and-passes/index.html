@@ -196,6 +196,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     %ZZ = call zeroext i32 @bar()          ; Return value is %zero extended
 </code></pre></div>
 
+
 <p>Every time <code>AFLTokenCap::runOnBasicBlock</code> is called, the LLVM mid-end will call into our analysis pass (either statically linked into clang/opt or will dynamically load it) with a <code>BasicBlock</code> passed by reference. From there, we can iterate through the set of instructions contained in the basic block and find the <a href="http://llvm.org/docs/LangRef.html#call-instruction">call</a> instructions. Every instructions subclass the top level <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1Instruction.html">llvm::Instruction</a> class - in order to filter you can use the <code>dyn_cast&lt;T&gt;</code> template function that works like the <code>dynamic_cast&lt;T&gt;</code> operator but does not rely on RTTI (and is more efficient - according to the <a href="http://llvm.org/docs/CodingStandards.html">LLVM coding standards</a>). Used in conjunction with a <a href="http://en.cppreference.com/w/cpp/language/range-for">range-based for loop</a> on the <code>BasicBlock</code> object you can iterate through all the instructions you want.</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">bool</span> <span class="n">AFLTokenCap</span><span class="o">::</span><span class="n">runOnBasicBlock</span><span class="p">(</span><span class="n">BasicBlock</span> <span class="o">&amp;</span><span class="n">B</span><span class="p">)</span> <span class="p">{</span>
 
@@ -209,6 +210,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
       <span class="p">}</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>Once we have found a <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1CallInst.html">llvm::CallInst</a> instance, we need to:</p>
 <ul>
@@ -227,6 +229,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     [...]
     [+] Call to memcmp with constant &quot;\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3&quot; found in png.c/png_icc_check_header
 </code></pre></div>
+
 
 <p>At this point, the pass basically does what the token capture library is able to do.</p>
 <h2 id="harvesting-integer-immediate">Harvesting integer immediate</h2>
@@ -248,6 +251,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     section_iTXt=&quot;iTXt&quot;
     ...
 </code></pre></div>
+
 
 <p>Some of those can be found in the function <a href="https://github.com/glennrp/libpng/blob/libpng16/pngpread.c#L226">png_push_read_chunk</a> in the file <a href="https://github.com/glennrp/libpng/blob/libpng16/pngpread.c">pngpread.c</a> for example:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//png_push_read_chunk</span>
@@ -276,6 +280,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>In order to also grab those guys, I have decided to add the support for compare instructions with integer immediate (in one of the operand). Again, thanks to LLVM this is really easy to pull that off: we just need to find the <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1ICmpInst.html">llvm::ICmpInst</a> instructions. The only thing to keep in mind is  false positives. In order to lower the false positives rate, I have chosen to consider an integer immediate as a token only if only it is fully ASCII (like the <code>libpng</code> tokens above)</p>
 <p>We can even push it a bit more, and handle switch statements via the same strategy. The only additional step is to retrieve every <code>cases</code> from in the <code>switch</code> statement: <a href="http://llvm.org/docs/doxygen/html/classllvm_1_1SwitchInst.html#a8e7005748409a956c8875e259716559b">llvm::SwitchInst::cases</a>.</p>
 <div class="highlight"><pre><span></span><code>    <span class="cm">/* Handle switch/case with integer immediates */</span>
@@ -288,6 +293,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     <span class="p">}</span>
 </code></pre></div>
 
+
 <h2 id="limitations">Limitations</h2>
 <p>The main limitation is that as you are supposed to run the pass as part of the compilation process, it is most likely going to end-up compiling tests or utilities that the library ships with. Now, this is annoying as it may add some noise to your tokens - especially with utility programs. Those ones usually parse input arguments and some use <code>strcmp</code> like function with hard-coded strings to do their parsing.</p>
 <p>A partial solution (as in, it reduces the noise, but does not remove it entirely) I have implemented is just to not process any functions called <code>main</code>. Most of the cases I have seen (the set of samples is pretty small I won't lie &gt;:]), this argument parsing is made in the <code>main</code> function and it is very easy to not process it by blacklisting it as you can see below:</p>
@@ -299,6 +305,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
       <span class="k">if</span><span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">m_FunctionName</span><span class="p">,</span> <span class="s">&quot;main&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
 </code></pre></div>
+
 
 <p>Another thing I wanted to experiment on, but did not, was to provide a regular expression like string (think "test/*") and not process every files/path that are matching it. You could easily blacklist a whole directory of tests with this.</p>
 <h2 id="demo">Demo</h2>
@@ -360,6 +367,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &quot;XYZ &quot;
     &quot;zTXt&quot;
 </code></pre></div>
+
 
 <p>On <a href="https://github.com/mackyle/sqlite">sqlite3</a> (<a href="">sqlite.dict</a>):</p>
 <div class="highlight"><pre><span></span><code>    over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
@@ -429,6 +437,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &quot;\xd9\xd5\x05\xf9 \xa1c&quot;
     &quot;year&quot;
 </code></pre></div>
+
 
 <p>On <a href="https://github.com/GNOME/libxml2">libxml2</a> (here is a library with a lot of test cases / utilities that raises the noise ratio in the tokens extracted - cf <code>xmlShell*</code> for example):</p>
 <div class="highlight"><pre><span></span><code>    over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh &amp;&amp; AFL_TOKEN_FILE=/tmp/xml.dict make
@@ -625,6 +634,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &quot;xpointer&quot;
 </code></pre></div>
 
+
 <p>Performance wise - here is what we are looking at on <code>libpng</code> (+0.283s):</p>
 <div class="highlight"><pre><span></span><code>//time difference on lpng
     over@bubuntu:~/workz/lpng1625$ make clean &amp;&amp; time AFL_TOKEN_FILE=/tmp/png.dict make &amp;&amp; make clean &amp;&amp; time make
@@ -637,6 +647,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     user    0m11.436s
     sys     0m0.384s
 </code></pre></div>
+
 
 <h1 id="last-words">Last words</h1>
 <p>I am very interested in hearing from you if you give a shot to this analysis pass on your code-base and / or your fuzzing sessions, so feel free to hit me up! Also, note that <a href="http://llvm.org/docs/LibFuzzer.html">libfuzzer</a> supports the same feature and is compatible with afl's dictionary syntax - so you get it for free!</p>
@@ -671,6 +682,14 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

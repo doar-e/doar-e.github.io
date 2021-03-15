@@ -67,6 +67,7 @@ One really interesting property of this exposed information is that it becomes &
         [0x8]            : C:\WINDOWS\SYSTEM32\ntdll.dll
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;..and you can even check all the information related to this module by clicking on the DML &lt;code&gt;[0x8]&lt;/code&gt; link:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:001&amp;gt; dx -r1 @$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))[8]
     @$curprocess.Modules.Where(p =&amp;gt; @rip &amp;gt;= p.BaseAddress &amp;amp;&amp;amp; @rip &amp;lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
@@ -74,6 +75,7 @@ One really interesting property of this exposed information is that it becomes &
         Name             : C:\WINDOWS\SYSTEM32\ntdll.dll
         Size             : 0x1db000
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In the previous two samples, there are several interesting points to highlight:&lt;/p&gt;
 &lt;p&gt;1) &lt;code&gt;dx&lt;/code&gt; is the operator to access the data model which is not available through the &lt;code&gt;??&lt;/code&gt; / &lt;code&gt;?&lt;/code&gt; operators&lt;/p&gt;
@@ -90,6 +92,7 @@ One really interesting property of this exposed information is that it becomes &
     Bad register error at &amp;#39;@$doare&amp;#39;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;3) To query all the nodes in the &lt;code&gt;@$curprocess&lt;/code&gt; hierarchy (if you want to wander through the data model you can just use &lt;code&gt;dx Debugger&lt;/code&gt; and click through the DML links):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:001&amp;gt; dx @$curprocess
     @$curprocess                 : cmd.exe [Switch To]
@@ -99,6 +102,7 @@ One really interesting property of this exposed information is that it becomes &
         Modules         
         Environment
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;You can also check &lt;code&gt;Debugger.State.DebuggerVariables&lt;/code&gt; where you can see the definitions for the variables we just mentioned:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:001&amp;gt; dx Debugger.State.DebuggerVariables
@@ -115,6 +119,7 @@ One really interesting property of this exposed information is that it becomes &
     Debugger.State.DebuggerVariables.vars                
         doare            : Diary of a reverse-engineer
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;4) Last but not least, most of (all?) the iterable objects can be queried through LINQ-style operators. If you’ve never used these it can be a bit weird at the beginning but at some point it will click and then it is just goodness.&lt;/p&gt;
 &lt;p&gt;Here is the list of the currently available operators on iterable objects in the data model:&lt;/p&gt;
@@ -153,6 +158,7 @@ One really interesting property of this exposed information is that it becomes &
     Union            [Union(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects from the given and inner collection. An optional comparator method can also be specified.]
     Where            [Where(FilterMethod) - LINQ equivalent method which filters elements in the collection according to when a filter method returns true for a given element]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Now you may be wondering if the model is available with every possible &lt;em&gt;configuration&lt;/em&gt; of Windbg? By configuration I mean that you can use the debugger live in user-mode attached to a process, offline looking at a crash-dump of a process, live in kernel-mode, offline looking at a system crash-dump, or off-line looking at a &lt;em&gt;TTD&lt;/em&gt; trace.&lt;/p&gt;
 &lt;p&gt;And yes, the model is accessible with all the previous configurations, and this is awesome. This allows you to, overall, write very generic scripts as long as the information you are mining / exposing is not tied to a specific configuration.&lt;/p&gt;
@@ -195,6 +201,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;For more information I would recommend looking at this page &lt;a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/javascript-debugger-scripting#bitvalues"&gt;JavaScript Debugger Scripting&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="accessing-cpu-registers"&gt;Accessing CPU registers&lt;/h2&gt;
 &lt;p&gt;Registers are accessible in the &lt;code&gt;host.currentThread.Registers&lt;/code&gt; object. You can access the classical GPRs in the &lt;code&gt;User&lt;/code&gt; node, but you can also access the xmm/ymm registers via &lt;code&gt;SIMD&lt;/code&gt; and &lt;code&gt;Floating Point&lt;/code&gt; nodes. As you may have guessed, the registers are all instances of the &lt;code&gt;Int64&lt;/code&gt; object we just talked about.&lt;/p&gt;
@@ -222,6 +229,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="executing-evaluating-commands"&gt;Executing / evaluating commands&lt;/h2&gt;
 &lt;p&gt;Even though a bunch of data is accessible programmatically via the data model, not everything is exposed today in the model. For example, you cannot access the same amount of information that &lt;code&gt;kp&lt;/code&gt; shows you with the &lt;code&gt;Frame&lt;/code&gt; model object. Specifically, the addresses of the frames or the saved return addresses are not currently available in the object unfortunately :-( As a result, being able to evaluate commands can still be important.&lt;/p&gt;
 &lt;p&gt;The API call &lt;code&gt;ExecuteCommand&lt;/code&gt; evaluates a command and returns the output of the command as a string:&lt;/p&gt;
@@ -239,6 +247,7 @@ One really interesting property of this exposed information is that it becomes &
         &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;There is at least one pitfall with this function to be aware of: the API executes &lt;em&gt;until&lt;/em&gt; it completes. So, if you use &lt;code&gt;ExecuteCommand&lt;/code&gt; to execute let's say &lt;code&gt;gc&lt;/code&gt; the call will return only when you encounter any sort of break. If you don't encounter any break, the call will never end.&lt;/p&gt;
 &lt;h2 id="setting-breakpoints"&gt;Setting breakpoints&lt;/h2&gt;
@@ -284,6 +293,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This gives:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;breakpoint.js output
     0:000&amp;gt;
@@ -306,6 +316,7 @@ One really interesting property of this exposed information is that it becomes &
     @$scriptContents.handle_bp()
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Now, I find this interface not well suited for scenarios where you need to have a breakpoint that just dumps stuff and keep going, but hopefully in the future this will improve. Let's say you have a function and you’re interested in dumping its arguments/state every time it gets called. If you attempt to do this with the above code, every time the breakpoint is hit the debugger will execute your callback &lt;em&gt;and&lt;/em&gt; stop. At this point you have to tell it to keep executing. (Also, feel free to uncomment the last lines of the script to see what happens if you &lt;code&gt;ExecuteCommand('gc')&lt;/code&gt; :-)). &lt;/p&gt;
 &lt;p&gt;One way I found around this limitation is to use evaluation and the &lt;code&gt;bp&lt;/code&gt; command:&lt;/p&gt;
@@ -350,6 +361,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Which gives this output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;breakpoint2.js output
     0:000&amp;gt;
@@ -366,9 +378,11 @@ One really interesting property of this exposed information is that it becomes &
     00007fff`c07587a0 48895c2408      mov     qword ptr [rsp+8],rbx ss:000000b8`7f39e9a0=000000b87f39e9b0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Of course, yet another way of approaching this problem would be to wrap the script invocation into the command of a breakpoint like this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;bp ntdll!RtlAllocateHeap &amp;quot;.scriptrun c:\foo\script.js&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="ttd"&gt;TTD&lt;/h2&gt;
 &lt;p&gt;For those who are not familiar with Microsoft’s "Time Travel Debugging" toolset, in a nutshell it allows you to record the execution of a process. Once the recording is done, you end up with a trace file written to disk that you can load into the debugger to replay what you just recorded -- a bit like a camera / VCR. If you want to learn more about it, I would highly recommend checking out this presentation: &lt;a href="https://cppcon2017.sched.com/event/Bgsj/time-travel-debugging-root-causing-bugs-in-commercial-scale-software"&gt;Time Travel Debugging: root causing bugs in commercial scale software&lt;/a&gt;.&lt;/p&gt;
@@ -380,6 +394,7 @@ One really interesting property of this exposed information is that it becomes &
     @$cursession.TTD                 : [object Object]
         Calls            [Returns call information from the trace for the specified set of symbols: TTD.Calls(&amp;quot;module!symbol1&amp;quot;, &amp;quot;module!symbol2&amp;quot;, ...)]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;For each of those points, you have an object describing the call: time travel position (that you can travel to: see &lt;code&gt;TimeStart&lt;/code&gt; and &lt;code&gt;TimeEnd&lt;/code&gt; below), parameters (leveraging symbols if you have any to know how many parameters the API expects), return value, the thread id, etc.&lt;/p&gt;
 &lt;p&gt;Here is what it looks like:&lt;/p&gt;
@@ -406,6 +421,7 @@ One really interesting property of this exposed information is that it becomes &
         [0x3]            : 0x57
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Obviously, the collection returned by &lt;code&gt;TTD.Calls&lt;/code&gt; can be queried via the same &lt;a href="https://docs.microsoft.com/en-us/dotnet/csharp/linq/query-expression-basics"&gt;LINQ&lt;/a&gt;-like operators we mentioned earlier which is awesome. As an example, asking the following question has never been easier: "How many times did the allocator fail to allocate memory?":&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;TTD.Calls query
     0:000&amp;gt; dx @$Calls=@$cursession.TTD.Calls(&amp;quot;ntdll!RtlAllocateHeap&amp;quot;).Where(c =&amp;gt; c.ReturnValue == 0)
@@ -413,6 +429,7 @@ One really interesting property of this exposed information is that it becomes &
     0:000&amp;gt; dx @$Calls.Count()
     @$Calls.Count()  : 0x0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Note that because the API has been designed in a way that abstracts away ABI-specific details, you can have your query / code working on both x86 &amp;amp; x64 seamlessly. Another important point is that this is much faster than setting a breakpoint manually and running the trace forward to collect this information yourself.&lt;/p&gt;
 &lt;h3 id="ttdmemory"&gt;TTD.Memory&lt;/h3&gt;
@@ -431,6 +448,7 @@ One really interesting property of this exposed information is that it becomes &
         Size             : 0x4
         Value            : 0x0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Here is how you would go and ask it to find out every piece of code that write-accessed (read and execute are also other valid type of access you can query for and combine) the TEB region of the current thread:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;TTD.Memory write-access TEB
@@ -454,6 +472,7 @@ One really interesting property of this exposed information is that it becomes &
         Value            : 0x0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The other beauty of it is that you can travel to the position ID and find out what happened:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;time traveling!
     0:001&amp;gt; !tt F79:1B
@@ -467,6 +486,7 @@ One really interesting property of this exposed information is that it becomes &
     ntdll!_TEB
        +0x1710 ActivityId : _GUID
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In the above example, you can see that the &lt;code&gt;TppWorkCallbackPrologRelease&lt;/code&gt; function is zeroing the &lt;code&gt;ActivityId&lt;/code&gt; GUID of the current TEB - magical.&lt;/p&gt;
 &lt;h3 id="ttdutilitygetheapaddress"&gt;TTD.Utility.GetHeapAddress&lt;/h3&gt;
@@ -484,6 +504,7 @@ One really interesting property of this exposed information is that it becomes &
     ========================================================================================================================================
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The attentive reader has probably noticed something maybe unexpected with entries 0x59 and entries 0x276 where we are seeing two different allocations of the same chunk without any free in between. The answer to this question lies in the way the &lt;code&gt;GetHeapAddress&lt;/code&gt; function is implemented (check out the &lt;em&gt;TTD\Analyzers\HeapAnalysis.js&lt;/em&gt; file) - it basically looks for every heap related operation and only shows you the ones where &lt;code&gt;address + size&lt;/code&gt; is a range containing the argument you passed. In this example we gave the function the address &lt;code&gt;0x21b5dce40a0&lt;/code&gt;, 0x59 is an allocation and &lt;code&gt;0x21b5dce40a0&lt;/code&gt; is in the range &lt;code&gt;0x21b5dce4030 + 0xAA&lt;/code&gt; so we display it. Now, a free does not know the size of the chunk, the only thing it knows is the base pointer. In this case if we have a free of &lt;code&gt;0x21b5dce4030&lt;/code&gt; the utility function would just not display it to us which explains how we can have two heap chunks allocated without a free in the following time frame: &lt;code&gt;ED:7D7, E59:3A7&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;We can even go ahead and prove this by finding the free by running the below command:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt; GetHeapAddress finding the free of 0x21b5dce4030
@@ -496,6 +517,7 @@ One really interesting property of this exposed information is that it becomes &
     = [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
     ========================================================================================================================================
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;As expected, the entry 0x64 is our free operation and it also happens in between the two allocation operations we were seeing earlier - solved.&lt;/p&gt;
 &lt;p&gt;Pretty neat uh?&lt;/p&gt;
@@ -516,6 +538,7 @@ One really interesting property of this exposed information is that it becomes &
         TimeEnd          : 13A2:27 [Time Travel]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And of course do not forget that all these collections are queryable. We can easily find out what are all the other heap operations that are not &lt;code&gt;alloc&lt;/code&gt; or &lt;code&gt;free&lt;/code&gt; with the below query:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;TTD.Data.Heap() &amp;amp; query
     0:000&amp;gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&amp;gt; c.Action != &amp;quot;Free&amp;quot; &amp;amp;&amp;amp; c.Action != &amp;quot;Alloc&amp;quot;)
@@ -533,6 +556,7 @@ One really interesting property of this exposed information is that it becomes &
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="extend-the-data-model"&gt;Extend the data model&lt;/h2&gt;
 &lt;p&gt;After consuming all the various features available in the data model, I am sure you guys are wondering how you can go and add your own node and extend it. In order to do this, you can use the API &lt;code&gt;host.namedModelParent&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;host.namedModelParent
@@ -546,6 +570,7 @@ One really interesting property of this exposed information is that it becomes &
     An instance of this object can be returned in the array of records returned from
     the initializeScript method.
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Let's say we would like to add a node that is associated with a &lt;code&gt;Process&lt;/code&gt; called &lt;code&gt;DiaryOfAReverseEngineer&lt;/code&gt; which has the following properties:&lt;/p&gt;
 &lt;ul&gt;
@@ -580,6 +605,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Once loaded you can go ahead and check that the node has been added:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;hello new node
     0:000&amp;gt; dx @$curprocess
@@ -592,6 +618,7 @@ One really interesting property of this exposed information is that it becomes &
         TTD             
         DiaryOfAReverseEngineer : hello from PING.EXE
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;One important thing to be aware of in the previous example is that the &lt;code&gt;this&lt;/code&gt; pointer is effectively an instance of the data model you attached to. In our case it is an instance of the &lt;code&gt;Process&lt;/code&gt; model and as a result you can access every property available on this node, like its &lt;code&gt;Name&lt;/code&gt; for example.&lt;/p&gt;
 &lt;h3 id="step-2-add-the-first-level-to-the-node"&gt;Step 2: Add the first level to the node&lt;/h3&gt;
@@ -631,6 +658,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Which gives:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;DiaryOfAReverseEngineer is now a node with properties
     0:000&amp;gt; dx @$curprocess
@@ -648,6 +676,7 @@ One really interesting property of this exposed information is that it becomes &
         Foo              : Foo from PING.EXE
         Bar              : Bar from PING.EXE
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;From the previous dumps there are at least two things we can do better:&lt;/p&gt;
 &lt;p&gt;1) The &lt;code&gt;DiaryOfAReverseEngineer&lt;/code&gt; node has a string representation of &lt;code&gt;[object Object]&lt;/code&gt; which is not great. In order to fix that we can just define our own &lt;code&gt;toString&lt;/code&gt; method and return what we want.&lt;/p&gt;
@@ -693,6 +722,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And now if we display the &lt;code&gt;Process&lt;/code&gt; model:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;Hiding process &amp;amp; adding a toString
     0:000&amp;gt; dx @$curprocess
@@ -711,6 +741,7 @@ One really interesting property of this exposed information is that it becomes &
     0:000&amp;gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
     @$curprocess.DiaryOfAReverseEngineer.Add(1, 2) : 0x3
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="step-3-adding-another-level-and-an-iterable-class"&gt;Step 3: Adding another level and an iterable class&lt;/h3&gt;
 &lt;p&gt;At this stage, I am pretty sure that you guys are starting to get the hang of it. In order to add a new level, you can just define yet another class, define a property in the &lt;code&gt;DiaryOfAReverseEngineer&lt;/code&gt; class and return an instance of it. And that's basically it.&lt;/p&gt;
@@ -752,6 +783,7 @@ One really interesting property of this exposed information is that it becomes &
         &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Now if we put it all together we have:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;// extendmodel.js&lt;/span&gt;
@@ -857,6 +889,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And we can play with the node in the model:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;node is ready!
     0:000&amp;gt; dx @$curprocess
@@ -887,6 +920,7 @@ One really interesting property of this exposed information is that it becomes &
         Name             : attr0
         Value            : value0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Another simpler example is available in &lt;a href="https://blogs.msdn.microsoft.com/windbg/2017/04/13/determining-process-architecture-with-javascript-and-linq/"&gt;Determining process architecture with JavaScript and LINQ&lt;/a&gt; where the author adds a node to the &lt;code&gt;Process&lt;/code&gt; node that tells you with which bitness the process is running on, either 64 or 32 bits.&lt;/p&gt;
 &lt;p&gt;If you want to extend the data model with best practices you should also have a look at &lt;a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/native-objects-in-javascript-extensions#design-considerations"&gt;Debugger Data Model Design Considerations&lt;/a&gt; which sort of lays down various guidelines.&lt;/p&gt;
@@ -937,6 +971,7 @@ One really interesting property of this exposed information is that it becomes &
         ToDisplayString  [ToDisplayString([FormatSpecifier]) - Method which converts the object to its display string representation according to an optional format specifier]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Note that this is also super useful if you want to wander around and get a feel for the various features / APIs that have not been documented yet (or you were just not aware of).&lt;/p&gt;
 &lt;h3 id="how-to-load-an-extension-script"&gt;How to load an extension script&lt;/h3&gt;
 &lt;p&gt;The &lt;code&gt;.scriptload&lt;/code&gt; command is available in both &lt;em&gt;Windbg Preview&lt;/em&gt; and the &lt;em&gt;Windbg&lt;/em&gt; from the SDK.&lt;/p&gt;
@@ -954,6 +989,7 @@ One really interesting property of this exposed information is that it becomes &
         NatVis (extension &amp;#39;.NatVis&amp;#39;)
         JavaScript (extension &amp;#39;.js&amp;#39;)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="how-to-debug-a-script"&gt;How to debug a script?&lt;/h3&gt;
 &lt;p&gt;One thing I have not experimented with yet is the &lt;code&gt;.scriptdebug&lt;/code&gt; command that lets you debug a script. This is a very important feature as without it it can be a bit of a pain to figure out what is going wrong and where. If you want to know more about this, please refer to &lt;a href="https://blogs.msdn.microsoft.com/windbg/2017/06/30/script-debugging-walkthrough/"&gt;Script Debugging Walkthrough&lt;/a&gt; from &lt;a href="https://twitter.com/aluhrs13"&gt;Andy Luhrs&lt;/a&gt;.&lt;/p&gt;
@@ -976,6 +1012,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Which gives:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;address property
     0:000&amp;gt;
@@ -984,6 +1021,7 @@ One really interesting property of this exposed information is that it becomes &
     0:000&amp;gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
     @$curthread.Environment.EnvironmentBlock.FlsData : 0x21b5dcd6910 [Type: void *]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="evaluate-expressions"&gt;Evaluate expressions&lt;/h3&gt;
 &lt;p&gt;Another interesting function I wanted to mention is &lt;code&gt;host.evaluateExpression&lt;/code&gt;. As the name suggests, it allows you to evaluate an expression; it is similar to when you use the &lt;code&gt;dx&lt;/code&gt; operator but you can only use the language syntax (this means no ‘!’). Any expression you can evaluate through &lt;code&gt;dx&lt;/code&gt;, you can evaluate through &lt;code&gt;host.evaluateExpression&lt;/code&gt;. The neat thing about this, is that the resulting expression keeps the type information and as a result the Javascript object behaves like the type of the expression.&lt;/p&gt;
@@ -1011,6 +1049,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Resulting in:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;host.evaluateExpression examples
     0:000&amp;gt;
@@ -1020,6 +1059,7 @@ One really interesting property of this exposed information is that it becomes &
     2316561115408
     Error: Unable to read memory at Address 0x0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="how-to-access-global-from-modules"&gt;How to access global from modules&lt;/h3&gt;
 &lt;p&gt;If you need to get access to a global in a specific module, you can use the function &lt;code&gt;host.getModuleSymbol&lt;/code&gt; which returns one of those magic Javascript object behaving like a structure. You can check out an example in the following article: &lt;a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/native-objects-in-javascript-extensions"&gt;Implementation logic for the COM global interface table&lt;/a&gt;.&lt;/p&gt;
@@ -1043,6 +1083,7 @@ One really interesting property of this exposed information is that it becomes &
       ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And here is the associated C code:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;// except.c&lt;/span&gt;
     &lt;span class="kr"&gt;__declspec&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;noinline&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;Fault&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;uintptr_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1063,6 +1104,7 @@ One really interesting property of this exposed information is that it becomes &
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;As you can see, it is not obvious from the dump above to identify the &lt;code&gt;Filter&lt;/code&gt; function and the &lt;code&gt;__except&lt;/code&gt; code block.&lt;/p&gt;
 &lt;p&gt;I figured it would be a good exercise to parse those tables (at least partially) from Javascript, expose the information inside the data model, and write a command similar to &lt;code&gt;!exchain&lt;/code&gt; - so let's do it.&lt;/p&gt;
 &lt;h2 id="a-few-words-about-imageruntimefunctionentries-unwindinfos-sehscopetables-and-cspecifichandlerdatas"&gt;A few words about ImageRuntimeFunctionEntries, UnwindInfos, SehScopeTables and CSpecificHandlerDatas&lt;/h2&gt;
@@ -1074,6 +1116,7 @@ One really interesting property of this exposed information is that it becomes &
        +0x000 ExceptionHandler : Uint4B
        +0x004 ExceptionData    : Uint4B
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This is basically where &lt;code&gt;!exchains&lt;/code&gt; stops -- the &lt;code&gt;ehhandler&lt;/code&gt; address in the output is the &lt;code&gt;ExceptionHandler&lt;/code&gt; field. This is basically an RVA to a function that encapsulates the exception handling for this function. This is not to be confused with either your &lt;code&gt;Filter&lt;/code&gt; function or your &lt;code&gt;__except&lt;/code&gt; block, this is a generic entry-point that the compiler generates and can be used for other functions too. This function is invoked by the exception dispatching / handling code with an argument that is the value of &lt;code&gt;ExceptionData&lt;/code&gt;. &lt;code&gt;ExceptionData&lt;/code&gt; is basically an RVA to a blob of memory that the &lt;code&gt;ExceptionHandler&lt;/code&gt; function knows how to read and takes actions on. This is where the information we are after is stored.&lt;/p&gt;
 &lt;p&gt;This is also where it was a bit of a surprise to me, as you basically cannot really tell for sure what type of structure is referenced by &lt;code&gt;ExceptionData&lt;/code&gt;. For that, you would have to analyze the &lt;code&gt;ExceptionHandler&lt;/code&gt; function to understand what and how this data is used. That is also most likely, why the &lt;code&gt;!exchains&lt;/code&gt; command stops here and does not bother trying to parse the exception data blob.&lt;/p&gt;
@@ -1089,6 +1132,7 @@ One really interesting property of this exposed information is that it becomes &
       +0x008 HandlerAddress   : Uint4B
       +0x00c JumpTarget       : Uint4B
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;&lt;code&gt;BeginAddress&lt;/code&gt; and &lt;code&gt;EndAddress&lt;/code&gt; give you the &lt;code&gt;__try&lt;/code&gt; block RVA, &lt;code&gt;HandlerAddress&lt;/code&gt; encodes either the &lt;code&gt;Filter&lt;/code&gt; function or the start of the &lt;code&gt;__finally&lt;/code&gt; block. The &lt;code&gt;JumpTarget&lt;/code&gt; field tells you if you are looking at either a &lt;code&gt;__try / __except&lt;/code&gt; or a &lt;code&gt;__try / __finally&lt;/code&gt;. Also, the current heuristic I use to know if the &lt;code&gt;SCOPE_RECORD&lt;/code&gt; looks legit or not is to ensure that the &lt;code&gt;__try&lt;/code&gt; block resides in between the boundaries of the function the handler is defined in. This has been working well so far - at least on the binaries I have tried it on, but I would not be that surprised if there exists some edge cases to this; if you know any feel free to hit me up!&lt;/p&gt;
 &lt;h2 id="putting-it-all-together"&gt;Putting it all together&lt;/h2&gt;
@@ -1119,6 +1163,7 @@ One really interesting property of this exposed information is that it becomes &
     00007ff8`3563e170 4053            push    rbx
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;In this example, the function &lt;code&gt;KERNEL32!LoadModule&lt;/code&gt; seems to be the function that has registered the largest number of exception handlers (12 of them).&lt;/p&gt;
 &lt;p&gt;Now that we have this new source of information, we can also push it a bit further and implement a command that does a very similar job than &lt;code&gt;!exchain&lt;/code&gt; by just mining information from the nodes we just added to the data model:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;!ehhandlers VS !exchain
@@ -1144,6 +1189,7 @@ One really interesting property of this exposed information is that it becomes &
     Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
       ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We could even push it a bit more and have our command returns structured data instead of displaying text on the output so that other commands and extensions could build on top of it.&lt;/p&gt;
 &lt;h1 id="eof"&gt;EOF&lt;/h1&gt;
@@ -1200,6 +1246,7 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and &lt;st
     76f90574 cc              int     3
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like &lt;em&gt;after&lt;/em&gt;, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:000&amp;gt; k
     ChildEBP RetAddr  
@@ -1213,6 +1260,7 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and &lt;st
     00189cd4 004cefc0 ollydbg!Memfree+0x3c
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;As we said just above, the message from the heap allocator has been probably triggered when OllyDbg2 wanted to free a chunk of memory.&lt;/p&gt;
 &lt;p&gt;Basically, the problem with our issue is the fact we don't know:&lt;/p&gt;
@@ -1243,6 +1291,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Woot, this is very cool, because now we know &lt;strong&gt;exactly&lt;/strong&gt; where something is going wrong. Let's get more information about the heap chunk now:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:000&amp;gt; !heap -p -a ecx
         address 0f00ed30 found in
@@ -1265,6 +1314,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
         0040fc51 ollydbg!Setstatus+0x00006441
         004ef9ef ollydbg!Pluginshowoptions+0x0001214f
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;With this really handy command we got a lot of relevant information:&lt;/p&gt;
 &lt;ul&gt;
@@ -1322,6 +1372,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;So, let me explain what this routine does:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;This routine is called by OllyDbg2 when it finds a PDB database for your binary and, more precisely, when in this database it finds the path of your application's source codes. It's useful to have those kind of information when you are debugging, OllyDbg2 is able to tell you at which line of your C code you're currently at.&lt;/li&gt;
@@ -1333,6 +1384,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\TODO\crashes\odb2-OOB-write-heap&amp;gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
     59 OOB-write-heap-OllyDbg2h-trigger.c
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Good.&lt;/p&gt;
 &lt;ul&gt;
@@ -1346,6 +1398,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     bp 004CE742 &amp;quot;.printf \&amp;quot;[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\&amp;quot;, eax, poi(ebp - 1C), poi(ebp - 8) ; gc&amp;quot;
     bp 004CE769 &amp;quot;.printf \&amp;quot;[buggy] mov [0x%x + 0x%x], 0x%x\\n\&amp;quot;, ecx, eax * 4, edx&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;On my environment, it gives me something like:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    [Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
@@ -1370,6 +1423,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     ollydbg!Findfreehardbreakslot+0x21d9:
     004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h1 id="reprohome"&gt;Repro@home&lt;/h1&gt;
 &lt;ol&gt;

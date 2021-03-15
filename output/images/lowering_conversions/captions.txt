@@ -1,7 +1,0 @@
-visit #30: Return
-  change: #30:Return(@0 #29:NumberConstant)  from kRepTaggedSigned to kRepWord32:truncate-to-word32
-
-visit #30: Return
-  change: #30:Return(@1 #28:SpeculativeNumberModulus)  from kRepWord32 to kRepTagged:no-truncation (but distinguish zeros)
-
-

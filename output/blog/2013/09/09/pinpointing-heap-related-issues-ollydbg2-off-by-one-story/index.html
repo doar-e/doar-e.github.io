@@ -161,6 +161,7 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
     76f90574 cc              int     3
 </code></pre></div>
 
+
 <p>We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like <em>after</em>, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:</p>
 <div class="highlight"><pre><span></span><code>    0:000&gt; k
     ChildEBP RetAddr  
@@ -174,6 +175,7 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
     00189cd4 004cefc0 ollydbg!Memfree+0x3c
     ...
 </code></pre></div>
+
 
 <p>As we said just above, the message from the heap allocator has been probably triggered when OllyDbg2 wanted to free a chunk of memory.</p>
 <p>Basically, the problem with our issue is the fact we don't know:</p>
@@ -204,6 +206,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
 </code></pre></div>
 
+
 <p>Woot, this is very cool, because now we know <strong>exactly</strong> where something is going wrong. Let's get more information about the heap chunk now:</p>
 <div class="highlight"><pre><span></span><code>    0:000&gt; !heap -p -a ecx
         address 0f00ed30 found in
@@ -226,6 +229,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
         0040fc51 ollydbg!Setstatus+0x00006441
         004ef9ef ollydbg!Pluginshowoptions+0x0001214f
 </code></pre></div>
+
 
 <p>With this really handy command we got a lot of relevant information:</p>
 <ul>
@@ -283,6 +287,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>So, let me explain what this routine does:</p>
 <ul>
 <li>This routine is called by OllyDbg2 when it finds a PDB database for your binary and, more precisely, when in this database it finds the path of your application's source codes. It's useful to have those kind of information when you are debugging, OllyDbg2 is able to tell you at which line of your C code you're currently at.</li>
@@ -294,6 +299,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
 <div class="highlight"><pre><span></span><code>    D:\TODO\crashes\odb2-OOB-write-heap&gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
     59 OOB-write-heap-OllyDbg2h-trigger.c
 </code></pre></div>
+
 
 <p>Good.</p>
 <ul>
@@ -307,6 +313,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     bp 004CE742 &quot;.printf \&quot;[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\&quot;, eax, poi(ebp - 1C), poi(ebp - 8) ; gc&quot;
     bp 004CE769 &quot;.printf \&quot;[buggy] mov [0x%x + 0x%x], 0x%x\\n\&quot;, ecx, eax * 4, edx&quot;
 </code></pre></div>
+
 
 <p>On my environment, it gives me something like:</p>
 <div class="highlight"><pre><span></span><code>    [Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
@@ -331,6 +338,7 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
     ollydbg!Findfreehardbreakslot+0x21d9:
     004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
 </code></pre></div>
+
 
 <h1 id="reprohome">Repro@home</h1>
 <ol>
@@ -372,6 +380,14 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>

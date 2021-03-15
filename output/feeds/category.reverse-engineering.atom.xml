@@ -66,6 +66,7 @@
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="confusion"&gt;Confusion&lt;/h2&gt;
 &lt;p&gt;After the above, there is now a bunch of stuff happening that doesn't necessarily make a whole lot of sense at the moment. As far as I am concerned though, this doesn't concern me yet as I can't see a clear relationship yet with the input serial bytes or the &lt;code&gt;i&lt;/code&gt;s. As those two are the only user-input derived data, those are the only ones I care about for now.&lt;/p&gt;
 &lt;p&gt;Next, we hit this code:&lt;/p&gt;
@@ -84,6 +85,7 @@
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;v15&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;16&lt;/span&gt; &lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;What I learned from this part is that there are new players in town. Basically, three blobs of 16 bytes, respectively called &lt;code&gt;mask&lt;/code&gt;, &lt;code&gt;mask3&lt;/code&gt; and &lt;code&gt;shiftedmask&lt;/code&gt;, get initialized with values derived from &lt;code&gt;rand()&lt;/code&gt;. At first it sure is a bit confusing to see pseudo-randomized values getting involved but we can assume those operations will get canceled out by some others later. It wouldn't make sense to have some crypto looking algorithm producing non deterministic results. The PRNG is seeded with &lt;code&gt;time(NULL)&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;After this there are a bunch of other operations that we don't care about. You can just see those as black boxes that generate deterministic outputs. It means we will be able to conveniently dump the generated values whenever needed. For what it's worth, it basically mixes a bunch of values inside &lt;code&gt;mask3&lt;/code&gt;.&lt;/p&gt;
@@ -119,6 +121,7 @@
 &lt;span class="n"&gt;byte_D0377F&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;v30&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kr"&gt;__m128i&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;mask3&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;_mm_xor_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_mm_load_si128&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kr"&gt;__m128i&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;mask&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kr"&gt;__m128i&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;mask3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;&lt;code&gt;mul3&lt;/code&gt; and &lt;code&gt;mul2&lt;/code&gt; are basically arrays that have been constructed such as &lt;code&gt;mul2[idx] = idx * 2&lt;/code&gt; and &lt;code&gt;mul3[idx] = idx * 3&lt;/code&gt; within &lt;a href="https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael%27s_finite_field"&gt;GF(2**8)&lt;/a&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="n"&gt;mul2&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;256&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -157,6 +160,7 @@
 &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;One thing of interest - maybe - is that there is a small anti-debug in there. The file is opened and read using one of &lt;code&gt;std::vector&lt;/code&gt;'s constructor that takes an &lt;code&gt;std::ifstreambuf_iterator&lt;/code&gt; as input. Some sort of checksum is generated and will be used later in the &lt;code&gt;schedule&lt;/code&gt; routine. What this means is that if you were about to patch the binary, the algorithm would end up generating &lt;em&gt;wrong&lt;/em&gt; values. Again, this is barely an inconvenience as we can just dump it out and carry on with our lives.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;basic_ifstream&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;char_traits&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;::&lt;/span&gt;&lt;span class="n"&gt;basic_ifstream&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;v63&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;v3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;4LL&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;allocator&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;::&lt;/span&gt;&lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;istreambuf_iterator&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;char_traits&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
@@ -179,6 +183,7 @@
   &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;v32&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;v33&lt;/span&gt; &lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="generation"&gt;Generation&lt;/h2&gt;
 &lt;p&gt;At this point, the 15 &lt;code&gt;i&lt;/code&gt;'s from above are used to initialize what I called &lt;code&gt;s0&lt;/code&gt;, &lt;code&gt;s1&lt;/code&gt;, ..., &lt;code&gt;s14&lt;/code&gt;. Again, it is 15 blobs of 16 bytes each. They are passed to the &lt;code&gt;schedule&lt;/code&gt; function that will perform a lot of arithmetic operations on the array of &lt;code&gt;s&lt;/code&gt;'s. Again, no need to understand &lt;code&gt;schedule&lt;/code&gt; just yet; as far as we are concerned it is a black box that takes &lt;code&gt;s&lt;/code&gt;'s in input and gives us back different &lt;code&gt;s&lt;/code&gt;'s in output, period.&lt;/p&gt;
@@ -213,6 +218,7 @@
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This garbage simply translates to &lt;code&gt;win = (mxor == 0x42424242696969693737373713131313ULL)&lt;/code&gt; :).&lt;/p&gt;
 &lt;h1 id="zooming-in"&gt;Zooming in&lt;/h1&gt;
 &lt;p&gt;It is now a good time to zoom in and get our hands dirty a little. We sort of know what we need to achieve, but we are unsure of how to get there. We know we have some dumping to do: &lt;code&gt;mask&lt;/code&gt;, &lt;code&gt;mask3&lt;/code&gt;, &lt;code&gt;shiftedmask&lt;/code&gt;, &lt;code&gt;crc&lt;/code&gt;, &lt;code&gt;sbx&lt;/code&gt;, &lt;code&gt;mul2&lt;/code&gt; and &lt;code&gt;mul3&lt;/code&gt;. Easy. Mechanical.&lt;/p&gt;
@@ -222,6 +228,7 @@
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;for&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="mi"&gt;15&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;scheduling&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;40&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="mi"&gt;15&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="n"&gt;nround&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;scheduling&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The switch case that follows applies one type of transformation (arithmetic ones) on the chosen &lt;code&gt;s&lt;/code&gt; variable. In order to track the number of &lt;em&gt;rounds&lt;/em&gt; already applied to each &lt;code&gt;s&lt;/code&gt;'s variables, an array called &lt;code&gt;scheduling&lt;/code&gt; is used. The algorithm stops when forty rounds have been applied to every &lt;code&gt;s&lt;/code&gt;'s. It's also worth to point out that there's a small anti-debugging here; a timer is started at the beginning (&lt;code&gt;t1&lt;/code&gt;) of the round and stopped at the end (&lt;code&gt;t2&lt;/code&gt;). If any abnormal delay between &lt;code&gt;t1&lt;/code&gt; and &lt;code&gt;t2&lt;/code&gt; is discovered the later computations will produce &lt;em&gt;wrong&lt;/em&gt; results.&lt;/p&gt;
 &lt;p&gt;We can observe 6 different type of operations in the switch case. Some of them look very easily invertible and some others would need some more work. But at this point, it reminds me a lot of this AES whitebox I analyzed back in &lt;a href="https://github.com/0vercl0k/articles/blob/master/AES%20Whitebox%20Unboxing%20No%20Such%20Problem.pdf"&gt;2013&lt;/a&gt;. This one doesn't have any obfuscation which makes it much easier to deal with. What I did at the time was pretty simple: divide and conquer. I broke down each round in four pieces. Each of those &lt;em&gt;quarter&lt;/em&gt; round worked as a black box function that took 4 bytes of input and generated 4 bytes of output (as a result each round would generate 16 bytes/128bits). I needed to find the 4 bytes of input that would give me the 4 bytes of output I wanted. Solving those quarters could be done simultaneously and starting from the desired output you could go walk back from round &lt;code&gt;N&lt;/code&gt; to round &lt;code&gt;N-1&lt;/code&gt;. That was basically my plan for &lt;code&gt;ctf2&lt;/code&gt;.&lt;/p&gt;
@@ -233,11 +240,13 @@
   &lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;As a result, inverting it is a simple XOR operation:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;reverse_0&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="n"&gt;Input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;_mm_xor_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_mm_load_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;mask&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="case-1-5-9-13-17-21-25-29-33-37-subbytes"&gt;case 1, 5, 9, 13, 17, 21, 25, 29, 33, 37: SubBytes&lt;/h3&gt;
 &lt;p&gt;This case can look a bit more intimidating compared to the previous one (lol). Here is how it looks like once I have cleaned and prettified it a bit:&lt;/p&gt;
@@ -312,6 +321,7 @@
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The thing I always focus on is: the relationship between the input and output bytes. Remember that each round works as a function that takes a 16 bytes blob in input (a &lt;code&gt;Slot_t&lt;/code&gt; in my code) and returns another 16 bytes blob as output. As we are interested in writing a function that can find an input that generates a specific output it is very important to identify how the output is built and what input bytes are used to build it.&lt;/p&gt;
 &lt;p&gt;Let's have a closer look at how the first byte of the output is generated. We start from the end of the function and we follow back the references until we encounter a byte from the input state. In this case we trace back where &lt;code&gt;v57&lt;/code&gt; is coming from, and then &lt;code&gt;v55&lt;/code&gt; and &lt;code&gt;v56&lt;/code&gt;. &lt;code&gt;v55&lt;/code&gt; is the first byte of the input state, great. &lt;code&gt;v56&lt;/code&gt; is a 
 a number encoding the number of the round. We don't necessarily care about it as of now, but it's good to realize that the number of the round is a parameter of this function; and not exclusively the inputs bytes. OK so we know that the first byte of the output is built via the first byte of the input, easy. Simpler than I first expected when looking at the Hex-Rays' output to be honest. But I'll take simple :).&lt;/p&gt;
@@ -332,6 +342,7 @@ a number encoding the number of the round. We don't necessarily care about it as
     &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;m128i_u8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;is&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Funny enough, if you patched the challenge binary this is yet another spot where things would go wrong. The &lt;code&gt;crc&lt;/code&gt; value is used at the end of the function to XOR the output state and would pollute your results here, sneaky :). &lt;/p&gt;
 &lt;h3 id="case-2-6-10-14-18-22-26-30-34-38-shiftrows"&gt;case 2, 6, 10, 14, 18, 22, 26, 30, 34, 38: ShiftRows&lt;/h3&gt;
@@ -373,6 +384,7 @@ a number encoding the number of the round. We don't necessarily care about it as
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Clearly just by quickly looking at this function you understand that it is some sort of shuffling operation. For whatever reason, this is the type of brain-gymnastic that I am not good at. The trick I usually use is to give it an input that looks like this: &lt;code&gt;\x00\x01\x02\x03...&lt;/code&gt; and observe the result.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;test_reverse38&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -386,9 +398,11 @@ a number encoding the number of the round. We don't necessarily care about it as
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This is what we get if we apply the above trick:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;0000:   00 01 02 03 05 06 07 04   0A 0B 08 09 0F 0C 0D 0E    ................
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;From here, it's much easier (for me at least) to figure out the effect of the shuffling. For example, we already know we have nothing to do with the first four bytes as they haven't been shuffled. We know we need to take &lt;code&gt;Output[7]&lt;/code&gt; and put it inside &lt;code&gt;Input[4]&lt;/code&gt;, &lt;code&gt;Output[4]&lt;/code&gt; in &lt;code&gt;Input[5]&lt;/code&gt;, so on and so forth. After a bit of mental gymnastics I end-up with this routine:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;reverse_38&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -415,6 +429,7 @@ a number encoding the number of the round. We don't necessarily care about it as
     &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;m128i_u8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;m128i_u8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Next one!&lt;/p&gt;
 &lt;h3 id="case-3-7-11-15-19-23-27-31-35-mixcolumns"&gt;case 3, 7, 11, 15, 19, 23, 27, 31, 35: MixColumns&lt;/h3&gt;
@@ -497,6 +512,7 @@ a number encoding the number of the round. We don't necessarily care about it as
     &lt;span class="k"&gt;break&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This time if we take a closer look, we notice that each group of four bytes of output depends of four bytes of input. And every byte of those four bytes of output depend on those four input bytes.&lt;/p&gt;
 &lt;p&gt;This means that you cannot brute force byte by byte like earlier. You have to brute force four bytes... which is much more costly compared to what we've seen above. The only thing going for us is that we can brute force them in parallel as they are independent from each other. A thread for each should do the work.&lt;/p&gt;
@@ -609,6 +625,7 @@ a number encoding the number of the round. We don't necessarily care about it as
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Each thread recovers four bytes and the results are aggregated in &lt;code&gt;final_result&lt;/code&gt;, easy. &lt;/p&gt;
 &lt;h3 id="case-4-8-12-16-20-24-28-32-36-addroundkey"&gt;case 4, 8, 12, 16, 20, 24, 28, 32, 36: AddRoundKey&lt;/h3&gt;
 &lt;p&gt;This case is another trivial one where a simple XOR does the job to invert the operation:&lt;/p&gt;
@@ -626,11 +643,13 @@ a number encoding the number of the round. We don't necessarily care about it as
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Note that &lt;code&gt;mask3&lt;/code&gt; is one of the arrays that gets modified when you introduce an abnormal delay in a round; like if you're debugging for example. Yet another spot where wrong results could be produced :).&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;reverse_36&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="n"&gt;Input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;_mm_xor_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_mm_load_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;mask3&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="case-39-decoding"&gt;case 39: decoding&lt;/h3&gt;
 &lt;p&gt;And finally our last case is another very simple one:&lt;/p&gt;
@@ -640,11 +659,13 @@ a number encoding the number of the round. We don't necessarily care about it as
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Inverted with the below:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;reverse_39&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Slot_t&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="n"&gt;Input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;_mm_xor_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;_mm_load_si128&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;shiftedmask&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="unround"&gt;unround&lt;/h2&gt;
 &lt;p&gt;At this stage we have all the small blocks we need to find an input state that generates a specific output state. We simply combine all the &lt;code&gt;reverse_&lt;/code&gt; routines we wrote into a function that basically is the inverse of &lt;code&gt;schedule&lt;/code&gt;. We also create a utility function that applies forty &lt;code&gt;unround&lt;/code&gt; to a state in order to fully invert it: from bottom to top.&lt;/p&gt;
@@ -655,6 +676,7 @@ a number encoding the number of the round. We don't necessarily care about it as
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Once we have that available we can use it in order to do try to - let's say - find the input bytes that generates the following output &lt;code&gt;'doar-e.github.io'.encode('hex')&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;recover_doare&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -670,9 +692,11 @@ a number encoding the number of the round. We don't necessarily care about it as
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This gives us back the following (it takes about 7 min on my machine VS 13 min without the multi threaded version of &lt;code&gt;reverse_35&lt;/code&gt;):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="mo"&gt;0000&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;   &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="n"&gt;D&lt;/span&gt; &lt;span class="n"&gt;CC&lt;/span&gt; &lt;span class="mi"&gt;49&lt;/span&gt; &lt;span class="n"&gt;C2&lt;/span&gt; &lt;span class="n"&gt;F8&lt;/span&gt; &lt;span class="n"&gt;E1&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="n"&gt;A&lt;/span&gt; &lt;span class="mi"&gt;78&lt;/span&gt;   &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="n"&gt;D&lt;/span&gt; &lt;span class="mi"&gt;57&lt;/span&gt; &lt;span class="mi"&gt;26&lt;/span&gt; &lt;span class="n"&gt;F7&lt;/span&gt; &lt;span class="mi"&gt;45&lt;/span&gt; &lt;span class="n"&gt;AB&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="n"&gt;E&lt;/span&gt; &lt;span class="mi"&gt;13&lt;/span&gt;    &lt;span class="p"&gt;..&lt;/span&gt;&lt;span class="n"&gt;I&lt;/span&gt;&lt;span class="p"&gt;...&lt;/span&gt;&lt;span class="n"&gt;jx&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;W&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;E&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;To ensure that it works properly we can fire up &lt;em&gt;gdb&lt;/em&gt; and inject this state right before the scheduling phase like in the below:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;gef➤  pie breakpoint *0x114c
@@ -694,6 +718,7 @@ gef➤  x/16bx &amp;amp;states
 gef➤  x/1s &amp;amp;states
 0x555556257660 &amp;lt;states&amp;gt;:        &amp;quot;doar-e.github.iovطL:2\204\274\006\&amp;quot;A\377+ⴄ\256^\264)\220\024\307\356dO\377a\003Q}\317+\352\064\303I\300\254\256\271\061\306\004\327\033\375\307B\357\375m\027u\024\060\315t\a\034\247\224\027\005\202\021oK\366\267&amp;gt;\373X`?\027\071*\333\301\357\a\260\256\063k}u\232f\212\212\246&amp;#39;\303j\027\201\061@\246\336\304mۡ\bSi\214\034\210D\327.hQ\310\302I,\225zF\263안vطL:2\204\274\006\&amp;quot;A\377+ⴄ\256^\264)\220\024\307\356dO\377a\003Q}\317+\352\064\303I\300\254\256\271\061\306\004\327\033\375\307B\357\375m\027u\024\060\315t\a\034\247\224\027\005\202\021oK\366\267&amp;gt;\373X`?\027\071*\333\301\357\a\260\256\063k}u\232f\212\212\246&amp;#39;\303j\233\004WD\345\037\360\371\350JT\332h\340R\270\223\256\247\356͚C\211\374\327=\022&amp;gt;\222\301\346 \031\313]\272\274=t\302&amp;gt;:\245qZ\363[\223\256\247\356\211͚C=\022\374ג\301\346&amp;gt;&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;All right, awesome. Sounds like we are done with schedule for now :).&lt;/p&gt;
 &lt;h2 id="how-do-i-win-now"&gt;How do I win now?&lt;/h2&gt;
@@ -721,9 +746,11 @@ gef➤  x/240bx &amp;amp;states
 0x555556257740 &amp;lt;states+224&amp;gt;:    0xcc    0xff    0x00    0x44    0xbb    0x66    0xaa    0x11    0x99    0x55    0xee    0x33    0x22    0x77    0x88    0xdd
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Do you see it now? If you look closely, you can see that &lt;code&gt;states[0] = states[8]&lt;/code&gt;, &lt;code&gt;states[1] = states[9]&lt;/code&gt;, &lt;code&gt;states[2] = states[10]&lt;/code&gt;, etc. Which means that XORing them together cancels them out.. leaving the one blob in the middle: &lt;code&gt;states[7]&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;0x5555562576d0 &amp;lt;states+112&amp;gt;:    0x00    0x44    0x88    0xcc    0x11    0x55    0x99    0xdd    0x22    0x66    0xaa    0xee    0x33    0x77    0xbb    0xff
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;So now we just have to invoke &lt;code&gt;recover_state&lt;/code&gt; in order to find an input state that generates this output state: &lt;code&gt;42424242696969693737373713131313&lt;/code&gt;. When we have recovered the sixteen bytes of input we need to study the diffusion algorithm a little to be able to construct an input serial that generates the &lt;code&gt;states[7]&lt;/code&gt; of our choice (&lt;code&gt;slot2password&lt;/code&gt;), easy.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;pwn&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -743,6 +770,7 @@ gef➤  x/240bx &amp;amp;states
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And after running this for a bit of time we get the below output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;c:\work&amp;gt;C:\work\unboxin-ctf2.exe
 0000:   0A 0E C2 74 B7 C6 41 70   98 5F 2D D7 2C C9 52 68    ...t..Ap._-.,.Rh
@@ -750,10 +778,12 @@ gef➤  x/240bx &amp;amp;states
 e min elapsed
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Mandatory final check now..:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;over@bubuntu:~/workz$ ./ctf2 0AB7982C0EC65FC9C2412D527470D768
 **** Login Successful ****
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Job done :-).&lt;/p&gt;
 &lt;h2 id="conclusion"&gt;Conclusion&lt;/h2&gt;
@@ -801,13 +831,16 @@ e min elapsed
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The above file can be compiled with the below command:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang++ -shared -o lib.so -fPIC lib.cc
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Dropping the resulting &lt;code&gt;lib.so&lt;/code&gt; shared library file inside the same directory as the challenge should be enough to have it properly run. You can even hook it up to a socket via &lt;a href="https://linux.die.net/man/1/socat"&gt;socat&lt;/a&gt; to simulate a remote server you have to attack:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ socat -vvv TCP-LISTEN:31337,fork,reuseaddr EXEC:./cha1
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;If everything worked as advertised, you should now be able to interact with the challenge remotely and be greeted by the below menu when connected to it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    Please choose your option:
@@ -822,6 +855,7 @@ e min elapsed
     8. Exit
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Off you go have fun now :)&lt;/p&gt;
 &lt;h1 id="recon"&gt;Recon&lt;/h1&gt;
 &lt;p&gt;When I start looking at a challenge I always spend time to understand a bit more of the &lt;em&gt;story&lt;/em&gt; around it. This both gives me direction as well as helps me identify pitfalls. For example here, the story tells me that we have a secret to exfiltrate and focusing the analysis on the code interacting / managing this secret sounds like a good idea. The challenge was also advertised as a &lt;em&gt;reverse-engineering&lt;/em&gt; task so I didn't really expect any &lt;em&gt;pwning&lt;/em&gt;. A logical flaw, design issue or a very constrained memory corruption type of issue is what I was looking for.&lt;/p&gt;
@@ -832,6 +866,7 @@ e min elapsed
     extern:00000000002027A0 ; _QWORD __cdecl encrypt(unsigned __int64)
     extern:00000000002027A0                 extrn _Z7encryptm:near  ; DATA XREF: .got.plt:off_202028↑o
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Even though the challenge seems to use C++ and the &lt;a href="https://en.wikipedia.org/wiki/Standard_Template_Library"&gt;STL&lt;/a&gt;, the disassembled / decompiled code is very easy to read so it doesn't take a whole lot of time to understand a bit more what this thing is doing.&lt;/p&gt;
 &lt;p&gt;According to what the menu says, it looks like a store of numbers; whatever that means. Quick reverse-engineering of the getter and setter functions we learn a bit more of what is a number. First, every number (&lt;code&gt;number_t&lt;/code&gt;) being stored is encrypted when inserted into the store, and decrypted when retrieved out of the store.&lt;/p&gt;
@@ -853,12 +888,14 @@ e min elapsed
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Interestingly, the third argument of the function allows you to write a clear-text number into the store but it is apparently not used anywhere in the challenge.. oh well :)&lt;/p&gt;
 &lt;p&gt;Once the numbers are encrypted, they also get &lt;em&gt;encoded&lt;/em&gt; with a very simple transformation: every bit is written to a byte (0 or 1). As the numbers being stored are 32 bits integers, naturally the store needs 32 bytes per number.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    00000000 number_t        struc ; (sizeof=0x20)
     00000000 bytes           db 32 dup(?)
     00000020 number_t        ends
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;After looking a bit more at the other options, and with the above in mind, it is pretty straightforward to recover part of the structure that keeps the global state of the store (&lt;code&gt;state_t&lt;/code&gt;). The store has a maximum capacity of 32 slots, the current size of the store is stored in the lower 5 bits (&lt;code&gt;2**5 = 32&lt;/code&gt;) of some sort of status variable. At this point I started drafting the structure &lt;code&gt;state_t&lt;/code&gt;:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    00000000 state_t         struc ; (sizeof=0x440, align=0x8)
@@ -877,6 +914,7 @@ e min elapsed
     00000438 xxx             dq ?
     00000440 state_t         ends
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The &lt;em&gt;Private Key Encryption&lt;/em&gt; function is the one that looked a bit more involved than the others. But as far as I was concerned, it was doing ""arithmetic"" on numbers that you previously had stored: one called the message and one called the key.&lt;/p&gt;
 &lt;p&gt;Before actually starting to look for issues, I needed to answer two questions:&lt;/p&gt;
@@ -901,6 +939,7 @@ e min elapsed
          &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;OutOfRange&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;There's a catch though. If we look closer at every instance of code that interacts with the &lt;code&gt;size&lt;/code&gt; field of the store there is something a bit weird going on.&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="catchme.png" src="/images/bevx-challenge-on-the-operation-table/catchme.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;p&gt;In the above screenshot you can see that the highlighted cross-reference looks a bit odd as it is actually changing the size by setting the bit number three (&lt;code&gt;0b1000&lt;/code&gt;). If we pull the code for this function we can see the below:&lt;/p&gt;
@@ -917,6 +956,7 @@ e min elapsed
         &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Row number is out of range&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;cout&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;I completely overlooked this detail at first as this bit is properly cleared out on error (with the &lt;code&gt;0xF7&lt;/code&gt; mask). This bit also sounded to be used as a switch to start or stop the encryption process. I could clearly see it used in the encryption loop like in the below:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;while&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;number_store&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="c1"&gt;// do stuff&lt;/span&gt;
@@ -929,6 +969,7 @@ e min elapsed
       &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The thing is, as this bit overlaps with the 5th bit of the store size, setting it also means that we can now access slots from index 0 up to slot &lt;code&gt;0x10|8=0x18&lt;/code&gt;. If the previous is a bit confusing, consider the following C structure:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;union&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -938,6 +979,7 @@ e min elapsed
         &lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="nl"&gt;store_size&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;size&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And as we said a bit earlier the key material is stored in the slot &lt;code&gt;number_of_rows + 2 = 0n18&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kr"&gt;__int64&lt;/span&gt; &lt;span class="nf"&gt;realmain&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;struct_buffer&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;number_store&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -953,6 +995,7 @@ e min elapsed
       &lt;span class="n"&gt;number_store&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nrows&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mh"&gt;0x1F&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt; &lt;span class="n"&gt;number_store&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mh"&gt;0xE0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
       &lt;span class="c1"&gt;// ...&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Cool beans, I guess we now have a way to have the application interact with the slot containing the private key which sounds like... progress, right? &lt;/p&gt;
 &lt;h1 id="bending-the-needle-building-an-oracle"&gt;Bending the needle: building an oracle&lt;/h1&gt;
@@ -982,10 +1025,12 @@ e min elapsed
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;As you might have figured, we have basically two avenues (technically three I guess.. but one is clearly useless :-D). Either we load the private key as the message, or we load it as the key parameter.&lt;/p&gt;
 &lt;p&gt;If we do the former - based on the encryption logic - we end up with no real control over the way the &lt;code&gt;magicnumber&lt;/code&gt; is going to be computed. Keep in mind the numbers in the store are all encrypted with the &lt;code&gt;encrypt&lt;/code&gt; function and when the key is retrieved out of the store, it isn't decrypted (it is not a normal &lt;em&gt;get&lt;/em&gt; operation) but just &lt;code&gt;memcpy&lt;/code&gt;'d to the &lt;code&gt;keycpy&lt;/code&gt; field like in the below:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;memmove&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;number_store&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;keycpy&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;number_store&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;numbers&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;keyslot&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="mi"&gt;32&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;So even if we can insert a known value in the store, we wouldn't really know what it would look like once encrypted.&lt;/p&gt;
 &lt;p&gt;If we load the private key as the key though, we now have.. an oracle! As the user can stop the decryption process whenever wanted, the attack could work as follows (assuming you would like to leak one byte of the private key):&lt;/p&gt;
@@ -1094,6 +1139,7 @@ e min elapsed
     &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Which should result in something like below:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="leakit.gif" src="/images/bevx-challenge-on-the-operation-table/leakit.gif"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;h1 id="conclusion"&gt;Conclusion&lt;/h1&gt;
@@ -1148,6 +1194,7 @@ e min elapsed
     &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;license_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here we have a global variable providing the type of the license, used to enable and disable features of the application.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;enum&lt;/span&gt; &lt;span class="n"&gt;result_t&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
@@ -1156,6 +1203,7 @@ e min elapsed
     &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This is a convenient &lt;code&gt;enum&lt;/code&gt; used as a result for the validation. &lt;code&gt;INVALID&lt;/code&gt; and &lt;code&gt;VALID&lt;/code&gt; values are pretty self-explanatory.  &lt;code&gt;VALID_IF_LAST_VERSION&lt;/code&gt; tells that this registration is valid only if the current software version is the last available. The reasons for this strange possibility will be clear shortly.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cp"&gt;#define HEADER_SIZE 8192&lt;/span&gt;
     &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1163,6 +1211,7 @@ e min elapsed
         &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1000000&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;mail_digest_table&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This is a data structure, containing digests of mail addresses of known registered users. This is a pretty big file embedded in the executable itself. During startup, a resource is extracted in a temporary file and its content copied into this struct. Each element of the &lt;code&gt;header&lt;/code&gt; vector is an offset pointing inside the &lt;code&gt;data&lt;/code&gt; vector.&lt;/p&gt;
 &lt;p&gt;Here we have a pseudo-C code for the registration check, that uses data types and variables explained above:&lt;/p&gt;
@@ -1189,6 +1238,7 @@ e min elapsed
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The validation is divided in three main parts:&lt;/p&gt;
 &lt;ul&gt;
@@ -1224,6 +1274,7 @@ e min elapsed
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The version check is done by making an HTTP request to a specific page that returns a page having only the last version number of the software. Don't ask me why the protection is not completely server side but involves static tables, version checks and things like that. I don't know!&lt;/p&gt;
 &lt;p&gt;Anyway, this is the big picture of the registration validation functions, and this is pretty boring. Let's move on to the interesting part. You may notice that I provided code for the main procedure, but not for the helper functions like &lt;code&gt;get_license_type&lt;/code&gt;, &lt;code&gt;compute_customer_number&lt;/code&gt;, and so on. This is because I did not have to reverse them. They contain a lot of arithmetical and logical operations on registration data, and they are very difficult to understand. The good news is that we do not have to understand them, we need only to reverse them!&lt;/p&gt;
 &lt;h2 id="symbolic-execution"&gt;Symbolic execution&lt;/h2&gt;
@@ -1235,6 +1286,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;v2&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;v1&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
        &lt;span class="n"&gt;error&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We want to check if &lt;code&gt;error&lt;/code&gt; is reachable, by using symbolic variables &lt;code&gt;SymVar_1&lt;/code&gt; and &lt;code&gt;SymVar_2&lt;/code&gt;, assigned to the program's variables &lt;code&gt;v1&lt;/code&gt; and &lt;code&gt;v2&lt;/code&gt;. In line 2 we have the condition &lt;code&gt;v1 &amp;gt; 0&lt;/code&gt; and so, the symbolic engine adds a constraint &lt;code&gt;SymVar_1 &amp;gt; 0&lt;/code&gt; for the &lt;em&gt;true branch&lt;/em&gt; or conversely &lt;code&gt;SymVar_1 &amp;lt;= 0&lt;/code&gt; for the &lt;em&gt;false branch&lt;/em&gt;. It then continues the execution trying with the first constraint. Whenever a new path condition is reached, new constraints are added to the symbolic state, until that condition is no more satisfiable. In that case, the engine backtracks and replaces some constraints with their negation, in order to reach other code paths. The execution engine tries to cover all code paths, by solving those constraints and their negations. For each portion of the code reached, the symbolic engine outputs a test case covering that part of the program, providing concrete values for the input variables. In the particular example given, the engine continues the execution, and finds the condition &lt;code&gt;v2 == 0 &amp;amp;&amp;amp; v1 &amp;lt;= 0&lt;/code&gt; at line 4. The path formula becomes so: &lt;code&gt;SymVar_1 &amp;gt; 0 &amp;amp;&amp;amp; (SymVar_2 == 0 &amp;amp;&amp;amp; SymVar_1 &amp;lt;= 0)&lt;/code&gt;, that is not satisfiable. The symbolic engine provides then values for the variables that satisfies the previous formula (&lt;code&gt;SymVar_1 &amp;gt; 0&lt;/code&gt;). For example &lt;code&gt;SymVar_1 = 1&lt;/code&gt; and some random value for &lt;code&gt;SymVar_2&lt;/code&gt;. The engine then backtrack to the previous branch and uses the negation of the constraint, that is &lt;code&gt;SymVar_1 &amp;lt;= 0&lt;/code&gt;. It then adds the negation of the current constraint to cover the false branch, obtaining &lt;code&gt;SymVar_1 &amp;lt;= 0 &amp;amp;&amp;amp; (SymVar_2 != 0 || SymVar_1 &amp;gt; 0)&lt;/code&gt;. This is satisfiable with &lt;code&gt;SymVar_1 = -1&lt;/code&gt; and &lt;code&gt;SymVar_2 = 0&lt;/code&gt;. This concludes the analysis of the program paths, and our symbolic execution engine can output the following test cases:&lt;/p&gt;
 &lt;ul&gt;
@@ -1275,6 +1327,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This is actually a silly example, I know, but let's pretend to verify this function with this main:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;assert.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
     &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;klee/klee.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
@@ -1285,6 +1338,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;check_arg&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In &lt;code&gt;main&lt;/code&gt; we have a symbolic variable used as input for the function to be tested. We can also modify it to include an assertion:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BOOL&lt;/span&gt; &lt;span class="nf"&gt;check_arg&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1297,10 +1351,12 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We can now use &lt;code&gt;clang&lt;/code&gt; to compile the program to the LLVM byte code and run the test generation with the &lt;code&gt;klee&lt;/code&gt; command:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    clang -emit-llvm -g -o test.ll -c test.c
     klee test.ll
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We get this output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    KLEE: output directory is &amp;quot;/work/klee-out-0&amp;quot;
@@ -1309,6 +1365,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: completed paths = 2
     KLEE: done: generated tests = 2
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;KLEE will generate test cases for the &lt;code&gt;input&lt;/code&gt; variable, trying to cover all the possible execution paths and to make the provided assertions to fail (if any given). In this case we have two execution paths and two generated test cases, covering them. Test cases are in the output directory (in this case &lt;code&gt;/work/klee-out-0&lt;/code&gt;). The soft link &lt;code&gt;klee-last&lt;/code&gt; is also provided for convenience, pointing to the last output directory. Inside that directory a bunch of files were created, including the two test cases named &lt;code&gt;test000001.ktest&lt;/code&gt; and &lt;code&gt;test000002.ktest&lt;/code&gt;. These are binary files, which can be examined with the &lt;code&gt;ktest-tool&lt;/code&gt; utility. Let's try it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ktest-tool --write-ints klee-last/test000001.ktest 
@@ -1320,11 +1377,13 @@ execute. For example:&lt;/p&gt;
     object    0: data: 2147483647
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And the second one:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ktest-tool --write-ints klee-last/test000002.ktest 
     ...
     object    0: data: 0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In these test files, KLEE reports the command line arguments, the symbolic objects along with their size and the value provided for the test. To cover the whole program, we need &lt;code&gt;input&lt;/code&gt; variable to get a value greater than 10 and one below or equal. You can see that this is the case: in the first test case the value 2147483647 is used, covering the first branch, while 0 is provided for the second, covering the other branch.&lt;/p&gt;
 &lt;p&gt;So far, so good. But what if we change the function in this way?&lt;/p&gt;
@@ -1338,6 +1397,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We get this output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ klee test.ll 
     KLEE: output directory is &amp;quot;/work/klee-out-2&amp;quot;
@@ -1349,6 +1409,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: generated tests = 3
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And this is the &lt;code&gt;klee-last&lt;/code&gt; directory contents:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ls klee-last/
     assembly.ll   run.istats        test000002.assert.err  test000003.ktest
@@ -1356,12 +1417,14 @@ execute. For example:&lt;/p&gt;
     messages.txt  test000001.ktest  test000002.pc
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Note the &lt;code&gt;test000002.assert.err&lt;/code&gt; file. If we examine its corresponding test file, we have:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ktest-tool --write-ints klee-last/test000002.ktest 
     ktest file : &amp;#39;klee-last/test000002.ktest&amp;#39;
     ...
     object    0: data: 10
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;As we had expected, the assertion fails when &lt;code&gt;input&lt;/code&gt; value is 10. So, as we now have three execution paths, we also have three test cases, and the whole program gets covered. KLEE provides also the possibility to replay the tests with the real program, but we are not interested in it now. You can see a usage example in this &lt;a href="http://klee.github.io/tutorials/testing-function/#replaying-a-test-case"&gt;KLEE tutorial&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;KLEE's abilities to find execution paths of an application are very good. According to the &lt;a href="http://llvm.org/pubs/2008-12-OSDI-KLEE.html"&gt;OSDI 2008 paper&lt;/a&gt;, KLEE has been successfully used to test all 89 stand-alone programs in GNU COREUTILS and the equivalent busybox port, finding previously undiscovered bugs, errors and inconsistencies. The achieved code coverage were more than 90% per tool. Pretty awesome!&lt;/p&gt;
@@ -1376,6 +1439,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And we want to know for what input we get the output 253. A main that tests this could be:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;atoi&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]);&lt;/span&gt;
@@ -1388,6 +1452,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;KLEE can resolve this problem for us, if we provide symbolic inputs and actually an assert to trigger:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
@@ -1398,6 +1463,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Run KLEE and print the result:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o magic.ll -c magic.c
@@ -1411,11 +1477,13 @@ execute. For example:&lt;/p&gt;
     object    0: data: -254
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The answer is -254. Let's test it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ gcc magic.c
     $ ./a.out -254
     You win!
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Yes!&lt;/p&gt;
 &lt;h2 id="klee-libc-and-command-line-arguments"&gt;KLEE, libc and command line arguments&lt;/h2&gt;
@@ -1425,6 +1493,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;If we run it with KLEE we get this error:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o atoi.ll -c atoi.c
@@ -1436,6 +1505,7 @@ execute. For example:&lt;/p&gt;
     KLEE: NOTE: now ignoring this error at this location
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;To fix this we can use the KLEE uClibc and POSIX runtime. Taken from the help:&lt;/p&gt;
 &lt;p&gt;&lt;em&gt;"If we were running a normal native application, it would have been linked with the C library, but in this case KLEE is running the LLVM bitcode file directly. In order for KLEE to work effectively, it needs to have definitions for all the external functions the program may call. Similarly, a native application would be running on top of an operating system that provides lower level facilities like write(), which the C library uses in its implementation. As before, KLEE needs definitions for these functions in order to fully understand the program. We provide a POSIX runtime which is designed to work with KLEE and the uClibc library to provide the majority of operating system facilities used by command line applications"&lt;/em&gt;.&lt;/p&gt;
@@ -1452,6 +1522,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: completed paths = 68
     KLEE: done: generated tests = 68
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And KLEE founds the possible out of bound access in our program. Because you know, our program is bugged :) Before to jump and fix our code, let me briefly explain what these new flags did:&lt;/p&gt;
 &lt;ul&gt;
@@ -1473,6 +1544,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We could also have written &lt;code&gt;klee_assert(result != 42)&lt;/code&gt;, and get the same result. No matter what solution we adopt, now we have to run KLEE as before:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o atoi2.ll -c atoi2.c
     $ klee --optimize --libc=uclibc --posix-runtime atoi2.ll --sym-args 0 1 3
@@ -1488,6 +1560,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: generated tests = 69
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here we go! We have fixed our bug. KLEE is also able to find an input to make the assertion fail:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ls klee-last/ | grep err
     test000016.assert.err
@@ -1501,6 +1574,7 @@ execute. For example:&lt;/p&gt;
     object    1: data: &amp;#39;+42\x00&amp;#39;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And the answer is the string "+42"... as we know.&lt;/p&gt;
 &lt;p&gt;There are many other KLEE options and functionalities, but let's move on and try to solve our original problem. Interested readers can find a good tutorial, for example, in &lt;a href="http://klee.github.io/tutorials/testing-coreutils/"&gt;How to Use KLEE to Test GNU Coreutils&lt;/a&gt;.&lt;/p&gt;
@@ -1536,6 +1610,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Super simple. Copy and paste everything, make the inputs symbolic and assert a certain result (negated, of course).&lt;/p&gt;
 &lt;p&gt;No! That's not so simple. This is actually the most difficult part of the game. First of all, what do we want to copy? We don't have the source code. In my case I used Hex-Rays decompiler, so maybe I have cheated. When you decompile, however, you don't get immediately a compilable C source code, since there could be dependencies between functions, global variables, and specific Hex-Rays types. For this latter problem I've prepared a &lt;a href="https://github.com/mbrt/keygen-post/blob/master/src/ida_defs.h"&gt;&lt;code&gt;ida_defs.h&lt;/code&gt;&lt;/a&gt; header, providing defines coming from IDA and from Windows headers.&lt;/p&gt;
 &lt;p&gt;But what to copy? The high level picture of the validation algorithm I have presented is an ideal one. The &lt;code&gt;check_registration&lt;/code&gt; function is actually a big set of auxiliary functions and data, very tightened with other parts of the program. Even if we now know the most interesting functions, we need to know how much of the related code, is useful or not. We cannot throw everything in our key generator, since every function brings itself other related data and functions. In this way we will end up having the whole program in it. We need to minimize the code KLEE has to analyze, otherwise it will be too difficult to have its job done.&lt;/p&gt;
@@ -1557,6 +1632,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;But, cutting out code is not the only problem I've found in this step. External constraints must be carefully considered. For example the &lt;a href="http://www.cplusplus.com/reference/ctime/time/"&gt;time&lt;/a&gt; function can be handled by KLEE itself. KLEE tries to generate useful values even from that function. This is good if we want to test bugs related to a strange current time, but in our case, since the code will be executed by the program &lt;em&gt;at a particular time&lt;/em&gt;, we are only interested in the value provided at that time. We don't want KLEE traits this function as symbolic; we only want the right time value. To solve that problem, I have replaced all the calls to &lt;code&gt;time&lt;/code&gt; to a &lt;code&gt;my_time&lt;/code&gt; function, returning a fixed value, defined in the source code.&lt;/p&gt;
 &lt;p&gt;Another problem comes from the extraction of the functions from their outer context. Often code is written with &lt;em&gt;implicit conventions&lt;/em&gt; in mind. These are not self-evident in the code because checks are avoided. A trivial example is the null terminator and valid ASCII characters in strings. KLEE does not assume those constraints, but the validation code does. This is because the GUI provides only valid strings. A less trivial example is that the mail address is always passed lowercase from the GUI to the lower level application logic. This is not self-evident if you do not follow every step from the user input to the actual computations with the data.&lt;/p&gt;
 &lt;p&gt;The solution to this latter problem is to provide those constraints to KLEE:&lt;/p&gt;
@@ -1570,12 +1646,14 @@ execute. For example:&lt;/p&gt;
     &lt;span class="n"&gt;klee_assume&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="sc"&gt;&amp;#39;\0&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Logical operators inside &lt;code&gt;klee_assume&lt;/code&gt; function are bitwise and not logical (i.e. &lt;code&gt;&amp;amp;&lt;/code&gt; and &lt;code&gt;|&lt;/code&gt; instead of &lt;code&gt;&amp;amp;&amp;amp;&lt;/code&gt; and &lt;code&gt;||&lt;/code&gt;) because they are simpler, since they do not add the extra branches required by lazy operators.&lt;/p&gt;
 &lt;h2 id="throw-everything-into-klee"&gt;Throw everything into KLEE&lt;/h2&gt;
 &lt;p&gt;Having extracted all the needed functions and global data and solved all the issues with the code, we can now move on and run KLEE with our brand new test program:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o attempt1.ll -c attempt1.c
     $ klee --optimize --libc=uclibc --posix-runtime attempt1.ll
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And then wait for an answer.&lt;/p&gt;
 &lt;p&gt;And wait for another while.&lt;/p&gt;
@@ -1612,6 +1690,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And let's see if KLEE can work with this single function:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o serial_type.ll -c serial_type.c
     $ klee --optimize --libc=uclibc --posix-runtime serial_type.ll
@@ -1633,6 +1712,7 @@ execute. For example:&lt;/p&gt;
     object    1: data: 102690141
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Yes! we now have a serial number that is considered PRO by our target application.&lt;/p&gt;
 &lt;p&gt;The third condition is less simple: we have a table in which are stored values matching mail addresses with serial numbers. The high level check is this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;check&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1647,6 +1727,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This piece of code imposes constraints on our mail address and serial number, but not on the customer number. We can rewrite the checks in two parts, the one checking the serial, and the one checking the mail address:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;check_serial&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -1664,6 +1745,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The &lt;code&gt;check_mail&lt;/code&gt; function needs the index in the table as secondary input, so it is not completely independent from the other check function. However, &lt;code&gt;check_mail&lt;/code&gt; can be incorporated by our successful test program used before:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// ...&lt;/span&gt;
 
@@ -1679,6 +1761,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="n"&gt;klee_assert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;valid&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And if we run it, we get our revised serial number, that satisfies the additional constraint:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o serial.ll -c serial.c
@@ -1696,10 +1779,12 @@ execute. For example:&lt;/p&gt;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;For those who are wondering if &lt;code&gt;get_index_in_mail_table&lt;/code&gt; could return a negative index, and so possibly crash the program I can answer that they are not alone. &lt;a href="https://twitter.com/0vercl0k"&gt;@0vercl0k&lt;/a&gt; asked me the same question, and unfortunately I have to answer a no. I tried, because I am a lazy ass, by changing the assertion above to &lt;code&gt;klee_assert(index &amp;lt; 0)&lt;/code&gt;, but it was not triggered by KLEE. I then manually checked the function's code and I saw a beautiful &lt;code&gt;if (result &amp;lt; 0) result = 0&lt;/code&gt;. So, the answer is no! You have not found a vulnerability in the application :(&lt;/p&gt;
 &lt;p&gt;For the &lt;code&gt;check_mail&lt;/code&gt; solution we have to provide the index of a serial, but wait... we have it! We have now a serial, so, computing the index of the table is simple as executing this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_index_in_mail_table&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Therefore, given a serial number, we can solve the mail address in this way:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// ...&lt;/span&gt;
@@ -1730,6 +1815,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We only have to run KLEE with the additional serial argument, providing the computed one by the previous step.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o mail.ll -c mail.c
     $ klee --optimize --libc=uclibc --posix-runtime mail.ll 120300641
@@ -1745,12 +1831,14 @@ execute. For example:&lt;/p&gt;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;OK, the mail found by KLEE is "yrwt". This is not a mail, of course, but in the code there is not a proper validation imposing the presence of '@' and '.' chars, so we are fine with it :)&lt;/p&gt;
 &lt;p&gt;The last piece of the puzzle we need is the customer number. Here is the check:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;expected_customer&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;compute_customer_number&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expected_customer&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;customer_num&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This is simpler than before, since we already have a serial and a mail, so the only thing missing is a customer number matching those. We can compute it directly, even without symbolic execution:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;
@@ -1766,11 +1854,13 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Let's execute it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ gcc customer.c customer
     $ ./customer 120300641 yrwt
     1175211979
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Yeah! And if we try those numbers and mail address onto the real program, we are now legit and registered users :)&lt;/p&gt;
 &lt;h2 id="want-more-keys"&gt;Want more keys?&lt;/h2&gt;
@@ -1794,6 +1884,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We now need a script that runs KLEE and collect the results for all those chunks. Here it is:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;#!/bin/bash&lt;/span&gt;
@@ -1826,6 +1917,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="k"&gt;done&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This script uses the &lt;code&gt;solve.sh&lt;/code&gt; script, that does the actual work and prints the result of KLEE runs:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;#!/bin/bash&lt;/span&gt;
     &lt;span class="c1"&gt;# do work&lt;/span&gt;
@@ -1841,6 +1933,7 @@ execute. For example:&lt;/p&gt;
     rm -f klee-last
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here is the final run:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ./keygen_all.sh
     Index;License;Mail;Customer
@@ -1850,6 +1943,7 @@ execute. For example:&lt;/p&gt;
     2410;112625605;7cxd;554797040
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Note that not all the serial numbers are solvable, but we are OK with that. We now have a bunch of solved registrations. We can put them in some simple GUI that exposes to the user one of them randomly.&lt;/p&gt;
 &lt;p&gt;That's all folks.&lt;/p&gt;
@@ -1966,6 +2060,7 @@ Apparently, the three tasks have already been &lt;a href="https://twitter.com/Sy
     Linux debian-mipsel &lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta &lt;span class="c1"&gt;#1 Debian 3.2.51-1 mips GNU/Linux&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Feel free to install your essentials in the virtual environment, some tools might come handy (it should take a bit of time to install them though):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    root@debian-mipsel:~# aptitude install strace gdb gcc python
     root@debian-mipsel:~# wget https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
@@ -1998,12 +2093,14 @@ Apparently, the three tasks have already been &lt;a href="https://twitter.com/Sy
        0x402040 &amp;lt;main+28&amp;gt;:  li      v0,2
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And finally you should be able to run the wild beast:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    root@debian-mipsel:~# /home/user/crackmips
     usage: /home/user/crackmips password
     root@debian-mipsel:~# /home/user/crackmips &lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
     WRONG PASSWORD
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Brilliant :-).&lt;/p&gt;
 &lt;h2 id="the-big-picture"&gt;The big picture&lt;/h2&gt;
@@ -2053,6 +2150,7 @@ If you prefer code, here is the big picture in C:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h1 id="lets-get-our-hands-dirty"&gt;Let's get our hands dirty&lt;/h1&gt;
 &lt;h2 id="fathers-in-charge"&gt;Father's in charge&lt;/h2&gt;
 &lt;p&gt;The first thing I did after having the big picture was to look at the code of the father. Why? The code seemed a bit simpler than the son's one, so I figured studying the father would make more sense to understand what kind of protection we need to subvert.
@@ -2098,6 +2196,7 @@ You can even crank up &lt;a href="http://linux.die.net/man/1/strace"&gt;strace&l
     [7737052c] ptrace(PTRACE_CONT, 2539, 0, SIG_0) = 0
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;That's an interesting output that I didn't expect at all actually. What we are seeing here is the father driving its son by modifying, potentially (we will find out that later), its context every time the son is &lt;em&gt;SIGTRAP&lt;/em&gt;ing (note &lt;em&gt;waitpid&lt;/em&gt; second argument).&lt;/p&gt;
 &lt;p&gt;From here, if you are quite familiar with the different existing type of software protections (I'm not saying I am an expert in this field but I just happened to know that one :-P) you can pretty much guess what that is: nanomites this is!&lt;/p&gt;
@@ -2164,6 +2263,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;int&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;addr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;instr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a2&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;From here you have all the information you need: the instruction and its operands (&lt;em&gt;None&lt;/em&gt; if an operand doesn't exist as you can have up to 3 operands). The other important job that follows is to handle the different type of operands ; here are the ones I encountered in the challenge:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;General purpose register,&lt;/li&gt;
@@ -2204,6 +2304,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="n"&gt;_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;var_name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;+&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;var_name&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;(fp)&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Finally, we have to handle every different instructions and their encodings. Of course, you need to implement only the instructions you want: most likely the ones that are used in the code you are interested int. In a nutshell, this is the core of the engine. You can also use it to output valid Python/C lines if you fancy having a decompiler in your sleeve ; might be handy right?&lt;/p&gt;
 &lt;p&gt;This is what the core function looks like, it is really simple, dumb and so unoptimized ; but at least it's clear to me:&lt;/p&gt;
@@ -2248,6 +2349,7 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="o"&gt;...&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The first level of &lt;em&gt;if&lt;/em&gt; handles the different instructions, the second level of &lt;em&gt;if&lt;/em&gt; handles the different encodings an instruction can have. The &lt;em&gt;self.logger&lt;/em&gt; thingy is just my way to save the execution traces in files to let the console clean:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="fm"&gt;__init__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;trace_name&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
       &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;gpr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -2288,6 +2390,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;logger&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;addHandler&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;h&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;At that point, if I wanted only an emulator I would be done. But because I want to use &lt;a href="https://z3.codeplex.com/"&gt;Z3&lt;/a&gt; and symbolic variables I want to get your attention on two common pitfalls that can cost you hours of debugging (trust me on that one :-():&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;The first one is that the operator &lt;em&gt;__rshift__&lt;/em&gt; isn't the logical right shift but the arithmetical one; which is quite different and can generate results you don't expect:&lt;/li&gt;
@@ -2304,6 +2407,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="n"&gt;Out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;To workaround that I usually define my own &lt;em&gt;_LShR&lt;/em&gt; function that does whatever is correct according to the operand types (yes we could also replace &lt;em&gt;z3.BitVecNumRef.__rshift__&lt;/em&gt; by &lt;em&gt;LShR&lt;/em&gt; directly):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_LShR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
       &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Useful hook function if you want to run the emulation&lt;/span&gt;
@@ -2316,6 +2420,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;LShR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;b&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;ul&gt;
 &lt;li&gt;The other interesting detail to keep in mind is that you can't have any overflow on &lt;em&gt;BitVec&lt;/em&gt;s of the same size ; the result is automatically truncated. So if you happen to have mathematical operations that need to overflow, like a multiplication (this is used in the challenge), you should store the temporary result in a bigger temporary variable. In my case, I was supposed to store the overflow inside another register, &lt;em&gt;$hi&lt;/em&gt; which is used to store the high &lt;em&gt;DWORD&lt;/em&gt; part of the result. But because I wasn't storing the result in a bigger &lt;em&gt;BitVec&lt;/em&gt;, &lt;em&gt;$hi&lt;/em&gt; ended up &lt;strong&gt;always&lt;/strong&gt; equal to zero which is quite a nice problem when you have to pinpoint this issue in thousands lines of assembly :-).&lt;/li&gt;
@@ -2341,6 +2446,7 @@ It usually works this way:&lt;/p&gt;
             &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;gpr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;lo&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mh"&gt;0xffffffff&lt;/span&gt;
             &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;gpr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;hi&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_LShR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;32&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;I think this is it really, you can now impress girls with your brand new shiny toy, check this out:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
@@ -2382,6 +2488,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Which results in:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\Codes\NoSuchCon2014&amp;gt; python .\mini_mips_symexec_engine.py
     ==================================================
@@ -2398,6 +2505,7 @@ It usually works this way:&lt;/p&gt;
     Resulting value when `a` is 0xdeadb44: 0x98f42d24
     ==================================================
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Of course, I didn't mention a lot of details that still need to be addressed to have something working: simulating data areas, memory layouts, etc. If you are interested in those, you should read the codes in my &lt;a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014"&gt;NoSuchCon2014 folder&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="back-into-the-battlefield"&gt;Back into the battlefield&lt;/h2&gt;
@@ -2425,6 +2533,7 @@ It usually works this way:&lt;/p&gt;
 &lt;span class="s1"&gt;    .text:0040143C                 sw      $v0, 0x318+tmp_pc($fp)  # Store Word&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Then we have to prepare the environment of our engine: the two symbolic variables are stack-variables, so we have to insert them in the context of our virtual environment. The resulting formula is going to be in &lt;em&gt;$v0&lt;/em&gt; at the end of the execution ; this the holy grail, the formula we are after.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;extract_equation_of_function_that_generates_magic_value&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
       &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Here we do some magic to transform our mini MIPS emulator&lt;/span&gt;
@@ -2446,6 +2555,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;pc_son&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;simplify&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;compute_magic_equation&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;You can now keep in memory the formula &amp;amp; wrap this function in another one so that you can reuse it every time you need it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;var_magic&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;var_n_break&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;expr_magic&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;
     &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;generate_magic_from_son_pc_using_z3&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pc_son&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
@@ -2462,6 +2572,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;var_n_break&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;BitVecVal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;32&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
       &lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;as_long&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The power of using symbolic variables here lies in the fact that we don't need to run the emulator every single time you need to call this function ; you get once the generic formula and you just have to substitute the symbolic variables by the concrete values you want. This comes for free with our code, so let's use it heh :-).&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ; generate_magic_from_pc_son
@@ -2547,6 +2658,7 @@ It usually works this way:&lt;/p&gt;
     (bvor (bvlshr ?x450 ?x20) (bvshl ?x450 ?x24)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Quite happy we don't have to study that right?&lt;/p&gt;
 &lt;h3 id="extracting-the-function-that-generates-the-new-program-counter-from-the-second-magic-value"&gt;Extracting the function that generates the new program counter from the second magic value&lt;/h3&gt;
 &lt;p&gt;For the second big block of code, we can do exactly the same thing: copy the code, configure the virtual environment with our symbolic variables and wrap the function:&lt;/p&gt;
@@ -2579,11 +2691,13 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;as_long&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;If you are interested in what the formula looks like, it is also available in the &lt;a href="https://github.com/0vercl0k/stuffz/tree/master/NoSuchCon2014"&gt;NoSuchCon2014 folder&lt;/a&gt; on my &lt;a href="https://github.com/0vercl0k"&gt;github&lt;/a&gt;.&lt;/p&gt;
 &lt;h3 id="putting-it-all-together-building-a-function-that-computes-the-new-program-counter-of-the-son"&gt;Putting it all together: building a function that computes the new program counter of the son&lt;/h3&gt;
 &lt;p&gt;Obviously, we don't really care about those two previous functions, we just want to combine them together to implement the computation of the new program counter from both the round number &amp;amp; where the son &lt;em&gt;SIGTRAP&lt;/em&gt;'d. The only missing bits is the lookup in the &lt;em&gt;QWORD&lt;/em&gt;s array to extract the &lt;em&gt;second magic value&lt;/em&gt;. We just have to dump the array inside another file called &lt;em&gt;memory.py&lt;/em&gt;. This is done with a simple IDA Python one-liner:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;values&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;dict&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="mh"&gt;0x00414130&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Qword&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x00414130&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x25E&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Now, we can build the whole function easily by combining all those pieces:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;generate_new_pc_from_pc_son_using_z3&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pc_son&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
@@ -2600,6 +2714,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="k"&gt;assert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;idx&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;generate_new_pc_from_magic_high&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;memory&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pcs&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;32&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;loop_n&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Sweet. Really sweet.&lt;/p&gt;
 &lt;p&gt;This basically means we are now able to &lt;em&gt;unscramble&lt;/em&gt; the code of the son and reordering it completely without even physically running the binary nor generating traces.&lt;/p&gt;
@@ -2680,6 +2795,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;cleaned_code&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And there it is :-)&lt;/p&gt;
 &lt;p&gt;The function outputs the unrolled and ordered code of the son. If you want to push further, you could theoretically perform an open-heart surgery to completely remove the nanomites from the original binary, isn't it cool? This is left as an exercise for the interested reader though :-)).&lt;/p&gt;
 &lt;h2 id="attacking-the-son-the-last-man-standing"&gt;Attacking the son: the last man standing&lt;/h2&gt;
@@ -2719,6 +2835,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;run&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The thing that matters this time is to find &lt;em&gt;a, b, c, d, e, f&lt;/em&gt; so that they generate specific outputs ; so this is where &lt;a href="https://z3.codeplex.com/"&gt;Z3&lt;/a&gt; is going to help us a &lt;strong&gt;lot&lt;/strong&gt;. Thanks to that guy we don't need to manually invert the algorithm.&lt;/p&gt;
 &lt;p&gt;The final bit now is basically just about setting up the solver, setting the correct constraints and generating the serial you guys have been waiting for so long:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;      &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;gt; Instantiating &amp;amp; configuring the solver..&amp;#39;&lt;/span&gt;
@@ -2740,6 +2857,7 @@ It usually works this way:&lt;/p&gt;
       &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
         &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;! Constraints unsolvable&amp;#39;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;There we are, the final moment; &lt;em&gt;drum roll&lt;/em&gt;&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\Codes\NoSuchCon2014&amp;gt; python .\solve_nsc2014_step1_z3.py
@@ -2775,6 +2893,7 @@ It usually works this way:&lt;/p&gt;
     Next level is there: http://nsc2014.synacktiv.com:65480/oob4giekee4zaeW9/
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Boom :-).&lt;/p&gt;
 &lt;h1 id="alternative-solution"&gt;Alternative solution&lt;/h1&gt;
 &lt;p&gt;In this part, I present an alternate solution to solve the challenge. It's somehow a shortcut, since it requires much less coding than Axel's one, and uses the awesome &lt;a href="https://code.google.com/p/miasm/"&gt;Miasm&lt;/a&gt; framework.&lt;/p&gt;
@@ -2809,6 +2928,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="n"&gt;waitpid&lt;/span&gt;&lt;span class="p"&gt;()):&lt;/span&gt;
             &lt;span class="k"&gt;break&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The "big blocks" are the two long assembly blocks preceding and following the inner loop. Without looking at the gory details, we understand that a &lt;code&gt;param&lt;/code&gt; value is derived from the counter using a function that I call &lt;code&gt;f&lt;/code&gt;, and then used to obfuscate the original child's &lt;code&gt;pc&lt;/code&gt;. The result is then searched in a &lt;code&gt;pcs&lt;/code&gt; array (stored at address &lt;code&gt;0414130&lt;/code&gt;), the next dword is extracted and used in a 2nd obfuscation pass to finally produce the new &lt;code&gt;pc&lt;/code&gt; value injected into the child.&lt;/p&gt;
 &lt;p&gt;The most important fact here is that that this process does not involve the input key at anytime. &lt;strong&gt;The output &lt;code&gt;pc&lt;/code&gt; sequence is deterministic and constant&lt;/strong&gt;; two executions with two different keys will produce the same sequence of &lt;code&gt;pc&lt;/code&gt;'s. Since we know the first value of &lt;code&gt;pc&lt;/code&gt; (the first &lt;code&gt;break&lt;/code&gt; instruction at 040228C), we can theoretically compute the correct sequence and then reorder the child's instructions according to this sequence.&lt;/p&gt;
@@ -2875,6 +2995,7 @@ It usually works this way:&lt;/p&gt;
     c
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;To run that script within GDB, we first need to start &lt;code&gt;crackmips&lt;/code&gt; with gdbserver in our &lt;code&gt;qemu&lt;/code&gt; VM. After a few minutes, we get the following (cleaned) trace:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    New round
     counter = 0
@@ -2900,6 +3021,7 @@ It usually works this way:&lt;/p&gt;
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;By reading the trace further, we realize that &lt;code&gt;param&lt;/code&gt; is always equal to &lt;code&gt;counter/101&lt;/code&gt;. This is actually the child's own loop counter, since its big loop is made of 101 pseudo basic blocks. We also notice that the &lt;code&gt;pc&lt;/code&gt; sequence is different for each child's loop: round 0 is not equal to round 101, etc.&lt;/p&gt;
 &lt;h3 id="getting-a-clean-trace"&gt;Getting a clean trace&lt;/h3&gt;
 &lt;p&gt;Since we're only interested in the final &lt;code&gt;pc&lt;/code&gt; value for each round, we can make a simpler script that just outputs those values. And organize them in a parsable format to be able to use them later in another script. Here is the version 2 of the script:&lt;/p&gt;
@@ -2923,6 +3045,7 @@ It usually works this way:&lt;/p&gt;
     c
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The cleaned trace only contains the 606 &lt;code&gt;pc&lt;/code&gt; values, one on each line:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0x00402290
     0x00402ce0
@@ -2932,6 +3055,7 @@ It usually works this way:&lt;/p&gt;
     0x004030e4
     0x004039dc
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Mission 1: accomplished!&lt;/p&gt;
 &lt;h2 id="shortcut-2-symbolic-execution-using-miasm"&gt;Shortcut #2 : Symbolic execution using Miasm&lt;/h2&gt;
@@ -2947,6 +3071,7 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="n"&gt;mn&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;dis_engine_cls&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ira_cls&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;machine&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mn&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;machine&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dis_engine&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;machine&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ira&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;First, we open the crackme using the generic &lt;code&gt;Container&lt;/code&gt; class. It automatically detects the executable format and uses &lt;em&gt;Elfesteem&lt;/em&gt; to parse it. Then we use the handy &lt;code&gt;Machine&lt;/code&gt; class to get references to useful classes we'll use to disassemble and analyze the binary.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BB_BEGIN&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mh"&gt;0x00402290&lt;/span&gt;
     &lt;span class="n"&gt;BB_END&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mh"&gt;0x004022BC&lt;/span&gt;
@@ -2957,6 +3082,7 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="n"&gt;bloc&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;dis_engine&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dis_bloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BB_BEGIN&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;bloc&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;lines&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Here, we disassemble a single basic block, by explicitly telling Miasm its start and end address. The disassembler is created by instantiating the &lt;code&gt;dis_engine_cls&lt;/code&gt; class. &lt;code&gt;bi.bs&lt;/code&gt; represents the binary stream we are working on. I admit the &lt;code&gt;dont_dis&lt;/code&gt; syntax is a bit weird; it is used to tell Miasm to stop disassembling when it reaches a given address. We do it here because the next instruction is a &lt;code&gt;break&lt;/code&gt;, and Miasm does not normally think it is the end of a basic block. When you run those lines, you should get this output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    LW         V1, 0x38(FP)
@@ -2972,12 +3098,14 @@ It usually works this way:&lt;/p&gt;
     SW         A0, 0x8(V0)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Okay, so we know how to disassemble a block with Miasm. Let's now see how to convert it into the Intermediate Representation:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;# Transform to IR&lt;/span&gt;
     &lt;span class="n"&gt;ira&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ira_cls&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
     &lt;span class="n"&gt;irabloc&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ira&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;add_bloc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bloc&lt;/span&gt;&lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
     &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;lambda&lt;/span&gt; &lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]),&lt;/span&gt; &lt;span class="n"&gt;irabloc&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;irs&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We instantiated the &lt;code&gt;ira_cls&lt;/code&gt; class and called its &lt;code&gt;add_bloc&lt;/code&gt; method. It takes a basic block as input and outputs a list of IR basic blocs; here we know that we'll get only one, so we use &lt;code&gt;[0]&lt;/code&gt;. Let's see what is the output of those lines:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    V1 = @32[(FP+0x38)]
@@ -2993,6 +3121,7 @@ It usually works this way:&lt;/p&gt;
     @32[(V0+0x8)] = A0
     IRDst = loc_00000000004022BC:0x004022bc
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Each one of those lines are instructions in Miasm's IR language. It is pretty easy: each instruction is described as a list of side-effects it has on some variables, using expressions and affectations. &lt;code&gt;@32[...]&lt;/code&gt; represents a 32-bit memory access; when it's on the left of an &lt;code&gt;=&lt;/code&gt; sign, it's a &lt;em&gt;write&lt;/em&gt; access, when it's on the right it's a &lt;em&gt;read&lt;/em&gt;. The last line uses the pseudo-register &lt;code&gt;IRDst&lt;/code&gt;, which is kind of the IR's &lt;code&gt;pc&lt;/code&gt; register. It tells Miasm where is located the next basic block.&lt;/p&gt;
 &lt;p&gt;Great! Let's see now how to perform symbolic execution on this IR basic block.&lt;/p&gt;
@@ -3015,11 +3144,13 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\t&lt;/span&gt;&lt;span class="s2"&gt;after:&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;exprs&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The first lines are initializing the symbol pool used for symbolic execution. We then use the &lt;code&gt;symbexec&lt;/code&gt; module to create an execution engine, and we give it our fresh IR basic block. The result of the execution is readable by browsing the attributes of &lt;code&gt;sb.symbols&lt;/code&gt;. Here I am mainly interested on the memory side-effects, so I use &lt;code&gt;symbols_mem.items()&lt;/code&gt; to list them. &lt;code&gt;symbols_mem&lt;/code&gt; is actually a dict whose keys are the memory locations that changed during execution, and values are pairs containing both the previous value that was in that memory cell, and the new one. There's only one change, and here it is:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    Memory changed at (FP_init+(@32[(FP_init+0x38)] &amp;lt;&amp;lt; 0x2)+0x20) :
       before: @32[(FP_init+(@32[(FP_init+0x38)] &amp;lt;&amp;lt; 0x2)+0x20)]
       after: (@32[(FP_init+(@32[(FP_init+0x38)] &amp;lt;&amp;lt; 0x2)+0x20)]+(- @32[(FP_init+0x38)]))
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The expressions are getting a bit more complex, but still pretty readable. &lt;code&gt;FP_init&lt;/code&gt; represents the value of the &lt;code&gt;fp&lt;/code&gt; register at the beginning of execution. We can clearly see that a memory location as modified since a value was subtracted from it. But we can do better: we can give Miasm simplification rules in order to make this output much more readable. Let's do it!&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;# Simplifications&lt;/span&gt;
@@ -3041,6 +3172,7 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s2"&gt; = &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;my_simplify&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exprs&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt; &lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;my_simplify&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;exprs&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here we declare 3 replacement rules:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Replace &lt;code&gt;@32[(FP_init+0x38)]&lt;/code&gt; with &lt;code&gt;i&lt;/code&gt;&lt;/li&gt;
@@ -3050,6 +3182,7 @@ It usually works this way:&lt;/p&gt;
 &lt;p&gt;There is actually a more generic way to do it using pattern matching rules with jokers, but we don't really need this machinery here. This the result we get after simplification:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    pwd[i] = (pwd[i]+(- i))
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;That's all! So all this basic block does is a subtraction. What is nice is that the output is actually valid Python code :). This will be very useful in the last part.&lt;/p&gt;
 &lt;h3 id="generating-the-childs-algorithm"&gt;Generating the child's algorithm&lt;/h3&gt;
@@ -3083,6 +3216,7 @@ It usually works this way:&lt;/p&gt;
         &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="n"&gt;exprs2str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bb_exprs&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;bb_index&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The &lt;code&gt;analyse_bb()&lt;/code&gt; function perform symbolic execution on a single basic block, given its start and end addresses. This is just wrapping what we've been doing so far into a function. The GDB trace is opened, parsed, and a list of basic block addresses is built from it (we cheat a little bit for the last one of the loop, by hardcoding it). Each basic block is analyzed and the resulting expressions are pushed into the &lt;code&gt;bb_exprs&lt;/code&gt; list. Then the GDB trace is processed, by outputting the expressions corresponding to each basic block.&lt;/p&gt;
 &lt;p&gt;This is what we get:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;# Building IR blocs &amp;amp; expressions for all basic blocks&lt;/span&gt;
@@ -3098,6 +3232,7 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="n"&gt;pwd&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;pwd&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="mh"&gt;0x1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="mh"&gt;0x1F&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pwd&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;((((&lt;/span&gt;&lt;span class="mh"&gt;0x0&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="mh"&gt;0xFFFFFFFF&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="mh"&gt;0x20&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="mh"&gt;0x1F&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
     &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="mh"&gt;0x1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="solving-with-z3"&gt;Solving with Z3&lt;/h2&gt;
 &lt;p&gt;Okay, so now we have a Python (and even C ;) file describing the operations performed on the 6 dwords containing the input key. We could try to bruteforce it, but using a constraint solver is much more elegant and faster. I also chose Z3 because it has nice Python bindings. And since its expression syntax is mostly compatible with Python, we just need to add a few things to our generated file!&lt;/p&gt;
@@ -3139,11 +3274,13 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;KEY = &lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="n"&gt;key&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We've declared the valid solution, the list of 6 32-bit variables (&lt;code&gt;pwd&lt;/code&gt;), pasted the algorithm, and ran the solver. We just need to be careful with the &lt;code&gt;&amp;gt;&amp;gt;&lt;/code&gt; operation, since Z3 &lt;a href="http://stackoverflow.com/a/25535854"&gt;treats&lt;/a&gt; it as an arithmetic shift, and we want a logical one. So we replace it with a dirty hook.&lt;/p&gt;
 &lt;p&gt;The solution should come almost instantly:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ python sample_solver.py
     &lt;span class="nv"&gt;KEY&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="alternative-solution-conclusion"&gt;Alternative solution - conclusion&lt;/h2&gt;
 &lt;p&gt;I chose this solution not only to get acquainted with Miasm, but also because it required much less effort and pain :). It fits into approximately 20 lines of GDB script, and 120 of python using Miasm and Z3. You can find all of those in this &lt;a href="https://github.com/egirault/NoSuchCon2014/tree/master/"&gt;folder&lt;/a&gt;.
@@ -3226,6 +3363,7 @@ According to the description of the challenge Python is heavily involved, which 
                 &lt;span class="p"&gt;({&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;g&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;g&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;c&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;d&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;$&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;})))))))[&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;$&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;I think that was the first time I was seeing obfuscated Python and believe me I did a really strange face when seeing that snippet. But well, with a bit of patience we should manage to get a better understanding of how it is working, let's get to it!&lt;/p&gt;
 &lt;h2 id="tidying-up-the-last-one"&gt;Tidying up the last one..&lt;/h2&gt;
 &lt;p&gt;Before doing that here are things we can directly observe just by looking closely at the snippet:&lt;/p&gt;
@@ -3254,6 +3392,7 @@ According to the description of the challenge Python is heavily involved, which 
     &lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;That lambda takes a dictionary &lt;em&gt;x&lt;/em&gt;, sets two items, generates a tuple with a reference to the dictionary at the end of the tuple ; finally the lambda is going to return that same dictionary.
 It also uses &lt;em&gt;x['!']&lt;/em&gt; as a temporary variable to then assign its value to &lt;em&gt;x['l0']&lt;/em&gt;.&lt;/p&gt;
 &lt;p&gt;Long story short, it basically takes a dictionary, updates it and returns it to the caller: clever trick to pass that same object across lambdas. We can also see that easily in Python directly:&lt;/p&gt;
@@ -3266,6 +3405,7 @@ It also uses &lt;em&gt;x['!']&lt;/em&gt; as a temporary variable to then assign 
       ...
     }
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;That lambda is even called with a dictionary that will contain, among other things, the three user controlled variable: &lt;em&gt;g&lt;/em&gt;, &lt;em&gt;c&lt;/em&gt;, &lt;em&gt;d&lt;/em&gt;.
 That dictionary seems to be some kind of storage used to keep track of all the variables that will be used across those lambdas.&lt;/p&gt;
@@ -3281,6 +3421,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
         &lt;span class="p"&gt;({&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;g&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;g&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;c&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;d&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;$&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;})&lt;/span&gt;
     &lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="then-the-one-before"&gt;..then the one before...&lt;/h2&gt;
 &lt;p&gt;Now if we repeat that same operation with the one before the last lambda, we have the exact same pattern:&lt;/p&gt;
@@ -3298,6 +3439,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
         &lt;span class="n"&gt;x&lt;/span&gt;
     &lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Perfect, now let's repeat the same operations over and over again. At some point, the whole thing becomes crystal clear (sort-of):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;# Returns { &lt;/span&gt;
@@ -3362,6 +3504,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
       &lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="putting-it-all-together"&gt;Putting it all together&lt;/h2&gt;
 &lt;p&gt;After doing all of that, we know now the types of the three variables the function needs to work properly (and we don't really need more to be honest):&lt;/p&gt;
@@ -3494,10 +3637,12 @@ That dictionary seems to be some kind of storage used to keep track of all the v
         &lt;span class="n"&gt;sys&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sys&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;sys&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And after running it, we are good to go:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\Codes\challenges\ql-python&amp;gt;bf_with_lambdas_cleaned.py
     /blog.quarkslab.com/static/resources/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h1 id="a-custom-elf64-python-interpreter-you-shall-debug"&gt;A custom ELF64 Python interpreter you shall debug&lt;/h1&gt;
 &lt;h2 id="recon"&gt;Recon&lt;/h2&gt;
@@ -3509,6 +3654,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
     -rwxrw-r-x &lt;span class="m"&gt;1&lt;/span&gt; overclok overclok &lt;span class="m"&gt;7&lt;/span&gt;.9M Sep  &lt;span class="m"&gt;8&lt;/span&gt; &lt;span class="m"&gt;21&lt;/span&gt;:03 b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The binary is quite big, not good for us. But on the other hand, the binary isn't stripped so we might find useful debugging information at some point.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    overclok@wildout:~/chall/ql-py$ /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     Python &lt;span class="m"&gt;2&lt;/span&gt;.7.8+ &lt;span class="o"&gt;(&lt;/span&gt;nvcs/newopcodes:a9bd62e4d5f2+, Sep  &lt;span class="m"&gt;1&lt;/span&gt; &lt;span class="m"&gt;2014&lt;/span&gt;, &lt;span class="m"&gt;11&lt;/span&gt;:41:46&lt;span class="o"&gt;)&lt;/span&gt;
@@ -3516,6 +3662,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
     Type &lt;span class="s2"&gt;&amp;quot;help&amp;quot;&lt;/span&gt;, &lt;span class="s2"&gt;&amp;quot;copyright&amp;quot;&lt;/span&gt;, &lt;span class="s2"&gt;&amp;quot;credits&amp;quot;&lt;/span&gt; or &lt;span class="s2"&gt;&amp;quot;license&amp;quot;&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; more information.
     &amp;gt;&amp;gt;&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;That does explain the size of the binary then: we basically have something that looks like a custom Python interpreter. Note that I also remembered reading &lt;em&gt;&lt;a href="http://blog.quarkslab.com/building-an-obfuscated-python-interpreter-we-need-more-opcodes.html"&gt;Building an obfuscated Python interpreter: we need more opcodes&lt;/a&gt;&lt;/em&gt; on &lt;em&gt;Quarkslab&lt;/em&gt;'s blog where Serge described how you could tweak the interpreter sources to add / change some opcodes either for optimization or obfuscation purposes.&lt;/p&gt;
 &lt;h2 id="finding-the-interesting-bits"&gt;Finding the interesting bits&lt;/h2&gt;
@@ -3527,6 +3674,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
     overclok@wildout:~/chall/ql-py/Python-2.7.8$ ls -lah ./python
     -rwxrwxr-x &lt;span class="m"&gt;1&lt;/span&gt; overclok overclok &lt;span class="m"&gt;8&lt;/span&gt;.0M Sep  &lt;span class="m"&gt;5&lt;/span&gt; &lt;span class="m"&gt;00&lt;/span&gt;:13 ./python
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The resulting binary has a similar size, so it should do the job even if I'm not using &lt;em&gt;GCC 4.8.2&lt;/em&gt; and the same compilation/optimization options. To perform the &lt;em&gt;diffing&lt;/em&gt; I used &lt;em&gt;IDA Pro&lt;/em&gt; and &lt;a href="https://code.google.com/p/patchdiff2/"&gt;Patchdiff v2.0.10&lt;/a&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ---------------------------------------------------
@@ -3545,6 +3693,7 @@ That dictionary seems to be some kind of storage used to keep track of all the v
     Unmatched functions 2: 85
     done!
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Once the tool has finished its analysis we just have to check the list of unmatched function names (around one hundred of them, so it's pretty quick), and eventually we see that:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="initdo_not_run_me.png" src="/images/dissection_of_quarkslab_s_2014_security_challenge/initdo_not_run_me.png"&gt;&lt;/center&gt;
@@ -3565,6 +3714,7 @@ Let's import it:&lt;/p&gt;
     &lt;span class="o"&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;do_not_run_me&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;run_me&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;doar-e&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="n"&gt;Segmentation&lt;/span&gt; &lt;span class="n"&gt;fault&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;All right, we now have something to look at and we are going to do so from a low level point of view because that's what I like ; so don't expect big/magic hacks here :).&lt;/p&gt;
 &lt;p&gt;If you are not really familiar with Python's VM structures I would advise you to read quickly through this article &lt;em&gt;&lt;a href="https://doar-e.github.io/blog/2014/04/17/deep-dive-into-pythons-vm-story-of-load_const-bug/"&gt;Deep Dive Into Python’s VM: Story of LOAD_CONST Bug&lt;/a&gt;&lt;/em&gt;, and you should be all set for the next parts.&lt;/p&gt;
@@ -3619,6 +3769,7 @@ Let's import it:&lt;/p&gt;
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;To start, we can set two software breakpoints &lt;em&gt;@0x0000000000513dd0&lt;/em&gt; and &lt;em&gt;@0x0000000000513dd5&lt;/em&gt; to inspect both the marshaled string and the resulting code object.&lt;/p&gt;
 &lt;p&gt;Just a little reminder though on the &lt;em&gt;Linux/x64 ABI&lt;/em&gt;: "The first six integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8, and R9".&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    gdb$ p /x $rsi
@@ -3645,6 +3796,7 @@ Let's import it:&lt;/p&gt;
     0x56c9d0 &amp;lt;+144&amp;gt;: 0x01
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And obviously you can't use the Python &lt;em&gt;marshal&lt;/em&gt; module to load &amp;amp; inspect the resulting object as the author seems to have removed the methods &lt;em&gt;loads&lt;/em&gt; and &lt;em&gt;dumps&lt;/em&gt;:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    overclok@wildout:~/chall/ql-py$ /usr/bin/b7d8438de09fffb12e3950e7ad4970a4a998403bdf3763dd4178adf
     Python 2.7.8+ (nvcs/newopcodes:a9bd62e4d5f2+, Sep  1 2014, 11:41:46)
@@ -3654,6 +3806,7 @@ Let's import it:&lt;/p&gt;
     &amp;gt;&amp;gt;&amp;gt; dir(marshal)
     [&amp;#39;__doc__&amp;#39;, &amp;#39;__name__&amp;#39;, &amp;#39;__package__&amp;#39;, &amp;#39;version&amp;#39;]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We could still try to run the marshaled string in our fresh compiled original Python though:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="o"&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;marshal&lt;/span&gt;
@@ -3665,6 +3818,7 @@ Let's import it:&lt;/p&gt;
     &lt;span class="o"&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;part_1&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;co_names&lt;/span&gt;
     &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;True&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We can also go further by trying to create a function out of this code object, to call it and/or to disassemble it even:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="o"&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;types&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;FunctionType&lt;/span&gt;
@@ -3689,6 +3843,7 @@ Let's import it:&lt;/p&gt;
         &lt;span class="nb"&gt;print&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;(&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;free&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;oparg&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;)&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
     &lt;span class="ne"&gt;IndexError&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;tuple&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="n"&gt;of&lt;/span&gt; &lt;span class="nb"&gt;range&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="introducing-dpypy"&gt;Introducing &lt;em&gt;dpy.py&lt;/em&gt;&lt;/h3&gt;
 &lt;p&gt;All right, as expected this does not work at all: seems like the custom interpreter uses different opcodes which the original virtual CPU doesn't know about.
@@ -3716,6 +3871,7 @@ Anyway, let's have a look at this object directly from memory because we like lo
     }
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Perfect, and you can do that for every single field of this structure:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;to dump the bytecode,&lt;/li&gt;
@@ -3736,6 +3892,7 @@ Anyway, let's have a look at this object directly from memory because we like lo
     dict -&amp;gt; {1: [1, 2, 3], 3: (1, &amp;#39;lul&amp;#39;, [3, 4, 5]), &amp;#39;two&amp;#39;: 31337}
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h3 id="i-need-a-disassembler-now-dad"&gt;I need a disassembler now dad&lt;/h3&gt;
 &lt;p&gt;But let's get back to our second breakpoint now, and see what &lt;em&gt;dpy&lt;/em&gt; gives us with the resulting code object:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    gdb$ dpy $rax
@@ -3745,6 +3902,7 @@ Anyway, let's have a look at this object directly from memory because we like lo
      &amp;#39;co_names&amp;#39;: (&amp;#39;True&amp;#39;,),
      &amp;#39;co_varnames&amp;#39;: (&amp;#39;Robert_Forsyth&amp;#39;,)}
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Because we know the bytecode used by this interpreter is different than the original one, we have to figure out the equivalent between the instructions and their opcodes:&lt;/p&gt;
 &lt;ol&gt;
@@ -3827,9 +3985,11 @@ Anyway, let's have a look at this object directly from memory because we like lo
      # 0x3d -&amp;gt; BINARY_ADD
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;OK I think you got the idea, and if you don't manage to find all of them you can just debug the virtual CPU by putting a software breakpoint &lt;em&gt;@0x4b0960&lt;/em&gt;:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    =&amp;gt; 0x4b0923 &amp;lt;PyEval_EvalFrameEx+867&amp;gt;:   movzx  eax,BYTE PTR [r13+0x0]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;For the interested readers: there is at least one interesting opcode that you wouldn't find in a normal Python interpreter, check what &lt;em&gt;0xA0&lt;/em&gt; is doing especially when followed by &lt;em&gt;0x87&lt;/em&gt; :-).&lt;/p&gt;
 &lt;h3 id="back-to-the-first-marshaled-function-with-all-our-tooling-now"&gt;Back to the first marshaled function with all our tooling now&lt;/h3&gt;
@@ -3848,12 +4008,14 @@ Anyway, let's have a look at this object directly from memory because we like lo
     ================================================================================
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;It seems the author has been really (too) kind with us: the function is really small and we can rewrite it in Python straightaway:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;part1&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
         &lt;span class="k"&gt;global&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;
         &lt;span class="n"&gt;Robert_Forsyth&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
         &lt;span class="kc"&gt;True&lt;/span&gt; &lt;span class="o"&gt;+=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;You can also make sure with &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/ql-chall-python-2014/dpy.py"&gt;dpy&lt;/a&gt; that the code of &lt;em&gt;part1&lt;/em&gt; is the exact same than the unmarshaled function we dumped earlier.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &amp;gt;&amp;gt;&amp;gt; def part_1():
@@ -3876,6 +4038,7 @@ Anyway, let's have a look at this object directly from memory because we like lo
      &amp;#39;func_module&amp;#39;: &amp;#39;__main__&amp;#39;,
      &amp;#39;func_name&amp;#39;: &amp;#39;part_1&amp;#39;}
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="run-my-bytecode"&gt;Run my bytecode&lt;/h3&gt;
 &lt;p&gt;The second part is also quite simple according to the following disassembly:&lt;/p&gt;
@@ -3922,6 +4085,7 @@ Anyway, let's have a look at this object directly from memory because we like lo
        0x0000000000513e1f &amp;lt;+143&amp;gt;:   mov    rsi,rax
        0x0000000000513e22 &amp;lt;+146&amp;gt;:   call   0x422b40 &amp;lt;PyObject_Call&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Basically, the string you pass to &lt;em&gt;run_me&lt;/em&gt; is treated as a marshaled function: it explains why you get &lt;em&gt;segmentation faults&lt;/em&gt; when you call the function with random strings.
 We can just &lt;em&gt;jump over&lt;/em&gt; that part of the function because we don't really need it so far: &lt;em&gt;set $eip=0x513e27&lt;/em&gt; and job done!&lt;/p&gt;
@@ -3975,6 +4139,7 @@ Let's dump the function object with &lt;a href="https://github.com/0vercl0k/stuf
      &amp;#39;func_module&amp;#39;: &amp;#39;__main__&amp;#39;,
      &amp;#39;func_name&amp;#39;: &amp;#39;foo&amp;#39;}
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Even before studying / disassembling the code, we see some interesting things: &lt;em&gt;chr&lt;/em&gt;, &lt;em&gt;quarkslab&lt;/em&gt;, &lt;em&gt;append&lt;/em&gt;, &lt;em&gt;join&lt;/em&gt;, etc. It definitely feels like that function is generating the flag we are looking for.&lt;/p&gt;
 &lt;p&gt;Seeing &lt;em&gt;append&lt;/em&gt;, &lt;em&gt;join&lt;/em&gt; and another code object (in &lt;em&gt;co_consts&lt;/em&gt;) suggests that a &lt;em&gt;generator&lt;/em&gt; is used to populate the variable &lt;em&gt;quarkslab&lt;/em&gt;. We also can guess that the bunch of bytes we are seeing may be the flag encoded/encrypted -- anyway we can infer &lt;strong&gt;too much information to me&lt;/strong&gt; just by dumping/looking at the object.&lt;/p&gt;
@@ -4046,6 +4211,7 @@ Let's dump the function object with &lt;a href="https://github.com/0vercl0k/stuf
                  30 RETURN_VALUE
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Great, that definitely sounds like what we described earlier.&lt;/p&gt;
 &lt;h3 id="i-need-a-decompiler-dad"&gt;I need a decompiler dad&lt;/h3&gt;
 &lt;p&gt;Now because we really like to hack things, I decided to patch a Python decompiler to support the opcodes defined in this challenge in order to fully decompile the codes we saw so far.&lt;/p&gt;
@@ -4062,6 +4228,7 @@ Let's dump the function object with &lt;a href="https://github.com/0vercl0k/stuf
     else:
         quarkslab.append(&amp;#39;&amp;#39;.join(chr(_ ^ 13) for _ in [75, 98, 127, 45, 89, 101, 104, 45, 67, 104, 122, 45, 65, 120, 99, 108, 127, 45, 95, 104, 125, 120, 111, 97, 100, 110]))
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Brilliant -- time to get a flag now :-).
 Here are the things we need to do:&lt;/p&gt;
@@ -4082,6 +4249,7 @@ Here are the things we need to do:&lt;/p&gt;
         &amp;gt;&amp;gt;&amp;gt; quarkslab
         [&amp;#39;For The New Lunar Republic&amp;#39;]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h1 id="conclusion"&gt;Conclusion&lt;/h1&gt;
 &lt;p&gt;This was definitely entertaining, so thanks to Serge and &lt;a href="http://blog.quarkslab.com/"&gt;Quarkslab&lt;/a&gt; for putting this challenge together! I feel like it would have been cooler to force people to write a disassembler or/and a decompiler to study the code of &lt;em&gt;run_me&lt;/em&gt; though ; because as I mentioned at the very beginning of the article you don't really need any tool to guess/know roughly where the flag is, and how to get it. I still did write all those little scripts because it was fun and cool that's all!&lt;/p&gt;
@@ -4113,6 +4281,7 @@ Here are the things we need to do:&lt;/p&gt;
     00401368 (05) e833080000               CALL 0x401ba0
     0040136d (05) b800000000               MOV EAX, 0x0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;That's why I divided this post in two big parts:&lt;/p&gt;
 &lt;ul&gt;
@@ -4171,6 +4340,7 @@ Here are the things we need to do:&lt;/p&gt;
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;I'm sure you already know that but in x86 Intel processors there is a table called the &lt;a href="http://wiki.osdev.org/Interrupt_Descriptor_Table"&gt;IDT&lt;/a&gt; that stores the different routines that will handle the exceptions. The virtual address of that table is stored in a special x86 register called &lt;em&gt;IDTR&lt;/em&gt;, and that register is accessible only by using the instructions &lt;em&gt;sidt&lt;/em&gt; (Stores Interrupt Descriptor Table register) and &lt;em&gt;lidt&lt;/em&gt; (Loads Interrupt Descriptor Table register).&lt;/p&gt;
 &lt;p&gt;Basically there are two important things in an IDT entry: the address of the &lt;a href="https://en.wikipedia.org/wiki/Interrupt_handler"&gt;ISR&lt;/a&gt;, and the segment selector (remember it's a simple index in the &lt;a href="http://wiki.osdev.org/GDT_Tutorial"&gt;GDT&lt;/a&gt;) the CPU should use.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; !pcr
@@ -4205,6 +4375,7 @@ Here are the things we need to do:&lt;/p&gt;
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The entry just above tells us that for the processor 0, if a &lt;em&gt;division-by-zero&lt;/em&gt; exception is raised the kernel mode routine nt!KiTrap00 will be called with a flat-model code32 ring0 segment (cf GDT dump).&lt;/p&gt;
 &lt;p&gt;Once the CPU is in &lt;em&gt;nt!KiTrap00&lt;/em&gt;'s code it basically does a lot of things, same thing for all the other &lt;em&gt;nt!KiTrap&lt;/em&gt; routines, but somehow they (more or less) end up in the kernel mode exceptions dispatcher: &lt;em&gt;nt!KiDispatchException&lt;/em&gt; (remember &lt;a href="http://gynvael.coldwind.pl/"&gt;gynvael&lt;/a&gt;'s tool ? He was hooking that method!) once they created the &lt;em&gt;nt!_KTRAP_FRAME&lt;/em&gt; structure associated with the fault. &lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="nt!KiExceptionDispatch graph from ReactOS" src="/images/ntdll.KiUserExceptionDispatcher/butterfly.png"&gt;&lt;/center&gt;
@@ -4214,6 +4385,7 @@ Now, you may already have asked yourself how the kernel reaches back to the user
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; dps nt!KeUserExceptionDispatcher L1
     847a49a0  77476448 ntdll!KiUserExceptionDispatcher
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;If like me you like illustrations, I've made a WinDbg session where I am going to show what we just talked about. First, let's trigger our &lt;em&gt;division-by-zero&lt;/em&gt; exception:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; bp nt!KiTrap00
@@ -4229,6 +4401,7 @@ Now, you may already have asked yourself how the kernel reaches back to the user
     divzero+0x1269:
     01141269 f7f0            div     eax,eax
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Now let's go a bit further in the ISR, and more precisely when the &lt;em&gt;nt!_KTRAP_FRAME&lt;/em&gt; is built:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; bp nt!KiTrap00+0x36
@@ -4285,6 +4458,7 @@ Now, you may already have asked yourself how the kernel reaches back to the user
     Resetting default scope
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The idea now is to track the modification of the &lt;em&gt;nt!_KTRAP_FRAME.Eip&lt;/em&gt; field as we discussed earlier (BTW, don't try to put directly a breakpoint on &lt;em&gt;nt!KiDispatchException&lt;/em&gt; with VMware, it just blows my guest virtual machine) via a hardware-breakpoint:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; ba w4 esp+68
     kd&amp;gt; g
@@ -4297,6 +4471,7 @@ Now, you may already have asked yourself how the kernel reaches back to the user
     Exact matches:
         ntdll!KiUserExceptionDispatcher (&amp;lt;no parameter info&amp;gt;)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;OK, so here we can clearly see the trap frame has been modified (keep in mind WinDbg gives you the control &lt;em&gt;after&lt;/em&gt; the actual writing). That basically means that when the kernel will resume the execution via &lt;em&gt;nt!KiExceptionExit&lt;/em&gt; (or &lt;em&gt;nt!Kei386EoiHelper&lt;/em&gt;, two symbols for one same address) the CPU will directly execute the user mode exceptions dispatcher.&lt;/p&gt;
 &lt;p&gt;Great, I think we have now enough understanding to move on the second part of the article.&lt;/p&gt;
@@ -4322,6 +4497,7 @@ Detours can work in two modes:&lt;/p&gt;
 &lt;p&gt;The first one is really easy to implement using &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/The%20Sentinel/ProcessSpawner/main.cpp#L66"&gt;DetourCreateProcessWithDll&lt;/a&gt;: it's going to create the process and inject the DLL we want.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    Usage: ./ProcessSpawner &amp;lt;full path dll&amp;gt; &amp;lt;path executable&amp;gt; &amp;lt;excutable name&amp;gt; [args..]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;To successfully hook a function you have to know its address of course, and you have to implement the hook function. Then, you have to call &lt;em&gt;DetourTransactionBegin&lt;/em&gt;, &lt;em&gt;DetourUpdateThread&lt;/em&gt;, &lt;em&gt;DetourTransactionCommit&lt;/em&gt; and you're done, wonderful isn't it ?&lt;/p&gt;
 &lt;p&gt;The only tricky thing, in our case, is that we want to hook &lt;em&gt;ntdll!KiUserExceptionDispatcher&lt;/em&gt;, and that function has its own custom calling convention. Fortunately for us, in the &lt;em&gt;samples&lt;/em&gt; directory of Detours you can find how you are supposed to deal with that specific case:&lt;/p&gt;
@@ -4360,6 +4536,7 @@ Detours can work in two modes:&lt;/p&gt;
         &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Here is what looks &lt;em&gt;ntdll!KiUserExceptionDispatcher&lt;/em&gt; like in memory after the hook:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="hook.png" src="/images/ntdll.KiUserExceptionDispatcher/hook.png"&gt;&lt;/center&gt;
@@ -4401,12 +4578,14 @@ Disassembling some instructions pointed by the &lt;em&gt;CONTEXT.Eip&lt;/em&gt; 
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;So the prototype works pretty great like that.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\Codes\The Sentinel\Release&amp;gt;ProcessSpawner.exe &amp;quot;D:\Codes\The Sentinel\Release\ExceptionMonitorDll.dll&amp;quot; ..\tests\divzero.exe divzero.exe
     D:\Codes\The Sentinel\Release&amp;gt;ls -l D:\Crashs\divzero.exe
     total 4
     -rw-rw-rw-  1 0vercl0k 0 863 2013-10-16 22:58 exceptionaddress_401359pid_2732tick_258597468timestamp_1381957116.txt
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;But once I've encountered a behavior that I didn't plan on: there was like a stack-corruption in a stack-frame protected by the &lt;em&gt;/GS&lt;/em&gt; cookie. If the cookie has been, somehow, rewritten the program calls &lt;em&gt;___report_gs_failure&lt;/em&gt; (sometimes the implementation is directly inlined, thus you can find the definition of the function in your binary) in order to kill the program because the stack-frame is broken. Long story short, I was also hooking &lt;em&gt;kernel32!UnhandleExceptionFilter&lt;/em&gt; to not miss that kind of exceptions, but I noticed while writing this post that it doesn't work anymore. We are going to see why in the next part.&lt;/p&gt;
 &lt;h1 id="the-untold-story-win8-and-ntkifastfaildispatch"&gt;The untold story: Win8 and &lt;em&gt;nt!KiFastFailDispatch&lt;/em&gt;&lt;/h1&gt;
@@ -4433,6 +4612,7 @@ Disassembling some instructions pointed by the &lt;em&gt;CONTEXT.Eip&lt;/em&gt; 
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The first thing I asked myself was about that weird &lt;em&gt;int 29h&lt;/em&gt;. Next thing I did was to download a fresh Windows 8 VM &lt;a href="http://www.modern.ie/fr-fr/virtualization-tools#downloads"&gt;here&lt;/a&gt; and attached a kernel debugger in order to check the IDT entry 0x29:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; vertarget
     Windows 8 Kernel Version 9200 MP (2 procs) Free x86 compatible
@@ -4447,6 +4627,7 @@ Disassembling some instructions pointed by the &lt;em&gt;CONTEXT.Eip&lt;/em&gt; 
 
     29: 8158795c nt!KiRaiseSecurityCheckFailure
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;As opposed I was used to see on my Win7 machine:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    kd&amp;gt; vertarget
@@ -4463,6 +4644,7 @@ Disassembling some instructions pointed by the &lt;em&gt;CONTEXT.Eip&lt;/em&gt; 
 
     29: 00000000
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;I've opened my favorite IDE and I wrote a bit of code to test if there was a different behavior between Win7 and Win8 regarding this exception handling:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
@@ -4482,6 +4664,7 @@ Disassembling some instructions pointed by the &lt;em&gt;CONTEXT.Eip&lt;/em&gt; 
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;On Win7 I'm able to catch the exception via a SEH handler: it means the Windows kernel calls the user mode exception dispatcher for further processing by the user exception handlers (as we saw at the beginning of the post). But on Win8, at my surprise, I don't get the message ; the process is killed directly after displaying the usual message box "a program has stopped". Definitely weird.&lt;/p&gt;
 &lt;h2 id="what-happens-on-win7"&gt;What happens on Win7&lt;/h2&gt;
 &lt;p&gt;When the interruption 0x29 is triggered by my code, the CPU is going to check if there is an IDT entry for that interruption, and if there isn't it's going to raise a #GP (&lt;em&gt;nt!KiTrap0d&lt;/em&gt;) that will end up in &lt;em&gt;nt!KiDispatchException&lt;/em&gt;.&lt;/p&gt;
@@ -4500,6 +4683,7 @@ Disassembling some instructions pointed by the &lt;em&gt;CONTEXT.Eip&lt;/em&gt; 
     gs+0x2b39f:
     0029b39f cd29            int     29h
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="what-happens-on-win8"&gt;What happens on Win8&lt;/h2&gt;
 &lt;p&gt;This time the kernel has defined an ISR for the interruption 0x29: &lt;em&gt;nt!KiRaiseSecurityCheckFailure&lt;/em&gt;. This function is going to call &lt;em&gt;nt!KiFastFailDispatch&lt;/em&gt;, and this one is going to call &lt;em&gt;nt!KiDispatchException&lt;/em&gt;:&lt;/p&gt;
@@ -4553,6 +4737,7 @@ BUT the exception is going to be processed as a &lt;strong&gt;second-chance&lt;/
         &lt;span class="k"&gt;return&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;To convince yourself you can even modify the &lt;em&gt;FirstChance&lt;/em&gt; argument passed to &lt;em&gt;nt!KiDispatchException&lt;/em&gt; from &lt;em&gt;nt!KiFastFailDispatch&lt;/em&gt;. You will see the SEH handler is called like in Win7:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="win8.png" src="/images/ntdll.KiUserExceptionDispatcher/win8.png"&gt;&lt;/center&gt;
@@ -4628,9 +4813,11 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     mov eax, edx ; EAX=(sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;So at the end, you can ask the engine to give you the final state of EAX for example and it should give you something like:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    EAX=(sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;With that equation you are free to use Z3Py to either simplify it or to try to find how you can have a specific value in EAX controlling only the symbolic variables:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    In [1]: from z3 import *
@@ -4652,6 +4839,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     In [9]: hex((sym2 + 1) ^ ((((sym1 &amp;gt;&amp;gt; 2) + 1) &amp;lt;&amp;lt; 1) &amp;amp; 2) &amp;amp; 0xffffffff)
     Out[9]: &amp;#39;0xdeadbeefL&amp;#39;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;As you can imagine, that kind of tool is very valuable/handy when you do reverse-engineering tasks or bug-hunting. Unfortunately, our PoC won't be enough accurate/generic/complete to be used in "normal" cases, but never mind.&lt;/p&gt;
 &lt;h1 id="lets-code"&gt;Let's code&lt;/h1&gt;
@@ -4686,6 +4874,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
                 &lt;span class="k"&gt;yield&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_decode_instr&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
                 &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;eip&lt;/span&gt; &lt;span class="o"&gt;+=&lt;/span&gt; &lt;span class="n"&gt;ItemSize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;eip&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="the-symbolic-execution-engine"&gt;The symbolic execution engine&lt;/h2&gt;
 &lt;p&gt;There are several important parts in our engine:&lt;/p&gt;
@@ -4870,6 +5059,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
             &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;eq&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="testing"&gt;Testing&lt;/h2&gt;
 &lt;p&gt;OK, we just have to instantiate the engine giving him the start/end address of the routine and to ask him to give us the final equation holded in EAX.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
@@ -4888,6 +5078,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="vm"&gt;__name__&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And here is what I saw:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    Launching the engine..
@@ -4924,6 +5115,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;There was two possible explanations for this problem:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;my code is wrong, and it generates equations not simplify-able.&lt;/li&gt;
@@ -4947,6 +5139,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Fortunately for us, it printed &lt;em&gt;True&lt;/em&gt; ; so our code is correct. But it also means, the simplify function, as is at least, isn't able to simplify that bunch of equations involving bit-vector arithmetics. I still haven't found a clean way to make Z3Py simplify my big equation, so if someone knows how I can do that please contact me. I've also exported the complete equation, and uploaded it &lt;a href="/downloads/code/breaking_kryptonite_s_obfuscation_with_symbolic_execution/eq.txt"&gt;here&lt;/a&gt; ; you are free to give it a try like this.&lt;/p&gt;
 &lt;p&gt;The ugly trick I came up with is just to use Z3Py's prove function, to try to prove that the equation is in fact an addition and if this is the case it returns the simplified equation. Again, if someone manages to simplify the previous equation without that type of trick I'm really interested!&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;        &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_simplify_additions&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
@@ -4969,6 +5162,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
             &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;eq&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And now if you relaunch the script you will get:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
@@ -4976,6 +5170,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     Done, retrieving the equation in EAX, and simplifying..
     EAX=arg0 + arg1
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We just successfully simplified two thousands of assembly into a simple addition, wonderful!&lt;/p&gt;
 &lt;h1 id="symbolic-execution-vs-kryptonite"&gt;Symbolic execution VS Kryptonite&lt;/h1&gt;
@@ -4998,6 +5193,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Now, time for a kryptonization:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
     $ clang++ llvm-functionpass-kryptonite-obfuscater.cpp &lt;span class="sb"&gt;`&lt;/span&gt;llvm-config --cxxflags --ldflags --libs core&lt;span class="sb"&gt;`&lt;/span&gt; -shared -o llvm-functionpass-kryptonite-obfuscater.so
@@ -5008,6 +5204,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     $ clang -static add.o -o kryptonite-add
     $ strip --strip-all ./kryptonite-add
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;At this moment we end up with that binary: &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/llvm-funz/kryptonite-add"&gt;kryptonite-add&lt;/a&gt;. The target routine for our study starts at 0x804823C and ends at 0x08072284 ; roughly more than 40 thousands assembly instructions and kind of big right?&lt;/p&gt;
 &lt;p&gt;Here is our final IDAPython script after some minor adjustments (added one or two more instructions):&lt;/p&gt;
@@ -5266,6 +5463,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And here is the final output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    Launching the engine..
     Trying to read a non-initialized area, we got a new symbolic variable: arg0
@@ -5284,6 +5482,7 @@ Cool, we have now our answer to the weird behavior! I guess if you want to monit
     Retrieving and simplifying the EAX register..
     EAX=arg0 + arg1
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h1 id="conclusion"&gt;Conclusion&lt;/h1&gt;
 &lt;p&gt;I hope you did enjoy this little introduction to symbolic execution, and how it can be very valuable to remove some semantic-preserving obfuscations. We also have seen that this PoC is not really elaborate: it doesn't handle loops or any branches, doesn't care about EFLAGS, etc ; but it was enough to break our two examples. I hope you also enjoyed the examples used to showcase our tiny symbolic execution engine.&lt;/p&gt;

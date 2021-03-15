@@ -47,6 +47,7 @@
     &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;license_type&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here we have a global variable providing the type of the license, used to enable and disable features of the application.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;enum&lt;/span&gt; &lt;span class="n"&gt;result_t&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
@@ -55,6 +56,7 @@
     &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This is a convenient &lt;code&gt;enum&lt;/code&gt; used as a result for the validation. &lt;code&gt;INVALID&lt;/code&gt; and &lt;code&gt;VALID&lt;/code&gt; values are pretty self-explanatory.  &lt;code&gt;VALID_IF_LAST_VERSION&lt;/code&gt; tells that this registration is valid only if the current software version is the last available. The reasons for this strange possibility will be clear shortly.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cp"&gt;#define HEADER_SIZE 8192&lt;/span&gt;
     &lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -62,6 +64,7 @@
         &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1000000&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="n"&gt;mail_digest_table&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This is a data structure, containing digests of mail addresses of known registered users. This is a pretty big file embedded in the executable itself. During startup, a resource is extracted in a temporary file and its content copied into this struct. Each element of the &lt;code&gt;header&lt;/code&gt; vector is an offset pointing inside the &lt;code&gt;data&lt;/code&gt; vector.&lt;/p&gt;
 &lt;p&gt;Here we have a pseudo-C code for the registration check, that uses data types and variables explained above:&lt;/p&gt;
@@ -88,6 +91,7 @@
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The validation is divided in three main parts:&lt;/p&gt;
 &lt;ul&gt;
@@ -123,6 +127,7 @@
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The version check is done by making an HTTP request to a specific page that returns a page having only the last version number of the software. Don't ask me why the protection is not completely server side but involves static tables, version checks and things like that. I don't know!&lt;/p&gt;
 &lt;p&gt;Anyway, this is the big picture of the registration validation functions, and this is pretty boring. Let's move on to the interesting part. You may notice that I provided code for the main procedure, but not for the helper functions like &lt;code&gt;get_license_type&lt;/code&gt;, &lt;code&gt;compute_customer_number&lt;/code&gt;, and so on. This is because I did not have to reverse them. They contain a lot of arithmetical and logical operations on registration data, and they are very difficult to understand. The good news is that we do not have to understand them, we need only to reverse them!&lt;/p&gt;
 &lt;h2 id="symbolic-execution"&gt;Symbolic execution&lt;/h2&gt;
@@ -134,6 +139,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;v2&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;v1&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
        &lt;span class="n"&gt;error&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We want to check if &lt;code&gt;error&lt;/code&gt; is reachable, by using symbolic variables &lt;code&gt;SymVar_1&lt;/code&gt; and &lt;code&gt;SymVar_2&lt;/code&gt;, assigned to the program's variables &lt;code&gt;v1&lt;/code&gt; and &lt;code&gt;v2&lt;/code&gt;. In line 2 we have the condition &lt;code&gt;v1 &amp;gt; 0&lt;/code&gt; and so, the symbolic engine adds a constraint &lt;code&gt;SymVar_1 &amp;gt; 0&lt;/code&gt; for the &lt;em&gt;true branch&lt;/em&gt; or conversely &lt;code&gt;SymVar_1 &amp;lt;= 0&lt;/code&gt; for the &lt;em&gt;false branch&lt;/em&gt;. It then continues the execution trying with the first constraint. Whenever a new path condition is reached, new constraints are added to the symbolic state, until that condition is no more satisfiable. In that case, the engine backtracks and replaces some constraints with their negation, in order to reach other code paths. The execution engine tries to cover all code paths, by solving those constraints and their negations. For each portion of the code reached, the symbolic engine outputs a test case covering that part of the program, providing concrete values for the input variables. In the particular example given, the engine continues the execution, and finds the condition &lt;code&gt;v2 == 0 &amp;amp;&amp;amp; v1 &amp;lt;= 0&lt;/code&gt; at line 4. The path formula becomes so: &lt;code&gt;SymVar_1 &amp;gt; 0 &amp;amp;&amp;amp; (SymVar_2 == 0 &amp;amp;&amp;amp; SymVar_1 &amp;lt;= 0)&lt;/code&gt;, that is not satisfiable. The symbolic engine provides then values for the variables that satisfies the previous formula (&lt;code&gt;SymVar_1 &amp;gt; 0&lt;/code&gt;). For example &lt;code&gt;SymVar_1 = 1&lt;/code&gt; and some random value for &lt;code&gt;SymVar_2&lt;/code&gt;. The engine then backtrack to the previous branch and uses the negation of the constraint, that is &lt;code&gt;SymVar_1 &amp;lt;= 0&lt;/code&gt;. It then adds the negation of the current constraint to cover the false branch, obtaining &lt;code&gt;SymVar_1 &amp;lt;= 0 &amp;amp;&amp;amp; (SymVar_2 != 0 || SymVar_1 &amp;gt; 0)&lt;/code&gt;. This is satisfiable with &lt;code&gt;SymVar_1 = -1&lt;/code&gt; and &lt;code&gt;SymVar_2 = 0&lt;/code&gt;. This concludes the analysis of the program paths, and our symbolic execution engine can output the following test cases:&lt;/p&gt;
 &lt;ul&gt;
@@ -174,6 +180,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This is actually a silly example, I know, but let's pretend to verify this function with this main:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;assert.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
     &lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;klee/klee.h&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;&lt;/span&gt;
@@ -184,6 +191,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;check_arg&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In &lt;code&gt;main&lt;/code&gt; we have a symbolic variable used as input for the function to be tested. We can also modify it to include an assertion:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BOOL&lt;/span&gt; &lt;span class="nf"&gt;check_arg&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -196,10 +204,12 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We can now use &lt;code&gt;clang&lt;/code&gt; to compile the program to the LLVM byte code and run the test generation with the &lt;code&gt;klee&lt;/code&gt; command:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    clang -emit-llvm -g -o test.ll -c test.c
     klee test.ll
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We get this output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    KLEE: output directory is &amp;quot;/work/klee-out-0&amp;quot;
@@ -208,6 +218,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: completed paths = 2
     KLEE: done: generated tests = 2
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;KLEE will generate test cases for the &lt;code&gt;input&lt;/code&gt; variable, trying to cover all the possible execution paths and to make the provided assertions to fail (if any given). In this case we have two execution paths and two generated test cases, covering them. Test cases are in the output directory (in this case &lt;code&gt;/work/klee-out-0&lt;/code&gt;). The soft link &lt;code&gt;klee-last&lt;/code&gt; is also provided for convenience, pointing to the last output directory. Inside that directory a bunch of files were created, including the two test cases named &lt;code&gt;test000001.ktest&lt;/code&gt; and &lt;code&gt;test000002.ktest&lt;/code&gt;. These are binary files, which can be examined with the &lt;code&gt;ktest-tool&lt;/code&gt; utility. Let's try it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ktest-tool --write-ints klee-last/test000001.ktest 
@@ -219,11 +230,13 @@ execute. For example:&lt;/p&gt;
     object    0: data: 2147483647
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And the second one:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ktest-tool --write-ints klee-last/test000002.ktest 
     ...
     object    0: data: 0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In these test files, KLEE reports the command line arguments, the symbolic objects along with their size and the value provided for the test. To cover the whole program, we need &lt;code&gt;input&lt;/code&gt; variable to get a value greater than 10 and one below or equal. You can see that this is the case: in the first test case the value 2147483647 is used, covering the first branch, while 0 is provided for the second, covering the other branch.&lt;/p&gt;
 &lt;p&gt;So far, so good. But what if we change the function in this way?&lt;/p&gt;
@@ -237,6 +250,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We get this output:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ klee test.ll 
     KLEE: output directory is &amp;quot;/work/klee-out-2&amp;quot;
@@ -248,6 +262,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: generated tests = 3
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And this is the &lt;code&gt;klee-last&lt;/code&gt; directory contents:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ls klee-last/
     assembly.ll   run.istats        test000002.assert.err  test000003.ktest
@@ -255,12 +270,14 @@ execute. For example:&lt;/p&gt;
     messages.txt  test000001.ktest  test000002.pc
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Note the &lt;code&gt;test000002.assert.err&lt;/code&gt; file. If we examine its corresponding test file, we have:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ktest-tool --write-ints klee-last/test000002.ktest 
     ktest file : &amp;#39;klee-last/test000002.ktest&amp;#39;
     ...
     object    0: data: 10
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;As we had expected, the assertion fails when &lt;code&gt;input&lt;/code&gt; value is 10. So, as we now have three execution paths, we also have three test cases, and the whole program gets covered. KLEE provides also the possibility to replay the tests with the real program, but we are not interested in it now. You can see a usage example in this &lt;a href="http://klee.github.io/tutorials/testing-function/#replaying-a-test-case"&gt;KLEE tutorial&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;KLEE's abilities to find execution paths of an application are very good. According to the &lt;a href="http://llvm.org/pubs/2008-12-OSDI-KLEE.html"&gt;OSDI 2008 paper&lt;/a&gt;, KLEE has been successfully used to test all 89 stand-alone programs in GNU COREUTILS and the equivalent busybox port, finding previously undiscovered bugs, errors and inconsistencies. The achieved code coverage were more than 90% per tool. Pretty awesome!&lt;/p&gt;
@@ -275,6 +292,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And we want to know for what input we get the output 253. A main that tests this could be:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;input&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;atoi&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]);&lt;/span&gt;
@@ -287,6 +305,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;KLEE can resolve this problem for us, if we provide symbolic inputs and actually an assert to trigger:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
         &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
@@ -297,6 +316,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Run KLEE and print the result:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o magic.ll -c magic.c
@@ -310,11 +330,13 @@ execute. For example:&lt;/p&gt;
     object    0: data: -254
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The answer is -254. Let's test it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ gcc magic.c
     $ ./a.out -254
     You win!
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Yes!&lt;/p&gt;
 &lt;h2 id="klee-libc-and-command-line-arguments"&gt;KLEE, libc and command line arguments&lt;/h2&gt;
@@ -324,6 +346,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;input&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;If we run it with KLEE we get this error:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o atoi.ll -c atoi.c
@@ -335,6 +358,7 @@ execute. For example:&lt;/p&gt;
     KLEE: NOTE: now ignoring this error at this location
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;To fix this we can use the KLEE uClibc and POSIX runtime. Taken from the help:&lt;/p&gt;
 &lt;p&gt;&lt;em&gt;"If we were running a normal native application, it would have been linked with the C library, but in this case KLEE is running the LLVM bitcode file directly. In order for KLEE to work effectively, it needs to have definitions for all the external functions the program may call. Similarly, a native application would be running on top of an operating system that provides lower level facilities like write(), which the C library uses in its implementation. As before, KLEE needs definitions for these functions in order to fully understand the program. We provide a POSIX runtime which is designed to work with KLEE and the uClibc library to provide the majority of operating system facilities used by command line applications"&lt;/em&gt;.&lt;/p&gt;
@@ -351,6 +375,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: completed paths = 68
     KLEE: done: generated tests = 68
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And KLEE founds the possible out of bound access in our program. Because you know, our program is bugged :) Before to jump and fix our code, let me briefly explain what these new flags did:&lt;/p&gt;
 &lt;ul&gt;
@@ -372,6 +397,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We could also have written &lt;code&gt;klee_assert(result != 42)&lt;/code&gt;, and get the same result. No matter what solution we adopt, now we have to run KLEE as before:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o atoi2.ll -c atoi2.c
     $ klee --optimize --libc=uclibc --posix-runtime atoi2.ll --sym-args 0 1 3
@@ -387,6 +413,7 @@ execute. For example:&lt;/p&gt;
     KLEE: done: generated tests = 69
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here we go! We have fixed our bug. KLEE is also able to find an input to make the assertion fail:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ls klee-last/ | grep err
     test000016.assert.err
@@ -400,6 +427,7 @@ execute. For example:&lt;/p&gt;
     object    1: data: &amp;#39;+42\x00&amp;#39;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And the answer is the string "+42"... as we know.&lt;/p&gt;
 &lt;p&gt;There are many other KLEE options and functionalities, but let's move on and try to solve our original problem. Interested readers can find a good tutorial, for example, in &lt;a href="http://klee.github.io/tutorials/testing-coreutils/"&gt;How to Use KLEE to Test GNU Coreutils&lt;/a&gt;.&lt;/p&gt;
@@ -435,6 +463,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Super simple. Copy and paste everything, make the inputs symbolic and assert a certain result (negated, of course).&lt;/p&gt;
 &lt;p&gt;No! That's not so simple. This is actually the most difficult part of the game. First of all, what do we want to copy? We don't have the source code. In my case I used Hex-Rays decompiler, so maybe I have cheated. When you decompile, however, you don't get immediately a compilable C source code, since there could be dependencies between functions, global variables, and specific Hex-Rays types. For this latter problem I've prepared a &lt;a href="https://github.com/mbrt/keygen-post/blob/master/src/ida_defs.h"&gt;&lt;code&gt;ida_defs.h&lt;/code&gt;&lt;/a&gt; header, providing defines coming from IDA and from Windows headers.&lt;/p&gt;
 &lt;p&gt;But what to copy? The high level picture of the validation algorithm I have presented is an ideal one. The &lt;code&gt;check_registration&lt;/code&gt; function is actually a big set of auxiliary functions and data, very tightened with other parts of the program. Even if we now know the most interesting functions, we need to know how much of the related code, is useful or not. We cannot throw everything in our key generator, since every function brings itself other related data and functions. In this way we will end up having the whole program in it. We need to minimize the code KLEE has to analyze, otherwise it will be too difficult to have its job done.&lt;/p&gt;
@@ -456,6 +485,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;But, cutting out code is not the only problem I've found in this step. External constraints must be carefully considered. For example the &lt;a href="http://www.cplusplus.com/reference/ctime/time/"&gt;time&lt;/a&gt; function can be handled by KLEE itself. KLEE tries to generate useful values even from that function. This is good if we want to test bugs related to a strange current time, but in our case, since the code will be executed by the program &lt;em&gt;at a particular time&lt;/em&gt;, we are only interested in the value provided at that time. We don't want KLEE traits this function as symbolic; we only want the right time value. To solve that problem, I have replaced all the calls to &lt;code&gt;time&lt;/code&gt; to a &lt;code&gt;my_time&lt;/code&gt; function, returning a fixed value, defined in the source code.&lt;/p&gt;
 &lt;p&gt;Another problem comes from the extraction of the functions from their outer context. Often code is written with &lt;em&gt;implicit conventions&lt;/em&gt; in mind. These are not self-evident in the code because checks are avoided. A trivial example is the null terminator and valid ASCII characters in strings. KLEE does not assume those constraints, but the validation code does. This is because the GUI provides only valid strings. A less trivial example is that the mail address is always passed lowercase from the GUI to the lower level application logic. This is not self-evident if you do not follow every step from the user input to the actual computations with the data.&lt;/p&gt;
 &lt;p&gt;The solution to this latter problem is to provide those constraints to KLEE:&lt;/p&gt;
@@ -469,12 +499,14 @@ execute. For example:&lt;/p&gt;
     &lt;span class="n"&gt;klee_assume&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="sc"&gt;&amp;#39;\0&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Logical operators inside &lt;code&gt;klee_assume&lt;/code&gt; function are bitwise and not logical (i.e. &lt;code&gt;&amp;amp;&lt;/code&gt; and &lt;code&gt;|&lt;/code&gt; instead of &lt;code&gt;&amp;amp;&amp;amp;&lt;/code&gt; and &lt;code&gt;||&lt;/code&gt;) because they are simpler, since they do not add the extra branches required by lazy operators.&lt;/p&gt;
 &lt;h2 id="throw-everything-into-klee"&gt;Throw everything into KLEE&lt;/h2&gt;
 &lt;p&gt;Having extracted all the needed functions and global data and solved all the issues with the code, we can now move on and run KLEE with our brand new test program:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o attempt1.ll -c attempt1.c
     $ klee --optimize --libc=uclibc --posix-runtime attempt1.ll
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And then wait for an answer.&lt;/p&gt;
 &lt;p&gt;And wait for another while.&lt;/p&gt;
@@ -511,6 +543,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And let's see if KLEE can work with this single function:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o serial_type.ll -c serial_type.c
     $ klee --optimize --libc=uclibc --posix-runtime serial_type.ll
@@ -532,6 +565,7 @@ execute. For example:&lt;/p&gt;
     object    1: data: 102690141
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Yes! we now have a serial number that is considered PRO by our target application.&lt;/p&gt;
 &lt;p&gt;The third condition is less simple: we have a table in which are stored values matching mail addresses with serial numbers. The high level check is this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;check&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -546,6 +580,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This piece of code imposes constraints on our mail address and serial number, but not on the customer number. We can rewrite the checks in two parts, the one checking the serial, and the one checking the mail address:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;check_serial&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -563,6 +598,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The &lt;code&gt;check_mail&lt;/code&gt; function needs the index in the table as secondary input, so it is not completely independent from the other check function. However, &lt;code&gt;check_mail&lt;/code&gt; can be incorporated by our successful test program used before:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// ...&lt;/span&gt;
 
@@ -578,6 +614,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="n"&gt;klee_assert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;valid&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;And if we run it, we get our revised serial number, that satisfies the additional constraint:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o serial.ll -c serial.c
@@ -595,10 +632,12 @@ execute. For example:&lt;/p&gt;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;For those who are wondering if &lt;code&gt;get_index_in_mail_table&lt;/code&gt; could return a negative index, and so possibly crash the program I can answer that they are not alone. &lt;a href="https://twitter.com/0vercl0k"&gt;@0vercl0k&lt;/a&gt; asked me the same question, and unfortunately I have to answer a no. I tried, because I am a lazy ass, by changing the assertion above to &lt;code&gt;klee_assert(index &amp;lt; 0)&lt;/code&gt;, but it was not triggered by KLEE. I then manually checked the function's code and I saw a beautiful &lt;code&gt;if (result &amp;lt; 0) result = 0&lt;/code&gt;. So, the answer is no! You have not found a vulnerability in the application :(&lt;/p&gt;
 &lt;p&gt;For the &lt;code&gt;check_mail&lt;/code&gt; solution we have to provide the index of a serial, but wait... we have it! We have now a serial, so, computing the index of the table is simple as executing this:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_index_in_mail_table&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Therefore, given a serial number, we can solve the mail address in this way:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// ...&lt;/span&gt;
@@ -629,6 +668,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;We only have to run KLEE with the additional serial argument, providing the computed one by the previous step.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ clang -emit-llvm -g -o mail.ll -c mail.c
     $ klee --optimize --libc=uclibc --posix-runtime mail.ll 120300641
@@ -644,12 +684,14 @@ execute. For example:&lt;/p&gt;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;OK, the mail found by KLEE is "yrwt". This is not a mail, of course, but in the code there is not a proper validation imposing the presence of '@' and '.' chars, so we are fine with it :)&lt;/p&gt;
 &lt;p&gt;The last piece of the puzzle we need is the customer number. Here is the check:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;expected_customer&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;compute_customer_number&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;serial&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;mail&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expected_customer&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;customer_num&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;INVALID&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;This is simpler than before, since we already have a serial and a mail, so the only thing missing is a customer number matching those. We can compute it directly, even without symbolic execution:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;
@@ -665,11 +707,13 @@ execute. For example:&lt;/p&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Let's execute it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ gcc customer.c customer
     $ ./customer 120300641 yrwt
     1175211979
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Yeah! And if we try those numbers and mail address onto the real program, we are now legit and registered users :)&lt;/p&gt;
 &lt;h2 id="want-more-keys"&gt;Want more keys?&lt;/h2&gt;
@@ -693,6 +737,7 @@ execute. For example:&lt;/p&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;We now need a script that runs KLEE and collect the results for all those chunks. Here it is:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;#!/bin/bash&lt;/span&gt;
@@ -725,6 +770,7 @@ execute. For example:&lt;/p&gt;
     &lt;span class="k"&gt;done&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This script uses the &lt;code&gt;solve.sh&lt;/code&gt; script, that does the actual work and prints the result of KLEE runs:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;#!/bin/bash&lt;/span&gt;
     &lt;span class="c1"&gt;# do work&lt;/span&gt;
@@ -740,6 +786,7 @@ execute. For example:&lt;/p&gt;
     rm -f klee-last
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here is the final run:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    $ ./keygen_all.sh
     Index;License;Mail;Customer
@@ -749,6 +796,7 @@ execute. For example:&lt;/p&gt;
     2410;112625605;7cxd;554797040
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Note that not all the serial numbers are solvable, but we are OK with that. We now have a bunch of solved registrations. We can put them in some simple GUI that exposes to the user one of them randomly.&lt;/p&gt;
 &lt;p&gt;That's all folks.&lt;/p&gt;

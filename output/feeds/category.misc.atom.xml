@@ -52,6 +52,7 @@
     &amp;gt; ninja -C out\Release instrument
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;If you would like more information on the matter, I suggest you read this wiki page: &lt;a href="https://github.com/google/syzygy/wiki/SyzygyDevelopmentGuide"&gt;SyzygyDevelopmentGuide&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 id="terminology"&gt;Terminology&lt;/h2&gt;
 &lt;p&gt;The terminology used across the project can be a bit misleading or confusing at first, so it is a good time to describe the key terms and their meanings: a &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h"&gt;BlockGraph&lt;/a&gt; is a basically a container of blocks. A &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L542"&gt;BlockGraph::Block&lt;/a&gt; can be either a code block, or a data block (the &lt;a href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms680336(v=vs.85).aspx) of your binary would be a data block for example"&gt;IMAGE_NT_HEADERS&lt;/a&gt;. Every block has various properties like an identifier, a name, etc. and belongs to a section (as in PE sections). Most of those properties are mutable, and you are free to play with them and they will get picked-up by the back-end when relinking the output image. In addition to being a top-level container of blocks, the BlockGraph also keeps track of the sections in your executable. Blocks also have a concept of referrers and references. A reference is basically a link from Block &lt;code&gt;foo&lt;/code&gt; to Block &lt;code&gt;bar&lt;/code&gt;; where &lt;code&gt;bar&lt;/code&gt; is the referent. A referrer can be seen as a cross-reference (in the IDA sense): &lt;code&gt;foo&lt;/code&gt; would be a referrer of &lt;code&gt;bar&lt;/code&gt;. These two key concepts are very important when building transforms as they also allow you to walk the graph faster. Transferring referrers to another Block is also a very easy operation for example (and is super powerful).&lt;/p&gt;
@@ -75,13 +76,16 @@
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Throw it to your favorite debugger with the following command - we will use the afl transformation as an example transform to analyze the data we have available to us:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;And let's place this breakpoint:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    bm instrument!*AFLTransform::OnBlock &amp;quot;.if(@@c++(block-&amp;gt;type_ == 0)){ }.else{ g }&amp;quot;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Now it's time to inspect the Block associated with our function &lt;code&gt;foo&lt;/code&gt; from above:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt;    0:000&amp;gt; g&lt;/span&gt;
@@ -112,6 +116,7 @@
 &lt;span class="err"&gt;      [+0x05c] data_size_       : 0x5b&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The above shows us every the different properties available in a Block; we can see it is named &lt;code&gt;foo&lt;/code&gt;, has the identifier 0x51 and has a size of 0x5B bytes.&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="foo_idaview.png" src="/images/binary_rewriting_with_syzygy/foo_idaview.png"&gt;&lt;/center&gt;
 It also has one referrer and 3 references, what could they be? With the explanation I gave above, we can guess that the referrer (or cross-ref) must be the &lt;code&gt;main&lt;/code&gt; function as it calls into &lt;code&gt;foo&lt;/code&gt;.&lt;/p&gt;
@@ -140,6 +145,7 @@ It also has one referrer and 3 references, what could they be? With the explanat
 &lt;span class="err"&gt;        [+0x05c] data_size_       : 0x4d&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Something to keep in mind when it comes to &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L1046"&gt;references&lt;/a&gt; is that they are not simply a pointer to a block. A reference does indeed reference a block (duh), but it also has an offset associated to this block to point exactly at where the data is being referenced from.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Represents a reference from one block to another. References may be offset.&lt;/span&gt;
     &lt;span class="c1"&gt;// That is, they may refer to an object at a given location, but actually point&lt;/span&gt;
@@ -167,6 +173,7 @@ It also has one referrer and 3 references, what could they be? With the explanat
     &lt;span class="c1"&gt;//  \-----/                                  O = offset&lt;/span&gt;
     &lt;span class="c1"&gt;//&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Let's have a look at the references associated with the &lt;code&gt;foo&lt;/code&gt; block now. If you look closely at the block, the set of references is of size 3... what could they be?&lt;/p&gt;
 &lt;p&gt;One for the &lt;code&gt;printf&lt;/code&gt; function, one for the data Block for the string passed to &lt;code&gt;printf&lt;/code&gt; maybe?&lt;/p&gt;
@@ -235,15 +242,18 @@ It also has one referrer and 3 references, what could they be? With the explanat
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Perfect - that's what we sort of guessed! The last one is just the compiler adding &lt;a href="https://msdn.microsoft.com/en-us/library/8wtf2dfz.aspx"&gt;Run-Time Error Checks&lt;/a&gt; on us.&lt;/p&gt;
 &lt;p&gt;Let's have a closer look to the first reference. The &lt;code&gt;references_&lt;/code&gt; member is a hash table of offsets and instances of reference.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Map of references that this block makes to other blocks.&lt;/span&gt;
     &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Offset&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Reference&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;ReferenceMap&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The offset tells you where exactly in the &lt;code&gt;foo&lt;/code&gt; block there is a reference; in our case we can see that the first reference is at offset 57 from the base of the block. If you start IDA real quick and browse at this address, you will see that it points one byte after the PUSH opcode (pointing exactly on the reference to the &lt;code&gt;_Format&lt;/code&gt; string):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    .text:004010C8 68 20 41 40 00 push    offset _Format  ; &amp;quot;Binary rewriting with syzygy\n&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Another interesting bit I didn't mention earlier is that naturally the &lt;code&gt;data_&lt;/code&gt; field backs the actual content of the Block:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    0:000&amp;gt; u @@c++(block-&amp;gt;data_)
@@ -256,6 +266,7 @@ It also has one referrer and 3 references, what could they be? With the explanat
     0049ef5c 8dbd34ffffff    lea     edi,[ebp-0CCh]
     0049ef62 b933000000      mov     ecx,33h
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;&lt;center&gt;&lt;img alt="foo_disassview.png" src="/images/binary_rewriting_with_syzygy/foo_disassview.png"&gt;&lt;/center&gt;
 Last but not least, I mentioned SourceRanges (you can see it as a vector of pairs describing data ranges from the binary to the content in memory) before, so let's dump it to see what it looks like:&lt;/p&gt;
@@ -275,6 +286,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     0:000&amp;gt; dx -r1 (*((instrument!core::detail::AddressImpl&amp;lt;0&amp;gt; *)0x4da1d0))
         [+0x000] value_           : 0x1090 [Type: unsigned int]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;In this SourceRanges, we have a mapping from the &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L568"&gt;DataRange&lt;/a&gt; (RVA 0, size 0x5B), to the &lt;a href="https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L571"&gt;SourceRange&lt;/a&gt; (RVA 0x1090, size 0x5B - which matches the previous IDA screen shot, obviously). We will come back to those once we have actually modified / rewritten the blocks to see what happens to the SourceRanges.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;enum&lt;/span&gt; &lt;span class="nl"&gt;AddressType&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
@@ -301,6 +313,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="n"&gt;RelativeAddress&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;detail&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;AddressImpl&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;kRelativeAddressType&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Now that you have been introduced to the main concepts, it is time for me to walk you through two small applications.&lt;/p&gt;
 &lt;h2 id="callgraphanalysis"&gt;CallGraphAnalysis&lt;/h2&gt;
 &lt;h3 id="the-plan"&gt;The plan&lt;/h3&gt;
@@ -323,6 +336,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
         &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;NamedBlockGraphTransformImpl&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;DerivedType&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Doing so allows us define &lt;code&gt;Pre&lt;/code&gt; / &lt;code&gt;Post&lt;/code&gt; functions, and an &lt;code&gt;OnBlock&lt;/code&gt; function that gets called for every Block encountered in the image. This is pretty handy as I can define an &lt;code&gt;OnBlock&lt;/code&gt; callback to mine the information we want for every Block, and define &lt;code&gt;Post&lt;/code&gt; to process the data I have accumulated if necessary.&lt;/p&gt;
 &lt;p&gt;The &lt;code&gt;OnBlock&lt;/code&gt; function should be pretty light as we only want to achieve a couple of things:&lt;/p&gt;
 &lt;ol&gt;
@@ -340,6 +354,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
             new file:   syzygy/instrument/transforms/doare_transforms.h
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;In order to get it compiled we also need to modify the &lt;code&gt;instrument.gyp&lt;/code&gt; project file:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
@@ -356,6 +371,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
              &amp;#39;transforms/entry_call_transform.h&amp;#39;,
              &amp;#39;transforms/entry_thunk_transform.cc&amp;#39;,
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The gyp file is basically used to generate Ninja project files - which means that if you don't regenerate the Ninja files from the updated version of this gyp file, you will not be compiling your new code. In order to force a regeneration, you can invoke the &lt;code&gt;depot_tools&lt;/code&gt; command: &lt;code&gt;gclient runhooks&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;At this point we are ready to get our class coded up; here is the class declaration I have:&lt;/p&gt;
@@ -408,6 +424,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="cp"&gt;#endif  &lt;/span&gt;&lt;span class="c1"&gt;// SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;After declaring it, the interesting part for us is to have a look at the &lt;code&gt;OnBlock&lt;/code&gt; method:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;CallGraphAnalysis&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;OnBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;TransformPolicyInterface&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;policy&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
                                     &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
@@ -445,6 +462,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The first step of the method is to make sure that the Block we are dealing with is a block we want to analyze. As I have explained before, Blocks are not exclusive code Blocks. That is the reason why we check the type of the block to only accepts code Blocks. Another type of Block that syzygy artificially creates (it has no existence in the image being analyzed) is called a &lt;code&gt;GAP_BLOCK&lt;/code&gt;; which is basically a block that fills a gap in the address space. For that reason we also skip those blocks.&lt;/p&gt;
 &lt;p&gt;At this point we have a code Block and we can start to mine whatever information needed: name, size, referrers, etc. As the thing we are mostly interested about is the relationships between the code Blocks, we have to walk the referrers. The only thing to be wary about is to also exclude data Blocks (a function pointer table would be a data Block referencing a code Block for example) there. After this minor filtering we can just add the two pointers into the container.&lt;/p&gt;
 &lt;p&gt;I am sure at this stage you are interested in compiling it, and get it to run on a binary. To do that we need to add the &lt;em&gt;plumbing&lt;/em&gt; necessary to surface it to &lt;code&gt;instrument.exe&lt;/code&gt; tool. First thing you need is an &lt;code&gt;instrumenter&lt;/code&gt;, we declare it in &lt;code&gt;doare_instrumenter.h&lt;/code&gt; and define it in &lt;code&gt;doare_instrumenter.cc&lt;/code&gt; in the &lt;code&gt;syzygy/instrument/instrumenters&lt;/code&gt; directory:&lt;/p&gt;
@@ -456,6 +474,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.cc
             new file:   syzygy/instrument/instrumenters/doare_instrumenter.h
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;An instrumenter is basically a class that encapsulate the configuration and the invocation of one or several transforms. The instrumenter can receive options passed by the application, thus can set configuration flags when invoking the transforms, etc. You could imagine parsing a configuration file here, or doing any preparation needed by your transform. Then, the instrumenter registers the transform against the &lt;code&gt;Relinker&lt;/code&gt; object (a bit like the pass manager in LLVM if you want to think about it this way).&lt;/p&gt;
 &lt;p&gt;Anyway, as our transform is trivial we basically don't need any of this "preparation"; so let's settle for the least required:&lt;/p&gt;
@@ -497,6 +516,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="cp"&gt;#endif  &lt;/span&gt;&lt;span class="c1"&gt;// SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The &lt;code&gt;InstrumentPrepare&lt;/code&gt; method is where the instrumenter registers the transform against the relinker object:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Axel &amp;#39;0vercl0k&amp;#39; Souchet - 26 Aug 2017&lt;/span&gt;
 
@@ -531,6 +551,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;  &lt;span class="c1"&gt;// namespace instrument&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Like before, we also need to add those two files in the &lt;code&gt;instrument.gyp&lt;/code&gt; file and regenerate the Ninja project files via the &lt;code&gt;gclient runhooks&lt;/code&gt; command:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument.gyp
     diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
@@ -556,6 +577,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
              &amp;#39;transforms/entry_call_transform.h&amp;#39;,
              &amp;#39;transforms/entry_thunk_transform.cc&amp;#39;,
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The last step for us is to surface our instrumenter to the main of the application. I just add a mode called &lt;code&gt;doare&lt;/code&gt; that you can set via the &lt;code&gt;--mode&lt;/code&gt; switch, and if the flag is specified it instantiates the newly born &lt;code&gt;DoareInstrumenter&lt;/code&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\syzygy\src&amp;gt;git diff syzygy/instrument/instrument_app.cc
@@ -591,6 +613,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
          } else if (base::LowerCaseEqualsASCII(mode, &amp;quot;profile&amp;quot;)) {
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;This should be it! Recompiling the &lt;code&gt;instrument&lt;/code&gt; project should be enough to be able to invoke the transform and see some of our debug messages:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    D:\Downloads\syzygy\src&amp;gt;ninja -C out\Release instrument
     ninja: Entering directory `out\Release&amp;#39;
@@ -602,6 +625,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace&amp;#39;::Decompose -&amp;gt; block_graph::BlockGraph::AddressSpace::GetBlockByAddress
     [...]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="visualize-it"&gt;Visualize it?&lt;/h3&gt;
 &lt;p&gt;As I was writing this I figured it might be worth to spend a bit of time trying to visualize this network to make it more attractive for the readers. So I decided to use &lt;a href="http://visjs.org/network_examples.html"&gt;visjs&lt;/a&gt; and the &lt;code&gt;Post&lt;/code&gt; callback to output the call-graph in a way visjs would understand:&lt;/p&gt;
@@ -706,6 +730,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The above function basically starts to walk the network from the &lt;code&gt;main&lt;/code&gt; function and do a BFS algorithm (that allows us to define &lt;em&gt;levels&lt;/em&gt; for each Block). It then outputs two sets of data: the nodes, and the edges.&lt;/p&gt;
 &lt;p&gt;If you would like to check out the result I have uploaded an interactive network graph here: &lt;a href="/images/binary_rewriting_with_syzygy/network.afl-fuzz.exe.html"&gt;network.afl-fuzz.exe.html&lt;/a&gt;. Even though it sounds pretty useless, it looks pretty cool!&lt;/p&gt;
 &lt;h2 id="securitycookiecheckhooktransform"&gt;SecurityCookieCheckHookTransform&lt;/h2&gt;
@@ -721,6 +746,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
        repne jmp ___report_gsfailure
     @__security_check_cookie@4 endp
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;If the cookie matches the secret, everything is fine, the function returns and life goes on. If it does not, it means something overwrote it and as a result the process needs to be killed. The way the check function achieves this is by raising an exception that the process cannot even catch itself; which makes sense if you think about it as you don't want an attacker to be able to hijack the exception.&lt;/p&gt;
 &lt;p&gt;On recent version of Windows, this is achieved via a &lt;a href="http://www.alex-ionescu.com/?p=69"&gt;fail-fast exception&lt;/a&gt; or by invoking [UnhandledExceptionFilter](https://msdn.microsoft.com/en-us/library/windows/desktop/ms681401(v=vs.85).aspx) (after forcing the top level exception filter to 0) and terminating the process (done by &lt;code&gt;__raise_securityfailure&lt;/code&gt;).&lt;/p&gt;
@@ -742,6 +768,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
        retn
     ___raise_securityfailure endp
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Funny enough - if this sounds familiar - turns out I have encountered this very problem a while back and you can read the story here: &lt;a href="http://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/"&gt;Having a Look at the Windows' User/Kernel Exceptions Dispatcher&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;The thing is when you are fuzzing, this is exactly the type of thing you would like to be aware of. WinAFL uses an in-process exception handler to do the crash monitoring part which means that this type of crashes would not go through the crash monitoring. Bummer.&lt;/p&gt;
@@ -766,6 +793,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;};&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;As I explained a bit earlier, the BlockGraph is the top level container of Blocks. This is what I walk through in order to find our Block of interest. The Block of interest for us has the name &lt;code&gt;__report_gsfailure&lt;/code&gt;:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;report_gsfailure&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;nullptr&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;BlockMap&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;blocks&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;blocks_mutable&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
@@ -783,6 +811,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The transform tries to be careful by checking that the Block only has a single referrer: which should be the &lt;code&gt;__security_cookie_check&lt;/code&gt; Block. If not, I gracefully exit and don't apply the transformation as I am not sure with what I am dealing with.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;report_gsfailure&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;referrers&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
       &lt;span class="c1"&gt;// We bail out if we don&amp;#39;t have a single referrer as the only&lt;/span&gt;
@@ -794,6 +823,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
       &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;At this point, I create a new Block that has only a single instruction designed to trigger a fault every time; to do so I can even use the basic Intel assembler integrated in syzygy. After this, I place this new Block inside the &lt;code&gt;.text&lt;/code&gt; section the image (tracked by the BlockGraph as mentioned earlier).&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Section&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;section_text&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;block_graph&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;FindOrAddSection&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
@@ -820,6 +850,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="n"&gt;DCHECK_EQ&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1u&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;block_builder&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;new_blocks&lt;/span&gt;&lt;span class="p"&gt;().&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Finally, I update all the referrers to point to our new Block, and remove the &lt;code&gt;__report_gsfailure&lt;/code&gt; Block as it is effectively now dead-code:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// Transfer the referrers to the new block, and delete the old one.&lt;/span&gt;
     &lt;span class="n"&gt;BlockGraph&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;Block&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;syzygy_report_gsfailure&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
@@ -835,6 +866,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Here is what it looks like after our transformation:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ; void __fastcall __security_check_cookie(unsigned int cookie)
     @__security_check_cookie@4 proc near
@@ -848,6 +880,7 @@ Last but not least, I mentioned SourceRanges (you can see it as a vector of pair
     loc_426EE6:
                     mov     ds:0DEADBEEFh, eax
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h3 id="one-does-not-simply-binary-rewrite"&gt;One does not simply binary rewrite&lt;/h3&gt;
 &lt;p&gt;It may look like an easy problem without any pitfall, but before settling down on the solution above I actually first tried to rewrite the &lt;code&gt;__security_check_cookie&lt;/code&gt; function. I thought it would be cleaner and it was also very easy to do with syzygy. I had to create a new Block, and transfer the referrers to my new block and.. that was it!&lt;/p&gt;
@@ -929,6 +962,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     %ZZ = call zeroext i32 @bar()          ; Return value is %zero extended
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Every time &lt;code&gt;AFLTokenCap::runOnBasicBlock&lt;/code&gt; is called, the LLVM mid-end will call into our analysis pass (either statically linked into clang/opt or will dynamically load it) with a &lt;code&gt;BasicBlock&lt;/code&gt; passed by reference. From there, we can iterate through the set of instructions contained in the basic block and find the &lt;a href="http://llvm.org/docs/LangRef.html#call-instruction"&gt;call&lt;/a&gt; instructions. Every instructions subclass the top level &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1Instruction.html"&gt;llvm::Instruction&lt;/a&gt; class - in order to filter you can use the &lt;code&gt;dyn_cast&amp;lt;T&amp;gt;&lt;/code&gt; template function that works like the &lt;code&gt;dynamic_cast&amp;lt;T&amp;gt;&lt;/code&gt; operator but does not rely on RTTI (and is more efficient - according to the &lt;a href="http://llvm.org/docs/CodingStandards.html"&gt;LLVM coding standards&lt;/a&gt;). Used in conjunction with a &lt;a href="http://en.cppreference.com/w/cpp/language/range-for"&gt;range-based for loop&lt;/a&gt; on the &lt;code&gt;BasicBlock&lt;/code&gt; object you can iterate through all the instructions you want.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;AFLTokenCap&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;runOnBasicBlock&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;BasicBlock&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;B&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
 
@@ -942,6 +976,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
       &lt;span class="p"&gt;}&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Once we have found a &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1CallInst.html"&gt;llvm::CallInst&lt;/a&gt; instance, we need to:&lt;/p&gt;
 &lt;ul&gt;
@@ -960,6 +995,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     [...]
     [+] Call to memcmp with constant &amp;quot;\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3&amp;quot; found in png.c/png_icc_check_header
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;At this point, the pass basically does what the token capture library is able to do.&lt;/p&gt;
 &lt;h2 id="harvesting-integer-immediate"&gt;Harvesting integer immediate&lt;/h2&gt;
@@ -981,6 +1017,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     section_iTXt=&amp;quot;iTXt&amp;quot;
     ...
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Some of those can be found in the function &lt;a href="https://github.com/glennrp/libpng/blob/libpng16/pngpread.c#L226"&gt;png_push_read_chunk&lt;/a&gt; in the file &lt;a href="https://github.com/glennrp/libpng/blob/libpng16/pngpread.c"&gt;pngpread.c&lt;/a&gt; for example:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;//png_push_read_chunk&lt;/span&gt;
@@ -1009,6 +1046,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;In order to also grab those guys, I have decided to add the support for compare instructions with integer immediate (in one of the operand). Again, thanks to LLVM this is really easy to pull that off: we just need to find the &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1ICmpInst.html"&gt;llvm::ICmpInst&lt;/a&gt; instructions. The only thing to keep in mind is  false positives. In order to lower the false positives rate, I have chosen to consider an integer immediate as a token only if only it is fully ASCII (like the &lt;code&gt;libpng&lt;/code&gt; tokens above)&lt;/p&gt;
 &lt;p&gt;We can even push it a bit more, and handle switch statements via the same strategy. The only additional step is to retrieve every &lt;code&gt;cases&lt;/code&gt; from in the &lt;code&gt;switch&lt;/code&gt; statement: &lt;a href="http://llvm.org/docs/doxygen/html/classllvm_1_1SwitchInst.html#a8e7005748409a956c8875e259716559b"&gt;llvm::SwitchInst::cases&lt;/a&gt;.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="cm"&gt;/* Handle switch/case with integer immediates */&lt;/span&gt;
@@ -1021,6 +1059,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h2 id="limitations"&gt;Limitations&lt;/h2&gt;
 &lt;p&gt;The main limitation is that as you are supposed to run the pass as part of the compilation process, it is most likely going to end-up compiling tests or utilities that the library ships with. Now, this is annoying as it may add some noise to your tokens - especially with utility programs. Those ones usually parse input arguments and some use &lt;code&gt;strcmp&lt;/code&gt; like function with hard-coded strings to do their parsing.&lt;/p&gt;
 &lt;p&gt;A partial solution (as in, it reduces the noise, but does not remove it entirely) I have implemented is just to not process any functions called &lt;code&gt;main&lt;/code&gt;. Most of the cases I have seen (the set of samples is pretty small I won't lie &amp;gt;:]), this argument parsing is made in the &lt;code&gt;main&lt;/code&gt; function and it is very easy to not process it by blacklisting it as you can see below:&lt;/p&gt;
@@ -1032,6 +1071,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
       &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;strcmp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;m_FunctionName&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;main&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
         &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Another thing I wanted to experiment on, but did not, was to provide a regular expression like string (think "test/*") and not process every files/path that are matching it. You could easily blacklist a whole directory of tests with this.&lt;/p&gt;
 &lt;h2 id="demo"&gt;Demo&lt;/h2&gt;
@@ -1093,6 +1133,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &amp;quot;XYZ &amp;quot;
     &amp;quot;zTXt&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;On &lt;a href="https://github.com/mackyle/sqlite"&gt;sqlite3&lt;/a&gt; (&lt;a href=""&gt;sqlite.dict&lt;/a&gt;):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
@@ -1162,6 +1203,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &amp;quot;\xd9\xd5\x05\xf9 \xa1c&amp;quot;
     &amp;quot;year&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;On &lt;a href="https://github.com/GNOME/libxml2"&gt;libxml2&lt;/a&gt; (here is a library with a lot of test cases / utilities that raises the noise ratio in the tokens extracted - cf &lt;code&gt;xmlShell*&lt;/code&gt; for example):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh &amp;amp;&amp;amp; AFL_TOKEN_FILE=/tmp/xml.dict make
@@ -1358,6 +1400,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &amp;quot;xpointer&amp;quot;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;Performance wise - here is what we are looking at on &lt;code&gt;libpng&lt;/code&gt; (+0.283s):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;//time difference on lpng
     over@bubuntu:~/workz/lpng1625$ make clean &amp;amp;&amp;amp; time AFL_TOKEN_FILE=/tmp/png.dict make &amp;amp;&amp;amp; make clean &amp;amp;&amp;amp; time make
@@ -1370,6 +1413,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     user    0m11.436s
     sys     0m0.384s
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h1 id="last-words"&gt;Last words&lt;/h1&gt;
 &lt;p&gt;I am very interested in hearing from you if you give a shot to this analysis pass on your code-base and / or your fuzzing sessions, so feel free to hit me up! Also, note that &lt;a href="http://llvm.org/docs/LibFuzzer.html"&gt;libfuzzer&lt;/a&gt; supports the same feature and is compatible with afl's dictionary syntax - so you get it for free!&lt;/p&gt;
@@ -1433,6 +1477,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &lt;span class="k"&gt;typedef&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;ADDRINT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;UINT32&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;BASIC_BLOCKS_INFO_T&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;The two first types will be used to hold modules related information: path of the module, start address and end address. The third one is simple: the key is the basic block address and the value is its number of instructions.&lt;/p&gt;
 &lt;p&gt;Then we are going to define our instrumentation callback:&lt;/p&gt;
 &lt;ul&gt;
@@ -1463,6 +1508,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;ul&gt;
 &lt;li&gt;one to be able to insert calls before every basic blocks.&lt;/li&gt;
 &lt;/ul&gt;
@@ -1492,6 +1538,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function &lt;em&gt;handle_basic_block&lt;/em&gt; ; we also use the fast linkage (it basically means the function will be called using the &lt;a href="http://msdn.microsoft.com/en-us/library/6xa169sk.aspx"&gt;__fastcall&lt;/a&gt; calling convention).&lt;/p&gt;
 &lt;p&gt;The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="n"&gt;PIN_FAST_ANALYSIS_CALL&lt;/span&gt; &lt;span class="nf"&gt;handle_basic_block&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;UINT32&lt;/span&gt; &lt;span class="n"&gt;number_instruction_in_bb&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;address_bb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
@@ -1499,6 +1546,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="n"&gt;basic_blocks_info&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;address_bb&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;number_instruction_in_bb&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Finally, just before the process ends we serialize our data in a simple JSON report thanks to &lt;a href="http://www.digip.org/jansson/"&gt;jansson&lt;/a&gt;. You may also want to use a binary serialization to have smaller report.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;VOID&lt;/span&gt; &lt;span class="nf"&gt;save_instrumentation_infos&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
@@ -1533,6 +1581,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the &lt;a href="http://www.nynaeve.net/?p=131"&gt;SystemCallStub&lt;/a&gt; (you know the "JMP FAR"). To do that, we simply use the &lt;em&gt;__readfsdword&lt;/em&gt; intrinsic in order to read the field &lt;a href="http://msdn.moonsols.com/win7rtm_x64/TEB32.html"&gt;TEB32.WOW32Reserved&lt;/a&gt; that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="n"&gt;ADDRINT&lt;/span&gt; &lt;span class="n"&gt;wow64stub&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;__readfsdword&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0xC0&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
     &lt;span class="n"&gt;modules_blacklisted&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;insert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
@@ -1545,6 +1594,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
         &lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="p"&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;The entire Pintool source code is here: &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/pin-code-coverage-measure.cpp"&gt;pin-code-coverage-measure.cpp&lt;/a&gt;.&lt;/p&gt;
 &lt;h1 id="i-want-to-see-the-results"&gt;I want to see the results.&lt;/h1&gt;
@@ -1586,6 +1636,7 @@ In this post we will walk through a simple LLVM pass that does neither optimizat
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="vm"&gt;__name__&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;__main__&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;Here is an example generated by launching "ping google.fr", we can clearly see in black the nodes reached by the ping utility:&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="ping.png" src="/images/some_thoughts_about_code-coverage_measurement_with_pin/ping.png"&gt;&lt;/center&gt;
@@ -1664,6 +1715,7 @@ A lot of software are built around a really annoying GUI (for the reverser at le
         &lt;span class="n"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;p&gt;By the way, you must keep in mind we are only talking about &lt;strong&gt;deterministic&lt;/strong&gt; program (will always execute the same path if you give it the same inputs). If the same inputs aren't giving the exact same outputs &lt;strong&gt;every time&lt;/strong&gt;, your program is not deterministic.&lt;/p&gt;
 &lt;p&gt;Also, don't forget about &lt;a href="http://fr.wikipedia.org/wiki/Address_space_layout_randomization"&gt;ASLR&lt;/a&gt; because if you want to compare basic block addresses executed at two different times, trust me you want your binary loaded at the same base address. However, if you want to patch quickly a simple file I've made a little Python script that can be handy sometimes: &lt;a href="https://github.com/0vercl0k/stuffz/blob/master/remove_aslr_bin.py"&gt;remove_aslr_bin.py&lt;/a&gt; ; otherwise, booting your Windows XP virtual machine is the easy solution.&lt;/p&gt;
 &lt;h1 id="does-it-scale"&gt;Does-it scale ?&lt;/h1&gt;
@@ -1675,11 +1727,13 @@ A lot of software are built around a really annoying GUI (for the reverser at le
     TotalMilliseconds : 73,1953
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h3 id="with-instrumentation-and-json-report-serialization"&gt;With instrumentation and JSON report serialization&lt;/h3&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\&amp;gt; Measure-Command {start-process pin.exe &amp;quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &amp;#39;quit()&amp;#39;&amp;quot; -Wait} 
 
     TotalMilliseconds : 13122,4683
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;h2 id="vlc-208"&gt;VLC 2.0.8&lt;/h2&gt;
 &lt;h3 id="without-instrumentation_1"&gt;Without instrumentation&lt;/h3&gt;
@@ -1688,11 +1742,13 @@ A lot of software are built around a really annoying GUI (for the reverser at le
     TotalMilliseconds : 369,4677
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+
 &lt;h3 id="with-instrumentation-and-json-report-serialization_1"&gt;With instrumentation and JSON report serialization&lt;/h3&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    PS D:\&amp;gt; Measure-Command {start-process pin.exe &amp;quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&amp;quot; -Wait}
 
     TotalMilliseconds : 60109,204
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
 
 &lt;p&gt;To optimize the process you may want to blacklist some of the VLC plugins (there are a tons!), otherwise your VLC instrumented is 160 times slower than the normal one (and I didn't even try to launch the instrumentation when decoding x264 videos).&lt;/p&gt;
 &lt;h2 id="browsers"&gt;Browsers ?&lt;/h2&gt;

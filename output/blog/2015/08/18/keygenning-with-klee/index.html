@@ -171,6 +171,7 @@
     <span class="p">}</span> <span class="n">license_type</span> <span class="o">=</span> <span class="n">ERROR</span><span class="p">;</span>
 </code></pre></div>
 
+
 <p>Here we have a global variable providing the type of the license, used to enable and disable features of the application.</p>
 <div class="highlight"><pre><span></span><code>    <span class="k">enum</span> <span class="n">result_t</span> <span class="p">{</span>
         <span class="n">INVALID</span><span class="p">,</span>
@@ -179,6 +180,7 @@
     <span class="p">};</span>
 </code></pre></div>
 
+
 <p>This is a convenient <code>enum</code> used as a result for the validation. <code>INVALID</code> and <code>VALID</code> values are pretty self-explanatory.  <code>VALID_IF_LAST_VERSION</code> tells that this registration is valid only if the current software version is the last available. The reasons for this strange possibility will be clear shortly.</p>
 <div class="highlight"><pre><span></span><code>    <span class="cp">#define HEADER_SIZE 8192</span>
     <span class="k">struct</span> <span class="p">{</span>
@@ -186,6 +188,7 @@
         <span class="kt">int</span> <span class="n">data</span><span class="p">[</span><span class="mi">1000000</span><span class="p">];</span>
     <span class="p">}</span> <span class="n">mail_digest_table</span><span class="p">;</span>
 </code></pre></div>
+
 
 <p>This is a data structure, containing digests of mail addresses of known registered users. This is a pretty big file embedded in the executable itself. During startup, a resource is extracted in a temporary file and its content copied into this struct. Each element of the <code>header</code> vector is an offset pointing inside the <code>data</code> vector.</p>
 <p>Here we have a pseudo-C code for the registration check, that uses data types and variables explained above:</p>
@@ -212,6 +215,7 @@
         <span class="k">return</span> <span class="n">INVALID</span><span class="p">;</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>The validation is divided in three main parts:</p>
 <ul>
@@ -247,6 +251,7 @@
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The version check is done by making an HTTP request to a specific page that returns a page having only the last version number of the software. Don't ask me why the protection is not completely server side but involves static tables, version checks and things like that. I don't know!</p>
 <p>Anyway, this is the big picture of the registration validation functions, and this is pretty boring. Let's move on to the interesting part. You may notice that I provided code for the main procedure, but not for the helper functions like <code>get_license_type</code>, <code>compute_customer_number</code>, and so on. This is because I did not have to reverse them. They contain a lot of arithmetical and logical operations on registration data, and they are very difficult to understand. The good news is that we do not have to understand them, we need only to reverse them!</p>
 <h2 id="symbolic-execution">Symbolic execution</h2>
@@ -258,6 +263,7 @@ execute. For example:</p>
     <span class="k">if</span> <span class="p">(</span><span class="n">v2</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">v1</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
        <span class="n">error</span><span class="p">();</span>
 </code></pre></div>
+
 
 <p>We want to check if <code>error</code> is reachable, by using symbolic variables <code>SymVar_1</code> and <code>SymVar_2</code>, assigned to the program's variables <code>v1</code> and <code>v2</code>. In line 2 we have the condition <code>v1 &gt; 0</code> and so, the symbolic engine adds a constraint <code>SymVar_1 &gt; 0</code> for the <em>true branch</em> or conversely <code>SymVar_1 &lt;= 0</code> for the <em>false branch</em>. It then continues the execution trying with the first constraint. Whenever a new path condition is reached, new constraints are added to the symbolic state, until that condition is no more satisfiable. In that case, the engine backtracks and replaces some constraints with their negation, in order to reach other code paths. The execution engine tries to cover all code paths, by solving those constraints and their negations. For each portion of the code reached, the symbolic engine outputs a test case covering that part of the program, providing concrete values for the input variables. In the particular example given, the engine continues the execution, and finds the condition <code>v2 == 0 &amp;&amp; v1 &lt;= 0</code> at line 4. The path formula becomes so: <code>SymVar_1 &gt; 0 &amp;&amp; (SymVar_2 == 0 &amp;&amp; SymVar_1 &lt;= 0)</code>, that is not satisfiable. The symbolic engine provides then values for the variables that satisfies the previous formula (<code>SymVar_1 &gt; 0</code>). For example <code>SymVar_1 = 1</code> and some random value for <code>SymVar_2</code>. The engine then backtrack to the previous branch and uses the negation of the constraint, that is <code>SymVar_1 &lt;= 0</code>. It then adds the negation of the current constraint to cover the false branch, obtaining <code>SymVar_1 &lt;= 0 &amp;&amp; (SymVar_2 != 0 || SymVar_1 &gt; 0)</code>. This is satisfiable with <code>SymVar_1 = -1</code> and <code>SymVar_2 = 0</code>. This concludes the analysis of the program paths, and our symbolic execution engine can output the following test cases:</p>
 <ul>
@@ -298,6 +304,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>This is actually a silly example, I know, but let's pretend to verify this function with this main:</p>
 <div class="highlight"><pre><span></span><code>    <span class="cp">#include</span> <span class="cpf">&lt;assert.h&gt;</span><span class="cp"></span>
     <span class="cp">#include</span> <span class="cpf">&lt;klee/klee.h&gt;</span><span class="cp"></span>
@@ -308,6 +315,7 @@ execute. For example:</p>
         <span class="k">return</span> <span class="n">check_arg</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>In <code>main</code> we have a symbolic variable used as input for the function to be tested. We can also modify it to include an assertion:</p>
 <div class="highlight"><pre><span></span><code>    <span class="n">BOOL</span> <span class="nf">check_arg</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
@@ -320,10 +328,12 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>We can now use <code>clang</code> to compile the program to the LLVM byte code and run the test generation with the <code>klee</code> command:</p>
 <div class="highlight"><pre><span></span><code>    clang -emit-llvm -g -o test.ll -c test.c
     klee test.ll
 </code></pre></div>
+
 
 <p>We get this output:</p>
 <div class="highlight"><pre><span></span><code>    KLEE: output directory is &quot;/work/klee-out-0&quot;
@@ -332,6 +342,7 @@ execute. For example:</p>
     KLEE: done: completed paths = 2
     KLEE: done: generated tests = 2
 </code></pre></div>
+
 
 <p>KLEE will generate test cases for the <code>input</code> variable, trying to cover all the possible execution paths and to make the provided assertions to fail (if any given). In this case we have two execution paths and two generated test cases, covering them. Test cases are in the output directory (in this case <code>/work/klee-out-0</code>). The soft link <code>klee-last</code> is also provided for convenience, pointing to the last output directory. Inside that directory a bunch of files were created, including the two test cases named <code>test000001.ktest</code> and <code>test000002.ktest</code>. These are binary files, which can be examined with the <code>ktest-tool</code> utility. Let's try it:</p>
 <div class="highlight"><pre><span></span><code>    $ ktest-tool --write-ints klee-last/test000001.ktest 
@@ -343,11 +354,13 @@ execute. For example:</p>
     object    0: data: 2147483647
 </code></pre></div>
 
+
 <p>And the second one:</p>
 <div class="highlight"><pre><span></span><code>    $ ktest-tool --write-ints klee-last/test000002.ktest 
     ...
     object    0: data: 0
 </code></pre></div>
+
 
 <p>In these test files, KLEE reports the command line arguments, the symbolic objects along with their size and the value provided for the test. To cover the whole program, we need <code>input</code> variable to get a value greater than 10 and one below or equal. You can see that this is the case: in the first test case the value 2147483647 is used, covering the first branch, while 0 is provided for the second, covering the other branch.</p>
 <p>So far, so good. But what if we change the function in this way?</p>
@@ -361,6 +374,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>We get this output:</p>
 <div class="highlight"><pre><span></span><code>    $ klee test.ll 
     KLEE: output directory is &quot;/work/klee-out-2&quot;
@@ -372,6 +386,7 @@ execute. For example:</p>
     KLEE: done: generated tests = 3
 </code></pre></div>
 
+
 <p>And this is the <code>klee-last</code> directory contents:</p>
 <div class="highlight"><pre><span></span><code>    $ ls klee-last/
     assembly.ll   run.istats        test000002.assert.err  test000003.ktest
@@ -379,12 +394,14 @@ execute. For example:</p>
     messages.txt  test000001.ktest  test000002.pc
 </code></pre></div>
 
+
 <p>Note the <code>test000002.assert.err</code> file. If we examine its corresponding test file, we have:</p>
 <div class="highlight"><pre><span></span><code>    $ ktest-tool --write-ints klee-last/test000002.ktest 
     ktest file : &#39;klee-last/test000002.ktest&#39;
     ...
     object    0: data: 10
 </code></pre></div>
+
 
 <p>As we had expected, the assertion fails when <code>input</code> value is 10. So, as we now have three execution paths, we also have three test cases, and the whole program gets covered. KLEE provides also the possibility to replay the tests with the real program, but we are not interested in it now. You can see a usage example in this <a href="http://klee.github.io/tutorials/testing-function/#replaying-a-test-case">KLEE tutorial</a>.</p>
 <p>KLEE's abilities to find execution paths of an application are very good. According to the <a href="http://llvm.org/pubs/2008-12-OSDI-KLEE.html">OSDI 2008 paper</a>, KLEE has been successfully used to test all 89 stand-alone programs in GNU COREUTILS and the equivalent busybox port, finding previously undiscovered bugs, errors and inconsistencies. The achieved code coverage were more than 90% per tool. Pretty awesome!</p>
@@ -399,6 +416,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>And we want to know for what input we get the output 253. A main that tests this could be:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
         <span class="kt">int</span> <span class="n">input</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
@@ -411,6 +429,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>KLEE can resolve this problem for us, if we provide symbolic inputs and actually an assert to trigger:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
         <span class="kt">int</span> <span class="n">input</span><span class="p">,</span> <span class="n">result</span><span class="p">;</span>
@@ -421,6 +440,7 @@ execute. For example:</p>
         <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>Run KLEE and print the result:</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o magic.ll -c magic.c
@@ -434,11 +454,13 @@ execute. For example:</p>
     object    0: data: -254
 </code></pre></div>
 
+
 <p>The answer is -254. Let's test it:</p>
 <div class="highlight"><pre><span></span><code>    $ gcc magic.c
     $ ./a.out -254
     You win!
 </code></pre></div>
+
 
 <p>Yes!</p>
 <h2 id="klee-libc-and-command-line-arguments">KLEE, libc and command line arguments</h2>
@@ -448,6 +470,7 @@ execute. For example:</p>
         <span class="k">return</span> <span class="n">input</span><span class="p">;</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>If we run it with KLEE we get this error:</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o atoi.ll -c atoi.c
@@ -459,6 +482,7 @@ execute. For example:</p>
     KLEE: NOTE: now ignoring this error at this location
     ...
 </code></pre></div>
+
 
 <p>To fix this we can use the KLEE uClibc and POSIX runtime. Taken from the help:</p>
 <p><em>"If we were running a normal native application, it would have been linked with the C library, but in this case KLEE is running the LLVM bitcode file directly. In order for KLEE to work effectively, it needs to have definitions for all the external functions the program may call. Similarly, a native application would be running on top of an operating system that provides lower level facilities like write(), which the C library uses in its implementation. As before, KLEE needs definitions for these functions in order to fully understand the program. We provide a POSIX runtime which is designed to work with KLEE and the uClibc library to provide the majority of operating system facilities used by command line applications"</em>.</p>
@@ -475,6 +499,7 @@ execute. For example:</p>
     KLEE: done: completed paths = 68
     KLEE: done: generated tests = 68
 </code></pre></div>
+
 
 <p>And KLEE founds the possible out of bound access in our program. Because you know, our program is bugged :) Before to jump and fix our code, let me briefly explain what these new flags did:</p>
 <ul>
@@ -496,6 +521,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>We could also have written <code>klee_assert(result != 42)</code>, and get the same result. No matter what solution we adopt, now we have to run KLEE as before:</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o atoi2.ll -c atoi2.c
     $ klee --optimize --libc=uclibc --posix-runtime atoi2.ll --sym-args 0 1 3
@@ -511,6 +537,7 @@ execute. For example:</p>
     KLEE: done: generated tests = 69
 </code></pre></div>
 
+
 <p>Here we go! We have fixed our bug. KLEE is also able to find an input to make the assertion fail:</p>
 <div class="highlight"><pre><span></span><code>    $ ls klee-last/ | grep err
     test000016.assert.err
@@ -524,6 +551,7 @@ execute. For example:</p>
     object    1: data: &#39;+42\x00&#39;
     ...
 </code></pre></div>
+
 
 <p>And the answer is the string "+42"... as we know.</p>
 <p>There are many other KLEE options and functionalities, but let's move on and try to solve our original problem. Interested readers can find a good tutorial, for example, in <a href="http://klee.github.io/tutorials/testing-coreutils/">How to Use KLEE to Test GNU Coreutils</a>.</p>
@@ -559,6 +587,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Super simple. Copy and paste everything, make the inputs symbolic and assert a certain result (negated, of course).</p>
 <p>No! That's not so simple. This is actually the most difficult part of the game. First of all, what do we want to copy? We don't have the source code. In my case I used Hex-Rays decompiler, so maybe I have cheated. When you decompile, however, you don't get immediately a compilable C source code, since there could be dependencies between functions, global variables, and specific Hex-Rays types. For this latter problem I've prepared a <a href="https://github.com/mbrt/keygen-post/blob/master/src/ida_defs.h"><code>ida_defs.h</code></a> header, providing defines coming from IDA and from Windows headers.</p>
 <p>But what to copy? The high level picture of the validation algorithm I have presented is an ideal one. The <code>check_registration</code> function is actually a big set of auxiliary functions and data, very tightened with other parts of the program. Even if we now know the most interesting functions, we need to know how much of the related code, is useful or not. We cannot throw everything in our key generator, since every function brings itself other related data and functions. In this way we will end up having the whole program in it. We need to minimize the code KLEE has to analyze, otherwise it will be too difficult to have its job done.</p>
@@ -580,6 +609,7 @@ execute. For example:</p>
     <span class="p">};</span>
 </code></pre></div>
 
+
 <p>But, cutting out code is not the only problem I've found in this step. External constraints must be carefully considered. For example the <a href="http://www.cplusplus.com/reference/ctime/time/">time</a> function can be handled by KLEE itself. KLEE tries to generate useful values even from that function. This is good if we want to test bugs related to a strange current time, but in our case, since the code will be executed by the program <em>at a particular time</em>, we are only interested in the value provided at that time. We don't want KLEE traits this function as symbolic; we only want the right time value. To solve that problem, I have replaced all the calls to <code>time</code> to a <code>my_time</code> function, returning a fixed value, defined in the source code.</p>
 <p>Another problem comes from the extraction of the functions from their outer context. Often code is written with <em>implicit conventions</em> in mind. These are not self-evident in the code because checks are avoided. A trivial example is the null terminator and valid ASCII characters in strings. KLEE does not assume those constraints, but the validation code does. This is because the GUI provides only valid strings. A less trivial example is that the mail address is always passed lowercase from the GUI to the lower level application logic. This is not self-evident if you do not follow every step from the user input to the actual computations with the data.</p>
 <p>The solution to this latter problem is to provide those constraints to KLEE:</p>
@@ -593,12 +623,14 @@ execute. For example:</p>
     <span class="n">klee_assume</span><span class="p">(</span><span class="n">mail</span><span class="p">[</span><span class="k">sizeof</span><span class="p">(</span><span class="n">mail</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
 </code></pre></div>
 
+
 <p>Logical operators inside <code>klee_assume</code> function are bitwise and not logical (i.e. <code>&amp;</code> and <code>|</code> instead of <code>&amp;&amp;</code> and <code>||</code>) because they are simpler, since they do not add the extra branches required by lazy operators.</p>
 <h2 id="throw-everything-into-klee">Throw everything into KLEE</h2>
 <p>Having extracted all the needed functions and global data and solved all the issues with the code, we can now move on and run KLEE with our brand new test program:</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o attempt1.ll -c attempt1.c
     $ klee --optimize --libc=uclibc --posix-runtime attempt1.ll
 </code></pre></div>
+
 
 <p>And then wait for an answer.</p>
 <p>And wait for another while.</p>
@@ -635,6 +667,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>And let's see if KLEE can work with this single function:</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o serial_type.ll -c serial_type.c
     $ klee --optimize --libc=uclibc --posix-runtime serial_type.ll
@@ -656,6 +689,7 @@ execute. For example:</p>
     object    1: data: 102690141
 </code></pre></div>
 
+
 <p>Yes! we now have a serial number that is considered PRO by our target application.</p>
 <p>The third condition is less simple: we have a table in which are stored values matching mail addresses with serial numbers. The high level check is this:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="nf">check</span><span class="p">(</span><span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">mail</span><span class="p">)</span> <span class="p">{</span>
@@ -670,6 +704,7 @@ execute. For example:</p>
         <span class="k">return</span> <span class="n">INVALID</span><span class="p">;</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>This piece of code imposes constraints on our mail address and serial number, but not on the customer number. We can rewrite the checks in two parts, the one checking the serial, and the one checking the mail address:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="nf">check_serial</span><span class="p">(</span><span class="kt">int</span> <span class="n">serial</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">mail</span><span class="p">)</span> <span class="p">{</span>
@@ -687,6 +722,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>The <code>check_mail</code> function needs the index in the table as secondary input, so it is not completely independent from the other check function. However, <code>check_mail</code> can be incorporated by our successful test program used before:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">// ...</span>
 
@@ -702,6 +738,7 @@ execute. For example:</p>
         <span class="n">klee_assert</span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">);</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>And if we run it, we get our revised serial number, that satisfies the additional constraint:</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o serial.ll -c serial.c
@@ -719,10 +756,12 @@ execute. For example:</p>
     ...
 </code></pre></div>
 
+
 <p>For those who are wondering if <code>get_index_in_mail_table</code> could return a negative index, and so possibly crash the program I can answer that they are not alone. <a href="https://twitter.com/0vercl0k">@0vercl0k</a> asked me the same question, and unfortunately I have to answer a no. I tried, because I am a lazy ass, by changing the assertion above to <code>klee_assert(index &lt; 0)</code>, but it was not triggered by KLEE. I then manually checked the function's code and I saw a beautiful <code>if (result &lt; 0) result = 0</code>. So, the answer is no! You have not found a vulnerability in the application :(</p>
 <p>For the <code>check_mail</code> solution we have to provide the index of a serial, but wait... we have it! We have now a serial, so, computing the index of the table is simple as executing this:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="n">get_index_in_mail_table</span><span class="p">(</span><span class="n">serial</span><span class="p">);</span>
 </code></pre></div>
+
 
 <p>Therefore, given a serial number, we can solve the mail address in this way:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">// ...</span>
@@ -753,6 +792,7 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>We only have to run KLEE with the additional serial argument, providing the computed one by the previous step.</p>
 <div class="highlight"><pre><span></span><code>    $ clang -emit-llvm -g -o mail.ll -c mail.c
     $ klee --optimize --libc=uclibc --posix-runtime mail.ll 120300641
@@ -768,12 +808,14 @@ execute. For example:</p>
     ...
 </code></pre></div>
 
+
 <p>OK, the mail found by KLEE is "yrwt". This is not a mail, of course, but in the code there is not a proper validation imposing the presence of '@' and '.' chars, so we are fine with it :)</p>
 <p>The last piece of the puzzle we need is the customer number. Here is the check:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="n">expected_customer</span> <span class="o">=</span> <span class="n">compute_customer_number</span><span class="p">(</span><span class="n">serial</span><span class="p">,</span> <span class="n">mail</span><span class="p">);</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">expected_customer</span> <span class="o">!=</span> <span class="n">customer_num</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">INVALID</span><span class="p">;</span>
 </code></pre></div>
+
 
 <p>This is simpler than before, since we already have a serial and a mail, so the only thing missing is a customer number matching those. We can compute it directly, even without symbolic execution:</p>
 <div class="highlight"><pre><span></span><code>    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
@@ -789,11 +831,13 @@ execute. For example:</p>
     <span class="p">}</span>
 </code></pre></div>
 
+
 <p>Let's execute it:</p>
 <div class="highlight"><pre><span></span><code>    $ gcc customer.c customer
     $ ./customer 120300641 yrwt
     1175211979
 </code></pre></div>
+
 
 <p>Yeah! And if we try those numbers and mail address onto the real program, we are now legit and registered users :)</p>
 <h2 id="want-more-keys">Want more keys?</h2>
@@ -817,6 +861,7 @@ execute. For example:</p>
         <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
     <span class="p">}</span>
 </code></pre></div>
+
 
 <p>We now need a script that runs KLEE and collect the results for all those chunks. Here it is:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">#!/bin/bash</span>
@@ -849,6 +894,7 @@ execute. For example:</p>
     <span class="k">done</span>
 </code></pre></div>
 
+
 <p>This script uses the <code>solve.sh</code> script, that does the actual work and prints the result of KLEE runs:</p>
 <div class="highlight"><pre><span></span><code>    <span class="c1">#!/bin/bash</span>
     <span class="c1"># do work</span>
@@ -864,6 +910,7 @@ execute. For example:</p>
     rm -f klee-last
 </code></pre></div>
 
+
 <p>Here is the final run:</p>
 <div class="highlight"><pre><span></span><code>    $ ./keygen_all.sh
     Index;License;Mail;Customer
@@ -873,6 +920,7 @@ execute. For example:</p>
     2410;112625605;7cxd;554797040
     ...
 </code></pre></div>
+
 
 <p>Note that not all the serial numbers are solvable, but we are OK with that. We now have a bunch of solved registrations. We can put them in some simple GUI that exposes to the user one of them randomly.</p>
 <p>That's all folks.</p>
@@ -920,6 +968,14 @@ execute. For example:</p>
 
     </div><!--/.fluid-container-->
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-N8HQZ0EFSG'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-43481215-1');
+</script>
 
     <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
     <script src="../../../../../theme/js/bootstrap.min.js"></script>
