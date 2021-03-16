@@ -21,7 +21,7 @@ AUTHOR_FEED_ATOM = 'feeds/author.{slug}.atom.xml'
 
 STATIC_PATHS = ['images', 'presentations']
 ARTICLE_PATHS = ['articles']
-GOOGLE_ANALYTICS = 'UA-43481215-1'
+GOOGLE_ANALYTICS = 'G-MRPDMQ259W'
 
 MARKDOWN = {
   'extension_configs': {
