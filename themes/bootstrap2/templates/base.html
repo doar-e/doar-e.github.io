@@ -40,7 +40,7 @@
     {% if FEED_RSS %}
     <link href="{{ SITEURL }}/{{ FEED_RSS }}" type="application/atom+xml" rel="alternate" title="{{ SITENAME }} RSS Feed" />
     {% endif %}
-
+    {% include 'analytics.html' %}
   </head>
 
   <body>
@@ -108,7 +108,6 @@
 
     </div><!--/.fluid-container-->
 
-    {% include 'analytics.html' %}
     {% include 'piwik.html' %}
     {% include 'disqus_script.html' %}
 
