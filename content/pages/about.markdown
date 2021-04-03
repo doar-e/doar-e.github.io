@@ -11,7 +11,7 @@ You can also contact the owners:
   - Jeremy Fetiveau: [twitter][5], [github][6]
   - yrp: [twitter][7], [github][8]
 
-We are also hanging out on IRC ([#doar-e@irc.w3challs.com](irc://#doar-e@irc.w3challs.com)) and on twitter ([@doar_e](https://twitter.com/doar_e)) ; don't be shy & join us!
+Come hang out on our Discord server ([invite](https://discord.gg//4JBWKDNyYs)) and follow us on twitter ([@doar_e](https://twitter.com/doar_e)); don't be shy & join us!
 
 [1]: https://twitter.com/0vercl0k
 [2]: https://github.com/0vercl0k
