@@ -172,11 +172,11 @@ gtag('config', 'G-MRPDMQ259W');
 <h2 id="compiling-and-baking">Compiling and ‘Baking’</h2>
 <p>In a rumpkernel application, we have a standard POSIX environment, minus anything involving multiple processes. Standard memory, file system, and networking calls all work as expected. The only differences lie in the multi-process related calls such as <code>fork()</code>, <code>signal()</code>, <code>pthread_create()</code>, etc. The scope of these differences can be found in the <a href="http://www.fixup.fi/misc/rumpkernel-book/rumpkernel-bookv2-20160802.pdf">The Design and Implementation of the Anykernel and Rump Kernels [pdf]</a>.</p>
 <p>From a super basic, standard ‘hello world’ program:</p>
-<div class="highlight"><pre><span></span><code>    <span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
-    <span class="kt">void</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
-    <span class="p">{</span>
-       <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-    <span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -197,14 +197,14 @@ gtag('config', 'G-MRPDMQ259W');
 <h2 id="reason-why-this-doesnt-work">Reason Why This Doesn’t Work</h2>
 <p>CVE-2013-2028 is a stack buffer overflow in the nginx handler for chunked requests. I thought this would be a good test as the user controls much of the data on the stack, however, various attempts to trigger the overflow failed. Running the VM in a debugger you could see the bug was not triggered despite the size value being large enough. In fact, the syscall returned an error.</p>
 <p>It turns out however that NetBSD has code to prevent against this inside the kernel:</p>
-<div class="highlight"><pre><span></span><code>    <span class="n">do_sys_recvmsg_so</span><span class="p">(</span><span class="k">struct</span> <span class="n">lwp</span> <span class="o">*</span><span class="n">l</span><span class="p">,</span> <span class="kt">int</span> <span class="n">s</span><span class="p">,</span> <span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">so</span><span class="p">,</span> <span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">mp</span><span class="p">,</span>
-          <span class="k">struct</span> <span class="n">mbuf</span> <span class="o">**</span><span class="n">from</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mbuf</span> <span class="o">**</span><span class="n">control</span><span class="p">,</span> <span class="n">register_t</span> <span class="o">*</span><span class="n">retsize</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">// …</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">tiov</span><span class="o">-&gt;</span><span class="n">iov_len</span> <span class="o">&gt;</span> <span class="n">SSIZE_MAX</span> <span class="o">||</span> <span class="n">auio</span><span class="p">.</span><span class="n">uio_resid</span> <span class="o">&gt;</span> <span class="n">SSIZE_MAX</span><span class="p">)</span> <span class="p">{</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="n">EINVAL</span><span class="p">;</span>
-                <span class="k">goto</span> <span class="n">out</span><span class="p">;</span>
-            <span class="p">}</span>
-    <span class="c1">// …</span>
+<div class="highlight"><pre><span></span><code><span class="n">do_sys_recvmsg_so</span><span class="p">(</span><span class="k">struct</span> <span class="n">lwp</span> <span class="o">*</span><span class="n">l</span><span class="p">,</span> <span class="kt">int</span> <span class="n">s</span><span class="p">,</span> <span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">so</span><span class="p">,</span> <span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">mp</span><span class="p">,</span>
+        <span class="k">struct</span> <span class="n">mbuf</span> <span class="o">**</span><span class="n">from</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mbuf</span> <span class="o">**</span><span class="n">control</span><span class="p">,</span> <span class="n">register_t</span> <span class="o">*</span><span class="n">retsize</span><span class="p">)</span> <span class="p">{</span>
+<span class="c1">// …</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">tiov</span><span class="o">-&gt;</span><span class="n">iov_len</span> <span class="o">&gt;</span> <span class="n">SSIZE_MAX</span> <span class="o">||</span> <span class="n">auio</span><span class="p">.</span><span class="n">uio_resid</span> <span class="o">&gt;</span> <span class="n">SSIZE_MAX</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">EINVAL</span><span class="p">;</span>
+            <span class="k">goto</span> <span class="n">out</span><span class="p">;</span>
+        <span class="p">}</span>
+<span class="c1">// …</span>
 </code></pre></div>
 
 
@@ -214,9 +214,9 @@ gtag('config', 'G-MRPDMQ259W');
 <p>In practice, the point is moot because the stack cookies are always zero. The compiler creates and checks the cookies, it just never populates <code>fs:0x28</code> (the location of the cookie value), so it’s always a constant value and assuming you can write null bytes, this should pose no problem.</p>
 <h1 id="aslr">ASLR</h1>
 <p>I was curious if unikernels would implement some form of ASLR, as during the build process they get compiled to an ELF (which is quite nice for analysis!) which might make position independent code easier to deal with. They don’t: all images are loaded at <code>0x100000</code>. There is however "natures ASLR" as these images aren’t distributed in binary form. Thus, as everyone must compile their own images, these will vary slightly depending on compiler version, software version, etc. However, even this constraint gets made easier. If you look at the format of the loaded images, they look something like this:</p>
-<div class="highlight"><pre><span></span><code><span class="err">    0x100000: &lt;unikernel init code&gt;</span>
-<span class="err">    …</span>
-<span class="err">    0x110410: &lt;application code starts&gt;</span>
+<div class="highlight"><pre><span></span><code>0x100000: &lt;unikernel init code&gt;
+…
+0x110410: &lt;application code starts&gt;
 </code></pre></div>
 
 
@@ -234,42 +234,42 @@ gtag('config', 'G-MRPDMQ259W');
 <p>You can find most of the relevant heap source <a href="https://github.com/rumpkernel/rumprun/blob/master/lib/libbmk_core/memalloc.c">here</a></p>
 <h1 id="symbol-resolution">Symbol Resolution</h1>
 <p>Rumpkernels helpfully include an entire syscall table under the <code>mysys</code> symbol. When rumpkernel images get loaded, the ELF header gets stripped, but the rest of the memory is loaded contigiously:</p>
-<div class="highlight"><pre><span></span><code><span class="err">    gef➤  info file</span>
-<span class="err">    Symbols from &quot;/home/x/rumprun-packages/php5/bin/php.bin&quot;.</span>
-<span class="err">    Remote serial target in gdb-specific protocol:</span>
-<span class="err">    Debugging a target over a serial line.</span>
-<span class="err">            While running this, GDB does not access memory from...</span>
-<span class="err">    Local exec file:</span>
-<span class="err">            `/home/x/rumprun-packages/php5/bin/php.bin&#39;, file type elf64-x86-64.</span>
-<span class="err">            Entry point: 0x104000</span>
-<span class="err">            0x0000000000100000 - 0x0000000000101020 is .bootstrap</span>
-<span class="err">            0x0000000000102000 - 0x00000000008df31c is .text</span>
-<span class="err">            0x00000000008df31c - 0x00000000008df321 is .init</span>
-<span class="err">            0x00000000008df340 - 0x0000000000bba9f0 is .rodata</span>
-<span class="err">            0x0000000000bba9f0 - 0x0000000000cfbcd0 is .eh_frame</span>
-<span class="err">            0x0000000000cfbcd0 - 0x0000000000cfbd28 is link_set_sysctl_funcs</span>
-<span class="err">            0x0000000000cfbd28 - 0x0000000000cfbd50 is link_set_bufq_strats</span>
-<span class="err">            0x0000000000cfbd50 - 0x0000000000cfbde0 is link_set_modules</span>
-<span class="err">            0x0000000000cfbde0 - 0x0000000000cfbf18 is link_set_rump_components</span>
-<span class="err">            0x0000000000cfbf18 - 0x0000000000cfbf60 is link_set_domains</span>
-<span class="err">            0x0000000000cfbf60 - 0x0000000000cfbf88 is link_set_evcnts</span>
-<span class="err">            0x0000000000cfbf88 - 0x0000000000cfbf90 is link_set_dkwedge_methods</span>
-<span class="err">            0x0000000000cfbf90 - 0x0000000000cfbfd0 is link_set_prop_linkpools</span>
-<span class="err">            0x0000000000cfbfd0 - 0x0000000000cfbfe0 is .initfini</span>
-<span class="err">            0x0000000000cfc000 - 0x0000000000d426cc is .data</span>
-<span class="err">            0x0000000000d426d0 - 0x0000000000d426d8 is .got</span>
-<span class="err">            0x0000000000d426d8 - 0x0000000000d426f0 is .got.plt</span>
-<span class="err">            0x0000000000d426f0 - 0x0000000000d42710 is .tbss</span>
-<span class="err">            0x0000000000d42700 - 0x0000000000e57320 is .bss</span>
+<div class="highlight"><pre><span></span><code>gef➤  info file
+Symbols from &quot;/home/x/rumprun-packages/php5/bin/php.bin&quot;.
+Remote serial target in gdb-specific protocol:
+Debugging a target over a serial line.
+        While running this, GDB does not access memory from...
+Local exec file:
+        `/home/x/rumprun-packages/php5/bin/php.bin&#39;, file type elf64-x86-64.
+        Entry point: 0x104000
+        0x0000000000100000 - 0x0000000000101020 is .bootstrap
+        0x0000000000102000 - 0x00000000008df31c is .text
+        0x00000000008df31c - 0x00000000008df321 is .init
+        0x00000000008df340 - 0x0000000000bba9f0 is .rodata
+        0x0000000000bba9f0 - 0x0000000000cfbcd0 is .eh_frame
+        0x0000000000cfbcd0 - 0x0000000000cfbd28 is link_set_sysctl_funcs
+        0x0000000000cfbd28 - 0x0000000000cfbd50 is link_set_bufq_strats
+        0x0000000000cfbd50 - 0x0000000000cfbde0 is link_set_modules
+        0x0000000000cfbde0 - 0x0000000000cfbf18 is link_set_rump_components
+        0x0000000000cfbf18 - 0x0000000000cfbf60 is link_set_domains
+        0x0000000000cfbf60 - 0x0000000000cfbf88 is link_set_evcnts
+        0x0000000000cfbf88 - 0x0000000000cfbf90 is link_set_dkwedge_methods
+        0x0000000000cfbf90 - 0x0000000000cfbfd0 is link_set_prop_linkpools
+        0x0000000000cfbfd0 - 0x0000000000cfbfe0 is .initfini
+        0x0000000000cfc000 - 0x0000000000d426cc is .data
+        0x0000000000d426d0 - 0x0000000000d426d8 is .got
+        0x0000000000d426d8 - 0x0000000000d426f0 is .got.plt
+        0x0000000000d426f0 - 0x0000000000d42710 is .tbss
+        0x0000000000d42700 - 0x0000000000e57320 is .bss
 </code></pre></div>
 
 
 <p>This means you should be able to just run simple linear scan, looking for the <code>mysys</code> table. A basic heuristic should be fine, 8 byte syscall number, 8 byte address. In the PHP5 interpreter, this table has 67 entries, giving it a big, fat footprint:</p>
-<div class="highlight"><pre><span></span><code><span class="err">    gef➤  x/6g mysys</span>
-<span class="err">    0xaeea60 &lt;mysys&gt;:       0x0000000000000003      0x000000000080b790 -- &lt;sys_read&gt;</span>
-<span class="err">    0xaeea70 &lt;mysys+16&gt;:    0x0000000000000004      0x000000000080b9d0 -- &lt;sys_write&gt;</span>
-<span class="err">    0xaeea80 &lt;mysys+32&gt;:    0x0000000000000006      0x000000000080c8e0 -- &lt;sys_close&gt;</span>
-<span class="err">    ...</span>
+<div class="highlight"><pre><span></span><code>gef➤  x/6g mysys
+0xaeea60 &lt;mysys&gt;:       0x0000000000000003      0x000000000080b790 -- &lt;sys_read&gt;
+0xaeea70 &lt;mysys+16&gt;:    0x0000000000000004      0x000000000080b9d0 -- &lt;sys_write&gt;
+0xaeea80 &lt;mysys+32&gt;:    0x0000000000000006      0x000000000080c8e0 -- &lt;sys_close&gt;
+...
 </code></pre></div>
 
 
