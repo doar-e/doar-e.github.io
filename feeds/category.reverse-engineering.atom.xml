@@ -292,7 +292,29 @@ NDIS!_NET_BUFFER
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;The function does a lot more; it initializes several &lt;code&gt;Packet_t&lt;/code&gt; fields but let's ignore that for now to avoid getting overwhelmed by complexity. Once the function returns back in &lt;code&gt;IppReceiveHeaderBatch&lt;/code&gt;, it extracts a demuxer off the &lt;code&gt;Protocol&lt;/code&gt; structure and invokes a parsing callback if the &lt;code&gt;NextHeader&lt;/code&gt; is a valid extension header. The &lt;code&gt;Protocol&lt;/code&gt; structure holds a fixed-size array where each item describes a "demuxer" (term used in the driver). The index in this array is the &lt;code&gt;NextHeader&lt;/code&gt; byte that was populated earlier in &lt;code&gt;IppReceiveHeaderBatch&lt;/code&gt;. If the demuxer is handling an extension header, then a callback is invoked to parse the header properly. This happens in a loop until the parsing hits the first part of the packet that isn't a header in which case it handles the next packet.&lt;/p&gt;
+&lt;p&gt;The function does a lot more; it initializes several &lt;code&gt;Packet_t&lt;/code&gt; fields but let's ignore that for now to avoid getting overwhelmed by complexity. Once the function returns back in &lt;code&gt;IppReceiveHeaderBatch&lt;/code&gt;, it extracts a demuxer off the &lt;code&gt;Protocol_t&lt;/code&gt; structure and invokes a parsing callback if the &lt;code&gt;NextHeader&lt;/code&gt; is a valid extension header. The &lt;code&gt;Protocol_t&lt;/code&gt; structure holds an array of &lt;code&gt;Demuxer_t&lt;/code&gt; (term used in the driver).&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;Demuxer_t&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kr"&gt;__fastcall&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;Parse&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;Packet_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;f0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;f1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;Size&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;f3&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="n"&gt;_BYTE&lt;/span&gt; &lt;span class="n"&gt;IsExtensionHeader&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="n"&gt;_BYTE&lt;/span&gt; &lt;span class="n"&gt;gap&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;23&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;span class="p"&gt;};&lt;/span&gt;
+
+&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;Protocol_t&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="c1"&gt;// ...&lt;/span&gt;
+  &lt;span class="n"&gt;Demuxer_t&lt;/span&gt; &lt;span class="n"&gt;Demuxers&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;277&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;code&gt;NextHeader&lt;/code&gt; (populated earlier in &lt;code&gt;IppReceiveHeaderBatch&lt;/code&gt;) is the value used to index into this array.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img alt="ida43" src="/images/reverse_engineering_tcpip/ida4.png"&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;If the demuxer is handling an extension header, then a callback is invoked to parse the header properly. This happens in a loop until the parsing hits the first part of the packet that isn't a header in which case it handles the next packet.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="p"&gt;...&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
 &lt;span class="p"&gt;{&lt;/span&gt;
     &lt;span class="n"&gt;NetBufferList&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;RcvList&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;NetBufferList&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
@@ -325,7 +347,7 @@ NDIS!_NET_BUFFER
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;Demuxer can expose a callback routine for parsing which I called &lt;code&gt;Parse&lt;/code&gt;. The &lt;code&gt;Parse&lt;/code&gt; method receives a &lt;code&gt;Packet&lt;/code&gt; and it is free to update its state; for example to grab the &lt;code&gt;NextHeader&lt;/code&gt; that is needed to know how to parse the next layer. This is what &lt;code&gt;Ipv6pReceiveFragmentList&lt;/code&gt; looks like (which is the &lt;code&gt;Parse&lt;/code&gt; callback defined for the fragmentation header demuxer):&lt;/p&gt;
+&lt;p&gt;Demuxer can expose a callback routine for parsing which I called &lt;code&gt;Parse&lt;/code&gt;. The &lt;code&gt;Parse&lt;/code&gt; method receives a &lt;code&gt;Packet&lt;/code&gt; and it is free to update its state; for example to grab the &lt;code&gt;NextHeader&lt;/code&gt; that is needed to know how to parse the next layer. This is what &lt;code&gt;Ipv6pReceiveFragmentList&lt;/code&gt; looks like (&lt;code&gt;Ipv6FragmentDemux.Parse&lt;/code&gt;):&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;&lt;img alt="ida1" src="/images/reverse_engineering_tcpip/ida2.png"&gt;&lt;/center&gt;&lt;/p&gt;
 &lt;p&gt;It makes sure the next header is &lt;code&gt;IPPROTO_FRAGMENT&lt;/code&gt; before going further. Again, makes sense.&lt;/p&gt;
 &lt;h4 id="the-mechanics-of-ipv6-fragmentation"&gt;The mechanics of IPv6 fragmentation&lt;/h4&gt;
@@ -720,7 +742,6 @@ ffffc107`f5ee80b0  05 02 00 00 01 00 8f 00-41 dc 00 00 00 01 04 00  ........A...
 &lt;p&gt;After trying and trying I started to think that I might have been headed in the wrong direction again. Maybe, I really need to find a way to send such a large packet without violating the MTU. But how?&lt;/p&gt;
 &lt;h2 id="manufacturing-a-packet-of-the-death-leap-of-faith"&gt;Manufacturing a packet of the death: leap of faith&lt;/h2&gt;
 &lt;p&gt;All right so I decided to start fresh again. Going back to the big picture, I've studied a bit more the reassembly algorithm, diffed again just in case I missed a clue somewhere, but nothing...&lt;/p&gt;
-&lt;p&gt;I started to brainstorm and think at a higher level: ”I want to craft a packet with a very large header, but I can't send it because of the MTU”. I know the bug also requires to trigger reassembly so fragments need to be involved as well. &lt;/p&gt;
 &lt;p&gt;Could I maybe be able to fragment a packet that has a very large header and trick the stack into reassembling the reassembled packet? It honestly felt like a long leap forward, but based on my reverse-engineering effort I didn't really see anything that would prevent that. The idea was blurry but felt like it was worth a shot. How would it really work though?&lt;/p&gt;
 &lt;p&gt;Sitting down for a minute, this is the theory that I came up with. I created a very large fragment that has many headers; enough to trigger the bug assuming I could trigger another reassembly. Then, I fragmented this fragment so that it can be sent to the target without violating the MTU. The reassembly happens and &lt;code&gt;tcpip.sys&lt;/code&gt; builds this huge reassembled fragment in memory; that's great but I didn't think it would work. Here is what it looks like in WinDbg:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;kd&amp;gt; bp tcpip+01ADF71 &amp;quot;.echo Reassembled NB; r @r14;&amp;quot;
