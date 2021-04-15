@@ -198,101 +198,104 @@ gtag('config', 'G-MRPDMQ259W');
 One really interesting property of this exposed information is that it becomes <em>queryable</em> via operators that have been highly inspired from C#’s LINQ operators. For those who are unfamiliar with them I would suggest looking at <a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/linq/basic-linq-query-operations">Basic LINQ query operations</a>.</p>
 <h2 id="first-query">First query</h2>
 <p>Say you would like to find what modules the current <code>@rip</code> is pointing into, you can easily express this through a query using LINQ operators and the data model:</p>
-<div class="highlight"><pre><span></span><code>    0:001&gt; dx @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))
-    @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))                
-        [0x8]            : C:\WINDOWS\SYSTEM32\ntdll.dll
+<div class="highlight"><pre><span></span><code>0:001&gt; dx @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))
+@$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))                
+    [0x8]            : C:\WINDOWS\SYSTEM32\ntdll.dll
 </code></pre></div>
 
 
 <p>..and you can even check all the information related to this module by clicking on the DML <code>[0x8]</code> link:</p>
-<div class="highlight"><pre><span></span><code>    0:001&gt; dx -r1 @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))[8]
-    @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
-        BaseAddress      : 0x7ffc985a0000
-        Name             : C:\WINDOWS\SYSTEM32\ntdll.dll
-        Size             : 0x1db000
+<div class="highlight"><pre><span></span><code>0:001&gt; dx -r1 @$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))[8]
+@$curprocess.Modules.Where(p =&gt; @rip &gt;= p.BaseAddress &amp;&amp; @rip &lt; (p.BaseAddress+p.Size))[8]                 : C:\WINDOWS\SYSTEM32\ntdll.dll
+    BaseAddress      : 0x7ffc985a0000
+    Name             : C:\WINDOWS\SYSTEM32\ntdll.dll
+    Size             : 0x1db000
 </code></pre></div>
 
 
 <p>In the previous two samples, there are several interesting points to highlight:</p>
 <p>1) <code>dx</code> is the operator to access the data model which is not available through the <code>??</code> / <code>?</code> operators</p>
 <p>2) <code>@$name</code> is how you access a variable that you have defined during a debugging session. The debugger itself defines several variables right off the bat just to make querying the model easier: <code>@$curprocess</code> is equivalent to <code>host.currentProcess</code> in Javascript, <code>@cursession</code> is <code>host.currentSession</code>, and <code>@$curthread</code> is <code>host.currentThread</code>. You can also define custom variables yourself, for example:</p>
-<div class="highlight"><pre><span></span><code>    0:001&gt; dx @$doare = &quot;Diary of a reverse-engineer&quot;
-    @$doare = &quot;Diary of a reverse-engineer&quot; : Diary of a reverse-engineer
-        Length           : 0x1b
-    0:001&gt; dx &quot;Hello, &quot; + @$doare
-    &quot;Hello, &quot; + @$doare : Hello, Diary of a reverse-engineer
-        Length           : 0x22
-    0:001&gt; ?? @$doare
-    Bad register error at &#39;@$doare&#39;
-    0:001&gt; ? @$doare
-    Bad register error at &#39;@$doare&#39;
+<div class="highlight"><pre><span></span><code>0:001&gt; dx @$doare = &quot;Diary of a reverse-engineer&quot;
+@$doare = &quot;Diary of a reverse-engineer&quot; : Diary of a reverse-engineer
+    Length           : 0x1b
+
+0:001&gt; dx &quot;Hello, &quot; + @$doare
+&quot;Hello, &quot; + @$doare : Hello, Diary of a reverse-engineer
+    Length           : 0x22
+
+0:001&gt; ?? @$doare
+Bad register error at &#39;@$doare&#39;
+
+0:001&gt; ? @$doare
+Bad register error at &#39;@$doare&#39;
 </code></pre></div>
 
 
 <p>3) To query all the nodes in the <code>@$curprocess</code> hierarchy (if you want to wander through the data model you can just use <code>dx Debugger</code> and click through the DML links):</p>
-<div class="highlight"><pre><span></span><code>    0:001&gt; dx @$curprocess
-    @$curprocess                 : cmd.exe [Switch To]
-        Name             : cmd.exe
-        Id               : 0x874
-        Threads         
-        Modules         
-        Environment
+<div class="highlight"><pre><span></span><code>0:001&gt; dx @$curprocess
+@$curprocess                 : cmd.exe [Switch To]
+    Name             : cmd.exe
+    Id               : 0x874
+    Threads         
+    Modules         
+    Environment
 </code></pre></div>
 
 
 <p>You can also check <code>Debugger.State.DebuggerVariables</code> where you can see the definitions for the variables we just mentioned:</p>
-<div class="highlight"><pre><span></span><code>    0:001&gt; dx Debugger.State.DebuggerVariables
-    Debugger.State.DebuggerVariables                
-        cursession       : Live user mode: &lt;Local&gt;
-        curprocess       : cmd.exe [Switch To]
-        curthread        : ntdll!DbgUiRemoteBreakin (00007ffc`98675320)  [Switch To]
-        scripts         
-        scriptContents   : [object Object]
-        vars            
-        curstack        
-        curframe         : ntdll!DbgBreakPoint [Switch To]
-    0:001&gt; dx Debugger.State.DebuggerVariables.vars
-    Debugger.State.DebuggerVariables.vars                
-        doare            : Diary of a reverse-engineer
+<div class="highlight"><pre><span></span><code>0:001&gt; dx Debugger.State.DebuggerVariables
+Debugger.State.DebuggerVariables                
+    cursession       : Live user mode: &lt;Local&gt;
+    curprocess       : cmd.exe [Switch To]
+    curthread        : ntdll!DbgUiRemoteBreakin (00007ffc`98675320)  [Switch To]
+    scripts         
+    scriptContents   : [object Object]
+    vars            
+    curstack        
+    curframe         : ntdll!DbgBreakPoint [Switch To]
+
+0:001&gt; dx Debugger.State.DebuggerVariables.vars
+Debugger.State.DebuggerVariables.vars                
+    doare            : Diary of a reverse-engineer
 </code></pre></div>
 
 
 <p>4) Last but not least, most of (all?) the iterable objects can be queried through LINQ-style operators. If you’ve never used these it can be a bit weird at the beginning but at some point it will click and then it is just goodness.</p>
 <p>Here is the list of the currently available operators on iterable objects in the data model:</p>
-<div class="highlight"><pre><span></span><code>linq operators
-    Aggregate        [Aggregate(AggregateMethod) | Aggregate(InitialSeed, AggregateMethod) | Aggregate(InitialSeed, AggregateMethod, ResultSelectorMethod) - LINQ equivalent method which iterates through the items in the given collection, running the aggregate method on each one and storing the returned result as the current aggregate value. Once the collection has been exhausted, the final accumulated value is returned. An optional result selector method can be specified which transforms the final accumulator value before returning it.]
-    All              [All(PredicateMethod) - LINQ equivalent method which returns whether all elements in the collection match a given predicate]
-    AllNonError      [AllNonError(PredicateMethod) - LINQ equivalent method which returns whether all elements in the collection match a given predicate. Errors are ignored if all non-error results match the predicate.]
-    Any              [Any(PredicateMethod) - LINQ equivalent method which returns whether any element in the collection matches a given predicate]
-    Average          [Average([ProjectionMethod]) - LINQ equivalent method which finds the average of all values in the enumeration. An optional projection method can be specified that transforms each value before the average is computed.]
-    Concat           [Concat(InnerCollection) - LINQ equivalent method which returns all elements from both collections, including duplicates.]
-    Contains         [Contains(Object, [ComparatorMethod]) - LINQ equivalent method which searches for the given element in the sequence using default comparator rules. An optional comparator method can be provided that will be called each time the element is compared against an entry in the sequence.]
-    Count            [Count() - LINQ equivalent method which returns the number of objects in the collection]
-    Distinct         [Distinct([ComparatorMethod]) - LINQ equivalent method which returns all distinct objects from the given collection, using default comparison rules. An optional comparator method can be provided to be called each time objects in the collection must be compared.]
-    Except           [Except(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects in the given collection that are NOT found in the inner collection. An optional comparator method can also be specified.]
-    First            [First([PredicateMethod]) - LINQ equivalent method which returns the first element in the collection or the first which matches an optional predicate]
-    FirstNonError    [FirstNonError([PredicateMethod]) - LINQ equivalent method which returns the first element in the collection or the first which matches an optional predicate. Any errors encountered are ignored if a valid element is found.]
-    Flatten          [Flatten([KeyProjectorMethod]) - Method which flattens a tree of collections (or a tree of keys that project to collections via an optional projector method) into a single collection]
-    GroupBy          [GroupBy(KeyProjectorMethod, [KeyComparatorMethod]) - LINQ equivalent method which groups the collection by unique keys defined via a key projector and optional key comparator]
-    Intersect        [Intersect(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects in the given collection that are also found in the inner collection. An optional comparator method can also be specified.]
-    Join             [Join(InnerCollection, Outer key selector method, Inner key selector method, Result selector method, [ComparatorMethod]) - LINQ equivalent method which projects a key for each element of the outer collection and each element of the inner collection using the methods provided. If the projected keys from both these elements match, then the result selector method is called with both those values and its output is returned to the user. An optional comparator method can also be specified.]
-    Last             [Last([PredicateMethod]) - LINQ equivalent method which returns the last element in the collection or the last which matches an optional predicate]
-    LastNonError     [LastNonError([PredicateMethod]) - LINQ equivalent method which returns the last element in the collection or the last which matches an optional predicate. Any errors are ignored.]
-    Max              [Max([ProjectionMethod]) - LINQ equivalent method which returns the maximum element using standard comparison rules. An optional projection method can be specified to project the elements of a sequence before comparing them with each other.]
-    Min              [Min([ProjectionMethod]) - LINQ equivalent method which returns the minimum element using standard comparison rules. An optional projection method can be specified to project the elements of a sequence before comparing them with each other.]
-    OrderBy          [OrderBy(KeyProjectorMethod, [KeyComparatorMethod]) - LINQ equivalent method which orders the collection via a key projector and optional key comparator in ascending order]
-    OrderByDescending [OrderByDescending(KeyProjectorMethod, [KeyComparatorMethod]) - LINQ equivalent method which orders the collection via a key projector and optional key comparator in descending order]
-    Reverse          [Reverse() - LINQ equivalent method which returns the reverse of the supplied enumeration.]
-    Select           [Select(ProjectionMethod) - LINQ equivalent method which projects the collection to a new collection via calling a projection method on every element]
-    SequenceEqual    [SequenceEqual(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which goes through the outer and inner collections and makes sure that they are equal (incl. sequence length). An optional comparator can be specified.]
-    Single           [Single([PredicateMethod]) - LINQ equivalent method which returns the only element in a list, or, if a predicate was specified, the only element that satisfies the predicate. If there are multiple elements that match the criteria, an error is returned.]
-    Skip             [Skip(Count) - LINQ equivalent method which skips the specified number of elements in the collection and returns all the rest.]
-    SkipWhile        [SkipWhile(PredicateMethod) - LINQ equivalent method which runs the predicate for each element and skips it as long as it keeps returning true. Once the predicate fails, the rest of the collection is returned.]
-    Sum              [Sum([ProjectionMethod]) - LINQ equivalent method which sums all the elements in the collection. Can optionally specify a projector method to transform the elements before summation occurs.]
-    Take             [Take(Count) - LINQ equivalent method which takes the specified number of elements from the collection.]
-    TakeWhile        [TakeWhile(PredicateMethod) - LINQ equivalent method which runs the predicate for each element and returns it only if the result is successful. Once the predicate fails, no more elements will be taken.]
-    Union            [Union(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects from the given and inner collection. An optional comparator method can also be specified.]
-    Where            [Where(FilterMethod) - LINQ equivalent method which filters elements in the collection according to when a filter method returns true for a given element]
+<div class="highlight"><pre><span></span><code>Aggregate        [Aggregate(AggregateMethod) | Aggregate(InitialSeed, AggregateMethod) | Aggregate(InitialSeed, AggregateMethod, ResultSelectorMethod) - LINQ equivalent method which iterates through the items in the given collection, running the aggregate method on each one and storing the returned result as the current aggregate value. Once the collection has been exhausted, the final accumulated value is returned. An optional result selector method can be specified which transforms the final accumulator value before returning it.]
+All              [All(PredicateMethod) - LINQ equivalent method which returns whether all elements in the collection match a given predicate]
+AllNonError      [AllNonError(PredicateMethod) - LINQ equivalent method which returns whether all elements in the collection match a given predicate. Errors are ignored if all non-error results match the predicate.]
+Any              [Any(PredicateMethod) - LINQ equivalent method which returns whether any element in the collection matches a given predicate]
+Average          [Average([ProjectionMethod]) - LINQ equivalent method which finds the average of all values in the enumeration. An optional projection method can be specified that transforms each value before the average is computed.]
+Concat           [Concat(InnerCollection) - LINQ equivalent method which returns all elements from both collections, including duplicates.]
+Contains         [Contains(Object, [ComparatorMethod]) - LINQ equivalent method which searches for the given element in the sequence using default comparator rules. An optional comparator method can be provided that will be called each time the element is compared against an entry in the sequence.]
+Count            [Count() - LINQ equivalent method which returns the number of objects in the collection]
+Distinct         [Distinct([ComparatorMethod]) - LINQ equivalent method which returns all distinct objects from the given collection, using default comparison rules. An optional comparator method can be provided to be called each time objects in the collection must be compared.]
+Except           [Except(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects in the given collection that are NOT found in the inner collection. An optional comparator method can also be specified.]
+First            [First([PredicateMethod]) - LINQ equivalent method which returns the first element in the collection or the first which matches an optional predicate]
+FirstNonError    [FirstNonError([PredicateMethod]) - LINQ equivalent method which returns the first element in the collection or the first which matches an optional predicate. Any errors encountered are ignored if a valid element is found.]
+Flatten          [Flatten([KeyProjectorMethod]) - Method which flattens a tree of collections (or a tree of keys that project to collections via an optional projector method) into a single collection]
+GroupBy          [GroupBy(KeyProjectorMethod, [KeyComparatorMethod]) - LINQ equivalent method which groups the collection by unique keys defined via a key projector and optional key comparator]
+Intersect        [Intersect(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects in the given collection that are also found in the inner collection. An optional comparator method can also be specified.]
+Join             [Join(InnerCollection, Outer key selector method, Inner key selector method, Result selector method, [ComparatorMethod]) - LINQ equivalent method which projects a key for each element of the outer collection and each element of the inner collection using the methods provided. If the projected keys from both these elements match, then the result selector method is called with both those values and its output is returned to the user. An optional comparator method can also be specified.]
+Last             [Last([PredicateMethod]) - LINQ equivalent method which returns the last element in the collection or the last which matches an optional predicate]
+LastNonError     [LastNonError([PredicateMethod]) - LINQ equivalent method which returns the last element in the collection or the last which matches an optional predicate. Any errors are ignored.]
+Max              [Max([ProjectionMethod]) - LINQ equivalent method which returns the maximum element using standard comparison rules. An optional projection method can be specified to project the elements of a sequence before comparing them with each other.]
+Min              [Min([ProjectionMethod]) - LINQ equivalent method which returns the minimum element using standard comparison rules. An optional projection method can be specified to project the elements of a sequence before comparing them with each other.]
+OrderBy          [OrderBy(KeyProjectorMethod, [KeyComparatorMethod]) - LINQ equivalent method which orders the collection via a key projector and optional key comparator in ascending order]
+OrderByDescending [OrderByDescending(KeyProjectorMethod, [KeyComparatorMethod]) - LINQ equivalent method which orders the collection via a key projector and optional key comparator in descending order]
+Reverse          [Reverse() - LINQ equivalent method which returns the reverse of the supplied enumeration.]
+Select           [Select(ProjectionMethod) - LINQ equivalent method which projects the collection to a new collection via calling a projection method on every element]
+SequenceEqual    [SequenceEqual(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which goes through the outer and inner collections and makes sure that they are equal (incl. sequence length). An optional comparator can be specified.]
+Single           [Single([PredicateMethod]) - LINQ equivalent method which returns the only element in a list, or, if a predicate was specified, the only element that satisfies the predicate. If there are multiple elements that match the criteria, an error is returned.]
+Skip             [Skip(Count) - LINQ equivalent method which skips the specified number of elements in the collection and returns all the rest.]
+SkipWhile        [SkipWhile(PredicateMethod) - LINQ equivalent method which runs the predicate for each element and skips it as long as it keeps returning true. Once the predicate fails, the rest of the collection is returned.]
+Sum              [Sum([ProjectionMethod]) - LINQ equivalent method which sums all the elements in the collection. Can optionally specify a projector method to transform the elements before summation occurs.]
+Take             [Take(Count) - LINQ equivalent method which takes the specified number of elements from the collection.]
+TakeWhile        [TakeWhile(PredicateMethod) - LINQ equivalent method which runs the predicate for each element and returns it only if the result is successful. Once the predicate fails, no more elements will be taken.]
+Union            [Union(InnerCollection, [ComparatorMethod]) - LINQ equivalent method which returns all distinct objects from the given and inner collection. An optional comparator method can also be specified.]
+Where            [Where(FilterMethod) - LINQ equivalent method which filters elements in the collection according to when a filter method returns true for a given element]
 </code></pre></div>
 
 
@@ -304,37 +307,37 @@ One really interesting property of this exposed information is that it becomes <
 <p>The first thing you need to be aware with Javascript is the fact that integers are encoded in C doubles.. which means your integers are stored in 53 bits. This is definitely a problem as most of the data we deal with are 64 bit integers. In order to address this problem, Windbg exposes a native type to Javascript that is able to store 64 bit integers. The type is called <code>Int64</code> and most (all?) information available in the data model is through <code>Int64</code> instances. This type exposes various methods to perform arithmetic and binary operations (if you use the native operators, the <code>Int64</code> gets converted back to an integer and throws if data is lost during this conversion; cf <a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/javascript-debugger-scripting">Auto-conversion</a>). It takes a bit of time to get used to this, but feels natural pretty quickly. Note that the <a href="https://www.frida.re/">Frida</a> framework exposes a very similar type to address the same issue, which means it will be even easier for you if you have played with Frida in the past!</p>
 <p>You can construct an <code>Int64</code> directly using a native Javascript integers (so at most 53 bits long as described above), or you can use the <code>host.parseInt64</code> method that takes a string as input. The other very important method you are going to need is <code>Int64.compareTo</code> which returns <code>1</code> if the instance is bigger than the argument, <code>0</code> if equal and <code>-1</code> if smaller. The below script shows a summary of the points we touched on:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// Int64.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">Int64</span><span class="p">(</span><span class="mi">1337</span><span class="p">);</span>
-        <span class="kd">let</span> <span class="nx">aplusone</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-        <span class="c1">// 53a</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">aplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="kd">let</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">parseInt64</span><span class="p">(</span><span class="s1">&#39;0xdeadbeefbaadc0de&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
-        <span class="kd">let</span> <span class="nx">bplusone</span> <span class="o">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-        <span class="c1">// 0xdeadbeefbaadc0df</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">bplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="kd">let</span> <span class="nx">bplusonenothrow</span> <span class="o">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">convertToNumber</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-        <span class="c1">// 16045690984229355000</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">bplusonenothrow</span><span class="p">);</span>
-        <span class="k">try</span> <span class="p">{</span>
-            <span class="kd">let</span> <span class="nx">bplusonethrow</span> <span class="o">=</span> <span class="nx">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-            <span class="c1">// Error: 64 bit value loses precision on conversion to number</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="c1">// 1</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
-        <span class="c1">// 0</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1337</span><span class="p">));</span>
-        <span class="c1">// -1</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1338</span><span class="p">));</span>
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">Int64</span><span class="p">(</span><span class="mi">1337</span><span class="p">);</span>
+    <span class="kd">let</span> <span class="nx">aplusone</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="c1">// 53a</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">aplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">parseInt64</span><span class="p">(</span><span class="s1">&#39;0xdeadbeefbaadc0de&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+    <span class="kd">let</span> <span class="nx">bplusone</span> <span class="o">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="c1">// 0xdeadbeefbaadc0df</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">bplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">bplusonenothrow</span> <span class="o">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">convertToNumber</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="c1">// 16045690984229355000</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">bplusonenothrow</span><span class="p">);</span>
+    <span class="k">try</span> <span class="p">{</span>
+        <span class="kd">let</span> <span class="nx">bplusonethrow</span> <span class="o">=</span> <span class="nx">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Error: 64 bit value loses precision on conversion to number</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
     <span class="p">}</span>
+    <span class="c1">// 1</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+    <span class="c1">// 0</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1337</span><span class="p">));</span>
+    <span class="c1">// -1</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1338</span><span class="p">));</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -344,25 +347,25 @@ One really interesting property of this exposed information is that it becomes <
 <h2 id="reading-memory">Reading memory</h2>
 <p>You can read raw memory via the <code>host.memory.readMemoryValues</code> function. It allows you to read memory as an array of items whose size you can specify. You can also use <code>host.memory.readString</code> and <code>host.memory.readWideString</code> for reading (narrow/wide) strings directly from memory.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//readmemory.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">read_u64</span><span class="p">(</span><span class="nx">addr</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readMemoryValues</span><span class="p">(</span><span class="nx">addr</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
-    <span class="p">}</span>
+<span class="kd">function</span> <span class="nx">read_u64</span><span class="p">(</span><span class="nx">addr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readMemoryValues</span><span class="p">(</span><span class="nx">addr</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">read_u64</span><span class="p">(</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rsp</span><span class="p">);</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="kd">let</span> <span class="nx">WideStr</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">.</span><span class="nx">ProcessParameters</span><span class="p">.</span><span class="nx">ImagePathName</span><span class="p">.</span><span class="nx">Buffer</span><span class="p">;</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStr</span><span class="p">));</span>
-        <span class="kd">let</span> <span class="nx">WideStrAddress</span> <span class="o">=</span> <span class="nx">WideStr</span><span class="p">.</span><span class="nx">address</span><span class="p">;</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStrAddress</span><span class="p">));</span>
-    <span class="p">}</span>
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">read_u64</span><span class="p">(</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rsp</span><span class="p">);</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">WideStr</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">.</span><span class="nx">ProcessParameters</span><span class="p">.</span><span class="nx">ImagePathName</span><span class="p">.</span><span class="nx">Buffer</span><span class="p">;</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStr</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">WideStrAddress</span> <span class="o">=</span> <span class="nx">WideStr</span><span class="p">.</span><span class="nx">address</span><span class="p">;</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStrAddress</span><span class="p">));</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -370,18 +373,18 @@ One really interesting property of this exposed information is that it becomes <
 <p>Even though a bunch of data is accessible programmatically via the data model, not everything is exposed today in the model. For example, you cannot access the same amount of information that <code>kp</code> shows you with the <code>Frame</code> model object. Specifically, the addresses of the frames or the saved return addresses are not currently available in the object unfortunately :-( As a result, being able to evaluate commands can still be important.</p>
 <p>The API call <code>ExecuteCommand</code> evaluates a command and returns the output of the command as a string:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//eval.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
-        <span class="k">for</span><span class="p">(</span><span class="kd">let</span> <span class="nx">Line</span> <span class="k">of</span> <span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;kp&#39;</span><span class="p">))</span> <span class="p">{</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Line: &#39;</span> <span class="o">+</span> <span class="nx">Line</span><span class="p">);</span>
-        <span class="p">}</span>
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
+    <span class="k">for</span><span class="p">(</span><span class="kd">let</span> <span class="nx">Line</span> <span class="k">of</span> <span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;kp&#39;</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Line: &#39;</span> <span class="o">+</span> <span class="nx">Line</span><span class="p">);</span>
     <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -391,127 +394,125 @@ One really interesting property of this exposed information is that it becomes <
 <p>Hopefully these APIs will become more powerful and more suited for scripting in future versions with the possibility of invoking a Javascript function when triggered, that would pass an object to the function describing why and where the breakpoint triggered, etc.</p>
 <p>Here is a simple example:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//breakpoint.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span> <span class="p">];</span>
+    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
+        <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">OffsetExpression</span> <span class="o">==</span> <span class="s1">&#39;ntdll!RtlAllocateHeap+0x0&#39;</span>
+    <span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">let</span> <span class="nx">Bp</span> <span class="o">=</span> <span class="nx">Control</span><span class="p">.</span><span class="nx">SetBreakpointAtOffset</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;ntdll&#39;</span><span class="p">);</span>
+        <span class="nx">Bp</span><span class="p">.</span><span class="nx">Command</span> <span class="o">=</span> <span class="s1">&#39;.echo doare; dx @$scriptContents.handle_bp(); gc&#39;</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
     <span class="p">}</span>
-
-    <span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span> <span class="p">];</span>
-        <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
-        <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-        <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
-    <span class="p">}</span>
-
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
-            <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">OffsetExpression</span> <span class="o">==</span> <span class="s1">&#39;ntdll!RtlAllocateHeap+0x0&#39;</span>
-        <span class="p">);</span>
-
-        <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
-            <span class="kd">let</span> <span class="nx">Bp</span> <span class="o">=</span> <span class="nx">Control</span><span class="p">.</span><span class="nx">SetBreakpointAtOffset</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;ntdll&#39;</span><span class="p">);</span>
-            <span class="nx">Bp</span><span class="p">.</span><span class="nx">Command</span> <span class="o">=</span> <span class="s1">&#39;.echo doare; dx @$scriptContents.handle_bp(); gc&#39;</span><span class="p">;</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
-        <span class="c1">// let Lines = Control.ExecuteCommand(&#39;gc&#39;);</span>
-        <span class="c1">// for(let Line of Lines) {</span>
-        <span class="c1">//     logln(&#39;Line: &#39; + Line);</span>
-        <span class="c1">// }</span>
-    <span class="p">}</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
+    <span class="c1">// let Lines = Control.ExecuteCommand(&#39;gc&#39;);</span>
+    <span class="c1">// for(let Line of Lines) {</span>
+    <span class="c1">//     logln(&#39;Line: &#39; + Line);</span>
+    <span class="c1">// }</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>This gives:</p>
-<div class="highlight"><pre><span></span><code>breakpoint.js output
-    0:000&gt;
-    Press &quot;g&quot; to run the target.
-    0:000&gt; g-
-    doare
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x82
-    @$scriptContents.handle_bp()
-    doare
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x9a
-    @$scriptContents.handle_bp()
-    doare
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x40
-    @$scriptContents.handle_bp()
-    doare
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x38
-    @$scriptContents.handle_bp()
-    doare
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
-    @$scriptContents.handle_bp()
-    ...
+<div class="highlight"><pre><span></span><code>0:000&gt;
+Press &quot;g&quot; to run the target.
+0:000&gt; g-
+doare
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x82
+@$scriptContents.handle_bp()
+doare
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x9a
+@$scriptContents.handle_bp()
+doare
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x40
+@$scriptContents.handle_bp()
+doare
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x38
+@$scriptContents.handle_bp()
+doare
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
+@$scriptContents.handle_bp()
+...
 </code></pre></div>
 
 
 <p>Now, I find this interface not well suited for scenarios where you need to have a breakpoint that just dumps stuff and keep going, but hopefully in the future this will improve. Let's say you have a function and you’re interested in dumping its arguments/state every time it gets called. If you attempt to do this with the above code, every time the breakpoint is hit the debugger will execute your callback <em>and</em> stop. At this point you have to tell it to keep executing. (Also, feel free to uncomment the last lines of the script to see what happens if you <code>ExecuteCommand('gc')</code> :-)). </p>
 <p>One way I found around this limitation is to use evaluation and the <code>bp</code> command:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//breakpoint2.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span><span class="p">];</span>
-        <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
-        <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-        <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
-        <span class="k">if</span><span class="p">(</span><span class="nx">Args</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">compareTo</span><span class="p">(</span><span class="mh">0x100</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-            <span class="c1">// stop execution if the allocation size is bigger than 0x100</span>
-            <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
-        <span class="p">}</span>
-        <span class="c1">// keep the execution going if it&#39;s a small size</span>
-        <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+<span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span><span class="p">];</span>
+    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">Args</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">compareTo</span><span class="p">(</span><span class="mh">0x100</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// stop execution if the allocation size is bigger than 0x100</span>
+        <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
     <span class="p">}</span>
+    <span class="c1">// keep the execution going if it&#39;s a small size</span>
+    <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">HeapAlloc</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">getModuleSymbolAddress</span><span class="p">(</span><span class="s1">&#39;ntdll&#39;</span><span class="p">,</span> <span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">);</span>
-        <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
-            <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Address</span> <span class="o">==</span> <span class="nx">HeapAlloc</span>
-        <span class="p">);</span>
-        <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RltAllocateHeap @ &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-            <span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;bp /w &quot;@$scriptContents.handle_bp()&quot; &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">HeapAlloc</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">getModuleSymbolAddress</span><span class="p">(</span><span class="s1">&#39;ntdll&#39;</span><span class="p">,</span> <span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">);</span>
+    <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
+        <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Address</span> <span class="o">==</span> <span class="nx">HeapAlloc</span>
+    <span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RltAllocateHeap @ &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+        <span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;bp /w &quot;@$scriptContents.handle_bp()&quot; &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
     <span class="p">}</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Which gives this output:</p>
-<div class="highlight"><pre><span></span><code>breakpoint2.js output
-    0:000&gt;
-    RltAllocateHeap @ 0x7fffc07587a0
-    Press &quot;g&quot; to run the target.
-    0:000&gt; g
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x38
-    ...
-    RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x34a
-    Breakpoint 0 hit
-    Time Travel Position: 2A51:314
-    ntdll!RtlAllocateHeap:
-    00007fff`c07587a0 48895c2408      mov     qword ptr [rsp+8],rbx ss:000000b8`7f39e9a0=000000b87f39e9b0
+<div class="highlight"><pre><span></span><code>0:000&gt;
+RltAllocateHeap @ 0x7fffc07587a0
+Press &quot;g&quot; to run the target.
+0:000&gt; g
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x38
+...
+RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x140000, Size: 0x34a
+Breakpoint 0 hit
+Time Travel Position: 2A51:314
+ntdll!RtlAllocateHeap:
+00007fff`c07587a0 48895c2408      mov     qword ptr [rsp+8],rbx ss:000000b8`7f39e9a0=000000b87f39e9b0
 </code></pre></div>
 
 
@@ -525,102 +526,102 @@ One really interesting property of this exposed information is that it becomes <
 <p>Even though I won’t cover how recording and replaying a <em>TTD</em> trace in this article, I just wanted to show you in this part how powerful such features can be once coupled with the data model. As you have probably realized by now, the data model is all about extensibility: you can access specific <em>TTD</em> features via the model when you have a trace loaded in the debugger. This section tries to describe them.</p>
 <h3 id="ttdcalls">TTD.Calls</h3>
 <p>The first feature I wanted to talked about is <code>TTD.Calls</code>. This API goes through an entire execution trace and finds every unique point in the trace where an API has been called.</p>
-<div class="highlight"><pre><span></span><code>TTD.Calls description
-    0:000&gt; dx -v @$cursession.TTD
-    @$cursession.TTD                 : [object Object]
-        Calls            [Returns call information from the trace for the specified set of symbols: TTD.Calls(&quot;module!symbol1&quot;, &quot;module!symbol2&quot;, ...)]
+<div class="highlight"><pre><span></span><code>0:000&gt; dx -v @$cursession.TTD
+@$cursession.TTD                 : [object Object]
+    Calls            [Returns call information from the trace for the specified set of symbols: TTD.Calls(&quot;module!symbol1&quot;, &quot;module!symbol2&quot;, ...)]
 </code></pre></div>
 
 
 <p>For each of those points, you have an object describing the call: time travel position (that you can travel to: see <code>TimeStart</code> and <code>TimeEnd</code> below), parameters (leveraging symbols if you have any to know how many parameters the API expects), return value, the thread id, etc.</p>
 <p>Here is what it looks like:</p>
-<div class="highlight"><pre><span></span><code>TTD.Calls object
-    0:000&gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count()
-    @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count() : 0x267
-    0:000&gt; dx @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()
-    @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()                
-        EventType        : Call
-        ThreadId         : 0x1004
-        UniqueThreadId   : 0x6
-        TimeStart        : 12C1:265 [Time Travel]
-        TimeEnd          : 12DE:DC [Time Travel]
-        Function         : ntdll!RtlAllocateHeap
-        FunctionAddress  : 0x7fffc07587a0
-        ReturnAddress    : 0x7fffbdcd9cc1
-        ReturnValue      : 0x21b5df71980
-        Parameters      
-    0:000&gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters
-    @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters                
-        [0x0]            : 0x21b5df70000
-        [0x1]            : 0x8
-        [0x2]            : 0x2d8
-        [0x3]            : 0x57
+<div class="highlight"><pre><span></span><code>0:000&gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count()
+@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Count() : 0x267
+
+0:000&gt; dx @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()
+@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First()                
+    EventType        : Call
+    ThreadId         : 0x1004
+    UniqueThreadId   : 0x6
+    TimeStart        : 12C1:265 [Time Travel]
+    TimeEnd          : 12DE:DC [Time Travel]
+    Function         : ntdll!RtlAllocateHeap
+    FunctionAddress  : 0x7fffc07587a0
+    ReturnAddress    : 0x7fffbdcd9cc1
+    ReturnValue      : 0x21b5df71980
+    Parameters      
+
+0:000&gt; dx -r1 @$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters
+@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).First().Parameters                
+    [0x0]            : 0x21b5df70000
+    [0x1]            : 0x8
+    [0x2]            : 0x2d8
+    [0x3]            : 0x57
 </code></pre></div>
 
 
 <p>Obviously, the collection returned by <code>TTD.Calls</code> can be queried via the same <a href="https://docs.microsoft.com/en-us/dotnet/csharp/linq/query-expression-basics">LINQ</a>-like operators we mentioned earlier which is awesome. As an example, asking the following question has never been easier: "How many times did the allocator fail to allocate memory?":</p>
-<div class="highlight"><pre><span></span><code>TTD.Calls query
-    0:000&gt; dx @$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&gt; c.ReturnValue == 0)
-    @$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&gt; c.ReturnValue == 0)                
-    0:000&gt; dx @$Calls.Count()
-    @$Calls.Count()  : 0x0
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&gt; c.ReturnValue == 0)
+@$Calls=@$cursession.TTD.Calls(&quot;ntdll!RtlAllocateHeap&quot;).Where(c =&gt; c.ReturnValue == 0)                
+
+0:000&gt; dx @$Calls.Count()
+@$Calls.Count()  : 0x0
 </code></pre></div>
 
 
 <p>Note that because the API has been designed in a way that abstracts away ABI-specific details, you can have your query / code working on both x86 &amp; x64 seamlessly. Another important point is that this is much faster than setting a breakpoint manually and running the trace forward to collect this information yourself.</p>
 <h3 id="ttdmemory">TTD.Memory</h3>
 <p>The other <strong>very</strong> powerful feature that was announced fairly <a href="https://blogs.msdn.microsoft.com/windbg/2017/12/18/windbg-preview-1-1712-15003-release-notes/">recently</a> in version 1.1712.15003 is <code>TTD.Memory</code>. A bit like <code>TTD.Calls</code>, this feature lets you go and find every memory accesses that happened in an execution trace on a specific memory range. And again, it returns to the user a nice object that has all the information you could be potentially interested in (time travel positions, access type, the instruction pointer address, the address of the memory accessed, etc.):</p>
-<div class="highlight"><pre><span></span><code>TTD.Memory object
-    0:000&gt; dx @$Accesses[0]
-    @$Accesses[0]                
-        EventType        : MemoryAccess
-        ThreadId         : 0x15e8
-        UniqueThreadId   : 0x3
-        TimeStart        : F44:2 [Time Travel]
-        TimeEnd          : F44:2 [Time Travel]
-        AccessType       : Write
-        IP               : 0x7fffc07649bf
-        Address          : 0xb87f67fa70
-        Size             : 0x4
-        Value            : 0x0
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$Accesses[0]
+@$Accesses[0]                
+    EventType        : MemoryAccess
+    ThreadId         : 0x15e8
+    UniqueThreadId   : 0x3
+    TimeStart        : F44:2 [Time Travel]
+    TimeEnd          : F44:2 [Time Travel]
+    AccessType       : Write
+    IP               : 0x7fffc07649bf
+    Address          : 0xb87f67fa70
+    Size             : 0x4
+    Value            : 0x0
 </code></pre></div>
 
 
 <p>Here is how you would go and ask it to find out every piece of code that write-accessed (read and execute are also other valid type of access you can query for and combine) the TEB region of the current thread:</p>
-<div class="highlight"><pre><span></span><code>TTD.Memory write-access TEB
-    0:001&gt; ? @$teb
-    Evaluate expression: 792409825280 = 000000b8`7f4e6000
-    0:001&gt; ?? sizeof(_TEB)
-    unsigned int64 0x1838
-    0:001&gt; dx @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)
-    @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)                
-    0:001&gt; dx @$Accesses[0]
-    @$Accesses[0]                
-        EventType        : MemoryAccess
-        ThreadId         : 0x15e8
-        UniqueThreadId   : 0x3
-        TimeStart        : F79:1B [Time Travel]
-        TimeEnd          : F79:1B [Time Travel]
-        AccessType       : Write
-        IP               : 0x7fffc0761bd0
-        Address          : 0xb87f4e7710
-        Size             : 0x10
-        Value            : 0x0
+<div class="highlight"><pre><span></span><code>0:001&gt; ? @$teb
+Evaluate expression: 792409825280 = 000000b8`7f4e6000
+
+0:001&gt; ?? sizeof(_TEB)
+unsigned int64 0x1838
+
+0:001&gt; dx @$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)
+@$Accesses=@$cursession.TTD.Memory(0x000000b8`7f4e6000, 0x000000b8`7f4e6000+0x1838, &quot;w&quot;)                
+
+0:001&gt; dx @$Accesses[0]
+@$Accesses[0]                
+    EventType        : MemoryAccess
+    ThreadId         : 0x15e8
+    UniqueThreadId   : 0x3
+    TimeStart        : F79:1B [Time Travel]
+    TimeEnd          : F79:1B [Time Travel]
+    AccessType       : Write
+    IP               : 0x7fffc0761bd0
+    Address          : 0xb87f4e7710
+    Size             : 0x10
+    Value            : 0x0
 </code></pre></div>
 
 
 <p>The other beauty of it is that you can travel to the position ID and find out what happened:</p>
-<div class="highlight"><pre><span></span><code>time traveling!
-    0:001&gt; !tt F79:1B
-    Setting position: F79:1B
-    (1cfc.15e8): Break instruction exception - code 80000003 (first/second chance not available)
-    Time Travel Position: F79:1B
-    ntdll!TppWorkCallbackPrologRelease+0x100:
-    00007fff`c0761bd0 f30f7f8010170000 movdqu  xmmword ptr [rax+1710h],xmm0 ds:000000b8`7f4e7710=00000000000000000000000000000000
+<div class="highlight"><pre><span></span><code>0:001&gt; !tt F79:1B
+Setting position: F79:1B
+(1cfc.15e8): Break instruction exception - code 80000003 (first/second chance not available)
+Time Travel Position: F79:1B
+ntdll!TppWorkCallbackPrologRelease+0x100:
+00007fff`c0761bd0 f30f7f8010170000 movdqu  xmmword ptr [rax+1710h],xmm0 ds:000000b8`7f4e7710=00000000000000000000000000000000
 
-    0:001&gt; dt _TEB ActivityId
-    ntdll!_TEB
-       +0x1710 ActivityId : _GUID
+0:001&gt; dt _TEB ActivityId
+ntdll!_TEB
+    +0x1710 ActivityId : _GUID
 </code></pre></div>
 
 
@@ -628,83 +629,81 @@ One really interesting property of this exposed information is that it becomes <
 <h3 id="ttdutilitygetheapaddress">TTD.Utility.GetHeapAddress</h3>
 <p>The two previous features were mostly building blocks; this utility consumes the <code>TTD.Calls</code> API in order to show the lifetime of a heap chunk in a trace session. What does that mean exactly? Well, the utility looks for every heap related operation that happened on a chunk (start address, size) and show them to you.</p>
 <p>This is extremely useful when debugging or root-causing issues, and here is what it looks like on a dummy trace:</p>
-<div class="highlight"><pre><span></span><code>GetHeapAddress demo
-    0:000&gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
-    ========================================================================================================================================
-    =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
-    ========================================================================================================================================
-    = [0x59] : [object Object]  - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0xaa    - 0x8    - ED:7D7        - EF:7D       -        =
-    = [0x6b] : [object Object]  - Alloc    - 0x21b5dcd0000    - 0x21b5dce40a0    - 0xaa    - 0x8    - 105:D9        - 107:7D      -        =
-    = [0x6c] : [object Object]  - Free     - 0x21b5dcd0000    - 0x21b5dce40a0    -         - 0x0    - 107:8D        - 109:1D      - 0x1    =
-    = [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
-    ========================================================================================================================================
+<div class="highlight"><pre><span></span><code>0:000&gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce40a0)
+========================================================================================================================================
+=                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
+========================================================================================================================================
+= [0x59] : [object Object]  - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0xaa    - 0x8    - ED:7D7        - EF:7D       -        =
+= [0x6b] : [object Object]  - Alloc    - 0x21b5dcd0000    - 0x21b5dce40a0    - 0xaa    - 0x8    - 105:D9        - 107:7D      -        =
+= [0x6c] : [object Object]  - Free     - 0x21b5dcd0000    - 0x21b5dce40a0    -         - 0x0    - 107:8D        - 109:1D      - 0x1    =
+= [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
+========================================================================================================================================
 </code></pre></div>
 
 
 <p>The attentive reader has probably noticed something maybe unexpected with entries 0x59 and entries 0x276 where we are seeing two different allocations of the same chunk without any free in between. The answer to this question lies in the way the <code>GetHeapAddress</code> function is implemented (check out the <em>TTD\Analyzers\HeapAnalysis.js</em> file) - it basically looks for every heap related operation and only shows you the ones where <code>address + size</code> is a range containing the argument you passed. In this example we gave the function the address <code>0x21b5dce40a0</code>, 0x59 is an allocation and <code>0x21b5dce40a0</code> is in the range <code>0x21b5dce4030 + 0xAA</code> so we display it. Now, a free does not know the size of the chunk, the only thing it knows is the base pointer. In this case if we have a free of <code>0x21b5dce4030</code> the utility function would just not display it to us which explains how we can have two heap chunks allocated without a free in the following time frame: <code>ED:7D7, E59:3A7</code>.</p>
 <p>We can even go ahead and prove this by finding the free by running the below command:</p>
-<div class="highlight"><pre><span></span><code> GetHeapAddress finding the free of 0x21b5dce4030
-    0:000&gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p =&gt; p.Address == 0x21b5dce4030)
-    ========================================================================================================================================
-    =                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
-    ========================================================================================================================================
-    = [0x61] : [object Object]  - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0xaa    - 0x8    - ED:7D7        - EF:7D       -        =
-    = [0x64] : [object Object]  - Free     - 0x21b5dcd0000    - 0x21b5dce4030    -         - 0x0    - EF:247        - F1:1D       - 0x1    =
-    = [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
-    ========================================================================================================================================
+<div class="highlight"><pre><span></span><code>0:000&gt; dx -g @$cursession.TTD.Utility.GetHeapAddress(0x21b5dce4030).Where(p =&gt; p.Address == 0x21b5dce4030)
+========================================================================================================================================
+=                           = Action   = Heap             = Address          = Size    = Flags  = (+) TimeStart = (+) TimeEnd = Result =
+========================================================================================================================================
+= [0x61] : [object Object]  - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0xaa    - 0x8    - ED:7D7        - EF:7D       -        =
+= [0x64] : [object Object]  - Free     - 0x21b5dcd0000    - 0x21b5dce4030    -         - 0x0    - EF:247        - F1:1D       - 0x1    =
+= [0x276] : [object Object] - Alloc    - 0x21b5dcd0000    - 0x21b5dce4030    - 0x98    - 0x0    - E59:3A7       - E5A:8E      -        =
+========================================================================================================================================
 </code></pre></div>
 
 
 <p>As expected, the entry 0x64 is our free operation and it also happens in between the two allocation operations we were seeing earlier - solved.</p>
 <p>Pretty neat uh?</p>
 <p>It is nice enough to ask the utility for a specific heap address, but it would also be super nice if we had access to the whole heap activity that has happened during the session and that is what <code>TTD.Data.Heap</code> gives you:</p>
-<div class="highlight"><pre><span></span><code>TTD.Data.Heap demo
-    0:000&gt; dx @$HeapOps=@$cursession.TTD.Data.Heap()
-    ...
-    0:000&gt; dx @$HeapOps.Count()
-    @$HeapOps.Count() : 0x414
-    0:000&gt; dx @$HeapOps[137]
-    @$HeapOps[137]                 : [object Object]
-        Action           : Free
-        Heap             : 0x21b5dcd0000
-        Address          : 0x21b5dcee790
-        Flags            : 0x0
-        Result           : 0x1
-        TimeStart        : 13A1:184 [Time Travel]
-        TimeEnd          : 13A2:27 [Time Travel]
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$HeapOps=@$cursession.TTD.Data.Heap()
+...
+
+0:000&gt; dx @$HeapOps.Count()
+@$HeapOps.Count() : 0x414
+
+0:000&gt; dx @$HeapOps[137]
+@$HeapOps[137]                 : [object Object]
+    Action           : Free
+    Heap             : 0x21b5dcd0000
+    Address          : 0x21b5dcee790
+    Flags            : 0x0
+    Result           : 0x1
+    TimeStart        : 13A1:184 [Time Travel]
+    TimeEnd          : 13A2:27 [Time Travel]
 </code></pre></div>
 
 
 <p>And of course do not forget that all these collections are queryable. We can easily find out what are all the other heap operations that are not <code>alloc</code> or <code>free</code> with the below query:</p>
-<div class="highlight"><pre><span></span><code>TTD.Data.Heap() &amp; query
-    0:000&gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&gt; c.Action != &quot;Free&quot; &amp;&amp; c.Action != &quot;Alloc&quot;)
-    ...
-    0:000&gt; dx -g @$NoFreeAlloc
-    ============================================================================================================
-    =                           = Action    = Heap             = Result          = (+) TimeStart = (+) TimeEnd =
-    ============================================================================================================
-    = [0x382] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1ADE:602      - 1ADF:14     =
-    = [0x386] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1AE0:64       - 1AE1:13     =
-    = [0x38d] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1B38:661      - 1B39:14     =
-    = [0x391] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1B3A:64       - 1B3B:13     =
-    = [0x397] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1BF0:5F4      - 1BF1:14     =
-    = [0x399] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1BF1:335      - 1C1E:13     =
-    ...
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$NoFreeAlloc=@$HeapOps.Where(c =&gt; c.Action != &quot;Free&quot; &amp;&amp; c.Action != &quot;Alloc&quot;)
+...
+
+0:000&gt; dx -g @$NoFreeAlloc
+============================================================================================================
+=                           = Action    = Heap             = Result          = (+) TimeStart = (+) TimeEnd =
+============================================================================================================
+= [0x382] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1ADE:602      - 1ADF:14     =
+= [0x386] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1AE0:64       - 1AE1:13     =
+= [0x38d] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1B38:661      - 1B39:14     =
+= [0x391] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1B3A:64       - 1B3B:13     =
+= [0x397] : [object Object] - Lock      - 0x21b5dcd0000    - 0xb87f4e3001    - 1BF0:5F4      - 1BF1:14     =
+= [0x399] : [object Object] - Unlock    - 0x21b5dcd0000    - 0xb87f4e3001    - 1BF1:335      - 1C1E:13     =
+...
 </code></pre></div>
 
 
 <h2 id="extend-the-data-model">Extend the data model</h2>
 <p>After consuming all the various features available in the data model, I am sure you guys are wondering how you can go and add your own node and extend it. In order to do this, you can use the API <code>host.namedModelParent</code>.</p>
-<div class="highlight"><pre><span></span><code>host.namedModelParent
-    class host.namedModelParent
+<div class="highlight"><pre><span></span><code>class host.namedModelParent
 
-    An object representing a modification of the object model of the debugger.
-    This links together a JavaScript class (or prototype) with a data model.
-    The JavaScript class (or prototype) becomes a parent data model (e.g.: similar to a prototype)
-    to the data model registered under the supplied name. 
+An object representing a modification of the object model of the debugger.
+This links together a JavaScript class (or prototype) with a data model.
+The JavaScript class (or prototype) becomes a parent data model (e.g.: similar to a prototype)
+to the data model registered under the supplied name. 
 
-    An instance of this object can be returned in the array of records returned from
-    the initializeScript method.
+An instance of this object can be returned in the array of records returned from
+the initializeScript method.
 </code></pre></div>
 
 
@@ -725,34 +724,33 @@ One really interesting property of this exposed information is that it becomes <
 <p>Extension and imperative scripts are basically the same but they have different entry points: extensions use <code>initializeScript</code> (the command <code>.scriptload</code> invokes this entry point) and imperative scripts use <code>invokeScript</code> (the command <code>.scriptrun</code> invokes both the <code>initializeScript</code> and <code>invokeScript</code>). The small difference is that in an extension script you are expected to return an array of <em>registration</em> objects if you want to modify the data model, which is exactly what we want to do.</p>
 <p>Anyway, let's attach a node called <code>DiaryOfAReverseEngineer</code> to the <code>Process</code> model:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//extendmodel_1.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-        <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;hello from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
+    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;hello from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-            <span class="nx">ProcessModelParent</span><span class="p">,</span>
-            <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-        <span class="p">)];</span>
-    <span class="p">}</span>
+<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+        <span class="nx">ProcessModelParent</span><span class="p">,</span>
+        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
+    <span class="p">)];</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Once loaded you can go ahead and check that the node has been added:</p>
-<div class="highlight"><pre><span></span><code>hello new node
-    0:000&gt; dx @$curprocess
-    @$curprocess                 : PING.EXE [Switch To]
-        Name             : PING.EXE
-        Id               : 0x1cfc
-        Threads         
-        Modules         
-        Environment     
-        TTD             
-        DiaryOfAReverseEngineer : hello from PING.EXE
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$curprocess
+@$curprocess                 : PING.EXE [Switch To]
+    Name             : PING.EXE
+    Id               : 0x1cfc
+    Threads         
+    Modules         
+    Environment     
+    TTD             
+    DiaryOfAReverseEngineer : hello from PING.EXE
 </code></pre></div>
 
 
@@ -760,57 +758,57 @@ One really interesting property of this exposed information is that it becomes <
 <h3 id="step-2-add-the-first-level-to-the-node">Step 2: Add the first level to the node</h3>
 <p>What we want to do now is to have our top node exposing two string properties and one function (we’ll deal with <code>Sub</code> later). This is done by creating a new Javascript class that represents this level, and we can return an instance of this said class in the <code>DiaryOfReverseEngineer</code> property. Simple enough uh?</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//extendmodel_2.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-        <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-        <span class="p">}</span>
+    <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-            <span class="nx">ProcessModelParent</span><span class="p">,</span>
-            <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-        <span class="p">)];</span>
+    <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
+
+    <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
+    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+        <span class="nx">ProcessModelParent</span><span class="p">,</span>
+        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
+    <span class="p">)];</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Which gives:</p>
-<div class="highlight"><pre><span></span><code>DiaryOfAReverseEngineer is now a node with properties
-    0:000&gt; dx @$curprocess
-    @$curprocess                 : PING.EXE [Switch To]
-        Name             : PING.EXE
-        Id               : 0x1cfc
-        Threads         
-        Modules         
-        Environment     
-        TTD             
-        DiaryOfAReverseEngineer : [object Object]
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
-    @$curprocess.DiaryOfAReverseEngineer                 : [object Object]
-        process          : PING.EXE [Switch To]
-        Foo              : Foo from PING.EXE
-        Bar              : Bar from PING.EXE
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$curprocess
+@$curprocess                 : PING.EXE [Switch To]
+    Name             : PING.EXE
+    Id               : 0x1cfc
+    Threads         
+    Modules         
+    Environment     
+    TTD             
+    DiaryOfAReverseEngineer : [object Object]
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
+@$curprocess.DiaryOfAReverseEngineer                 : [object Object]
+    process          : PING.EXE [Switch To]
+    Foo              : Foo from PING.EXE
+    Bar              : Bar from PING.EXE
 </code></pre></div>
 
 
@@ -820,62 +818,63 @@ One really interesting property of this exposed information is that it becomes <
 <p>(If you are wondering why we do not see the method <code>Add</code> you can force <code>dx</code> to display it with the <code>-v</code> flag.)</p>
 <p>After fixing the two above points, here is what we have:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// extendmodel_2_1.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">process</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">process</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-        <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-        <span class="p">}</span>
+    <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-            <span class="nx">ProcessModelParent</span><span class="p">,</span>
-            <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-        <span class="p">)];</span>
+    <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
+
+    <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
+    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+        <span class="nx">ProcessModelParent</span><span class="p">,</span>
+        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
+    <span class="p">)];</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>And now if we display the <code>Process</code> model:</p>
-<div class="highlight"><pre><span></span><code>Hiding process &amp; adding a toString
-    0:000&gt; dx @$curprocess
-    @$curprocess                 : PING.EXE [Switch To]
-        Name             : PING.EXE
-        Id               : 0x1cfc
-        Threads         
-        Modules         
-        Environment     
-        TTD             
-        DiaryOfAReverseEngineer : Diary of a reverse-engineer
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
-    @$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
-        Foo              : Foo from PING.EXE
-        Bar              : Bar from PING.EXE
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
-    @$curprocess.DiaryOfAReverseEngineer.Add(1, 2) : 0x3
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$curprocess
+@$curprocess                 : PING.EXE [Switch To]
+    Name             : PING.EXE
+    Id               : 0x1cfc
+    Threads         
+    Modules         
+    Environment     
+    TTD             
+    DiaryOfAReverseEngineer : Diary of a reverse-engineer
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
+@$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
+    Foo              : Foo from PING.EXE
+    Bar              : Bar from PING.EXE
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Add(1, 2)
+@$curprocess.DiaryOfAReverseEngineer.Add(1, 2) : 0x3
 </code></pre></div>
 
 
@@ -884,177 +883,180 @@ One really interesting property of this exposed information is that it becomes <
 <p>The last concept I wanted to touch on before moving on is how to add the <code>iterable</code> property on one of your data model classes. Let's say you have a class called <code>Attribute</code> that stores a key and a value, and let's also say you have another class called <code>Attributes</code> that is an <code>Attribute</code> store. The thing is, you might have noticed that one class instance usually corresponds to a node with its own properties in the data model view. This is not great for our <code>Attributes</code> class as it is basically an array of <code>Attribute</code> objects, meaning that we will have two copies of everything..</p>
 <p>If you want to have the debugger be able to iterate on your instance you can define a <code>*[Symbol.iterator]()</code> method like this:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// Attributes iterable</span>
-    <span class="kr">class</span> <span class="nx">Attribute</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span> <span class="nx">Name</span><span class="p">,</span> <span class="nx">Value</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">=</span> <span class="nx">Name</span><span class="p">;</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">Value</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="kr">class</span> <span class="nx">Attribute</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span> <span class="nx">Name</span><span class="p">,</span> <span class="nx">Value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">=</span> <span class="nx">Name</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">Value</span><span class="p">;</span>
+    <span class="p">}</span>
 
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="kd">let</span> <span class="nx">S</span> <span class="o">=</span> <span class="s1">&#39;Process: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-            <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Name: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-            <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Value: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
-            <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">let</span> <span class="nx">S</span> <span class="o">=</span> <span class="s1">&#39;Process: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
+        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Name: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
+        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Value: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kr">class</span> <span class="nx">Attributes</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="p">}</span>
+
+    <span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="o">*</span><span class="p">[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">Attr</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">yield</span> <span class="nx">Attr</span><span class="p">;</span>
         <span class="p">}</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">Attributes</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span> <span class="o">=</span> <span class="p">[];</span>
-        <span class="p">}</span>
-
-        <span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
-        <span class="p">}</span>
-
-        <span class="o">*</span><span class="p">[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span> <span class="p">{</span>
-            <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">Attr</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span> <span class="p">{</span>
-                <span class="k">yield</span> <span class="nx">Attr</span><span class="p">;</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
-        <span class="p">}</span>
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
     <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Now if we put it all together we have:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// extendmodel.js</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kr">class</span> <span class="nx">Attribute</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span> <span class="nx">Name</span><span class="p">,</span> <span class="nx">Value</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">=</span> <span class="nx">Name</span><span class="p">;</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">Value</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="kr">class</span> <span class="nx">Attribute</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span> <span class="nx">Name</span><span class="p">,</span> <span class="nx">Value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">=</span> <span class="nx">Name</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">Value</span><span class="p">;</span>
+    <span class="p">}</span>
 
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="kd">let</span> <span class="nx">S</span> <span class="o">=</span> <span class="s1">&#39;Process: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-            <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Name: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-            <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Value: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
-            <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">let</span> <span class="nx">S</span> <span class="o">=</span> <span class="s1">&#39;Process: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
+        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Name: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
+        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Value: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kr">class</span> <span class="nx">Attributes</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="p">}</span>
+
+    <span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="o">*</span><span class="p">[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">Attr</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">yield</span> <span class="nx">Attr</span><span class="p">;</span>
         <span class="p">}</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">Attributes</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span> <span class="o">=</span> <span class="p">[];</span>
-        <span class="p">}</span>
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-        <span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
-        <span class="p">}</span>
-
-        <span class="o">*</span><span class="p">[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span> <span class="p">{</span>
-            <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">Attr</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span> <span class="p">{</span>
-                <span class="k">yield</span> <span class="nx">Attr</span><span class="p">;</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="kr">class</span> <span class="nx">Sub</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">Sub</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">SubFoo</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;SubFoo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">SubBar</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;SubBar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Attributes</span><span class="p">()</span> <span class="p">{</span>
-            <span class="kd">let</span> <span class="nx">Attrs</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Attributes</span><span class="p">();</span>
-            <span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">new</span> <span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span> <span class="s1">&#39;attr0&#39;</span><span class="p">,</span> <span class="s1">&#39;value0&#39;</span><span class="p">));</span>
-            <span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">new</span> <span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span> <span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="s1">&#39;value0&#39;</span><span class="p">));</span>
-            <span class="k">return</span> <span class="nx">Attrs</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Sub module&#39;</span><span class="p">;</span>
-        <span class="p">}</span>
+    <span class="nx">get</span> <span class="nx">SubFoo</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;SubFoo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
-        <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
-        <span class="p">}</span>
-
-        <span class="nx">get</span> <span class="nx">Sub</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="k">new</span> <span class="nx">Sub</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">);</span>
-        <span class="p">}</span>
-
-        <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
-        <span class="p">}</span>
+    <span class="nx">get</span> <span class="nx">SubBar</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;SubBar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-        <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-            <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-        <span class="p">}</span>
+    <span class="nx">get</span> <span class="nx">Attributes</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">let</span> <span class="nx">Attrs</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Attributes</span><span class="p">();</span>
+        <span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">new</span> <span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span> <span class="s1">&#39;attr0&#39;</span><span class="p">,</span> <span class="s1">&#39;value0&#39;</span><span class="p">));</span>
+        <span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">new</span> <span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span> <span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="s1">&#39;value0&#39;</span><span class="p">));</span>
+        <span class="k">return</span> <span class="nx">Attrs</span><span class="p">;</span>
     <span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-            <span class="nx">ProcessModelParent</span><span class="p">,</span>
-            <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-        <span class="p">)];</span>
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Sub module&#39;</span><span class="p">;</span>
     <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nx">get</span> <span class="nx">Sub</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nx">Sub</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
+    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+        <span class="nx">ProcessModelParent</span><span class="p">,</span>
+        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
+    <span class="p">)];</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>And we can play with the node in the model:</p>
-<div class="highlight"><pre><span></span><code>node is ready!
-    0:000&gt; dx @$curprocess
-    @$curprocess                 : PING.EXE [Switch To]
-        Name             : PING.EXE
-        Id               : 0x1cfc
-        Threads         
-        Modules         
-        Environment     
-        TTD             
-        DiaryOfAReverseEngineer : Diary of a reverse-engineer
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
-    @$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
-        Foo              : Foo from PING.EXE
-        Bar              : Bar from PING.EXE
-        Sub              : Sub module
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub
-    @$curprocess.DiaryOfAReverseEngineer.Sub                 : Sub module
-        SubFoo           : SubFoo from PING.EXE
-        SubBar           : SubBar from PING.EXE
-        Attributes       : Attributes
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes
-    @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes                 : Attributes
-        [0x0]            : Process: PING.EXE, Name: attr0, Value: value0
-        [0x1]            : Process: PING.EXE, Name: attr1, Value: value0
-    0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]
-    @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]                 : Process: PING.EXE, Name: attr0, Value: value0
-        Name             : attr0
-        Value            : value0
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$curprocess
+@$curprocess                 : PING.EXE [Switch To]
+    Name             : PING.EXE
+    Id               : 0x1cfc
+    Threads         
+    Modules         
+    Environment     
+    TTD             
+    DiaryOfAReverseEngineer : Diary of a reverse-engineer
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer
+@$curprocess.DiaryOfAReverseEngineer                 : Diary of a reverse-engineer
+    Foo              : Foo from PING.EXE
+    Bar              : Bar from PING.EXE
+    Sub              : Sub module
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub
+@$curprocess.DiaryOfAReverseEngineer.Sub                 : Sub module
+    SubFoo           : SubFoo from PING.EXE
+    SubBar           : SubBar from PING.EXE
+    Attributes       : Attributes
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes
+@$curprocess.DiaryOfAReverseEngineer.Sub.Attributes                 : Attributes
+    [0x0]            : Process: PING.EXE, Name: attr0, Value: value0
+    [0x1]            : Process: PING.EXE, Name: attr1, Value: value0
+
+0:000&gt; dx @$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]
+@$curprocess.DiaryOfAReverseEngineer.Sub.Attributes[0]                 : Process: PING.EXE, Name: attr0, Value: value0
+    Name             : attr0
+    Value            : value0
 </code></pre></div>
 
 
@@ -1065,46 +1067,45 @@ One really interesting property of this exposed information is that it becomes <
 <h3 id="try-and-play-with-host-api-from-the-command-window">Try and play with <code>host.*</code> API from the command window</h3>
 <p>One of the things I quickly was bothered with at first is not being able to run my Javascript from the command window. Let's say that you want to play with a <code>host.*</code> API: these are not really directly accessible.</p>
 <p>A way to work around that is to load a script and to use the <code>@$scriptContents</code> variable from where you can access the <code>host</code> object.</p>
-<div class="highlight"><pre><span></span><code>access host object from command window
-    0:000&gt; dx -v @$scriptContents.host
-    @$scriptContents.host                 : [object Object]
-        currentApiVersionSupported : [object Object]
-        currentApiVersionInitialized : [object Object]
-        diagnostics      : [object Object]
-        metadata         : [object Object]
-        typeSignatureRegistration
-        typeSignatureExtension
-        namedModelRegistration
-        namedModelParent
-        functionAlias   
-        namespacePropertyParent
-        optionalRecord  
-        apiVersionSupport
-        Int64           
-        parseInt64      
-        namespace       
-        evaluateExpression
-        evaluateExpressionInContext
-        getModuleSymbol 
-        getModuleSymbolAddress
-        setModuleSymbol 
-        getModuleType   
-        createPointerObject
-        createTypedObject
-        indexedValue    
-        getNamedModel   
-        registerNamedModel
-        unregisterNamedModel
-        registerPrototypeForTypeSignature
-        registerExtensionForTypeSignature
-        unregisterPrototypeForTypeSignature
-        unregisterExtensionForTypeSignature
-        currentSession   : Time Travel Debugging Mode
-        currentProcess   : PING.EXE [Switch To]
-        currentThread    [Switch To]
-        memory           : [object Object]
-        typeSystem       : [object Object]
-        ToDisplayString  [ToDisplayString([FormatSpecifier]) - Method which converts the object to its display string representation according to an optional format specifier]
+<div class="highlight"><pre><span></span><code>0:000&gt; dx -v @$scriptContents.host
+@$scriptContents.host                 : [object Object]
+    currentApiVersionSupported : [object Object]
+    currentApiVersionInitialized : [object Object]
+    diagnostics      : [object Object]
+    metadata         : [object Object]
+    typeSignatureRegistration
+    typeSignatureExtension
+    namedModelRegistration
+    namedModelParent
+    functionAlias   
+    namespacePropertyParent
+    optionalRecord  
+    apiVersionSupport
+    Int64           
+    parseInt64      
+    namespace       
+    evaluateExpression
+    evaluateExpressionInContext
+    getModuleSymbol 
+    getModuleSymbolAddress
+    setModuleSymbol 
+    getModuleType   
+    createPointerObject
+    createTypedObject
+    indexedValue    
+    getNamedModel   
+    registerNamedModel
+    unregisterNamedModel
+    registerPrototypeForTypeSignature
+    registerExtensionForTypeSignature
+    unregisterPrototypeForTypeSignature
+    unregisterExtensionForTypeSignature
+    currentSession   : Time Travel Debugging Mode
+    currentProcess   : PING.EXE [Switch To]
+    currentThread    [Switch To]
+    memory           : [object Object]
+    typeSystem       : [object Object]
+    ToDisplayString  [ToDisplayString([FormatSpecifier]) - Method which converts the object to its display string representation according to an optional format specifier]
 </code></pre></div>
 
 
@@ -1115,15 +1116,16 @@ One really interesting property of this exposed information is that it becomes <
 <p>Similar to above, you can use the <code>.scriptrun</code> command for that. </p>
 <h3 id="is-the-javascript-engine-only-available-in-windbg-preview">Is the Javascript engine only available in Windbg Preview?</h3>
 <p>Nope it is not! You can load your Javascript scripts from the latest SDK's Windbg. You can use the <code>.scriptproviders</code> command to know what the various script providers currently loaded are, and if you do not see the Javascript provider you can just run <code>.load jsprovider.dll</code> to load it.</p>
-<div class="highlight"><pre><span></span><code>loading the js provider
-    0:003&gt; .scriptproviders
-    Available Script Providers:
-        NatVis (extension &#39;.NatVis&#39;)
-    0:003&gt; .load jsprovider.dll
-    0:003&gt; .scriptproviders
-    Available Script Providers:
-        NatVis (extension &#39;.NatVis&#39;)
-        JavaScript (extension &#39;.js&#39;)
+<div class="highlight"><pre><span></span><code>0:003&gt; .scriptproviders
+Available Script Providers:
+    NatVis (extension &#39;.NatVis&#39;)
+
+0:003&gt; .load jsprovider.dll
+
+0:003&gt; .scriptproviders
+Available Script Providers:
+    NatVis (extension &#39;.NatVis&#39;)
+    JavaScript (extension &#39;.js&#39;)
 </code></pre></div>
 
 
@@ -1134,28 +1136,28 @@ One really interesting property of this exposed information is that it becomes <
 <h3 id="get-a-value-out-of-a-typed-object">Get a value out of a typed object</h3>
 <p>Sometimes you are accessing a Javascript object that behaves like a structure instance -- you can access its various fields seamlessly (e.g. you want to access the TEB through the <code>EnvironmentBlock</code> object). This is great. However, for various reasons you might need to get the raw value of a field (e.g. for doing arithmetic) and for that you can use the <code>address</code> property:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// address property</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">CurrentThread</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">;</span>
-        <span class="kd">let</span> <span class="nx">TEB</span> <span class="o">=</span> <span class="nx">CurrentThread</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">;</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">);</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>  
-    <span class="p">}</span>
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">CurrentThread</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">;</span>
+    <span class="kd">let</span> <span class="nx">TEB</span> <span class="o">=</span> <span class="nx">CurrentThread</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">;</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">);</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>  
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Which gives:</p>
-<div class="highlight"><pre><span></span><code>address property
-    0:000&gt;
-    [object Object]
-    2316561115408
-    0:000&gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
-    @$curthread.Environment.EnvironmentBlock.FlsData : 0x21b5dcd6910 [Type: void *]
+<div class="highlight"><pre><span></span><code>0:000&gt;
+[object Object]
+2316561115408
+
+0:000&gt; dx @$curthread.Environment.EnvironmentBlock.FlsData
+@$curthread.Environment.EnvironmentBlock.FlsData : 0x21b5dcd6910 [Type: void *]
 </code></pre></div>
 
 
@@ -1163,37 +1165,36 @@ One really interesting property of this exposed information is that it becomes <
 <p>Another interesting function I wanted to mention is <code>host.evaluateExpression</code>. As the name suggests, it allows you to evaluate an expression; it is similar to when you use the <code>dx</code> operator but you can only use the language syntax (this means no ‘!’). Any expression you can evaluate through <code>dx</code>, you can evaluate through <code>host.evaluateExpression</code>. The neat thing about this, is that the resulting expression keeps the type information and as a result the Javascript object behaves like the type of the expression.</p>
 <p>Here is a small example showing what I am trying to explain:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// host.evaluateExpression</span>
-    <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+<span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-    <span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
 
-    <span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64)0&#39;</span><span class="p">));</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">));</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">);</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>
-        <span class="k">try</span><span class="p">{</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">).</span><span class="nx">dereference</span><span class="p">());</span>
-        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-            <span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="c1">// not valid: @$ is not part of the language - logln(host.evaluateExpression(&#39;@$teb&#39;));</span>
-        <span class="c1">// not valid: @rsp is not part of the language - logln(host.evaluateExpression(&#39;(unsigned __int64)@rsp&#39;));</span>
-        <span class="c1">// not valid: &#39;!&#39; is not part of the language - logln(host.evaluateExpression(&#39;((ntdll!_TEB*)0)&#39;))</span>
+<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64)0&#39;</span><span class="p">));</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">));</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">);</span>
+    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>
+    <span class="k">try</span><span class="p">{</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">).</span><span class="nx">dereference</span><span class="p">());</span>
+    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
     <span class="p">}</span>
+    <span class="c1">// not valid: @$ is not part of the language - logln(host.evaluateExpression(&#39;@$teb&#39;));</span>
+    <span class="c1">// not valid: @rsp is not part of the language - logln(host.evaluateExpression(&#39;(unsigned __int64)@rsp&#39;));</span>
+    <span class="c1">// not valid: &#39;!&#39; is not part of the language - logln(host.evaluateExpression(&#39;((ntdll!_TEB*)0)&#39;))</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Resulting in:</p>
-<div class="highlight"><pre><span></span><code>host.evaluateExpression examples
-    0:000&gt;
-    0
-    [object Object]
-    [object Object]
-    2316561115408
-    Error: Unable to read memory at Address 0x0
+<div class="highlight"><pre><span></span><code>0:000&gt;
+0
+[object Object]
+[object Object]
+2316561115408
+Error: Unable to read memory at Address 0x0
 </code></pre></div>
 
 
@@ -1203,41 +1204,41 @@ One really interesting property of this exposed information is that it becomes <
 <p>Phew, you made it to the last part! This one is more about trying to do something useful with all the small little things we have learned throughout this article.</p>
 <p>I am sure you guys all already know all of this but Windows revisited how exception handling and frame unwinding work on its 64 bit operating systems. Once upon a time the exception handlers could be found directly onto the stack and they formed some sort of linked list. Today, the compiler encodes every static exception handler at compile / link time into various tables embedded into the final binary image.</p>
 <p>Anyway, you might know about Windbg's <a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-exchain">!exchains</a> command that displays the current exception handler chain. This is what the output looks like:</p>
-<div class="highlight"><pre><span></span><code>!exchains
-    (9a0.14d4): Access violation - code c0000005 (first chance)
-    First chance exceptions are reported before any exception handling.
-    This exception may be expected and handled.
-    except!Fault+0x3d:
-    00007ff7`a900179d 48c70001000000  mov     qword ptr [rax],1 ds:00000000`00000001=????????????????
-    0:000&gt; !exchain
-    8 stack frames, scanning for handlers...
-    Frame 0x01: except!main+0x59 (00007ff7`a9001949)
-      ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
-    Frame 0x03: except!__scrt_common_main_seh+0x127 (00007ff7`a9002327)
-      ehandler except!ILT+840(__C_specific_handler) (00007ff7`a900134d)
-    Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
-      ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
+<div class="highlight"><pre><span></span><code>(9a0.14d4): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+except!Fault+0x3d:
+00007ff7`a900179d 48c70001000000  mov     qword ptr [rax],1 ds:00000000`00000001=????????????????
+
+0:000&gt; !exchain
+8 stack frames, scanning for handlers...
+Frame 0x01: except!main+0x59 (00007ff7`a9001949)
+    ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
+Frame 0x03: except!__scrt_common_main_seh+0x127 (00007ff7`a9002327)
+    ehandler except!ILT+840(__C_specific_handler) (00007ff7`a900134d)
+Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
+    ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
 </code></pre></div>
 
 
 <p>And here is the associated C code:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// except.c</span>
-    <span class="kr">__declspec</span><span class="p">(</span><span class="n">noinline</span><span class="p">)</span> <span class="kt">void</span> <span class="n">Fault</span><span class="p">(</span><span class="kt">uintptr_t</span> <span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;I&#39;m about to fault!&quot;</span><span class="p">);</span>
-        <span class="o">*</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">x</span><span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kr">__declspec</span><span class="p">(</span><span class="n">noinline</span><span class="p">)</span> <span class="kt">void</span> <span class="n">Fault</span><span class="p">(</span><span class="kt">uintptr_t</span> <span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;I&#39;m about to fault!&quot;</span><span class="p">);</span>
+    <span class="o">*</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">x</span><span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
 
-    <span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="kr">__try</span> <span class="p">{</span>
-            <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Yo!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-            <span class="n">Fault</span><span class="p">((</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">argc</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="kr">__except</span> <span class="p">(</span><span class="n">Filter</span><span class="p">())</span> <span class="p">{</span>
-            <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Exception!&quot;</span><span class="p">);</span>
-        <span class="p">}</span>
-        <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kr">__try</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Yo!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+        <span class="n">Fault</span><span class="p">((</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">argc</span><span class="p">);</span>
     <span class="p">}</span>
+    <span class="kr">__except</span> <span class="p">(</span><span class="n">Filter</span><span class="p">())</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Exception!&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -1248,9 +1249,9 @@ One really interesting property of this exposed information is that it becomes <
 <p>The first table we need to look at is the <code>ENTRY_EXCEPTION</code> table that resides in the <code>DataDirectory</code> of the <code>OptionalHeader</code>. This directory is an array of <a href="https://docs.microsoft.com/en-us/cpp/build/struct-runtime-function">IMAGE_RUNTIME_FUNCTION_ENTRY</a> that describes the boundary of functions (handy for IDA!) and their unwinding information which is stored at the end of this structure.</p>
 <p>The unwinding information is mainly described by the <a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info">UNWIND_INFO</a> structure in which the frame unwinder can find what is necessary to unwind a stack-frame associated to this function. The array of <a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-code">UNWIND_CODE</a> structures basically tells you how to do an epilogue.</p>
 <p>What follows this array is variable though (documented <a href="https://docs.microsoft.com/en-us/cpp/build/struct-unwind-info">here</a>): if the <code>Flags</code> field of <code>UNWIND_INFO</code> specifies the <code>EHHANDLER</code> flag then we have what I call a <code>UNWIND_INFO_END</code> structure defined like this:</p>
-<div class="highlight"><pre><span></span><code>    0:000&gt; dt UNWIND_INFO_END
-       +0x000 ExceptionHandler : Uint4B
-       +0x004 ExceptionData    : Uint4B
+<div class="highlight"><pre><span></span><code>0:000&gt; dt UNWIND_INFO_END
+    +0x000 ExceptionHandler : Uint4B
+    +0x004 ExceptionData    : Uint4B
 </code></pre></div>
 
 
@@ -1258,15 +1259,15 @@ One really interesting property of this exposed information is that it becomes <
 <p>This is also where it was a bit of a surprise to me, as you basically cannot really tell for sure what type of structure is referenced by <code>ExceptionData</code>. For that, you would have to analyze the <code>ExceptionHandler</code> function to understand what and how this data is used. That is also most likely, why the <code>!exchains</code> command stops here and does not bother trying to parse the exception data blob.</p>
 <p>Obviously we can easily make an assumption and assume that the <code>ExceptionData</code> is the structure we would like it to be, and verify that it looks right. In addition, the fact that the code you are most likely looking at has been emitted by a well behaved compiler and that the binary has not been tampered with combined have given me good enough results. But keep in mind that in theory, you could place your own function and have your own <code>ExceptionData</code> format in which case reverse-engineering the handler would be mandatory - in practice this is an unlikely scenario if you are dealing with <em>normal</em> binaries.</p>
 <p>The type of <code>ExceptionData</code> that we are interested in is what I call a <code>SEH_SCOPE_TABLE</code> which is an array of <code>SCOPE_RECORD</code>s that are defined like this:</p>
-<div class="highlight"><pre><span></span><code>SEH_SCOPE_TABLE
-    0:000&gt; dt SEH_SCOPE_TABLE
-      +0x000 Count            : Uint4B
-      +0x004 ScopeRecord      : [1] SCOPE_RECORD
-    0:000&gt; dt SCOPE_RECORD
-      +0x000 BeginAddress     : Uint4B
-      +0x004 EndAddress       : Uint4B
-      +0x008 HandlerAddress   : Uint4B
-      +0x00c JumpTarget       : Uint4B
+<div class="highlight"><pre><span></span><code>0:000&gt; dt SEH_SCOPE_TABLE
+    +0x000 Count            : Uint4B
+    +0x004 ScopeRecord      : [1] SCOPE_RECORD
+
+0:000&gt; dt SCOPE_RECORD
+    +0x000 BeginAddress     : Uint4B
+    +0x004 EndAddress       : Uint4B
+    +0x008 HandlerAddress   : Uint4B
+    +0x00c JumpTarget       : Uint4B
 </code></pre></div>
 
 
@@ -1284,46 +1285,45 @@ One really interesting property of this exposed information is that it becomes <
 </ul>
 <p>With the same source of information we can easily filter and shape the way we want it displayed through the data model. There is no need to display every exception handler from the <code>Module</code> node as it would not be information related to a <code>Module</code> -- this is why we choose to filter it out and display only the ones concerning this <code>Module</code>. Same thing reasoning applies to <code>Functions</code> as well. The model is something you should explore step by step, it is not something where you have all the available information displayed at once - it is meant to be scoped and not overwhelming.</p>
 <p>And just in case you forgot about it, all this information is now accessible from the command window for query purposes. You can ask things like <em>Which function defines the most exception handlers?</em> very easily:</p>
-<div class="highlight"><pre><span></span><code>Which function defines the most exception handlers?
-    0:000&gt; dx @$curprocess.Functions.OrderByDescending(c =&gt; c.ExceptionHandlers.Count()).First()
-    @$curprocess.Functions.OrderByDescending(c =&gt; c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -&gt; RVA:0x7ff83563e5a2, 12 exception handlers
-        EHHandlerRVA     : 0x221d6
-        EHHandler        : 0x7ff8356021d6
-        BeginRVA         : 0x5e170
-        EndRVA           : 0x5e5a2
-        Begin            : 0x7ff83563e170
-        End              : 0x7ff83563e5a2
-        ExceptionHandlers :   __try {0x7ff83563e1d2 -&gt; 0x7ff83563e37a} __finally {0x7ff83563e5a2}...
-    0:000&gt; u 0x7ff83563e170 l1
-    KERNEL32!LoadModule:
-    00007ff8`3563e170 4053            push    rbx
+<div class="highlight"><pre><span></span><code>0:000&gt; dx @$curprocess.Functions.OrderByDescending(c =&gt; c.ExceptionHandlers.Count()).First()
+@$curprocess.Functions.OrderByDescending(c =&gt; c.ExceptionHandlers.Count()).First()                 : RVA:0x7ff83563e170 -&gt; RVA:0x7ff83563e5a2, 12 exception handlers
+    EHHandlerRVA     : 0x221d6
+    EHHandler        : 0x7ff8356021d6
+    BeginRVA         : 0x5e170
+    EndRVA           : 0x5e5a2
+    Begin            : 0x7ff83563e170
+    End              : 0x7ff83563e5a2
+    ExceptionHandlers :   __try {0x7ff83563e1d2 -&gt; 0x7ff83563e37a} __finally {0x7ff83563e5a2}...
+
+0:000&gt; u 0x7ff83563e170 l1
+KERNEL32!LoadModule:
+00007ff8`3563e170 4053            push    rbx
 </code></pre></div>
 
 
 <p>In this example, the function <code>KERNEL32!LoadModule</code> seems to be the function that has registered the largest number of exception handlers (12 of them).</p>
 <p>Now that we have this new source of information, we can also push it a bit further and implement a command that does a very similar job than <code>!exchain</code> by just mining information from the nodes we just added to the data model:</p>
-<div class="highlight"><pre><span></span><code>!ehhandlers VS !exchain
-    0:000&gt; !ehhandlers
-    9 stack frames, scanning for handlers...
-    Frame 0x1: EHHandler: 0x7ff7a9001389: except!ILT+900(__GSHandlerCheck_SEH):
-                  Except: 0x7ff7a900194b: except!main+0x5b [c:\users\over\documents\blog\except\except\except.c @ 28]:
-                  Filter: 0x7ff7a9007e60: except!main$filt$0 [c:\users\over\documents\blog\except\except\except.c @ 27]:
-    Frame 0x3: EHHandler: 0x7ff7a900134d: except!ILT+840(__C_specific_handler):
-                  Except: 0x7ff7a900235d: except!__scrt_common_main_seh+0x15d [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 299]:
-                  Filter: 0x7ff7a9007ef0: except!`__scrt_common_main_seh&#39;::`1&#39;::filt$0 [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 299]:
-    Frame 0x7: EHHandler: 0x7ff838050ef0: ntdll!_C_specific_handler:
-                  Except: 0x7ff83802efc7: ntdll!RtlUserThreadStart+0x37:
-                  Filter: 0x7ff8380684d0: ntdll!RtlUserThreadStart$filt$0:
-    @$ehhandlers()  
+<div class="highlight"><pre><span></span><code>0:000&gt; !ehhandlers
+9 stack frames, scanning for handlers...
+Frame 0x1: EHHandler: 0x7ff7a9001389: except!ILT+900(__GSHandlerCheck_SEH):
+                Except: 0x7ff7a900194b: except!main+0x5b [c:\users\over\documents\blog\except\except\except.c @ 28]:
+                Filter: 0x7ff7a9007e60: except!main$filt$0 [c:\users\over\documents\blog\except\except\except.c @ 27]:
+Frame 0x3: EHHandler: 0x7ff7a900134d: except!ILT+840(__C_specific_handler):
+                Except: 0x7ff7a900235d: except!__scrt_common_main_seh+0x15d [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 299]:
+                Filter: 0x7ff7a9007ef0: except!`__scrt_common_main_seh&#39;::`1&#39;::filt$0 [f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl @ 299]:
+Frame 0x7: EHHandler: 0x7ff838050ef0: ntdll!_C_specific_handler:
+                Except: 0x7ff83802efc7: ntdll!RtlUserThreadStart+0x37:
+                Filter: 0x7ff8380684d0: ntdll!RtlUserThreadStart$filt$0:
+@$ehhandlers()  
 
-    0:000&gt; !exchain
-    8 stack frames, scanning for handlers...
-    Frame 0x01: except!main+0x59 (00007ff7`a9001949)
-      ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
-    Frame 0x03: except!__scrt_common_main_seh+0x127 (00007ff7`a9002327)
-      ehandler except!ILT+840(__C_specific_handler) (00007ff7`a900134d)
-    Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
-      ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
+0:000&gt; !exchain
+8 stack frames, scanning for handlers...
+Frame 0x01: except!main+0x59 (00007ff7`a9001949)
+    ehandler except!ILT+900(__GSHandlerCheck_SEH) (00007ff7`a9001389)
+Frame 0x03: except!__scrt_common_main_seh+0x127 (00007ff7`a9002327)
+    ehandler except!ILT+840(__C_specific_handler) (00007ff7`a900134d)
+Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
+    ehandler ntdll!_C_specific_handler (00007ff8`38050ef0)
 </code></pre></div>
 
 
