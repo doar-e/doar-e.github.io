@@ -37,12 +37,12 @@ In order to get a development environment setup you need to follow specific step
 Once depot_tools is installed, it is just a matter of executing the below commands for getting the code and compiling it:
 
 ```text
-    > set PATH=D:\Codes\depot_tools;%PATH%
-    > mkdir syzygy
-    > cd syzygy
-    > fetch syzygy
-    > cd syzygy\src
-    > ninja -C out\Release instrument
+> set PATH=D:\Codes\depot_tools;%PATH%
+> mkdir syzygy
+> cd syzygy
+> fetch syzygy
+> cd syzygy\src
+> ninja -C out\Release instrument
 ```
 
 If you would like more information on the matter, I suggest you read this wiki page: [SyzygyDevelopmentGuide](https://github.com/google/syzygy/wiki/SyzygyDevelopmentGuide).
@@ -62,62 +62,63 @@ Oh, one last thing: the instrumenter is basically the application that decompose
 To make things clearer - and because I like debugging sessions - I think it is worthwhile to spend a bit of time in a debugger actually seeing the various structures and how they map to some code we know. Let's take the following C program and compile it in debug mode (don't forget to enable the full PDB generation with the following linker flag: `/PROFILE`):
 
 ```c
-    #include <stdio.h>
-    
-    void foo(int x) {
-      for(int i = 0; i < x; ++i) {
-        printf("Binary rewriting with syzygy\n");
-      }
-    }
-    
-    int main(int argc, char *argv[]) {
-      printf("Hello doar-e.\n");
-      foo(argc);
-      return 0;
-    }
+#include <stdio.h>
+
+void foo(int x) {
+  for(int i = 0; i < x; ++i) {
+    printf("Binary rewriting with syzygy\n");
+  }
+}
+
+int main(int argc, char *argv[]) {
+  printf("Hello doar-e.\n");
+  foo(argc);
+  return 0;
+}
 ```
 
 Throw it to your favorite debugger with the following command - we will use the afl transformation as an example transform to analyze the data we have available to us:
 
-```
-    instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe
+```text
+instrument.exe --mode=afl --input-image=test.exe --output-image=test.instr.exe
 ```
 
 And let's place this breakpoint:
 
-```
-    bm instrument!*AFLTransform::OnBlock ".if(@@c++(block->type_ == 0)){ }.else{ g }"
+```text
+bm instrument!*AFLTransform::OnBlock ".if(@@c++(block->type_ == 0)){ }.else{ g }"
 ```
 
 Now it's time to inspect the Block associated with our function `foo` from above:
 
-```
-    0:000> g
-    eax=002dcf80 ebx=00000051 ecx=00482da8 edx=004eaba0 esi=004bd398 edi=004bd318
-    eip=002dcf80 esp=0113f4b8 ebp=0113f4c8 iopl=0         nv up ei pl nz na po nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000202
-    instrument!instrument::transforms::AFLTransform::OnBlock:
-    002dcf80 55              push    ebp
-    0:000> dx block
-      [+0x000] id_              : 0x51
-      [+0x004] type_            : CODE_BLOCK (0)
-      [+0x008] size_            : 0x5b
-      [+0x00c] alignment_       : 0x1
-      [+0x010] alignment_offset_ : 0
-      [+0x014] padding_before_  : 0x0
-      [+0x018] name_            : 0x4ffc70 : "foo"
-      [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
-      [+0x020] addr_            [Type: core::detail::AddressImpl<0>]
-      [+0x024] block_graph_     : 0x48d10c
-      [+0x028] section_         : 0x0
-      [+0x02c] attributes_      : 0x8
-      [+0x030] references_      : { size=0x3 }
-      [+0x038] referrers_       : { size=0x1 }
-      [+0x040] source_ranges_   [Type: core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >]
-      [+0x04c] labels_          : { size=0x3 }
-      [+0x054] owns_data_       : false
-      [+0x058] data_            : 0x49ef50 : 0x55
-      [+0x05c] data_size_       : 0x5b
+```text
+0:000> g
+eax=002dcf80 ebx=00000051 ecx=00482da8 edx=004eaba0 esi=004bd398 edi=004bd318
+eip=002dcf80 esp=0113f4b8 ebp=0113f4c8 iopl=0         nv up ei pl nz na po nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00000202
+instrument!instrument::transforms::AFLTransform::OnBlock:
+002dcf80 55              push    ebp
+
+0:000> dx block
+  [+0x000] id_              : 0x51
+  [+0x004] type_            : CODE_BLOCK (0)
+  [+0x008] size_            : 0x5b
+  [+0x00c] alignment_       : 0x1
+  [+0x010] alignment_offset_ : 0
+  [+0x014] padding_before_  : 0x0
+  [+0x018] name_            : 0x4ffc70 : "foo"
+  [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
+  [+0x020] addr_            [Type: core::detail::AddressImpl<0>]
+  [+0x024] block_graph_     : 0x48d10c
+  [+0x028] section_         : 0x0
+  [+0x02c] attributes_      : 0x8
+  [+0x030] references_      : { size=0x3 }
+  [+0x038] referrers_       : { size=0x1 }
+  [+0x040] source_ranges_   [Type: core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >]
+  [+0x04c] labels_          : { size=0x3 }
+  [+0x054] owns_data_       : false
+  [+0x058] data_            : 0x49ef50 : 0x55
+  [+0x05c] data_size_       : 0x5b
 ```
 
 The above shows us every the different properties available in a Block; we can see it is named `foo`, has the identifier 0x51 and has a size of 0x5B bytes.
@@ -125,60 +126,61 @@ The above shows us every the different properties available in a Block; we can s
 <center>![foo_idaview.png](/images/binary_rewriting_with_syzygy/foo_idaview.png)</center>
 It also has one referrer and 3 references, what could they be? With the explanation I gave above, we can guess that the referrer (or cross-ref) must be the `main` function as it calls into `foo`.
 
-```
-    0:000> dx -r1 (*((instrument!std::pair<block_graph::BlockGraph::Block *,int> *)0x4f87c0))
-      first            : 0x4bd3ac
-      second           : 48
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd3ac))
-        [+0x000] id_              : 0x52
-        [+0x004] type_            : CODE_BLOCK (0)
-        [+0x008] size_            : 0x4d
-        [+0x00c] alignment_       : 0x1
-        [+0x010] alignment_offset_ : 0
-        [+0x014] padding_before_  : 0x0
-        [+0x018] name_            : 0x4c51a0 : "main"
-        [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
-        [+0x020] addr_            [Type: core::detail::AddressImpl<0>]
-        [+0x024] block_graph_     : 0x48d10c
-        [+0x028] section_         : 0x0
-        [+0x02c] attributes_      : 0x8
-        [+0x030] references_      : { size=0x4 }
-        [+0x038] referrers_       : { size=0x1 }
-        [+0x040] source_ranges_   [Type: core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >]
-        [+0x04c] labels_          : { size=0x3 }
-        [+0x054] owns_data_       : false
-        [+0x058] data_            : 0x49efb0 : 0x55
-        [+0x05c] data_size_       : 0x4d
+```text
+0:000> dx -r1 (*((instrument!std::pair<block_graph::BlockGraph::Block *,int> *)0x4f87c0))
+  first            : 0x4bd3ac
+  second           : 48
+
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd3ac))
+    [+0x000] id_              : 0x52
+    [+0x004] type_            : CODE_BLOCK (0)
+    [+0x008] size_            : 0x4d
+    [+0x00c] alignment_       : 0x1
+    [+0x010] alignment_offset_ : 0
+    [+0x014] padding_before_  : 0x0
+    [+0x018] name_            : 0x4c51a0 : "main"
+    [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
+    [+0x020] addr_            [Type: core::detail::AddressImpl<0>]
+    [+0x024] block_graph_     : 0x48d10c
+    [+0x028] section_         : 0x0
+    [+0x02c] attributes_      : 0x8
+    [+0x030] references_      : { size=0x4 }
+    [+0x038] referrers_       : { size=0x1 }
+    [+0x040] source_ranges_   [Type: core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >]
+    [+0x04c] labels_          : { size=0x3 }
+    [+0x054] owns_data_       : false
+    [+0x058] data_            : 0x49efb0 : 0x55
+    [+0x05c] data_size_       : 0x4d
 ```
 
 Something to keep in mind when it comes to [references](https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L1046) is that they are not simply a pointer to a block. A reference does indeed reference a block (duh), but it also has an offset associated to this block to point exactly at where the data is being referenced from.
 
 ```cpp
-    // Represents a reference from one block to another. References may be offset.
-    // That is, they may refer to an object at a given location, but actually point
-    // to a location that is some fixed distance away from that object. This allows,
-    // for example, non-zero based indexing into a table. The object that is
-    // intended to be dereferenced is called the 'base' of the offset.
-    //
-    // BlockGraph references are from a location (offset) in one block, to some
-    // location in another block. The referenced block itself plays the role of the
-    // 'base' of the reference, with the offset of the reference being stored as
-    // an integer from the beginning of the block. However, basic block
-    // decomposition requires breaking the block into smaller pieces and thus we
-    // need to carry around an explicit base value, indicating which byte in the
-    // block is intended to be referenced.
-    //
-    // A direct reference to a location will have the same value for 'base' and
-    // 'offset'.
-    //
-    // Here is an example:
-    //
-    //        /----------\
-    //        +---------------------------+
-    //  O     |          B                | <--- Referenced block
-    //        +---------------------------+      B = base
-    //  \-----/                                  O = offset
-    //
+// Represents a reference from one block to another. References may be offset.
+// That is, they may refer to an object at a given location, but actually point
+// to a location that is some fixed distance away from that object. This allows,
+// for example, non-zero based indexing into a table. The object that is
+// intended to be dereferenced is called the 'base' of the offset.
+//
+// BlockGraph references are from a location (offset) in one block, to some
+// location in another block. The referenced block itself plays the role of the
+// 'base' of the reference, with the offset of the reference being stored as
+// an integer from the beginning of the block. However, basic block
+// decomposition requires breaking the block into smaller pieces and thus we
+// need to carry around an explicit base value, indicating which byte in the
+// block is intended to be referenced.
+//
+// A direct reference to a location will have the same value for 'base' and
+// 'offset'.
+//
+// Here is an example:
+//
+//        /----------\
+//        +---------------------------+
+//  O     |          B                | <--- Referenced block
+//        +---------------------------+      B = base
+//  \-----/                                  O = offset
+//
 ```
 
 Let's have a look at the references associated with the `foo` block now. If you look closely at the block, the set of references is of size 3... what could they be?
@@ -186,69 +188,69 @@ Let's have a look at the references associated with the `foo` block now. If you 
 One for the `printf` function, one for the data Block for the string passed to `printf` maybe?
 
 ```text
-    First reference:
-    ----------------
-    
-    0:000> dx -r1 (*((instrument!std::pair<int const ,block_graph::BlockGraph::Reference> *)0x4f5640))
-        first            : 57
-        second           [Type: block_graph::BlockGraph::Reference]
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Reference *)0x4f5644))
-        [+0x000] type_            : ABSOLUTE_REF (1) [Type: block_graph::BlockGraph::ReferenceType]
-        [+0x004] size_            : 0x4
-        [+0x008] referenced_      : 0x4ce334
-        [+0x00c] offset_          : 0
-        [+0x010] base_            : 0
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4ce334))
-        [+0x000] id_              : 0xbc
-        [+0x004] type_            : DATA_BLOCK (1)
-    [...]
-        [+0x018] name_            : 0xbb90f8 : "??_C@_0BO@LBGMPKED@Binary?5rewriting?5with?5syzygy?6?$AA@"
-        [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
-    [...]
-        [+0x058] data_            : 0x4a11e0 : 0x42
-        [+0x05c] data_size_       : 0x1e
-    0:000> da 0x4a11e0
-    004a11e0  "Binary rewriting with syzygy."
-    
-    Second reference:
-    -----------------
-    
-    0:000> dx -r1 (*((instrument!std::pair<int const ,block_graph::BlockGraph::Reference> *)0x4f56a0))
-        first            : 62
-        second           [Type: block_graph::BlockGraph::Reference]
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Reference *)0x4f56a4))
-        [+0x000] type_            : PC_RELATIVE_REF (0) [Type: block_graph::BlockGraph::ReferenceType]
-        [+0x004] size_            : 0x4
-        [+0x008] referenced_      : 0x4bd42c
-        [+0x00c] offset_          : 0
-        [+0x010] base_            : 0
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd42c))
-        [+0x000] id_              : 0x53
-        [+0x004] type_            : CODE_BLOCK (0)
-    [...]
-        [+0x018] name_            : 0x4ffd60 : "printf"
-        [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
-    [...]
-    
-    Third reference:
-    ----------------
-    
-    0:000> dx -r1 (*((instrument!std::pair<int const ,block_graph::BlockGraph::Reference> *)0x4f5a90))
-        first            : 83
-        second           [Type: block_graph::BlockGraph::Reference]
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Reference *)0x4f5a94))
-        [+0x000] type_            : PC_RELATIVE_REF (0) [Type: block_graph::BlockGraph::ReferenceType]
-        [+0x004] size_            : 0x4
-        [+0x008] referenced_      : 0x4bd52c
-        [+0x00c] offset_          : 0
-        [+0x010] base_            : 0
-    0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd52c))
-        [+0x000] id_              : 0x54
-        [+0x004] type_            : CODE_BLOCK (0)
-    [...]
-        [+0x018] name_            : 0xbb96c8 : "_RTC_CheckEsp"
-        [+0x01c] compiland_name_  : 0x4c5260 : "f:\binaries\Intermediate\vctools\msvcrt.nativeproj_607447030\objd\x86\_stack_.obj"
-    [...]
+First reference:
+----------------
+
+0:000> dx -r1 (*((instrument!std::pair<int const ,block_graph::BlockGraph::Reference> *)0x4f5640))
+    first            : 57
+    second           [Type: block_graph::BlockGraph::Reference]
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Reference *)0x4f5644))
+    [+0x000] type_            : ABSOLUTE_REF (1) [Type: block_graph::BlockGraph::ReferenceType]
+    [+0x004] size_            : 0x4
+    [+0x008] referenced_      : 0x4ce334
+    [+0x00c] offset_          : 0
+    [+0x010] base_            : 0
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4ce334))
+    [+0x000] id_              : 0xbc
+    [+0x004] type_            : DATA_BLOCK (1)
+[...]
+    [+0x018] name_            : 0xbb90f8 : "??_C@_0BO@LBGMPKED@Binary?5rewriting?5with?5syzygy?6?$AA@"
+    [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
+[...]
+    [+0x058] data_            : 0x4a11e0 : 0x42
+    [+0x05c] data_size_       : 0x1e
+0:000> da 0x4a11e0
+004a11e0  "Binary rewriting with syzygy."
+
+Second reference:
+-----------------
+
+0:000> dx -r1 (*((instrument!std::pair<int const ,block_graph::BlockGraph::Reference> *)0x4f56a0))
+    first            : 62
+    second           [Type: block_graph::BlockGraph::Reference]
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Reference *)0x4f56a4))
+    [+0x000] type_            : PC_RELATIVE_REF (0) [Type: block_graph::BlockGraph::ReferenceType]
+    [+0x004] size_            : 0x4
+    [+0x008] referenced_      : 0x4bd42c
+    [+0x00c] offset_          : 0
+    [+0x010] base_            : 0
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd42c))
+    [+0x000] id_              : 0x53
+    [+0x004] type_            : CODE_BLOCK (0)
+[...]
+    [+0x018] name_            : 0x4ffd60 : "printf"
+    [+0x01c] compiland_name_  : 0x4c50b0 : "D:\tmp\test\Debug\main.obj"
+[...]
+
+Third reference:
+----------------
+
+0:000> dx -r1 (*((instrument!std::pair<int const ,block_graph::BlockGraph::Reference> *)0x4f5a90))
+    first            : 83
+    second           [Type: block_graph::BlockGraph::Reference]
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Reference *)0x4f5a94))
+    [+0x000] type_            : PC_RELATIVE_REF (0) [Type: block_graph::BlockGraph::ReferenceType]
+    [+0x004] size_            : 0x4
+    [+0x008] referenced_      : 0x4bd52c
+    [+0x00c] offset_          : 0
+    [+0x010] base_            : 0
+0:000> dx -r1 (*((instrument!block_graph::BlockGraph::Block *)0x4bd52c))
+    [+0x000] id_              : 0x54
+    [+0x004] type_            : CODE_BLOCK (0)
+[...]
+    [+0x018] name_            : 0xbb96c8 : "_RTC_CheckEsp"
+    [+0x01c] compiland_name_  : 0x4c5260 : "f:\binaries\Intermediate\vctools\msvcrt.nativeproj_607447030\objd\x86\_stack_.obj"
+[...]
 ```
 
 Perfect - that's what we sort of guessed! The last one is just the compiler adding [Run-Time Error Checks](https://msdn.microsoft.com/en-us/library/8wtf2dfz.aspx) on us.
@@ -256,75 +258,75 @@ Perfect - that's what we sort of guessed! The last one is just the compiler addi
 Let's have a closer look to the first reference. The `references_` member is a hash table of offsets and instances of reference.
 
 ```cpp
-    // Map of references that this block makes to other blocks.
-    typedef std::map<Offset, Reference> ReferenceMap;
+// Map of references that this block makes to other blocks.
+typedef std::map<Offset, Reference> ReferenceMap;
 ```
 
 The offset tells you where exactly in the `foo` block there is a reference; in our case we can see that the first reference is at offset 57 from the base of the block. If you start IDA real quick and browse at this address, you will see that it points one byte after the PUSH opcode (pointing exactly on the reference to the `_Format` string):
 
 ```text
-    .text:004010C8 68 20 41 40 00 push    offset _Format  ; "Binary rewriting with syzygy\n"
+.text:004010C8 68 20 41 40 00 push    offset _Format  ; "Binary rewriting with syzygy\n"
 ```
 
 Another interesting bit I didn't mention earlier is that naturally the `data_` field backs the actual content of the Block:
 
 ```text
-    0:000> u @@c++(block->data_)
-    0049ef50 55              push    ebp
-    0049ef51 8bec            mov     ebp,esp
-    0049ef53 81eccc000000    sub     esp,0CCh
-    0049ef59 53              push    ebx
-    0049ef5a 56              push    esi
-    0049ef5b 57              push    edi
-    0049ef5c 8dbd34ffffff    lea     edi,[ebp-0CCh]
-    0049ef62 b933000000      mov     ecx,33h
+0:000> u @@c++(block->data_)
+0049ef50 55              push    ebp
+0049ef51 8bec            mov     ebp,esp
+0049ef53 81eccc000000    sub     esp,0CCh
+0049ef59 53              push    ebx
+0049ef5a 56              push    esi
+0049ef5b 57              push    edi
+0049ef5c 8dbd34ffffff    lea     edi,[ebp-0CCh]
+0049ef62 b933000000      mov     ecx,33h
 ```
 <center>![foo_disassview.png](/images/binary_rewriting_with_syzygy/foo_disassview.png)</center>
 Last but not least, I mentioned SourceRanges (you can see it as a vector of pairs describing data ranges from the binary to the content in memory) before, so let's dump it to see what it looks like:
 
 ```text
-    0:000> dx -r1 (*((instrument!core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > *)0x4bd36c))
-        [+0x000] range_pairs_     : { size=1 }
-    0:000> dx -r1 (*((instrument!std::vector<std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >,std::allocator<std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > > > *)0x4bd36c))
-        [0]              : {...}, {...}
-    0:000> dx -r1 (*((instrument!std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > *)0x4da1c8))
-        first            [Type: core::AddressRange<int,unsigned int>]
-        second           [Type: core::AddressRange<core::detail::AddressImpl<0>,unsigned int>]
-    0:000> dx -r1 (*((instrument!core::AddressRange<int,unsigned int> *)0x4da1c8))
-        [+0x000] start_           : 0
-        [+0x004] size_            : 0x5b
-    0:000> dx -r1 (*((instrument!core::AddressRange<core::detail::AddressImpl<0>,unsigned int> *)0x4da1d0))
-        [+0x000] start_           [Type: core::detail::AddressImpl<0>]
-        [+0x004] size_            : 0x5b
-    0:000> dx -r1 (*((instrument!core::detail::AddressImpl<0> *)0x4da1d0))
-        [+0x000] value_           : 0x1090 [Type: unsigned int]
+0:000> dx -r1 (*((instrument!core::AddressRangeMap<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > *)0x4bd36c))
+    [+0x000] range_pairs_     : { size=1 }
+0:000> dx -r1 (*((instrument!std::vector<std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> >,std::allocator<std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > > > *)0x4bd36c))
+    [0]              : {...}, {...}
+0:000> dx -r1 (*((instrument!std::pair<core::AddressRange<int,unsigned int>,core::AddressRange<core::detail::AddressImpl<0>,unsigned int> > *)0x4da1c8))
+    first            [Type: core::AddressRange<int,unsigned int>]
+    second           [Type: core::AddressRange<core::detail::AddressImpl<0>,unsigned int>]
+0:000> dx -r1 (*((instrument!core::AddressRange<int,unsigned int> *)0x4da1c8))
+    [+0x000] start_           : 0
+    [+0x004] size_            : 0x5b
+0:000> dx -r1 (*((instrument!core::AddressRange<core::detail::AddressImpl<0>,unsigned int> *)0x4da1d0))
+    [+0x000] start_           [Type: core::detail::AddressImpl<0>]
+    [+0x004] size_            : 0x5b
+0:000> dx -r1 (*((instrument!core::detail::AddressImpl<0> *)0x4da1d0))
+    [+0x000] value_           : 0x1090 [Type: unsigned int]
 ```
 
 In this SourceRanges, we have a mapping from the [DataRange](https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L568) (RVA 0, size 0x5B), to the [SourceRange](https://github.com/google/syzygy/blob/master/syzygy/block_graph/block_graph.h#L571) (RVA 0x1090, size 0x5B - which matches the previous IDA screen shot, obviously). We will come back to those once we have actually modified / rewritten the blocks to see what happens to the SourceRanges.
 
 ```c++
-    enum AddressType : uint8_t {
-      kRelativeAddressType,
-      kAbsoluteAddressType,
-      kFileOffsetAddressType,
-    };
-    
-    // This class implements an address in a PE image file.
-    // Addresses are of three varieties:
-    // - Relative addresses are relative to the base of the image, and thus do not
-    //   change when the image is relocated. Bulk of the addresses in the PE image
-    //   format itself are of this variety, and that's where relative addresses
-    //   crop up most frequently.
-    // This class is a lightweight wrapper for an integer, which can be freely
-    // copied. The different address types are deliberately assignment
-    // incompatible, which helps to avoid confusion when handling different
-    // types of addresses in implementation.
-    template <AddressType kType>
-    class AddressImpl {};
-    
-    // A virtual address relative to the image base, often termed RVA in
-    // documentation and in data structure comments.
-    using RelativeAddress = detail::AddressImpl<kRelativeAddressType>;
+enum AddressType : uint8_t {
+  kRelativeAddressType,
+  kAbsoluteAddressType,
+  kFileOffsetAddressType,
+};
+
+// This class implements an address in a PE image file.
+// Addresses are of three varieties:
+// - Relative addresses are relative to the base of the image, and thus do not
+//   change when the image is relocated. Bulk of the addresses in the PE image
+//   format itself are of this variety, and that's where relative addresses
+//   crop up most frequently.
+// This class is a lightweight wrapper for an integer, which can be freely
+// copied. The different address types are deliberately assignment
+// incompatible, which helps to avoid confusion when handling different
+// types of addresses in implementation.
+template <AddressType kType>
+class AddressImpl {};
+
+// A virtual address relative to the image base, often termed RVA in
+// documentation and in data structure comments.
+using RelativeAddress = detail::AddressImpl<kRelativeAddressType>;
 ```
 
 Now that you have been introduced to the main concepts, it is time for me to walk you through two small applications.
@@ -336,22 +338,22 @@ Now that you have been introduced to the main concepts, it is time for me to wal
 As the framework exposes all the information you need to rewrite and analyze binary, you are also free to *just* analyze a binary and not modify a single bit. In this example let's make a Block transform and generate a graph of the relationship between code Blocks (functions). As we are interested in exploring the whole binary and every single code Block, we subclass `IterativeTransformImpl`:
 
 ```c++
-    // Declares a BlockGraphTransform implementation wrapping the common transform
-    // that iterates over each block in the image.
-    
-    
-    // An implementation of a BlockGraph transform encapsulating the simple pattern
-    // of Pre, per-block, and Post functions. The derived class is responsible for
-    // implementing 'OnBlock' and 'name', and may optionally override Pre and
-    // Post. The derived type needs to also define the static public member
-    // variable:
-    //
-    //   static const char DerivedType::kTransformName[];
-    //
-    // @tparam DerivedType the type of the derived class.
-    template<class DerivedType>
-    class IterativeTransformImpl
-        : public NamedBlockGraphTransformImpl<DerivedType> { };
+// Declares a BlockGraphTransform implementation wrapping the common transform
+// that iterates over each block in the image.
+
+
+// An implementation of a BlockGraph transform encapsulating the simple pattern
+// of Pre, per-block, and Post functions. The derived class is responsible for
+// implementing 'OnBlock' and 'name', and may optionally override Pre and
+// Post. The derived type needs to also define the static public member
+// variable:
+//
+//   static const char DerivedType::kTransformName[];
+//
+// @tparam DerivedType the type of the derived class.
+template<class DerivedType>
+class IterativeTransformImpl
+    : public NamedBlockGraphTransformImpl<DerivedType> { };
 ```
 
 Doing so allows us define `Pre` / `Post` functions, and an `OnBlock` function that gets called for every Block encountered in the image. This is pretty handy as I can define an `OnBlock` callback to mine the information we want for every Block, and define `Post` to process the data I have accumulated if necessary.
@@ -366,32 +368,32 @@ The `OnBlock` function should be pretty light as we only want to achieve a coupl
 The first thing to do is to create a C++ class named `CallGraphAnalysis`, declared in `doare_transform.h` and defined in `doare_transform.cc`. Those files are put in the `syzygy/instrument/transforms` directory where all others transforms live in:
 
 ```text
-    D:\syzygy\src>git status
-    On branch dev-doare1
-    Changes to be committed:
-      (use "git reset HEAD <file>..." to unstage)
-    
-            new file:   syzygy/instrument/transforms/doare_transforms.cc
-            new file:   syzygy/instrument/transforms/doare_transforms.h
+D:\syzygy\src>git status
+On branch dev-doare1
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+        new file:   syzygy/instrument/transforms/doare_transforms.cc
+        new file:   syzygy/instrument/transforms/doare_transforms.h
 ```
 
 In order to get it compiled we also need to modify the `instrument.gyp` project file:
 
 ```text
-    D:\syzygy\src>git diff syzygy/instrument/instrument.gyp
-    diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
-    index 464c5566..c0eceb87 100644
-    --- a/syzygy/instrument/instrument.gyp
-    +++ b/syzygy/instrument/instrument.gyp
-    @@ -68,6 +70,8 @@
-             'transforms/branch_hook_transform.h',
-             'transforms/coverage_transform.cc',
-             'transforms/coverage_transform.h',
-    +        'transforms/doare_transforms.cc',
-    +        'transforms/doare_transforms.h',
-             'transforms/entry_call_transform.cc',
-             'transforms/entry_call_transform.h',
-             'transforms/entry_thunk_transform.cc',
+D:\syzygy\src>git diff syzygy/instrument/instrument.gyp
+diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
+index 464c5566..c0eceb87 100644
+--- a/syzygy/instrument/instrument.gyp
++++ b/syzygy/instrument/instrument.gyp
+@@ -68,6 +70,8 @@
+          'transforms/branch_hook_transform.h',
+          'transforms/coverage_transform.cc',
+          'transforms/coverage_transform.h',
++        'transforms/doare_transforms.cc',
++        'transforms/doare_transforms.h',
+          'transforms/entry_call_transform.cc',
+          'transforms/entry_call_transform.h',
+          'transforms/entry_thunk_transform.cc',
 ```
 
 The gyp file is basically used to generate Ninja project files - which means that if you don't regenerate the Ninja files from the updated version of this gyp file, you will not be compiling your new code. In order to force a regeneration, you can invoke the `depot_tools` command: `gclient runhooks`.
@@ -399,92 +401,92 @@ The gyp file is basically used to generate Ninja project files - which means tha
 At this point we are ready to get our class coded up; here is the class declaration I have:
 
 ```c++
-    // Axel '0vercl0k' Souchet - 26 Aug 2017
-    
-    #ifndef SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
-    #define SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
-    
-    #include "base/logging.h"
-    #include "syzygy/block_graph/transform_policy.h"
-    #include "syzygy/block_graph/transforms/iterative_transform.h"
-    #include "syzygy/block_graph/transforms/named_transform.h"
-    
-    namespace instrument {
-    namespace transforms {
-    
-    typedef block_graph::BlockGraph BlockGraph;
-    typedef block_graph::BlockGraph::Block Block;
-    typedef block_graph::TransformPolicyInterface TransformPolicyInterface;
-    
-    class CallGraphAnalysis
-        : public block_graph::transforms::IterativeTransformImpl<
-              CallGraphAnalysis> {
-     public:
-      CallGraphAnalysis()
-          : edges_(),
-            main_block_(nullptr),
-            total_blocks_(0),
-            total_code_blocks_(0) {}
-    
-      static const char kTransformName[];
-    
-      // Functions needed for IterativeTransform.
-      bool OnBlock(const TransformPolicyInterface* policy,
-                   BlockGraph* block_graph,
-                   Block* block);
-    
-     private:
-      std::list<std::pair<Block*, Block*>> edges_;
-      Block* main_block_;
-    
-      // Stats.
-      size_t total_blocks_;
-      size_t total_code_blocks_;
-    };
-    
-    }  // namespace transforms
-    }  // namespace instrument
-    
-    #endif  // SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
+// Axel '0vercl0k' Souchet - 26 Aug 2017
+
+#ifndef SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
+#define SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
+
+#include "base/logging.h"
+#include "syzygy/block_graph/transform_policy.h"
+#include "syzygy/block_graph/transforms/iterative_transform.h"
+#include "syzygy/block_graph/transforms/named_transform.h"
+
+namespace instrument {
+namespace transforms {
+
+typedef block_graph::BlockGraph BlockGraph;
+typedef block_graph::BlockGraph::Block Block;
+typedef block_graph::TransformPolicyInterface TransformPolicyInterface;
+
+class CallGraphAnalysis
+    : public block_graph::transforms::IterativeTransformImpl<
+          CallGraphAnalysis> {
+  public:
+  CallGraphAnalysis()
+      : edges_(),
+        main_block_(nullptr),
+        total_blocks_(0),
+        total_code_blocks_(0) {}
+
+  static const char kTransformName[];
+
+  // Functions needed for IterativeTransform.
+  bool OnBlock(const TransformPolicyInterface* policy,
+                BlockGraph* block_graph,
+                Block* block);
+
+  private:
+  std::list<std::pair<Block*, Block*>> edges_;
+  Block* main_block_;
+
+  // Stats.
+  size_t total_blocks_;
+  size_t total_code_blocks_;
+};
+
+}  // namespace transforms
+}  // namespace instrument
+
+#endif  // SYZYGY_INSTRUMENT_TRANSFORMS_DOARE_TRANSFORMS_H_
 ```
 
 After declaring it, the interesting part for us is to have a look at the `OnBlock` method:
 
 ```c++
-    bool CallGraphAnalysis::OnBlock(const TransformPolicyInterface* policy,
-                                    BlockGraph* block_graph,
-                                    Block* block) {
-      total_blocks_++;
-    
-      if (block->type() != BlockGraph::CODE_BLOCK)
-        return true;
-    
-      if (block->attributes() & BlockGraph::GAP_BLOCK)
-        return true;
-    
-      VLOG(1) << __FUNCTION__ << ": " << block->name();
-      if (block->name() == "main") {
-        main_block_ = block;
-      }
-    
-      // Walk the referrers of this block.
-      for (const auto& referrer : block->referrers()) {
-        Block* referrer_block(referrer.first);
-    
-        // We are not interested in non-code referrers.
-        if (referrer_block->type() != BlockGraph::CODE_BLOCK) {
-          continue;
-        }
-    
-        VLOG(1) << referrer_block->name() << " -> " << block->name();
-    
-        // Keep track of the relation between the block & its referrer.
-        edges_.emplace_back(referrer_block, block);
-      }
-    
-      total_code_blocks_++;
-      return true;
+bool CallGraphAnalysis::OnBlock(const TransformPolicyInterface* policy,
+                                BlockGraph* block_graph,
+                                Block* block) {
+  total_blocks_++;
+
+  if (block->type() != BlockGraph::CODE_BLOCK)
+    return true;
+
+  if (block->attributes() & BlockGraph::GAP_BLOCK)
+    return true;
+
+  VLOG(1) << __FUNCTION__ << ": " << block->name();
+  if (block->name() == "main") {
+    main_block_ = block;
+  }
+
+  // Walk the referrers of this block.
+  for (const auto& referrer : block->referrers()) {
+    Block* referrer_block(referrer.first);
+
+    // We are not interested in non-code referrers.
+    if (referrer_block->type() != BlockGraph::CODE_BLOCK) {
+      continue;
     }
+
+    VLOG(1) << referrer_block->name() << " -> " << block->name();
+
+    // Keep track of the relation between the block & its referrer.
+    edges_.emplace_back(referrer_block, block);
+  }
+
+  total_code_blocks_++;
+  return true;
+}
 ```
 
 The first step of the method is to make sure that the Block we are dealing with is a block we want to analyze. As I have explained before, Blocks are not exclusive code Blocks. That is the reason why we check the type of the block to only accepts code Blocks. Another type of Block that syzygy artificially creates (it has no existence in the image being analyzed) is called a `GAP_BLOCK`; which is basically a block that fills a gap in the address space. For that reason we also skip those blocks.
@@ -494,13 +496,13 @@ At this point we have a code Block and we can start to mine whatever information
 I am sure at this stage you are interested in compiling it, and get it to run on a binary. To do that we need to add the *plumbing* necessary to surface it to `instrument.exe` tool. First thing you need is an `instrumenter`, we declare it in `doare_instrumenter.h` and define it in `doare_instrumenter.cc` in the `syzygy/instrument/instrumenters` directory:
 
 ```text
-    D:\syzygy\src>git status
-    On branch dev-doare1
-    Changes to be committed:
-      (use "git reset HEAD <file>..." to unstage)
-    
-            new file:   syzygy/instrument/instrumenters/doare_instrumenter.cc
-            new file:   syzygy/instrument/instrumenters/doare_instrumenter.h
+D:\syzygy\src>git status
+On branch dev-doare1
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+        new file:   syzygy/instrument/instrumenters/doare_instrumenter.cc
+        new file:   syzygy/instrument/instrumenters/doare_instrumenter.h
 ```
 
 An instrumenter is basically a class that encapsulate the configuration and the invocation of one or several transforms. The instrumenter can receive options passed by the application, thus can set configuration flags when invoking the transforms, etc. You could imagine parsing a configuration file here, or doing any preparation needed by your transform. Then, the instrumenter registers the transform against the `Relinker` object (a bit like the pass manager in LLVM if you want to think about it this way).
@@ -508,156 +510,157 @@ An instrumenter is basically a class that encapsulate the configuration and the 
 Anyway, as our transform is trivial we basically don't need any of this "preparation"; so let's settle for the least required:
 
 ```c++
-    // Axel '0vercl0k' Souchet - 26 Aug 2017
-    
-    #ifndef SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
-    #define SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
-    
-    #include "base/command_line.h"
-    #include "syzygy/instrument/instrumenters/instrumenter_with_agent.h"
-    #include "syzygy/instrument/transforms/doare_transforms.h"
-    #include "syzygy/pe/pe_relinker.h"
-    
-    namespace instrument {
-    namespace instrumenters {
-    
-    class DoareInstrumenter : public InstrumenterWithRelinker {
-     public:
-      typedef InstrumenterWithRelinker Super;
-    
-      DoareInstrumenter() : Super() {}
-    
-      // From InstrumenterWithRelinker
-      bool InstrumentPrepare() override;
-      bool InstrumentImpl() override;
-      const char* InstrumentationMode() override;
-    
-     private:
-      // The transform for this agent.
-      std::unique_ptr<instrument::transforms::CallGraphAnalysis>
-          transformer_callgraph_;
-    
-      DISALLOW_COPY_AND_ASSIGN(DoareInstrumenter);
-    };
-    
-    }  // namespace instrumenters
-    }  // namespace instrument
-    
-    #endif  // SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
+// Axel '0vercl0k' Souchet - 26 Aug 2017
+
+#ifndef SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
+#define SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
+
+#include "base/command_line.h"
+#include "syzygy/instrument/instrumenters/instrumenter_with_agent.h"
+#include "syzygy/instrument/transforms/doare_transforms.h"
+#include "syzygy/pe/pe_relinker.h"
+
+namespace instrument {
+namespace instrumenters {
+
+class DoareInstrumenter : public InstrumenterWithRelinker {
+  public:
+  typedef InstrumenterWithRelinker Super;
+
+  DoareInstrumenter() : Super() {}
+
+  // From InstrumenterWithRelinker
+  bool InstrumentPrepare() override;
+  bool InstrumentImpl() override;
+  const char* InstrumentationMode() override;
+
+  private:
+  // The transform for this agent.
+  std::unique_ptr<instrument::transforms::CallGraphAnalysis>
+      transformer_callgraph_;
+
+  DISALLOW_COPY_AND_ASSIGN(DoareInstrumenter);
+};
+
+}  // namespace instrumenters
+}  // namespace instrument
+
+#endif  // SYZYGY_INSTRUMENT_INSTRUMENTERS_DOARE_INSTRUMENTER_H_
 ```
 
 The `InstrumentPrepare` method is where the instrumenter registers the transform against the relinker object:
 
 ```c++
-    // Axel '0vercl0k' Souchet - 26 Aug 2017
-    
-    #include "syzygy/instrument/instrumenters/doare_instrumenter.h"
-    
-    #include "base/logging.h"
-    #include "base/values.h"
-    #include "syzygy/application/application.h"
-    
-    namespace instrument {
-    namespace instrumenters {
-    
-    bool DoareInstrumenter::InstrumentPrepare() {
-      return true;
-    }
-    
-    bool DoareInstrumenter::InstrumentImpl() {
-      transformer_callgraph_.reset(new instrument::transforms::CallGraphAnalysis());
-    
-      if (!relinker_->AppendTransform(transformer_callgraph_.get())) {
-        LOG(ERROR) << "AppendTransform failed.";
-        return false;
-      }
-    
-      return true;
-    }
-    
-    const char* DoareInstrumenter::InstrumentationMode() {
-      return "Diary of a reverse engineer";
-    }
-    }  // namespace instrumenters
-    }  // namespace instrument
+// Axel '0vercl0k' Souchet - 26 Aug 2017
+
+#include "syzygy/instrument/instrumenters/doare_instrumenter.h"
+
+#include "base/logging.h"
+#include "base/values.h"
+#include "syzygy/application/application.h"
+
+namespace instrument {
+namespace instrumenters {
+
+bool DoareInstrumenter::InstrumentPrepare() {
+  return true;
+}
+
+bool DoareInstrumenter::InstrumentImpl() {
+  transformer_callgraph_.reset(new instrument::transforms::CallGraphAnalysis());
+
+  if (!relinker_->AppendTransform(transformer_callgraph_.get())) {
+    LOG(ERROR) << "AppendTransform failed.";
+    return false;
+  }
+
+  return true;
+}
+
+const char* DoareInstrumenter::InstrumentationMode() {
+  return "Diary of a reverse engineer";
+}
+}  // namespace instrumenters
+}  // namespace instrument
 ```
 
 Like before, we also need to add those two files in the `instrument.gyp` file and regenerate the Ninja project files via the `gclient runhooks` command:
 
 ```text
-    D:\syzygy\src>git diff syzygy/instrument/instrument.gyp
-    diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
-    index 464c5566..c0eceb87 100644
-    --- a/syzygy/instrument/instrument.gyp
-    +++ b/syzygy/instrument/instrument.gyp
-    @@ -36,6 +36,8 @@
-             'instrumenters/bbentry_instrumenter.h',
-             'instrumenters/coverage_instrumenter.cc',
-             'instrumenters/coverage_instrumenter.h',
-    +        'instrumenters/doare_instrumenter.h',
-    +        'instrumenters/doare_instrumenter.cc',
-             'instrumenters/entry_call_instrumenter.cc',
-             'instrumenters/entry_call_instrumenter.h',
-             'instrumenters/entry_thunk_instrumenter.cc',
-    @@ -68,6 +70,8 @@
-             'transforms/branch_hook_transform.h',
-             'transforms/coverage_transform.cc',
-             'transforms/coverage_transform.h',
-    +        'transforms/doare_transforms.cc',
-    +        'transforms/doare_transforms.h',
-             'transforms/entry_call_transform.cc',
-             'transforms/entry_call_transform.h',
-             'transforms/entry_thunk_transform.cc',
+D:\syzygy\src>git diff syzygy/instrument/instrument.gyp
+diff --git a/syzygy/instrument/instrument.gyp b/syzygy/instrument/instrument.gyp
+index 464c5566..c0eceb87 100644
+--- a/syzygy/instrument/instrument.gyp
++++ b/syzygy/instrument/instrument.gyp
+@@ -36,6 +36,8 @@
+          'instrumenters/bbentry_instrumenter.h',
+          'instrumenters/coverage_instrumenter.cc',
+          'instrumenters/coverage_instrumenter.h',
++        'instrumenters/doare_instrumenter.h',
++        'instrumenters/doare_instrumenter.cc',
+          'instrumenters/entry_call_instrumenter.cc',
+          'instrumenters/entry_call_instrumenter.h',
+          'instrumenters/entry_thunk_instrumenter.cc',
+@@ -68,6 +70,8 @@
+          'transforms/branch_hook_transform.h',
+          'transforms/coverage_transform.cc',
+          'transforms/coverage_transform.h',
++        'transforms/doare_transforms.cc',
++        'transforms/doare_transforms.h',
+          'transforms/entry_call_transform.cc',
+          'transforms/entry_call_transform.h',
+          'transforms/entry_thunk_transform.cc',
 ```
 
 The last step for us is to surface our instrumenter to the main of the application. I just add a mode called `doare` that you can set via the `--mode` switch, and if the flag is specified it instantiates the newly born `DoareInstrumenter`.
 
 ```text
-    D:\syzygy\src>git diff syzygy/instrument/instrument_app.cc
-    diff --git a/syzygy/instrument/instrument_app.cc b/syzygy/instrument/instrument_app.cc
-    index 72bb40b8..c54258d8 100644
-    --- a/syzygy/instrument/instrument_app.cc
-    +++ b/syzygy/instrument/instrument_app.cc
-    @@ -29,6 +29,7 @@
-     #include "syzygy/instrument/instrumenters/bbentry_instrumenter.h"
-     #include "syzygy/instrument/instrumenters/branch_instrumenter.h"
-     #include "syzygy/instrument/instrumenters/coverage_instrumenter.h"
-    +#include "syzygy/instrument/instrumenters/doare_instrumenter.h"
-     #include "syzygy/instrument/instrumenters/entry_call_instrumenter.h"
-     #include "syzygy/instrument/instrumenters/entry_thunk_instrumenter.h"
-     #include "syzygy/instrument/instrumenters/flummox_instrumenter.h"
-    @@ -41,7 +42,7 @@ static const char kUsageFormatStr[] =
-         "Usage: %ls [options]\n"
-         "  Required arguments:\n"
-         "    --input-image=<path> The input image to instrument.\n"
-    -    "    --mode=afl|asan|bbentry|branch|calltrace|coverage|flummox|profile\n"
-    +    "    --mode=afl|asan|bbentry|branch|calltrace|coverage|doare|flummox|profile\n"
-         "                            Specifies which instrumentation mode is to\n"
-         "                            be used. If this is not specified it is\n"
-         "                            equivalent to specifying --mode=calltrace\n"
-    @@ -192,6 +193,8 @@ bool InstrumentApp::ParseCommandLine(const base::CommandLine* cmd_line) {
-               instrumenters::EntryThunkInstrumenter::CALL_TRACE));
-         } else if (base::LowerCaseEqualsASCII(mode, "coverage")) {
-           instrumenter_.reset(new instrumenters::CoverageInstrumenter());
-    +    } else if (base::LowerCaseEqualsASCII(mode, "doare")) {
-    +      instrumenter_.reset(new instrumenters::DoareInstrumenter());
-         } else if (base::LowerCaseEqualsASCII(mode, "flummox")) {
-           instrumenter_.reset(new instrumenters::FlummoxInstrumenter());
-         } else if (base::LowerCaseEqualsASCII(mode, "profile")) {
+D:\syzygy\src>git diff syzygy/instrument/instrument_app.cc
+diff --git a/syzygy/instrument/instrument_app.cc b/syzygy/instrument/instrument_app.cc
+index 72bb40b8..c54258d8 100644
+--- a/syzygy/instrument/instrument_app.cc
++++ b/syzygy/instrument/instrument_app.cc
+@@ -29,6 +29,7 @@
+  #include "syzygy/instrument/instrumenters/bbentry_instrumenter.h"
+  #include "syzygy/instrument/instrumenters/branch_instrumenter.h"
+  #include "syzygy/instrument/instrumenters/coverage_instrumenter.h"
++#include "syzygy/instrument/instrumenters/doare_instrumenter.h"
+  #include "syzygy/instrument/instrumenters/entry_call_instrumenter.h"
+  #include "syzygy/instrument/instrumenters/entry_thunk_instrumenter.h"
+  #include "syzygy/instrument/instrumenters/flummox_instrumenter.h"
+@@ -41,7 +42,7 @@ static const char kUsageFormatStr[] =
+      "Usage: %ls [options]\n"
+      "  Required arguments:\n"
+      "    --input-image=<path> The input image to instrument.\n"
+-    "    --mode=afl|asan|bbentry|branch|calltrace|coverage|flummox|profile\n"
++    "    --mode=afl|asan|bbentry|branch|calltrace|coverage|doare|flummox|profile\n"
+      "                            Specifies which instrumentation mode is to\n"
+      "                            be used. If this is not specified it is\n"
+      "                            equivalent to specifying --mode=calltrace\n"
+@@ -192,6 +193,8 @@ bool InstrumentApp::ParseCommandLine(const base::CommandLine* cmd_line) {
+            instrumenters::EntryThunkInstrumenter::CALL_TRACE));
+      } else if (base::LowerCaseEqualsASCII(mode, "coverage")) {
+        instrumenter_.reset(new instrumenters::CoverageInstrumenter());
++    } else if (base::LowerCaseEqualsASCII(mode, "doare")) {
++      instrumenter_.reset(new instrumenters::DoareInstrumenter());
+      } else if (base::LowerCaseEqualsASCII(mode, "flummox")) {
+        instrumenter_.reset(new instrumenters::FlummoxInstrumenter());
+      } else if (base::LowerCaseEqualsASCII(mode, "profile")) {
 ```
 
 This should be it! Recompiling the `instrument` project should be enough to be able to invoke the transform and see some of our debug messages:
 
 ```text
-    D:\Downloads\syzygy\src>ninja -C out\Release instrument
-    ninja: Entering directory `out\Release'
-    [4/4] LINK_EMBED instrument.exe
-    D:\Downloads\syzygy\src>out\Release\instrument.exe --input-image=out\Release\instrument.exe --output-image=nul --mode=doare --verbose
-    [...]
-    [0902/120452:VERBOSE1:doare_transforms.cc(22)] instrument::transforms::CallGraphAnalysis::OnBlock: block_graph::BlockGraph::AddressSpace::GetBlockByAddress
-    [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace'::Decompose -> block_graph::BlockGraph::AddressSpace::GetBlockByAddress
-    [0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace'::Decompose -> block_graph::BlockGraph::AddressSpace::GetBlockByAddress
-    [...]
+D:\Downloads\syzygy\src>ninja -C out\Release instrument
+ninja: Entering directory `out\Release'
+[4/4] LINK_EMBED instrument.exe
+
+D:\Downloads\syzygy\src>out\Release\instrument.exe --input-image=out\Release\instrument.exe --output-image=nul --mode=doare --verbose
+[...]
+[0902/120452:VERBOSE1:doare_transforms.cc(22)] instrument::transforms::CallGraphAnalysis::OnBlock: block_graph::BlockGraph::AddressSpace::GetBlockByAddress
+[0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace'::Decompose -> block_graph::BlockGraph::AddressSpace::GetBlockByAddress
+[0902/120452:VERBOSE1:doare_transforms.cc(36)] pe::`anonymous namespace'::Decompose -> block_graph::BlockGraph::AddressSpace::GetBlockByAddress
+[...]
 ```
 
 ### Visualize it?
@@ -665,105 +668,105 @@ This should be it! Recompiling the `instrument` project should be enough to be a
 As I was writing this I figured it might be worth to spend a bit of time trying to visualize this network to make it more attractive for the readers. So I decided to use [visjs](http://visjs.org/network_examples.html) and the `Post` callback to output the call-graph in a way visjs would understand:
 
 ```c++
-    bool CallGraphAnalysis::PostBlockGraphIteration(
-        const TransformPolicyInterface* policy,
-        BlockGraph* block_graph,
-        Block* header_block) {
-      VLOG(1) << "      Blocks found: " << total_blocks_;
-      VLOG(1) << " Code Blocks found: " << total_code_blocks_;
-    
-      if (main_block_ == nullptr) {
-        LOG(ERROR) << "A 'main' block is mandatory.";
-        return false;
-      }
-    
-      // Now we walk the graph from the 'main' block, with a BFS algorithm.
-      uint32_t idx = 0, level = 0;
-      std::list<std::pair<Block*, Block*>> selected_edges;
-      std::map<Block*, uint32_t> selected_nodes;
-      std::map<Block*, uint32_t> selected_nodes_levels;
-      std::set<Block*> nodes_to_inspect{main_block_};
-      while (nodes_to_inspect.size() > 0) {
-        // Make a copy of the node to inspect so that we can iterate
-        // over them.
-        std::set<Block*> tmp = nodes_to_inspect;
-    
-        // The node selected to be inspected in the next iteration of
-        // the loop will be added in this set.
-        nodes_to_inspect.clear();
-    
-        // Go through every nodes to find to what nodes they are connected
-        // to.
-        for (const auto& node_to_inspect : tmp) {
-          // Assign an index and a level to the node.
-          selected_nodes.emplace(node_to_inspect, idx++);
-          selected_nodes_levels[node_to_inspect] = level;
-    
-          // Now let's iterate through the edges to find to what nodes, the current
-          // one is connected to.
-          for (const auto& edge : edges_) {
-            // We are interested to find edges connected to the current node.
-            if (edge.first != node_to_inspect) {
-              continue;
-            }
-    
-            // Get the connected node and make sure we haven't handled it already.
-            Block* to_block(edge.second);
-            if (selected_nodes.count(to_block) > 0) {
-              continue;
-            }
-    
-            selected_nodes.emplace(to_block, idx++);
-            selected_nodes_levels[to_block] = level + 1;
-    
-            // If it's a
-            selected_edges.emplace_back(node_to_inspect, to_block);
-    
-            // We need to analyze this block at the next iteration (level + 1).
-            nodes_to_inspect.insert(to_block);
-          }
+bool CallGraphAnalysis::PostBlockGraphIteration(
+    const TransformPolicyInterface* policy,
+    BlockGraph* block_graph,
+    Block* header_block) {
+  VLOG(1) << "      Blocks found: " << total_blocks_;
+  VLOG(1) << " Code Blocks found: " << total_code_blocks_;
+
+  if (main_block_ == nullptr) {
+    LOG(ERROR) << "A 'main' block is mandatory.";
+    return false;
+  }
+
+  // Now we walk the graph from the 'main' block, with a BFS algorithm.
+  uint32_t idx = 0, level = 0;
+  std::list<std::pair<Block*, Block*>> selected_edges;
+  std::map<Block*, uint32_t> selected_nodes;
+  std::map<Block*, uint32_t> selected_nodes_levels;
+  std::set<Block*> nodes_to_inspect{main_block_};
+  while (nodes_to_inspect.size() > 0) {
+    // Make a copy of the node to inspect so that we can iterate
+    // over them.
+    std::set<Block*> tmp = nodes_to_inspect;
+
+    // The node selected to be inspected in the next iteration of
+    // the loop will be added in this set.
+    nodes_to_inspect.clear();
+
+    // Go through every nodes to find to what nodes they are connected
+    // to.
+    for (const auto& node_to_inspect : tmp) {
+      // Assign an index and a level to the node.
+      selected_nodes.emplace(node_to_inspect, idx++);
+      selected_nodes_levels[node_to_inspect] = level;
+
+      // Now let's iterate through the edges to find to what nodes, the current
+      // one is connected to.
+      for (const auto& edge : edges_) {
+        // We are interested to find edges connected to the current node.
+        if (edge.first != node_to_inspect) {
+          continue;
         }
-    
-        // Bump the level as we finished analyzing the nodes we wanted to inspect.
-        level++;
-      }
-    
-      std::cout << "var nodes = new vis.DataSet([" << std::endl;
-      for (const auto& node : selected_nodes) {
-        Block* block(node.first);
-        const char* compiland_path = block->compiland_name().c_str();
-        const char* compiland_name = strrchr(compiland_path, '\\');
-        char description[1024];
-    
-        if (compiland_name != nullptr) {
-          compiland_name++;
-        } else {
-          compiland_name = "Unknown";
+
+        // Get the connected node and make sure we haven't handled it already.
+        Block* to_block(edge.second);
+        if (selected_nodes.count(to_block) > 0) {
+          continue;
         }
-    
-        uint32_t level = selected_nodes_levels[block];
-        _snprintf_s(description, ARRAYSIZE(description), _TRUNCATE,
-                    "RVA: %p<br>Size: %d<br>Level: %d<br>Compiland: %s",
-                    (void*)block->addr().value(), block->size(), level,
-                    compiland_name);
-    
-        std::cout << "  { id : " << node.second << ", label : \"" << block->name()
-                  << "\", "
-                  << "title : '" << description << "', group : " << level
-                  << ", value : " << block->size() << " }," << std::endl;
+
+        selected_nodes.emplace(to_block, idx++);
+        selected_nodes_levels[to_block] = level + 1;
+
+        // If it's a
+        selected_edges.emplace_back(node_to_inspect, to_block);
+
+        // We need to analyze this block at the next iteration (level + 1).
+        nodes_to_inspect.insert(to_block);
       }
-      std::cout << "]);" << std::endl
-                << std::endl;
-    
-      std::cout << "var edges = new vis.DataSet([" << std::endl;
-      for (const auto& edge : selected_edges) {
-        std::cout << "  { from : " << selected_nodes.at(edge.first)
-                  << ", to : " << selected_nodes.at(edge.second) << " },"
-                  << std::endl;
-      }
-      std::cout << "]);" << std::endl;
-      return true;
     }
+
+    // Bump the level as we finished analyzing the nodes we wanted to inspect.
+    level++;
+  }
+
+  std::cout << "var nodes = new vis.DataSet([" << std::endl;
+  for (const auto& node : selected_nodes) {
+    Block* block(node.first);
+    const char* compiland_path = block->compiland_name().c_str();
+    const char* compiland_name = strrchr(compiland_path, '\\');
+    char description[1024];
+
+    if (compiland_name != nullptr) {
+      compiland_name++;
+    } else {
+      compiland_name = "Unknown";
+    }
+
+    uint32_t level = selected_nodes_levels[block];
+    _snprintf_s(description, ARRAYSIZE(description), _TRUNCATE,
+                "RVA: %p<br>Size: %d<br>Level: %d<br>Compiland: %s",
+                (void*)block->addr().value(), block->size(), level,
+                compiland_name);
+
+    std::cout << "  { id : " << node.second << ", label : \"" << block->name()
+              << "\", "
+              << "title : '" << description << "', group : " << level
+              << ", value : " << block->size() << " }," << std::endl;
+  }
+  std::cout << "]);" << std::endl
+            << std::endl;
+
+  std::cout << "var edges = new vis.DataSet([" << std::endl;
+  for (const auto& edge : selected_edges) {
+    std::cout << "  { from : " << selected_nodes.at(edge.first)
+              << ", to : " << selected_nodes.at(edge.second) << " },"
+              << std::endl;
+  }
+  std::cout << "]);" << std::endl;
+  return true;
+}
 ```
 
 The above function basically starts to walk the network from the `main` function and do a BFS algorithm (that allows us to define *levels* for each Block). It then outputs two sets of data: the nodes, and the edges.
@@ -777,15 +780,15 @@ If you would like to check out the result I have uploaded an interactive network
 The idea for this transform came back when I was playing around with [WinAFL](https://github.com/ivanfratric/winafl); I encountered a case where one of the test-case triggered a [/GS](https://msdn.microsoft.com/en-us/library/8dbf701c.aspx) violation in a harness program I was fuzzing. Buffer security checks are a set of compiler and runtime instrumentation aiming at detecting and preventing the exploitation of stack-based buffer overflows. A cookie is placed on the stack by the prologue of the protected function in between the local variables of the stack-frame and the saved stack pointer / saved instruction pointer. The compiler instruments the code so that before the function returns, it invokes a check function (called `__security_check_cookie`) that ensure the integrity of the cookie.
 
 ```text
-    ; void __fastcall __security_check_cookie(unsigned int cookie)
-    @__security_check_cookie@4 proc near
-    cookie= dword ptr -4
-       cmp     ecx, ___security_cookie
-       repne jnz short failure
-       repne retn
-    failure:
-       repne jmp ___report_gsfailure
-    @__security_check_cookie@4 endp
+; void __fastcall __security_check_cookie(unsigned int cookie)
+@__security_check_cookie@4 proc near
+cookie= dword ptr -4
+    cmp     ecx, ___security_cookie
+    repne jnz short failure
+    repne retn
+failure:
+    repne jmp ___report_gsfailure
+@__security_check_cookie@4 endp
 ```
 
 If the cookie matches the secret, everything is fine, the function returns and life goes on. If it does not, it means something overwrote it and as a result the process needs to be killed. The way the check function achieves this is by raising an exception that the process cannot even catch itself; which makes sense if you think about it as you don't want an attacker to be able to hijack the exception.
@@ -793,23 +796,23 @@ If the cookie matches the secret, everything is fine, the function returns and l
 On recent version of Windows, this is achieved via a [fail-fast exception](http://www.alex-ionescu.com/?p=69) or by invoking [UnhandledExceptionFilter](https://msdn.microsoft.com/en-us/library/windows/desktop/ms681401(v=vs.85\).aspx) (after forcing the top level exception filter to 0) and terminating the process (done by ` __raise_securityfailure`).
 
 ```text
-    ; void __cdecl __raise_securityfailure(_EXCEPTION_POINTERS *const exception_pointers)
-    ___raise_securityfailure proc near
-    exception_pointers= dword ptr  8
-       push    ebp
-       mov     ebp, esp
-       push    0
-       call    ds:__imp__SetUnhandledExceptionFilter@4
-       mov     eax, [ebp+exception_pointers]
-       push    eax
-       call    ds:__imp__UnhandledExceptionFilter@4
-       push    0C0000409h
-       call    ds:__imp__GetCurrentProcess@0
-       push    eax
-       call    ds:__imp__TerminateProcess@8
-       pop     ebp
-       retn
-    ___raise_securityfailure endp
+; void __cdecl __raise_securityfailure(_EXCEPTION_POINTERS *const exception_pointers)
+___raise_securityfailure proc near
+exception_pointers= dword ptr  8
+    push    ebp
+    mov     ebp, esp
+    push    0
+    call    ds:__imp__SetUnhandledExceptionFilter@4
+    mov     eax, [ebp+exception_pointers]
+    push    eax
+    call    ds:__imp__UnhandledExceptionFilter@4
+    push    0C0000409h
+    call    ds:__imp__GetCurrentProcess@0
+    push    eax
+    call    ds:__imp__TerminateProcess@8
+    pop     ebp
+    retn
+___raise_securityfailure endp
 ```
 
 Funny enough - if this sounds familiar - turns out I have encountered this very problem a while back and you can read the story here: [Having a Look at the Windows' User/Kernel Exceptions Dispatcher](http://doar-e.github.io/blog/2013/10/12/having-a-look-at-the-windows-userkernel-exceptions-dispatcher/).
@@ -823,115 +826,115 @@ I started evaluating syzygy with this simple task: making the program crash with
 First step is to define a transform as in the previous example. This time I subclass `NamedBlockGraphTransformImpl` which wants me to implement a `TransformBlockGraph` method that receives: a transform policy (used to make decision before applying transformation), the graph (block_graph) and a data Block that represents the PE header of our image (header_block):
 
 ```c++
-    class SecurityCookieCheckHookTransform
-        : public block_graph::transforms::NamedBlockGraphTransformImpl<
-              SecurityCookieCheckHookTransform> {
-     public:
-      SecurityCookieCheckHookTransform() {}
-    
-      static const char kTransformName[];
-      static const char kReportGsFailure[];
-      static const char kSyzygyReportGsFailure[];
-      static const uint32_t kInvalidUserAddress;
-    
-      // BlockGraphTransformInterface implementation.
-      bool TransformBlockGraph(const TransformPolicyInterface* policy,
-                               BlockGraph* block_graph,
-                               BlockGraph::Block* header_block) final;
-    };
+class SecurityCookieCheckHookTransform
+    : public block_graph::transforms::NamedBlockGraphTransformImpl<
+          SecurityCookieCheckHookTransform> {
+  public:
+  SecurityCookieCheckHookTransform() {}
+
+  static const char kTransformName[];
+  static const char kReportGsFailure[];
+  static const char kSyzygyReportGsFailure[];
+  static const uint32_t kInvalidUserAddress;
+
+  // BlockGraphTransformInterface implementation.
+  bool TransformBlockGraph(const TransformPolicyInterface* policy,
+                            BlockGraph* block_graph,
+                            BlockGraph::Block* header_block) final;
+};
 ```
 
 As I explained a bit earlier, the BlockGraph is the top level container of Blocks. This is what I walk through in order to find our Block of interest. The Block of interest for us has the name `__report_gsfailure`:
 
 ```c++
-    BlockGraph::Block* report_gsfailure = nullptr;
-    BlockGraph::BlockMap& blocks = block_graph->blocks_mutable();
-    for (auto& block : blocks) {
-      std::string name(block.second.name());
-      if (name == kReportGsFailure) {
-        report_gsfailure = &block.second;
-        break;
-      }
-    }
-    
-    if (report_gsfailure == nullptr) {
-      LOG(ERROR) << "Could not find " << kReportGsFailure << ".";
-      return false;
-    }
+BlockGraph::Block* report_gsfailure = nullptr;
+BlockGraph::BlockMap& blocks = block_graph->blocks_mutable();
+for (auto& block : blocks) {
+  std::string name(block.second.name());
+  if (name == kReportGsFailure) {
+    report_gsfailure = &block.second;
+    break;
+  }
+}
+
+if (report_gsfailure == nullptr) {
+  LOG(ERROR) << "Could not find " << kReportGsFailure << ".";
+  return false;
+}
 ```
 
 The transform tries to be careful by checking that the Block only has a single referrer: which should be the `__security_cookie_check` Block. If not, I gracefully exit and don't apply the transformation as I am not sure with what I am dealing with.
 
 ```c++
-    if (report_gsfailure->referrers().size() != 1) {
-      // We bail out if we don't have a single referrer as the only
-      // expected referrer is supposed to be __security_cookie_check.
-      // If there is more than one, we would rather bail out than take
-      // a chance at modifying the behavior of the PE image.
-      LOG(ERROR) << "Only a single referrer to " << kReportGsFailure
-                 << " is expected.";
-      return false;
-    }
+if (report_gsfailure->referrers().size() != 1) {
+  // We bail out if we don't have a single referrer as the only
+  // expected referrer is supposed to be __security_cookie_check.
+  // If there is more than one, we would rather bail out than take
+  // a chance at modifying the behavior of the PE image.
+  LOG(ERROR) << "Only a single referrer to " << kReportGsFailure
+              << " is expected.";
+  return false;
+}
 ```
 
 At this point, I create a new Block that has only a single instruction designed to trigger a fault every time; to do so I can even use the basic Intel assembler integrated in syzygy. After this, I place this new Block inside the `.text` section the image (tracked by the BlockGraph as mentioned earlier).
 
 ```c++
-    BlockGraph::Section* section_text = block_graph->FindOrAddSection(
-        pe::kCodeSectionName, pe::kCodeCharacteristics);
-    
-    // All of the below is needed to build the instrumentation via the assembler.
-    BasicBlockSubGraph bbsg;
-    BasicBlockSubGraph::BlockDescription* block_desc = bbsg.AddBlockDescription(
-        kSyzygyReportGsFailure, nullptr, BlockGraph::CODE_BLOCK,
-        section_text->id(), 1, 0);
-    
-    BasicCodeBlock* bb = bbsg.AddBasicCodeBlock(kSyzygyReportGsFailure);
-    block_desc->basic_block_order.pushf_back(bb);
-    BasicBlockAssembler assm(bb->instructions().begin(), &bb->instructions());
-    assm.mov(Operand(Displacement(kInvalidUserAddress)), assm::eax);
-    
-    // Condense into a block.
-    BlockBuilder block_builder(block_graph);
-    if (!block_builder.Merge(&bbsg)) {
-      LOG(ERROR) << "Failed to build " << kSyzygyReportGsFailure << " block.";
-      return false;
-    }
-    
-    DCHECK_EQ(1u, block_builder.new_blocks().size());
+BlockGraph::Section* section_text = block_graph->FindOrAddSection(
+    pe::kCodeSectionName, pe::kCodeCharacteristics);
+
+// All of the below is needed to build the instrumentation via the assembler.
+BasicBlockSubGraph bbsg;
+BasicBlockSubGraph::BlockDescription* block_desc = bbsg.AddBlockDescription(
+    kSyzygyReportGsFailure, nullptr, BlockGraph::CODE_BLOCK,
+    section_text->id(), 1, 0);
+
+BasicCodeBlock* bb = bbsg.AddBasicCodeBlock(kSyzygyReportGsFailure);
+block_desc->basic_block_order.pushf_back(bb);
+BasicBlockAssembler assm(bb->instructions().begin(), &bb->instructions());
+assm.mov(Operand(Displacement(kInvalidUserAddress)), assm::eax);
+
+// Condense into a block.
+BlockBuilder block_builder(block_graph);
+if (!block_builder.Merge(&bbsg)) {
+  LOG(ERROR) << "Failed to build " << kSyzygyReportGsFailure << " block.";
+  return false;
+}
+
+DCHECK_EQ(1u, block_builder.new_blocks().size());
 ```
 
 Finally, I update all the referrers to point to our new Block, and remove the `__report_gsfailure` Block as it is effectively now dead-code:
 
 ```c++
-    // Transfer the referrers to the new block, and delete the old one.
-    BlockGraph::Block* syzygy_report_gsfailure =
-        block_builder.new_blocks().front();
-    report_gsfailure->TransferReferrers(
-        0, syzygy_report_gsfailure,
-        BlockGraph::Block::kTransferInternalReferences);
-    
-    report_gsfailure->RemoveAllReferences();
-    if (!block_graph->RemoveBlock(report_gsfailure)) {
-      LOG(ERROR) << "Removing " << kReportGsFailure << " failed.";
-      return false;
-    }
+// Transfer the referrers to the new block, and delete the old one.
+BlockGraph::Block* syzygy_report_gsfailure =
+    block_builder.new_blocks().front();
+report_gsfailure->TransferReferrers(
+    0, syzygy_report_gsfailure,
+    BlockGraph::Block::kTransferInternalReferences);
+
+report_gsfailure->RemoveAllReferences();
+if (!block_graph->RemoveBlock(report_gsfailure)) {
+  LOG(ERROR) << "Removing " << kReportGsFailure << " failed.";
+  return false;
+}
 ```
 
 Here is what it looks like after our transformation:
 
 ```text
-    ; void __fastcall __security_check_cookie(unsigned int cookie)
-    @__security_check_cookie@4 proc near
-    cookie = ecx
-                    cmp     cookie, ___security_cookie
-                    repne jnz short failure
-                    repne retn
-    failure:
-                    repne jmp loc_426EE6 <- our new __report_gsfailure block
-    
-    loc_426EE6:
-                    mov     ds:0DEADBEEFh, eax
+; void __fastcall __security_check_cookie(unsigned int cookie)
+@__security_check_cookie@4 proc near
+cookie = ecx
+                cmp     cookie, ___security_cookie
+                repne jnz short failure
+                repne retn
+failure:
+                repne jmp loc_426EE6 <- our new __report_gsfailure block
+
+loc_426EE6:
+                mov     ds:0DEADBEEFh, eax
 ```
 
 ### One does not simply binary rewrite

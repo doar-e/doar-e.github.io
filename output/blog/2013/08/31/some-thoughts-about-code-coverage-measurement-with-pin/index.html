@@ -176,9 +176,9 @@ gtag('config', 'G-MRPDMQ259W');
 <li>doesn't instrument Windows APIs. We don't want to waste our CPU time being in the native libraries of the system ; it's part of our little "tricks" to improve the speed of our Pintool.</li>
 </ul>
 <p>I think it's time to code now: first, let's define several data structures in order to store the information we need:</p>
-<div class="highlight"><pre><span></span><code>    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">MODULE_BLACKLIST_T</span><span class="p">;</span>
-    <span class="k">typedef</span> <span class="n">MODULE_BLACKLIST_T</span> <span class="n">MODULE_LIST_T</span><span class="p">;</span>
-    <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">UINT32</span><span class="o">&gt;</span> <span class="n">BASIC_BLOCKS_INFO_T</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">MODULE_BLACKLIST_T</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="n">MODULE_BLACKLIST_T</span> <span class="n">MODULE_LIST_T</span><span class="p">;</span>
+<span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">UINT32</span><span class="o">&gt;</span> <span class="n">BASIC_BLOCKS_INFO_T</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -187,29 +187,29 @@ gtag('config', 'G-MRPDMQ259W');
 <ul>
 <li>one to know whenever a module is loaded in order to store its base/end address, one for the traces. You can set the callbacks using <em>IMG_AddInstrumentationFunction</em> and <em>TRACE_AddInstrumentationFunction</em>.</li>
 </ul>
-<div class="highlight"><pre><span></span><code>        <span class="n">VOID</span> <span class="nf">image_instrumentation</span><span class="p">(</span><span class="n">IMG</span> <span class="n">img</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span>
-        <span class="p">{</span>
-            <span class="n">ADDRINT</span> <span class="n">module_low_limit</span> <span class="o">=</span> <span class="n">IMG_LowAddress</span><span class="p">(</span><span class="n">img</span><span class="p">),</span> <span class="n">module_high_limit</span> <span class="o">=</span> <span class="n">IMG_HighAddress</span><span class="p">(</span><span class="n">img</span><span class="p">);</span> 
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">image_instrumentation</span><span class="p">(</span><span class="n">IMG</span> <span class="n">img</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">ADDRINT</span> <span class="n">module_low_limit</span> <span class="o">=</span> <span class="n">IMG_LowAddress</span><span class="p">(</span><span class="n">img</span><span class="p">),</span> <span class="n">module_high_limit</span> <span class="o">=</span> <span class="n">IMG_HighAddress</span><span class="p">(</span><span class="n">img</span><span class="p">);</span> 
 
-            <span class="k">if</span><span class="p">(</span><span class="n">IMG_IsMainExecutable</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
-                <span class="k">return</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">IMG_IsMainExecutable</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
+        <span class="k">return</span><span class="p">;</span>
 
-            <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">image_path</span> <span class="o">=</span> <span class="n">IMG_Name</span><span class="p">(</span><span class="n">img</span><span class="p">);</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">image_path</span> <span class="o">=</span> <span class="n">IMG_Name</span><span class="p">(</span><span class="n">img</span><span class="p">);</span>
 
-            <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">module_info</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-                <span class="n">image_path</span><span class="p">,</span>
-                <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-                    <span class="n">module_low_limit</span><span class="p">,</span>
-                    <span class="n">module_high_limit</span>
-                <span class="p">)</span>
-            <span class="p">);</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">module_info</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+        <span class="n">image_path</span><span class="p">,</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+            <span class="n">module_low_limit</span><span class="p">,</span>
+            <span class="n">module_high_limit</span>
+        <span class="p">)</span>
+    <span class="p">);</span>
 
-            <span class="n">module_list</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
-            <span class="n">module_counter</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">module_list</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
+    <span class="n">module_counter</span><span class="o">++</span><span class="p">;</span>
 
-            <span class="k">if</span><span class="p">(</span><span class="n">is_module_should_be_blacklisted</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
-                <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
-        <span class="p">}</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">is_module_should_be_blacklisted</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
+        <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -217,86 +217,86 @@ gtag('config', 'G-MRPDMQ259W');
 <li>one to be able to insert calls before every basic blocks.</li>
 </ul>
 <p>The thing is: Pin doesn't have a <em>BBL_AddInstrumentationFunction</em>, so we have to instrument the traces, iterate through them to get the basic block. It's done really easily with <em>TRACE_BblHead</em>, <em>BBL_Valid</em> and <em>BBL_Next</em> functions. Of course, if the basic block address is in a blacklisted range address, we don't insert a call to our analysis function.</p>
-<div class="highlight"><pre><span></span><code>    <span class="n">VOID</span> <span class="nf">trace_instrumentation</span><span class="p">(</span><span class="n">TRACE</span> <span class="n">trace</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span><span class="n">v</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">trace_instrumentation</span><span class="p">(</span><span class="n">TRACE</span> <span class="n">trace</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span><span class="n">v</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">BBL</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">TRACE_BblHead</span><span class="p">(</span><span class="n">trace</span><span class="p">);</span> <span class="n">BBL_Valid</span><span class="p">(</span><span class="n">bbl</span><span class="p">);</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">BBL_Next</span><span class="p">(</span><span class="n">bbl</span><span class="p">))</span>
     <span class="p">{</span>
-        <span class="k">for</span><span class="p">(</span><span class="n">BBL</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">TRACE_BblHead</span><span class="p">(</span><span class="n">trace</span><span class="p">);</span> <span class="n">BBL_Valid</span><span class="p">(</span><span class="n">bbl</span><span class="p">);</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">BBL_Next</span><span class="p">(</span><span class="n">bbl</span><span class="p">))</span>
-        <span class="p">{</span>
-            <span class="k">if</span><span class="p">(</span><span class="n">is_address_in_blacklisted_modules</span><span class="p">(</span><span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">)))</span>
-                <span class="k">continue</span><span class="p">;</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">is_address_in_blacklisted_modules</span><span class="p">(</span><span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">)))</span>
+            <span class="k">continue</span><span class="p">;</span>
 
-            <span class="n">BBL_InsertCall</span><span class="p">(</span>
-                <span class="n">bbl</span><span class="p">,</span>
-                <span class="n">IPOINT_ANYWHERE</span><span class="p">,</span>
-                <span class="p">(</span><span class="n">AFUNPTR</span><span class="p">)</span><span class="n">handle_basic_block</span><span class="p">,</span>
-                <span class="n">IARG_FAST_ANALYSIS_CALL</span><span class="p">,</span>
+        <span class="n">BBL_InsertCall</span><span class="p">(</span>
+            <span class="n">bbl</span><span class="p">,</span>
+            <span class="n">IPOINT_ANYWHERE</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">AFUNPTR</span><span class="p">)</span><span class="n">handle_basic_block</span><span class="p">,</span>
+            <span class="n">IARG_FAST_ANALYSIS_CALL</span><span class="p">,</span>
 
-                <span class="n">IARG_UINT32</span><span class="p">,</span>
-                <span class="n">BBL_NumIns</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
+            <span class="n">IARG_UINT32</span><span class="p">,</span>
+            <span class="n">BBL_NumIns</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
 
-                <span class="n">IARG_ADDRINT</span><span class="p">,</span>
-                <span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
+            <span class="n">IARG_ADDRINT</span><span class="p">,</span>
+            <span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
 
-                <span class="n">IARG_END</span>
-            <span class="p">);</span>
-        <span class="p">}</span>
+            <span class="n">IARG_END</span>
+        <span class="p">);</span>
     <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function <em>handle_basic_block</em> ; we also use the fast linkage (it basically means the function will be called using the <a href="http://msdn.microsoft.com/en-us/library/6xa169sk.aspx">__fastcall</a> calling convention).</p>
 <p>The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.</p>
-<div class="highlight"><pre><span></span><code>    <span class="n">VOID</span> <span class="n">PIN_FAST_ANALYSIS_CALL</span> <span class="nf">handle_basic_block</span><span class="p">(</span><span class="n">UINT32</span> <span class="n">number_instruction_in_bb</span><span class="p">,</span> <span class="n">ADDRINT</span> <span class="n">address_bb</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="n">basic_blocks_info</span><span class="p">[</span><span class="n">address_bb</span><span class="p">]</span> <span class="o">=</span> <span class="n">number_instruction_in_bb</span><span class="p">;</span>
-    <span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="n">PIN_FAST_ANALYSIS_CALL</span> <span class="nf">handle_basic_block</span><span class="p">(</span><span class="n">UINT32</span> <span class="n">number_instruction_in_bb</span><span class="p">,</span> <span class="n">ADDRINT</span> <span class="n">address_bb</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">basic_blocks_info</span><span class="p">[</span><span class="n">address_bb</span><span class="p">]</span> <span class="o">=</span> <span class="n">number_instruction_in_bb</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>Finally, just before the process ends we serialize our data in a simple JSON report thanks to <a href="http://www.digip.org/jansson/">jansson</a>. You may also want to use a binary serialization to have smaller report.</p>
-<div class="highlight"><pre><span></span><code>    <span class="n">VOID</span> <span class="nf">save_instrumentation_infos</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">save_instrumentation_infos</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="c1">/// basic_blocks_info section</span>
+    <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
+    <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_list</span> <span class="o">=</span> <span class="n">json_array</span><span class="p">();</span>
+    <span class="n">json_t</span> <span class="o">*</span><span class="n">bbl_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
+    <span class="c1">// unique_count field</span>
+    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span> <span class="s">&quot;unique_count&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
+    <span class="c1">// list field</span>
+    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span> <span class="s">&quot;list&quot;</span><span class="p">,</span> <span class="n">bbls_list</span><span class="p">);</span>
+    <span class="k">for</span><span class="p">(</span><span class="n">BASIC_BLOCKS_INFO_T</span><span class="o">::</span><span class="n">const_iterator</span> <span class="n">it</span> <span class="o">=</span> <span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span> <span class="o">!=</span> <span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">it</span><span class="p">)</span>
     <span class="p">{</span>
-        <span class="c1">/// basic_blocks_info section</span>
-        <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-        <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_list</span> <span class="o">=</span> <span class="n">json_array</span><span class="p">();</span>
-        <span class="n">json_t</span> <span class="o">*</span><span class="n">bbl_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-        <span class="c1">// unique_count field</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span> <span class="s">&quot;unique_count&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
-        <span class="c1">// list field</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span> <span class="s">&quot;list&quot;</span><span class="p">,</span> <span class="n">bbls_list</span><span class="p">);</span>
-        <span class="k">for</span><span class="p">(</span><span class="n">BASIC_BLOCKS_INFO_T</span><span class="o">::</span><span class="n">const_iterator</span> <span class="n">it</span> <span class="o">=</span> <span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span> <span class="o">!=</span> <span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">it</span><span class="p">)</span>
-        <span class="p">{</span>
-            <span class="n">bbl_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-            <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span> <span class="s">&quot;address&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">));</span>
-            <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span> <span class="s">&quot;nbins&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">));</span>
-            <span class="n">json_array_append_new</span><span class="p">(</span><span class="n">bbls_list</span><span class="p">,</span> <span class="n">bbl_info</span><span class="p">);</span>
-        <span class="p">}</span>
-
-        <span class="cm">/* .. same thing for blacklisted modules, and modules .. */</span>
-        <span class="c1">/// Building the tree</span>
-        <span class="n">json_t</span> <span class="o">*</span><span class="n">root</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;basic_blocks_info&quot;</span><span class="p">,</span> <span class="n">bbls_info</span><span class="p">);</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;blacklisted_modules&quot;</span><span class="p">,</span> <span class="n">blacklisted_modules</span><span class="p">);</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;modules&quot;</span><span class="p">,</span> <span class="n">modules</span><span class="p">);</span>
-
-        <span class="c1">/// Writing the report</span>
-        <span class="kt">FILE</span><span class="o">*</span> <span class="n">f</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">KnobOutputPath</span><span class="p">.</span><span class="n">Value</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;w&quot;</span><span class="p">);</span>
-        <span class="n">json_dumpf</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">JSON_COMPACT</span> <span class="o">|</span> <span class="n">JSON_ENSURE_ASCII</span><span class="p">);</span>
-        <span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+        <span class="n">bbl_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
+        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span> <span class="s">&quot;address&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">));</span>
+        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span> <span class="s">&quot;nbins&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">));</span>
+        <span class="n">json_array_append_new</span><span class="p">(</span><span class="n">bbls_list</span><span class="p">,</span> <span class="n">bbl_info</span><span class="p">);</span>
     <span class="p">}</span>
+
+    <span class="cm">/* .. same thing for blacklisted modules, and modules .. */</span>
+    <span class="c1">/// Building the tree</span>
+    <span class="n">json_t</span> <span class="o">*</span><span class="n">root</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
+    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;basic_blocks_info&quot;</span><span class="p">,</span> <span class="n">bbls_info</span><span class="p">);</span>
+    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;blacklisted_modules&quot;</span><span class="p">,</span> <span class="n">blacklisted_modules</span><span class="p">);</span>
+    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;modules&quot;</span><span class="p">,</span> <span class="n">modules</span><span class="p">);</span>
+
+    <span class="c1">/// Writing the report</span>
+    <span class="kt">FILE</span><span class="o">*</span> <span class="n">f</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">KnobOutputPath</span><span class="p">.</span><span class="n">Value</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;w&quot;</span><span class="p">);</span>
+    <span class="n">json_dumpf</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">JSON_COMPACT</span> <span class="o">|</span> <span class="n">JSON_ENSURE_ASCII</span><span class="p">);</span>
+    <span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
 <p>If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the <a href="http://www.nynaeve.net/?p=131">SystemCallStub</a> (you know the "JMP FAR"). To do that, we simply use the <em>__readfsdword</em> intrinsic in order to read the field <a href="http://msdn.moonsols.com/win7rtm_x64/TEB32.html">TEB32.WOW32Reserved</a> that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.</p>
-<div class="highlight"><pre><span></span><code>    <span class="n">ADDRINT</span> <span class="n">wow64stub</span> <span class="o">=</span> <span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">);</span>
-    <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="n">ADDRINT</span> <span class="n">wow64stub</span> <span class="o">=</span> <span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">);</span>
+<span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="s">&quot;wow64stub&quot;</span><span class="p">),</span>
         <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-            <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="s">&quot;wow64stub&quot;</span><span class="p">),</span>
-            <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-                <span class="n">wow64stub</span><span class="p">,</span>
-                <span class="n">wow64stub</span>
-            <span class="p">)</span>
+            <span class="n">wow64stub</span><span class="p">,</span>
+            <span class="n">wow64stub</span>
         <span class="p">)</span>
-    <span class="p">);</span>
+    <span class="p">)</span>
+<span class="p">);</span>
 </code></pre></div>
 
 
@@ -305,40 +305,40 @@ gtag('config', 'G-MRPDMQ259W');
 <p>I agree that's neat to have a JSON report with the basic blocks executed by our program, but it's not really readable for a human. We can use an <a href="https://github.com/0vercl0k/stuffz/tree/master/pin-code-coverage-measure">IDAPython</a> script that will parse our report, and will color all the instructions executed. It should be considerably better to see the execution path used by your program.</p>
 <p>To color an instruction you have to use the functions: <em>idaapi.set_item_color</em> and <em>idaapi.del_item_color</em> (if you want to reset the color). You can also use <em>idc.GetItemSize</em> to know the size of an instruction, like that you can iterate for a specific number of instruction (remember, we stored that in our JSON report!).</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># idapy_color_path_from_json.py</span>
-    <span class="kn">import</span> <span class="nn">json</span>
-    <span class="kn">import</span> <span class="nn">idc</span>
-    <span class="kn">import</span> <span class="nn">idaapi</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">idc</span>
+<span class="kn">import</span> <span class="nn">idaapi</span>
 
-    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
-        <span class="n">colors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span>
-                <span class="s1">&#39;black&#39;</span> <span class="p">:</span> <span class="mh">0x000000</span><span class="p">,</span>
-                <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="mh">0x0000FF</span><span class="p">,</span>
-                <span class="s1">&#39;blue&#39;</span> <span class="p">:</span> <span class="mh">0xFF0000</span><span class="p">,</span>
-                <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="mh">0x00FF00</span>
-            <span class="p">}</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span><span class="p">):</span>
-            <span class="n">idaapi</span><span class="o">.</span><span class="n">del_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
-            <span class="n">idaapi</span><span class="o">.</span><span class="n">set_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">colors</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
-            <span class="n">ea</span> <span class="o">+=</span> <span class="n">idc</span><span class="o">.</span><span class="n">ItemSize</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;black&#39;</span> <span class="p">:</span> <span class="mh">0x000000</span><span class="p">,</span>
+            <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="mh">0x0000FF</span><span class="p">,</span>
+            <span class="s1">&#39;blue&#39;</span> <span class="p">:</span> <span class="mh">0xFF0000</span><span class="p">,</span>
+            <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="mh">0x00FF00</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span><span class="p">):</span>
+        <span class="n">idaapi</span><span class="o">.</span><span class="n">del_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
+        <span class="n">idaapi</span><span class="o">.</span><span class="n">set_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">colors</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
+        <span class="n">ea</span> <span class="o">+=</span> <span class="n">idc</span><span class="o">.</span><span class="n">ItemSize</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">idc</span><span class="o">.</span><span class="n">AskFile</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">,</span> <span class="s1">&#39;Where is the JSON report you want to load ?&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">idc</span><span class="o">.</span><span class="n">AskStr</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;Which color do you want ?&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]:</span>
-            <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">color</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">],</span> <span class="n">c</span><span class="p">)</span>
-                <span class="nb">print</span> <span class="s1">&#39;ok&#39;</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-                <span class="nb">print</span> <span class="s1">&#39;fail: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;done&#39;</span>    
-        <span class="k">return</span> <span class="mi">1</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">idc</span><span class="o">.</span><span class="n">AskFile</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">,</span> <span class="s1">&#39;Where is the JSON report you want to load ?&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">idc</span><span class="o">.</span><span class="n">AskStr</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;Which color do you want ?&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]:</span>
+        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">color</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">],</span> <span class="n">c</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="s1">&#39;ok&#39;</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;fail: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;done&#39;</span>    
+    <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-        <span class="n">main</span><span class="p">()</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
 
@@ -360,63 +360,63 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 </ul>
 <p>Cool for us because that's pretty easy to implement via IDAPython, here is the script:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py</span>
-    <span class="kn">import</span> <span class="nn">json</span>
-    <span class="kn">import</span> <span class="nn">idc</span>
-    <span class="kn">import</span> <span class="nn">idaapi</span>
-    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">idc</span>
+<span class="kn">import</span> <span class="nn">idaapi</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
-    <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
-        <span class="n">colors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span>
-                <span class="s1">&#39;black&#39;</span> <span class="p">:</span> <span class="mh">0x000000</span><span class="p">,</span>
-                <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="mh">0x0000FF</span><span class="p">,</span>
-                <span class="s1">&#39;blue&#39;</span> <span class="p">:</span> <span class="mh">0xFF0000</span><span class="p">,</span>
-                <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="mh">0x00FF00</span>
-            <span class="p">}</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span><span class="p">):</span>
-            <span class="n">idaapi</span><span class="o">.</span><span class="n">del_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
-            <span class="n">idaapi</span><span class="o">.</span><span class="n">set_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">colors</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
-            <span class="n">ea</span> <span class="o">+=</span> <span class="n">idc</span><span class="o">.</span><span class="n">ItemSize</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;black&#39;</span> <span class="p">:</span> <span class="mh">0x000000</span><span class="p">,</span>
+            <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="mh">0x0000FF</span><span class="p">,</span>
+            <span class="s1">&#39;blue&#39;</span> <span class="p">:</span> <span class="mh">0xFF0000</span><span class="p">,</span>
+            <span class="s1">&#39;green&#39;</span> <span class="p">:</span> <span class="mh">0x00FF00</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbins</span><span class="p">):</span>
+        <span class="n">idaapi</span><span class="o">.</span><span class="n">del_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
+        <span class="n">idaapi</span><span class="o">.</span><span class="n">set_item_color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">colors</span><span class="p">[</span><span class="n">c</span><span class="p">])</span>
+        <span class="n">ea</span> <span class="o">+=</span> <span class="n">idc</span><span class="o">.</span><span class="n">ItemSize</span><span class="p">(</span><span class="n">ea</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">idc</span><span class="o">.</span><span class="n">AskFile</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">,</span> <span class="s1">&#39;Where is the first JSON report you want to load ?&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
-        <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="n">l1</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">idc</span><span class="o">.</span><span class="n">AskFile</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">,</span> <span class="s1">&#39;Where is the first JSON report you want to load ?&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">l1</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]</span>
 
-        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">idc</span><span class="o">.</span><span class="n">AskFile</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">,</span> <span class="s1">&#39;Where is the second JSON report you want to load ?&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
-        <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="n">l2</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">idc</span><span class="o">.</span><span class="n">AskStr</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;Which color do you want ?&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">idc</span><span class="o">.</span><span class="n">AskFile</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;*.json&#39;</span><span class="p">,</span> <span class="s1">&#39;Where is the second JSON report you want to load ?&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">l2</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s1">&#39;basic_blocks_info&#39;</span><span class="p">][</span><span class="s1">&#39;list&#39;</span><span class="p">]</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">idc</span><span class="o">.</span><span class="n">AskStr</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;Which color do you want ?&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
-        <span class="n">addresses_l1</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">l1</span><span class="p">)</span>    
-        <span class="n">addresses_l2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">l2</span><span class="p">)</span>
-        <span class="n">dic_l2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span> <span class="n">k</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">l2</span><span class="p">)</span>
+    <span class="n">addresses_l1</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">l1</span><span class="p">)</span>    
+    <span class="n">addresses_l2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">l2</span><span class="p">)</span>
+    <span class="n">dic_l2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">[</span><span class="s1">&#39;address&#39;</span><span class="p">],</span> <span class="n">k</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">l2</span><span class="p">)</span>
 
-        <span class="n">diff</span> <span class="o">=</span> <span class="n">addresses_l2</span> <span class="o">-</span> <span class="n">addresses_l1</span>
-        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the first execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the second execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">)</span>
-        <span class="nb">print</span> <span class="s1">&#39;Differences between the two executions: </span><span class="si">%d</span><span class="s1"> bbls&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">addresses_l2</span> <span class="o">-</span> <span class="n">addresses_l1</span>
+    <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the first execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> bbls in the second execution&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s1">&#39;Differences between the two executions: </span><span class="si">%d</span><span class="s1"> bbls&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
 
-        <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">))</span>
+    <span class="k">assert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">addresses_l1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses_l2</span><span class="p">))</span>
 
-        <span class="n">funcs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">color</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dic_l2</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c</span><span class="p">)</span>
-                <span class="n">funcs</span><span class="p">[</span><span class="n">get_func</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">startEA</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-                <span class="nb">print</span> <span class="s1">&#39;fail </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="n">funcs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">color</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dic_l2</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c</span><span class="p">)</span>
+            <span class="n">funcs</span><span class="p">[</span><span class="n">get_func</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">startEA</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;fail </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
-        <span class="nb">print</span> <span class="s1">&#39;A total of </span><span class="si">%d</span><span class="s1"> different sub:&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">funcs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">s</span>
+    <span class="nb">print</span> <span class="s1">&#39;A total of </span><span class="si">%d</span><span class="s1"> different sub:&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">funcs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%x</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">s</span>
 
-        <span class="nb">print</span> <span class="s1">&#39;done&#39;</span>    
-        <span class="k">return</span> <span class="mi">1</span>
+    <span class="nb">print</span> <span class="s1">&#39;done&#39;</span>    
+    <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-        <span class="n">main</span><span class="p">()</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
 </code></pre></div>
 
 
@@ -426,31 +426,31 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 <p>These tests have been done on my Windows 7 x64 laptop with Wow64 processes (4GB RAM, i7 Q720 @ 1.6GHz). All the modules living in <em>C:\Windows</em> have been blacklisted. Also, note those tests are not really accurate, I didn't launch each thing thousand times, it's just here to give you a vague idea.</p>
 <h2 id="portable-python-2751">Portable Python 2.7.5.1</h2>
 <h3 id="without-instrumentation">Without instrumentation</h3>
-<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process python.exe &quot;-c &#39;quit()&#39;&quot; -Wait}
+<div class="highlight"><pre><span></span><code>PS D:\&gt; Measure-Command {start-process python.exe &quot;-c &#39;quit()&#39;&quot; -Wait}
 
-    TotalMilliseconds : 73,1953
+TotalMilliseconds : 73,1953
 </code></pre></div>
 
 
 <h3 id="with-instrumentation-and-json-report-serialization">With instrumentation and JSON report serialization</h3>
-<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &#39;quit()&#39;&quot; -Wait} 
+<div class="highlight"><pre><span></span><code>PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- python.exe -c &#39;quit()&#39;&quot; -Wait} 
 
-    TotalMilliseconds : 13122,4683
+TotalMilliseconds : 13122,4683
 </code></pre></div>
 
 
 <h2 id="vlc-208">VLC 2.0.8</h2>
 <h3 id="without-instrumentation_1">Without instrumentation</h3>
-<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process vlc.exe &quot;--play-and-exit hu&quot; -Wait}
+<div class="highlight"><pre><span></span><code>PS D:\&gt; Measure-Command {start-process vlc.exe &quot;--play-and-exit hu&quot; -Wait}
 
-    TotalMilliseconds : 369,4677
+TotalMilliseconds : 369,4677
 </code></pre></div>
 
 
 <h3 id="with-instrumentation-and-json-report-serialization_1">With instrumentation and JSON report serialization</h3>
-<div class="highlight"><pre><span></span><code>    PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&quot; -Wait}
+<div class="highlight"><pre><span></span><code>PS D:\&gt; Measure-Command {start-process pin.exe &quot;-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu&quot; -Wait}
 
-    TotalMilliseconds : 60109,204
+TotalMilliseconds : 60109,204
 </code></pre></div>
 
 

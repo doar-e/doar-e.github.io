@@ -65,34 +65,34 @@ When you are writing a pass, you write a class that subclasses a `*Pass` parent 
 For today's use-case I have chosen to subclass `BasicBlockPass` because our analysis doesn't need anything else than a `BasicBlock` to work. This is the case because we are mainly interested to capture certain arguments passed to certain function calls. Here is what looks like a function call in the [LLVM IR](http://llvm.org/docs/LangRef.html) world:
 
 ```text
-    %retval = call i32 @test(i32 %argc)
-    call i32 (i8*, ...)* @printf(i8* %msg, i32 12, i8 42)   ; yields i32
-    %X = tail call i32 @foo()                               ; yields i32
-    %Y = tail call fastcc i32 @foo()                        ; yields i32
-    call void %foo(i8 97 signext)
-    
-    %struct.A = type { i32, i8 }
-    %r = call %struct.A @foo()             ; yields { i32, i8 }
-    %gr = extractvalue %struct.A %r, 0     ; yields i32
-    %gr1 = extractvalue %struct.A %r, 1    ; yields i8
-    %Z = call void @foo() noreturn         ; indicates that %foo never returns normally
-    %ZZ = call zeroext i32 @bar()          ; Return value is %zero extended
+%retval = call i32 @test(i32 %argc)
+call i32 (i8*, ...)* @printf(i8* %msg, i32 12, i8 42)   ; yields i32
+%X = tail call i32 @foo()                               ; yields i32
+%Y = tail call fastcc i32 @foo()                        ; yields i32
+call void %foo(i8 97 signext)
+
+%struct.A = type { i32, i8 }
+%r = call %struct.A @foo()             ; yields { i32, i8 }
+%gr = extractvalue %struct.A %r, 0     ; yields i32
+%gr1 = extractvalue %struct.A %r, 1    ; yields i8
+%Z = call void @foo() noreturn         ; indicates that %foo never returns normally
+%ZZ = call zeroext i32 @bar()          ; Return value is %zero extended
 ```
 
 Every time `AFLTokenCap::runOnBasicBlock` is called, the LLVM mid-end will call into our analysis pass (either statically linked into clang/opt or will dynamically load it) with a `BasicBlock` passed by reference. From there, we can iterate through the set of instructions contained in the basic block and find the [call](http://llvm.org/docs/LangRef.html#call-instruction) instructions. Every instructions subclass the top level [llvm::Instruction](http://llvm.org/docs/doxygen/html/classllvm_1_1Instruction.html) class - in order to filter you can use the `dyn_cast<T>` template function that works like the `dynamic_cast<T>` operator but does not rely on RTTI (and is more efficient - according to the [LLVM coding standards](http://llvm.org/docs/CodingStandards.html)). Used in conjunction with a [range-based for loop](http://en.cppreference.com/w/cpp/language/range-for) on the `BasicBlock` object you can iterate through all the instructions you want.
 
 ```c++
-    bool AFLTokenCap::runOnBasicBlock(BasicBlock &B) {
+bool AFLTokenCap::runOnBasicBlock(BasicBlock &B) {
+
+  for(auto &I_ : B) {
+
+    /* Handle calls to functions of interest */
+    if(CallInst *I = dyn_cast<CallInst>(&I_)) {
     
-      for(auto &I_ : B) {
-    
-        /* Handle calls to functions of interest */
-        if(CallInst *I = dyn_cast<CallInst>(&I_)) {
-        
-          // [...]
-        }
-      }
+      // [...]
     }
+  }
+}
 ```
 
 Once we have found a [llvm::CallInst](http://llvm.org/docs/doxygen/html/classllvm_1_1CallInst.html) instance, we need to:
@@ -111,11 +111,11 @@ In order to detect hard-coded strings in the arguments passed to function calls,
 The end goal, is to find `llvm::ConstantDataArray`s and to retrieve their raw values - those will be the hard-coded strings we are looking for.
 
 ```text
-    /home/over/workz/afl-2.35b/afl-clang-fast -c -W -Wall -O3 -funroll-loops   -fPIC -o png.pic.o png.c
-    [...]
-    afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
-    [...]
-    [+] Call to memcmp with constant "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3" found in png.c/png_icc_check_header
+/home/over/workz/afl-2.35b/afl-clang-fast -c -W -Wall -O3 -funroll-loops   -fPIC -o png.pic.o png.c
+[...]
+afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
+[...]
+[+] Call to memcmp with constant "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3" found in png.c/png_icc_check_header
 ```
 
 At this point, the pass basically does what the token capture library is able to do.
@@ -126,50 +126,50 @@ After playing around with it on libpng though, I quickly was wondering why the p
 
 ```text
 // png.dict
-    section_IDAT="IDAT"
-    section_IEND="IEND"
-    section_IHDR="IHDR"
-    section_PLTE="PLTE"
-    section_bKGD="bKGD"
-    section_cHRM="cHRM"
-    section_fRAc="fRAc"
-    section_gAMA="gAMA"
-    section_gIFg="gIFg"
-    section_gIFt="gIFt"
-    section_gIFx="gIFx"
-    section_hIST="hIST"
-    section_iCCP="iCCP"
-    section_iTXt="iTXt"
-    ...
+section_IDAT="IDAT"
+section_IEND="IEND"
+section_IHDR="IHDR"
+section_PLTE="PLTE"
+section_bKGD="bKGD"
+section_cHRM="cHRM"
+section_fRAc="fRAc"
+section_gAMA="gAMA"
+section_gIFg="gIFg"
+section_gIFt="gIFt"
+section_gIFx="gIFx"
+section_hIST="hIST"
+section_iCCP="iCCP"
+section_iTXt="iTXt"
+...
 ```
 
 Some of those can be found in the function [png_push_read_chunk](https://github.com/glennrp/libpng/blob/libpng16/pngpread.c#L226) in the file [pngpread.c](https://github.com/glennrp/libpng/blob/libpng16/pngpread.c) for example:
 
 ```c 
 //png_push_read_chunk
-    #define png_IHDR PNG_U32( 73,  72,  68,  82)
-    // ...
-    if (chunk_name == png_IHDR)
-    {
-      if (png_ptr->push_length != 13)
-         png_error(png_ptr, "Invalid IHDR length");
-    
-      PNG_PUSH_SAVE_BUFFER_IF_FULL
-      png_handle_IHDR(png_ptr, info_ptr, png_ptr->push_length);
-    }
-    else if (chunk_name == png_IEND)
-    {
-      PNG_PUSH_SAVE_BUFFER_IF_FULL
-      png_handle_IEND(png_ptr, info_ptr, png_ptr->push_length);
-    
-      png_ptr->process_mode = PNG_READ_DONE_MODE;
-      png_push_have_end(png_ptr, info_ptr);
-    }
-    else if (chunk_name == png_PLTE)
-    {
-      PNG_PUSH_SAVE_BUFFER_IF_FULL
-      png_handle_PLTE(png_ptr, info_ptr, png_ptr->push_length);
-    }
+#define png_IHDR PNG_U32( 73,  72,  68,  82)
+// ...
+if (chunk_name == png_IHDR)
+{
+  if (png_ptr->push_length != 13)
+      png_error(png_ptr, "Invalid IHDR length");
+
+  PNG_PUSH_SAVE_BUFFER_IF_FULL
+  png_handle_IHDR(png_ptr, info_ptr, png_ptr->push_length);
+}
+else if (chunk_name == png_IEND)
+{
+  PNG_PUSH_SAVE_BUFFER_IF_FULL
+  png_handle_IEND(png_ptr, info_ptr, png_ptr->push_length);
+
+  png_ptr->process_mode = PNG_READ_DONE_MODE;
+  png_push_have_end(png_ptr, info_ptr);
+}
+else if (chunk_name == png_PLTE)
+{
+  PNG_PUSH_SAVE_BUFFER_IF_FULL
+  png_handle_PLTE(png_ptr, info_ptr, png_ptr->push_length);
+}
 ```
 
 In order to also grab those guys, I have decided to add the support for compare instructions with integer immediate (in one of the operand). Again, thanks to LLVM this is really easy to pull that off: we just need to find the [llvm::ICmpInst](http://llvm.org/docs/doxygen/html/classllvm_1_1ICmpInst.html) instructions. The only thing to keep in mind is  false positives. In order to lower the false positives rate, I have chosen to consider an integer immediate as a token only if only it is fully ASCII (like the `libpng` tokens above)
@@ -177,14 +177,14 @@ In order to also grab those guys, I have decided to add the support for compare 
 We can even push it a bit more, and handle switch statements via the same strategy. The only additional step is to retrieve every `cases` from in the `switch` statement: [llvm::SwitchInst::cases](http://llvm.org/docs/doxygen/html/classllvm_1_1SwitchInst.html#a8e7005748409a956c8875e259716559b).
 
 ```c++
-    /* Handle switch/case with integer immediates */
-    else if(SwitchInst *SI = dyn_cast<SwitchInst>(&I_)) {
-      for(auto &CIT : SI->cases()) {
-    
-        ConstantInt *CI = CIT.getCaseValue();
-        dump_integer_token(CI);
-      }
-    }
+/* Handle switch/case with integer immediates */
+else if(SwitchInst *SI = dyn_cast<SwitchInst>(&I_)) {
+  for(auto &CIT : SI->cases()) {
+
+    ConstantInt *CI = CIT.getCaseValue();
+    dump_integer_token(CI);
+  }
+}
 ```
 
 ## Limitations
@@ -194,13 +194,13 @@ The main limitation is that as you are supposed to run the pass as part of the c
 A partial solution (as in, it reduces the noise, but does not remove it entirely) I have implemented is just to not process any functions called `main`. Most of the cases I have seen (the set of samples is pretty small I won't lie >:]), this argument parsing is made in the `main` function and it is very easy to not process it by blacklisting it as you can see below:
 
 ```c++
-    bool AFLTokenCap::runOnBasicBlock(BasicBlock &B) {
-    // [...]
-      Function *F = B.getParent();
-      m_FunctionName = F->hasName() ? F->getName().data() : "unknown";
-    
-      if(strcmp(m_FunctionName, "main") == 0)
-        return false;
+bool AFLTokenCap::runOnBasicBlock(BasicBlock &B) {
+// [...]
+  Function *F = B.getParent();
+  m_FunctionName = F->hasName() ? F->getName().data() : "unknown";
+
+  if(strcmp(m_FunctionName, "main") == 0)
+    return false;
 ```
 
 Another thing I wanted to experiment on, but did not, was to provide a regular expression like string (think "test/*") and not process every files/path that are matching it. You could easily blacklist a whole directory of tests with this.
@@ -210,345 +210,347 @@ Another thing I wanted to experiment on, but did not, was to provide a regular e
 I have not spent much time trying it out on a lot of code-bases (feel free to send me your feedbacks if you run it on yours though!), but here are some example results with various degree of success.. or not. Starting with `libpng`:
 
 ```text
-    over@bubuntu:~/workz/lpng1625$ AFL_TOKEN_FILE=/tmp/png.dict make
-    cp scripts/pnglibconf.h.prebuilt pnglibconf.h
-    /home/over/workz/afl-2.35b/afl-clang-fast -c -I../zlib  -W -Wall -O3 -funroll-loops   -o png.o png.c
-    afl-clang-fast 2.35b by <lszekeres@google.com>
-    afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
-    afl-llvm-pass 2.35b by <lszekeres@google.com>
-    [+] Instrumented 945 locations (non-hardened mode, ratio 100%).
-    [+] Found alphanum constant "acsp" in png.c/png_icc_check_header
-    [+] Call to memcmp with constant "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3" found in png.c/png_icc_check_header
-    [+] Found alphanum constant "RGB " in png.c/png_icc_check_header
-    [+] Found alphanum constant "GRAY" in png.c/png_icc_check_header
-    [+] Found alphanum constant "scnr" in png.c/png_icc_check_header
-    [+] Found alphanum constant "mntr" in png.c/png_icc_check_header
-    [+] Found alphanum constant "prtr" in png.c/png_icc_check_header
-    [+] Found alphanum constant "spac" in png.c/png_icc_check_header
-    [+] Found alphanum constant "abst" in png.c/png_icc_check_header
-    [+] Found alphanum constant "link" in png.c/png_icc_check_header
-    [+] Found alphanum constant "nmcl" in png.c/png_icc_check_header
-    [+] Found alphanum constant "XYZ " in png.c/png_icc_check_header
-    [+] Found alphanum constant "Lab " in png.c/png_icc_check_header
-    [...]
-    over@bubuntu:~/workz/lpng1625$ sort -u /tmp/png.dict
-    "abst"
-    "acsp"
-    "bKGD"
-    "cHRM"
-    "gAMA"
-    "GRAY"
-    "hIST"
-    "iCCP"
-    "IDAT"
-    "IEND"
-    "IHDR"
-    "iTXt"
-    "Lab "
-    "link"
-    "mntr"
-    "nmcl"
-    "oFFs"
-    "pCAL"
-    "pHYs"
-    "PLTE"
-    "prtr"
-    "RGB "
-    "sBIT"
-    "sCAL"
-    "scnr"
-    "spac"
-    "sPLT"
-    "sRGB"
-    "tEXt"
-    "tIME"
-    "tRNS"
-    "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3"
-    "XYZ "
-    "zTXt"
+over@bubuntu:~/workz/lpng1625$ AFL_TOKEN_FILE=/tmp/png.dict make
+cp scripts/pnglibconf.h.prebuilt pnglibconf.h
+/home/over/workz/afl-2.35b/afl-clang-fast -c -I../zlib  -W -Wall -O3 -funroll-loops   -o png.o png.c
+afl-clang-fast 2.35b by <lszekeres@google.com>
+afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
+afl-llvm-pass 2.35b by <lszekeres@google.com>
+[+] Instrumented 945 locations (non-hardened mode, ratio 100%).
+[+] Found alphanum constant "acsp" in png.c/png_icc_check_header
+[+] Call to memcmp with constant "\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3" found in png.c/png_icc_check_header
+[+] Found alphanum constant "RGB " in png.c/png_icc_check_header
+[+] Found alphanum constant "GRAY" in png.c/png_icc_check_header
+[+] Found alphanum constant "scnr" in png.c/png_icc_check_header
+[+] Found alphanum constant "mntr" in png.c/png_icc_check_header
+[+] Found alphanum constant "prtr" in png.c/png_icc_check_header
+[+] Found alphanum constant "spac" in png.c/png_icc_check_header
+[+] Found alphanum constant "abst" in png.c/png_icc_check_header
+[+] Found alphanum constant "link" in png.c/png_icc_check_header
+[+] Found alphanum constant "nmcl" in png.c/png_icc_check_header
+[+] Found alphanum constant "XYZ " in png.c/png_icc_check_header
+[+] Found alphanum constant "Lab " in png.c/png_icc_check_header
+[...]
+
+over@bubuntu:~/workz/lpng1625$ sort -u /tmp/png.dict
+"abst"
+"acsp"
+"bKGD"
+"cHRM"
+"gAMA"
+"GRAY"
+"hIST"
+"iCCP"
+"IDAT"
+"IEND"
+"IHDR"
+"iTXt"
+"Lab "
+"link"
+"mntr"
+"nmcl"
+"oFFs"
+"pCAL"
+"pHYs"
+"PLTE"
+"prtr"
+"RGB "
+"sBIT"
+"sCAL"
+"scnr"
+"spac"
+"sPLT"
+"sRGB"
+"tEXt"
+"tIME"
+"tRNS"
+"\x00\x00\xf6\xd6\x00\x01\x00\x00\x00\x00\xd3"
+"XYZ "
+"zTXt"
 ```
 
 On [sqlite3](https://github.com/mackyle/sqlite) ([sqlite.dict]()):
 
 ```text
-    over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
-    [...]
-    afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
-    afl-llvm-pass 2.35b by <lszekeres@google.com>
-    [+] Instrumented 47546 locations (non-hardened mode, ratio 100%).
-    [+] Call to strcmp with constant "unix-excl" found in sqlite3.c/unixOpen
-    [+] Call to memcmp with constant "SQLite format 3" found in sqlite3.c/sqlite3BtreeBeginTrans
-    [+] Call to memcmp with constant "@  " found in sqlite3.c/sqlite3BtreeBeginTrans
-    [+] Call to strcmp with constant "BINARY" found in sqlite3.c/sqlite3_step
-    [+] Call to strcmp with constant ":memory:" found in sqlite3.c/sqlite3BtreeOpen
-    [+] Call to strcmp with constant "nolock" found in sqlite3.c/sqlite3BtreeOpen
-    [+] Call to strcmp with constant "immutable" found in sqlite3.c/sqlite3BtreeOpen
-    [+] Call to memcmp with constant "\xd9\xd5\x05\xf9 \xa1c" found in sqlite3.c/syncJournal
-    [+] Found alphanum constant "char" in sqlite3.c/yy_reduce
-    [+] Found alphanum constant "clob" in sqlite3.c/yy_reduce
-    [+] Found alphanum constant "text" in sqlite3.c/yy_reduce
-    [+] Found alphanum constant "blob" in sqlite3.c/yy_reduce
-    [+] Found alphanum constant "real" in sqlite3.c/yy_reduce
-    [+] Found alphanum constant "floa" in sqlite3.c/yy_reduce
-    [+] Found alphanum constant "doub" in sqlite3.c/yy_reduce
-    [+] Call to strcmp with constant "sqlite_sequence" found in sqlite3.c/sqlite3StartTable
-    [+] Call to memcmp with constant "file:" found in sqlite3.c/sqlite3ParseUri
-    [+] Call to memcmp with constant "localhost" found in sqlite3.c/sqlite3ParseUri
-    [+] Call to memcmp with constant "vfs" found in sqlite3.c/sqlite3ParseUri
-    [+] Call to memcmp with constant "cache" found in sqlite3.c/sqlite3ParseUri
-    [+] Call to memcmp with constant "mode" found in sqlite3.c/sqlite3ParseUri
-    [+] Call to strcmp with constant "localtime" found in sqlite3.c/isDate
-    [+] Call to strcmp with constant "unixepoch" found in sqlite3.c/isDate
-    [+] Call to strncmp with constant "weekday " found in sqlite3.c/isDate
-    [+] Call to strncmp with constant "start of " found in sqlite3.c/isDate
-    [+] Call to strcmp with constant "month" found in sqlite3.c/isDate
-    [+] Call to strcmp with constant "year" found in sqlite3.c/isDate
-    [+] Call to strcmp with constant "hour" found in sqlite3.c/isDate
-    [+] Call to strcmp with constant "minute" found in sqlite3.c/isDate
-    [+] Call to strcmp with constant "second" found in sqlite3.c/isDate
-    over@bubuntu:~/workz/sqlite3$ sort -u /tmp/sqlite.dict
-    "@  "
-    "BINARY"
-    "blob"
-    "cache"
-    "char"
-    "clob"
-    "doub"
-    "file:"
-    "floa"
-    "hour"
-    "immutable"
-    "localhost"
-    "localtime"
-    ":memory:"
-    "minute"
-    "mode"
-    "month"
-    "nolock"
-    "real"
-    "second"
-    "SQLite format 3"
-    "sqlite_sequence"
-    "start of "
-    "text"
-    "unixepoch"
-    "unix-excl"
-    "vfs"
-    "weekday "
-    "\xd9\xd5\x05\xf9 \xa1c"
-    "year"
+over@bubuntu:~/workz/sqlite3$ AFL_TOKEN_FILE=/tmp/sqlite.dict [/home/over/workz/afl-2.35b/afl-clang-fast stub.c sqlite3.c -lpthread -ldl -o a.out
+[...]
+afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
+afl-llvm-pass 2.35b by <lszekeres@google.com>
+[+] Instrumented 47546 locations (non-hardened mode, ratio 100%).
+[+] Call to strcmp with constant "unix-excl" found in sqlite3.c/unixOpen
+[+] Call to memcmp with constant "SQLite format 3" found in sqlite3.c/sqlite3BtreeBeginTrans
+[+] Call to memcmp with constant "@  " found in sqlite3.c/sqlite3BtreeBeginTrans
+[+] Call to strcmp with constant "BINARY" found in sqlite3.c/sqlite3_step
+[+] Call to strcmp with constant ":memory:" found in sqlite3.c/sqlite3BtreeOpen
+[+] Call to strcmp with constant "nolock" found in sqlite3.c/sqlite3BtreeOpen
+[+] Call to strcmp with constant "immutable" found in sqlite3.c/sqlite3BtreeOpen
+[+] Call to memcmp with constant "\xd9\xd5\x05\xf9 \xa1c" found in sqlite3.c/syncJournal
+[+] Found alphanum constant "char" in sqlite3.c/yy_reduce
+[+] Found alphanum constant "clob" in sqlite3.c/yy_reduce
+[+] Found alphanum constant "text" in sqlite3.c/yy_reduce
+[+] Found alphanum constant "blob" in sqlite3.c/yy_reduce
+[+] Found alphanum constant "real" in sqlite3.c/yy_reduce
+[+] Found alphanum constant "floa" in sqlite3.c/yy_reduce
+[+] Found alphanum constant "doub" in sqlite3.c/yy_reduce
+[+] Call to strcmp with constant "sqlite_sequence" found in sqlite3.c/sqlite3StartTable
+[+] Call to memcmp with constant "file:" found in sqlite3.c/sqlite3ParseUri
+[+] Call to memcmp with constant "localhost" found in sqlite3.c/sqlite3ParseUri
+[+] Call to memcmp with constant "vfs" found in sqlite3.c/sqlite3ParseUri
+[+] Call to memcmp with constant "cache" found in sqlite3.c/sqlite3ParseUri
+[+] Call to memcmp with constant "mode" found in sqlite3.c/sqlite3ParseUri
+[+] Call to strcmp with constant "localtime" found in sqlite3.c/isDate
+[+] Call to strcmp with constant "unixepoch" found in sqlite3.c/isDate
+[+] Call to strncmp with constant "weekday " found in sqlite3.c/isDate
+[+] Call to strncmp with constant "start of " found in sqlite3.c/isDate
+[+] Call to strcmp with constant "month" found in sqlite3.c/isDate
+[+] Call to strcmp with constant "year" found in sqlite3.c/isDate
+[+] Call to strcmp with constant "hour" found in sqlite3.c/isDate
+[+] Call to strcmp with constant "minute" found in sqlite3.c/isDate
+[+] Call to strcmp with constant "second" found in sqlite3.c/isDate
+
+over@bubuntu:~/workz/sqlite3$ sort -u /tmp/sqlite.dict
+"@  "
+"BINARY"
+"blob"
+"cache"
+"char"
+"clob"
+"doub"
+"file:"
+"floa"
+"hour"
+"immutable"
+"localhost"
+"localtime"
+":memory:"
+"minute"
+"mode"
+"month"
+"nolock"
+"real"
+"second"
+"SQLite format 3"
+"sqlite_sequence"
+"start of "
+"text"
+"unixepoch"
+"unix-excl"
+"vfs"
+"weekday "
+"\xd9\xd5\x05\xf9 \xa1c"
+"year"
 ```
 
 On [libxml2](https://github.com/GNOME/libxml2) (here is a library with a lot of test cases / utilities that raises the noise ratio in the tokens extracted - cf `xmlShell*` for example):
 
 ```text
-    over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh && AFL_TOKEN_FILE=/tmp/xml.dict make
-    [...]
-    afl-clang-fast 2.35b by <lszekeres@google.com>
-    afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
-    afl-llvm-pass 2.35b by <lszekeres@google.com>
-    [+] Instrumented 668 locations (non-hardened mode, ratio 100%).
-    [+] Call to strcmp with constant "UTF-8" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UTF8" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UTF-16" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UTF16" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-10646-UCS-2" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UCS-2" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UCS2" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-10646-UCS-4" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UCS-4" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "UCS4" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-1" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-LATIN-1" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO LATIN 1" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-2" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-LATIN-2" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO LATIN 2" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-3" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-4" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-5" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-6" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-7" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-8" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-8859-9" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "ISO-2022-JP" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "SHIFT_JIS" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [+] Call to strcmp with constant "EUC-JP" found in encoding.c/xmlParseCharEncoding__internal_alias
-    [...]
-    afl-clang-fast 2.35b by <lszekeres@google.com>
-    afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
-    afl-llvm-pass 2.35b by <lszekeres@google.com>
-    [+] Instrumented 1214 locations (non-hardened mode, ratio 100%).
-    [+] Call to strcmp with constant "exit" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "quit" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "help" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "validate" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "load" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "relaxng" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "save" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "write" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "grep" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "free" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "base" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "setns" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "setrootns" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "xpath" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "setbase" found in debugXML.c/xmlShell__internal_alias
-    [+] Call to strcmp with constant "whereis" found in debugXML.c/xmlShell__internal_alias
-    [...]
-    over@bubuntu:~/workz/libxml2$ sort -u /tmp/xml.dict
-    "307377"
-    "base"
-    "c14n"
-    "catalog"
-    "<![CDATA["
-    "chvalid"
-    "crazy:"
-    "debugXML"
-    "dict"
-    "disable SAX"
-    "document"
-    "encoding"
-    "entities"
-    "EUC-JP"
-    "exit"
-    "fetch external entities"
-    "file:///etc/xml/catalog"
-    "free"
-    "ftp://"
-    "gather line info"
-    "grep"
-    "hash"
-    "help"
-    "HTMLparser"
-    "HTMLtree"
-    "http"
-    "HTTP/"
-    "huge:"
-    "huge:attrNode"
-    "huge:commentNode"
-    "huge:piNode"
-    "huge:textNode"
-    "is html"
-    "ISO-10646-UCS-2"
-    "ISO-10646-UCS-4"
-    "ISO-2022-JP"
-    "ISO-8859-1"
-    "ISO-8859-2"
-    "ISO-8859-3"
-    "ISO-8859-4"
-    "ISO-8859-5"
-    "ISO-8859-6"
-    "ISO-8859-7"
-    "ISO-8859-8"
-    "ISO-8859-9"
-    "ISO LATIN 1"
-    "ISO-LATIN-1"
-    "ISO LATIN 2"
-    "ISO-LATIN-2"
-    "is standalone"
-    "is valid"
-    "is well formed"
-    "keep blanks"
-    "list"
-    "load"
-    "nanoftp"
-    "nanohttp"
-    "parser"
-    "parserInternals"
-    "pattern"
-    "quit"
-    "relaxng"
-    "save"
-    "SAX2"
-    "SAX block"
-    "SAX function attributeDecl"
-    "SAX function cdataBlock"
-    "SAX function characters"
-    "SAX function comment"
-    "SAX function elementDecl"
-    "SAX function endDocument"
-    "SAX function endElement"
-    "SAX function entityDecl"
-    "SAX function error"
-    "SAX function externalSubset"
-    "SAX function fatalError"
-    "SAX function getEntity"
-    "SAX function getParameterEntity"
-    "SAX function hasExternalSubset"
-    "SAX function hasInternalSubset"
-    "SAX function ignorableWhitespace"
-    "SAX function internalSubset"
-    "SAX function isStandalone"
-    "SAX function notationDecl"
-    "SAX function reference"
-    "SAX function resolveEntity"
-    "SAX function setDocumentLocator"
-    "SAX function startDocument"
-    "SAX function startElement"
-    "SAX function unparsedEntityDecl"
-    "SAX function warning"
-    "schemasInternals"
-    "schematron"
-    "setbase"
-    "setns"
-    "setrootns"
-    "SHIFT_JIS"
-    "sql:"
-    "substitute entities"
-    "test/threads/invalid.xml"
-    "total"
-    "tree"
-    "tutor10_1"
-    "tutor10_2"
-    "tutor3_2"
-    "tutor8_2"
-    "UCS-2"
-    "UCS2"
-    "UCS-4"
-    "UCS4"
-    "user data"
-    "UTF-16"
-    "UTF16"
-    "UTF-16BE"
-    "UTF-16LE"
-    "UTF-8"
-    "UTF8"
-    "valid"
-    "validate"
-    "whereis"
-    "write"
-    "xinclude"
-    "xmlautomata"
-    "xmlerror"
-    "xmlIO"
-    "xmlmodule"
-    "xmlreader"
-    "xmlregexp"
-    "xmlsave"
-    "xmlschemas"
-    "xmlschemastypes"
-    "xmlstring"
-    "xmlunicode"
-    "xmlwriter"
-    "xpath"
-    "xpathInternals"
-    "xpointer"
+over@bubuntu:~/workz/libxml2$ CC=/home/over/workz/afl-2.35b/afl-clang-fast ./autogen.sh && AFL_TOKEN_FILE=/tmp/xml.dict make
+[...]
+afl-clang-fast 2.35b by <lszekeres@google.com>
+afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
+afl-llvm-pass 2.35b by <lszekeres@google.com>
+[+] Instrumented 668 locations (non-hardened mode, ratio 100%).
+[+] Call to strcmp with constant "UTF-8" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UTF8" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UTF-16" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UTF16" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-10646-UCS-2" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UCS-2" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UCS2" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-10646-UCS-4" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UCS-4" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "UCS4" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-1" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-LATIN-1" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO LATIN 1" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-2" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-LATIN-2" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO LATIN 2" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-3" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-4" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-5" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-6" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-7" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-8" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-8859-9" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "ISO-2022-JP" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "SHIFT_JIS" found in encoding.c/xmlParseCharEncoding__internal_alias
+[+] Call to strcmp with constant "EUC-JP" found in encoding.c/xmlParseCharEncoding__internal_alias
+[...]
+afl-clang-fast 2.35b by <lszekeres@google.com>
+afl-llvm-tokencap-pass 2.35b by <0vercl0k@tuxfamily.org>
+afl-llvm-pass 2.35b by <lszekeres@google.com>
+[+] Instrumented 1214 locations (non-hardened mode, ratio 100%).
+[+] Call to strcmp with constant "exit" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "quit" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "help" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "validate" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "load" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "relaxng" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "save" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "write" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "grep" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "free" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "base" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "setns" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "setrootns" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "xpath" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "setbase" found in debugXML.c/xmlShell__internal_alias
+[+] Call to strcmp with constant "whereis" found in debugXML.c/xmlShell__internal_alias
+[...]
+
+over@bubuntu:~/workz/libxml2$ sort -u /tmp/xml.dict
+"307377"
+"base"
+"c14n"
+"catalog"
+"<![CDATA["
+"chvalid"
+"crazy:"
+"debugXML"
+"dict"
+"disable SAX"
+"document"
+"encoding"
+"entities"
+"EUC-JP"
+"exit"
+"fetch external entities"
+"file:///etc/xml/catalog"
+"free"
+"ftp://"
+"gather line info"
+"grep"
+"hash"
+"help"
+"HTMLparser"
+"HTMLtree"
+"http"
+"HTTP/"
+"huge:"
+"huge:attrNode"
+"huge:commentNode"
+"huge:piNode"
+"huge:textNode"
+"is html"
+"ISO-10646-UCS-2"
+"ISO-10646-UCS-4"
+"ISO-2022-JP"
+"ISO-8859-1"
+"ISO-8859-2"
+"ISO-8859-3"
+"ISO-8859-4"
+"ISO-8859-5"
+"ISO-8859-6"
+"ISO-8859-7"
+"ISO-8859-8"
+"ISO-8859-9"
+"ISO LATIN 1"
+"ISO-LATIN-1"
+"ISO LATIN 2"
+"ISO-LATIN-2"
+"is standalone"
+"is valid"
+"is well formed"
+"keep blanks"
+"list"
+"load"
+"nanoftp"
+"nanohttp"
+"parser"
+"parserInternals"
+"pattern"
+"quit"
+"relaxng"
+"save"
+"SAX2"
+"SAX block"
+"SAX function attributeDecl"
+"SAX function cdataBlock"
+"SAX function characters"
+"SAX function comment"
+"SAX function elementDecl"
+"SAX function endDocument"
+"SAX function endElement"
+"SAX function entityDecl"
+"SAX function error"
+"SAX function externalSubset"
+"SAX function fatalError"
+"SAX function getEntity"
+"SAX function getParameterEntity"
+"SAX function hasExternalSubset"
+"SAX function hasInternalSubset"
+"SAX function ignorableWhitespace"
+"SAX function internalSubset"
+"SAX function isStandalone"
+"SAX function notationDecl"
+"SAX function reference"
+"SAX function resolveEntity"
+"SAX function setDocumentLocator"
+"SAX function startDocument"
+"SAX function startElement"
+"SAX function unparsedEntityDecl"
+"SAX function warning"
+"schemasInternals"
+"schematron"
+"setbase"
+"setns"
+"setrootns"
+"SHIFT_JIS"
+"sql:"
+"substitute entities"
+"test/threads/invalid.xml"
+"total"
+"tree"
+"tutor10_1"
+"tutor10_2"
+"tutor3_2"
+"tutor8_2"
+"UCS-2"
+"UCS2"
+"UCS-4"
+"UCS4"
+"user data"
+"UTF-16"
+"UTF16"
+"UTF-16BE"
+"UTF-16LE"
+"UTF-8"
+"UTF8"
+"valid"
+"validate"
+"whereis"
+"write"
+"xinclude"
+"xmlautomata"
+"xmlerror"
+"xmlIO"
+"xmlmodule"
+"xmlreader"
+"xmlregexp"
+"xmlsave"
+"xmlschemas"
+"xmlschemastypes"
+"xmlstring"
+"xmlunicode"
+"xmlwriter"
+"xpath"
+"xpathInternals"
+"xpointer"
 ```
 
 Performance wise - here is what we are looking at on `libpng` (+0.283s):
 
 ```text 
-//time difference on lpng
-    over@bubuntu:~/workz/lpng1625$ make clean && time AFL_TOKEN_FILE=/tmp/png.dict make && make clean && time make
-    [...]
-    real    0m12.320s
-    user    0m11.732s
-    sys     0m0.360s
-    [...]
-    real    0m12.037s
-    user    0m11.436s
-    sys     0m0.384s
+over@bubuntu:~/workz/lpng1625$ make clean && time AFL_TOKEN_FILE=/tmp/png.dict make && make clean && time make
+[...]
+real    0m12.320s
+user    0m11.732s
+sys     0m0.360s
+[...]
+real    0m12.037s
+user    0m11.436s
+sys     0m0.384s
 ```
 
 # Last words

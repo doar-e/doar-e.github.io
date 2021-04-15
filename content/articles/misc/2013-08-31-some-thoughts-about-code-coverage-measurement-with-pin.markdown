@@ -35,9 +35,9 @@ Before coding, we need to talk a bit about what we really want. This is simple, 
 I think it's time to code now: first, let's define several data structures in order to store the information we need:
 
 ```cpp
-    typedef std::map<std::string, std::pair<ADDRINT, ADDRINT> > MODULE_BLACKLIST_T;
-    typedef MODULE_BLACKLIST_T MODULE_LIST_T;
-    typedef std::map<ADDRINT, UINT32> BASIC_BLOCKS_INFO_T;
+typedef std::map<std::string, std::pair<ADDRINT, ADDRINT> > MODULE_BLACKLIST_T;
+typedef MODULE_BLACKLIST_T MODULE_LIST_T;
+typedef std::map<ADDRINT, UINT32> BASIC_BLOCKS_INFO_T;
 ```
 
 The two first types will be used to hold modules related information: path of the module, start address and end address. The third one is simple: the key is the basic block address and the value is its number of instructions.
@@ -48,29 +48,29 @@ Then we are going to define our instrumentation callback:
 * one to know whenever a module is loaded in order to store its base/end address, one for the traces. You can set the callbacks using *IMG_AddInstrumentationFunction* and *TRACE_AddInstrumentationFunction*.
 
 ```cpp
-        VOID image_instrumentation(IMG img, VOID * v)
-        {
-            ADDRINT module_low_limit = IMG_LowAddress(img), module_high_limit = IMG_HighAddress(img); 
-        
-            if(IMG_IsMainExecutable(img))
-                return;
-        
-            const std::string image_path = IMG_Name(img);
-        
-            std::pair<std::string, std::pair<ADDRINT, ADDRINT> > module_info = std::make_pair(
-                image_path,
-                std::make_pair(
-                    module_low_limit,
-                    module_high_limit
-                )
-            );
-        
-            module_list.insert(module_info);
-            module_counter++;
-        
-            if(is_module_should_be_blacklisted(image_path))
-                modules_blacklisted.insert(module_info);
-        }
+VOID image_instrumentation(IMG img, VOID * v)
+{
+    ADDRINT module_low_limit = IMG_LowAddress(img), module_high_limit = IMG_HighAddress(img); 
+
+    if(IMG_IsMainExecutable(img))
+        return;
+
+    const std::string image_path = IMG_Name(img);
+
+    std::pair<std::string, std::pair<ADDRINT, ADDRINT> > module_info = std::make_pair(
+        image_path,
+        std::make_pair(
+            module_low_limit,
+            module_high_limit
+        )
+    );
+
+    module_list.insert(module_info);
+    module_counter++;
+
+    if(is_module_should_be_blacklisted(image_path))
+        modules_blacklisted.insert(module_info);
+}
 ```
 
  * one to be able to insert calls before every basic blocks.
@@ -78,29 +78,29 @@ Then we are going to define our instrumentation callback:
 The thing is: Pin doesn't have a *BBL_AddInstrumentationFunction*, so we have to instrument the traces, iterate through them to get the basic block. It's done really easily with *TRACE_BblHead*, *BBL_Valid* and *BBL_Next* functions. Of course, if the basic block address is in a blacklisted range address, we don't insert a call to our analysis function.
 
 ```cpp
-    VOID trace_instrumentation(TRACE trace, VOID *v)
+VOID trace_instrumentation(TRACE trace, VOID *v)
+{
+    for(BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
     {
-        for(BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-        {
-            if(is_address_in_blacklisted_modules(BBL_Address(bbl)))
-                continue;
-    
-            BBL_InsertCall(
-                bbl,
-                IPOINT_ANYWHERE,
-                (AFUNPTR)handle_basic_block,
-                IARG_FAST_ANALYSIS_CALL,
-    
-                IARG_UINT32,
-                BBL_NumIns(bbl),
-    
-                IARG_ADDRINT,
-                BBL_Address(bbl),
-    
-                IARG_END
-            );
-        }
+        if(is_address_in_blacklisted_modules(BBL_Address(bbl)))
+            continue;
+
+        BBL_InsertCall(
+            bbl,
+            IPOINT_ANYWHERE,
+            (AFUNPTR)handle_basic_block,
+            IARG_FAST_ANALYSIS_CALL,
+
+            IARG_UINT32,
+            BBL_NumIns(bbl),
+
+            IARG_ADDRINT,
+            BBL_Address(bbl),
+
+            IARG_END
+        );
     }
+}
 ```
 
 For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function *handle_basic_block* ; we also use the fast linkage (it basically means the function will be called using the [__fastcall](http://msdn.microsoft.com/en-us/library/6xa169sk.aspx) calling convention).
@@ -108,60 +108,60 @@ For efficiency reasons, we let decide Pin about where it puts its JITed call to 
 The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.
 
 ```cpp
-    VOID PIN_FAST_ANALYSIS_CALL handle_basic_block(UINT32 number_instruction_in_bb, ADDRINT address_bb)
-    {
-        basic_blocks_info[address_bb] = number_instruction_in_bb;
-    }
+VOID PIN_FAST_ANALYSIS_CALL handle_basic_block(UINT32 number_instruction_in_bb, ADDRINT address_bb)
+{
+    basic_blocks_info[address_bb] = number_instruction_in_bb;
+}
 ```
 
 Finally, just before the process ends we serialize our data in a simple JSON report thanks to [jansson](http://www.digip.org/jansson/). You may also want to use a binary serialization to have smaller report.
 
 ```cpp
-    VOID save_instrumentation_infos()
+VOID save_instrumentation_infos()
+{
+    /// basic_blocks_info section
+    json_t *bbls_info = json_object();
+    json_t *bbls_list = json_array();
+    json_t *bbl_info = json_object();
+    // unique_count field
+    json_object_set_new(bbls_info, "unique_count", json_integer(basic_blocks_info.size()));
+    // list field
+    json_object_set_new(bbls_info, "list", bbls_list);
+    for(BASIC_BLOCKS_INFO_T::const_iterator it = basic_blocks_info.begin(); it != basic_blocks_info.end(); ++it)
     {
-        /// basic_blocks_info section
-        json_t *bbls_info = json_object();
-        json_t *bbls_list = json_array();
-        json_t *bbl_info = json_object();
-        // unique_count field
-        json_object_set_new(bbls_info, "unique_count", json_integer(basic_blocks_info.size()));
-        // list field
-        json_object_set_new(bbls_info, "list", bbls_list);
-        for(BASIC_BLOCKS_INFO_T::const_iterator it = basic_blocks_info.begin(); it != basic_blocks_info.end(); ++it)
-        {
-            bbl_info = json_object();
-            json_object_set_new(bbl_info, "address", json_integer(it->first));
-            json_object_set_new(bbl_info, "nbins", json_integer(it->second));
-            json_array_append_new(bbls_list, bbl_info);
-        }
-    
-        /* .. same thing for blacklisted modules, and modules .. */
-        /// Building the tree
-        json_t *root = json_object();
-        json_object_set_new(root, "basic_blocks_info", bbls_info);
-        json_object_set_new(root, "blacklisted_modules", blacklisted_modules);
-        json_object_set_new(root, "modules", modules);
-    
-        /// Writing the report
-        FILE* f = fopen(KnobOutputPath.Value().c_str(), "w");
-        json_dumpf(root, f, JSON_COMPACT | JSON_ENSURE_ASCII);
-        fclose(f);
+        bbl_info = json_object();
+        json_object_set_new(bbl_info, "address", json_integer(it->first));
+        json_object_set_new(bbl_info, "nbins", json_integer(it->second));
+        json_array_append_new(bbls_list, bbl_info);
     }
+
+    /* .. same thing for blacklisted modules, and modules .. */
+    /// Building the tree
+    json_t *root = json_object();
+    json_object_set_new(root, "basic_blocks_info", bbls_info);
+    json_object_set_new(root, "blacklisted_modules", blacklisted_modules);
+    json_object_set_new(root, "modules", modules);
+
+    /// Writing the report
+    FILE* f = fopen(KnobOutputPath.Value().c_str(), "w");
+    json_dumpf(root, f, JSON_COMPACT | JSON_ENSURE_ASCII);
+    fclose(f);
+}
 ```
 
 If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the [SystemCallStub](http://www.nynaeve.net/?p=131) (you know the "JMP FAR"). To do that, we simply use the *__readfsdword* intrinsic in order to read the field [TEB32.WOW32Reserved](http://msdn.moonsols.com/win7rtm_x64/TEB32.html) that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.
 
 ```cpp
-    ADDRINT wow64stub = __readfsdword(0xC0);
-    modules_blacklisted.insert(
+ADDRINT wow64stub = __readfsdword(0xC0);
+modules_blacklisted.insert(
+    std::make_pair(
+        std::string("wow64stub"),
         std::make_pair(
-            std::string("wow64stub"),
-            std::make_pair(
-                wow64stub,
-                wow64stub
-            )
+            wow64stub,
+            wow64stub
         )
-    );
+    )
+);
 ```
 
 The entire Pintool source code is here: [pin-code-coverage-measure.cpp](https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/pin-code-coverage-measure.cpp).
@@ -173,40 +173,40 @@ To color an instruction you have to use the functions: *idaapi.set_item_color* a
 
 ```python 
 # idapy_color_path_from_json.py
-    import json
-    import idc
-    import idaapi
-    
-    def color(ea, nbins, c):
-        '''Color 'nbins' instructions starting from ea'''
-        colors = defaultdict(int, {
-                'black' : 0x000000,
-                'red' : 0x0000FF,
-                'blue' : 0xFF0000,
-                'green' : 0x00FF00
-            }
-        )
-        for _ in range(nbins):
-            idaapi.del_item_color(ea)
-            idaapi.set_item_color(ea, colors[c])
-            ea += idc.ItemSize(ea)
-    
-    def main():
-        f = open(idc.AskFile(0, '*.json', 'Where is the JSON report you want to load ?'), 'r')
-        c = idc.AskStr('black', 'Which color do you want ?').lower()
-        report = json.load(f)
-        for i in report['basic_blocks_info']['list']:
-            print '%x' % i['address'],
-            try:
-                color(i['address'], i['nbins'], c)
-                print 'ok'
-            except Exception, e:
-                print 'fail: %s' % str(e)
-        print 'done'    
-        return 1
-    
-    if __name__ == '__main__':
-        main()
+import json
+import idc
+import idaapi
+
+def color(ea, nbins, c):
+    '''Color 'nbins' instructions starting from ea'''
+    colors = defaultdict(int, {
+            'black' : 0x000000,
+            'red' : 0x0000FF,
+            'blue' : 0xFF0000,
+            'green' : 0x00FF00
+        }
+    )
+    for _ in range(nbins):
+        idaapi.del_item_color(ea)
+        idaapi.set_item_color(ea, colors[c])
+        ea += idc.ItemSize(ea)
+
+def main():
+    f = open(idc.AskFile(0, '*.json', 'Where is the JSON report you want to load ?'), 'r')
+    c = idc.AskStr('black', 'Which color do you want ?').lower()
+    report = json.load(f)
+    for i in report['basic_blocks_info']['list']:
+        print '%x' % i['address'],
+        try:
+            color(i['address'], i['nbins'], c)
+            print 'ok'
+        except Exception, e:
+            print 'fail: %s' % str(e)
+    print 'done'    
+    return 1
+
+if __name__ == '__main__':
+    main()
 ```
 
 Here is an example generated by launching "ping google.fr", we can clearly see in black the nodes reached by the ping utility:
@@ -234,63 +234,63 @@ Cool for us because that's pretty easy to implement via IDAPython, here is the s
 
 ```python 
 # idapy_color_diff_from_jsons.py https://github.com/0vercl0k/stuffz/blob/master/pin-code-coverage-measure/idapy_color_diff_from_jsons.py
-    import json
-    import idc
-    import idaapi
-    from collections import defaultdict
+import json
+import idc
+import idaapi
+from collections import defaultdict
+
+def color(ea, nbins, c):
+    '''Color 'nbins' instructions starting from ea'''
+    colors = defaultdict(int, {
+            'black' : 0x000000,
+            'red' : 0x0000FF,
+            'blue' : 0xFF0000,
+            'green' : 0x00FF00
+        }
+    )
+    for _ in range(nbins):
+        idaapi.del_item_color(ea)
+        idaapi.set_item_color(ea, colors[c])
+        ea += idc.ItemSize(ea)
+
+def main():
+    f = open(idc.AskFile(0, '*.json', 'Where is the first JSON report you want to load ?'), 'r')
+    report = json.load(f)
+    l1 = report['basic_blocks_info']['list']
+
+    f = open(idc.AskFile(0, '*.json', 'Where is the second JSON report you want to load ?'), 'r')
+    report = json.load(f)
+    l2 = report['basic_blocks_info']['list']
+    c = idc.AskStr('black', 'Which color do you want ?').lower()
+
+    addresses_l1 = set(r['address'] for r in l1)    
+    addresses_l2 = set(r['address'] for r in l2)
+    dic_l2 = dict((k['address'], k['nbins']) for k in l2)
+
+    diff = addresses_l2 - addresses_l1
+    print '%d bbls in the first execution' % len(addresses_l1)
+    print '%d bbls in the second execution' % len(addresses_l2)
+    print 'Differences between the two executions: %d bbls' % len(diff)
     
-    def color(ea, nbins, c):
-        '''Color 'nbins' instructions starting from ea'''
-        colors = defaultdict(int, {
-                'black' : 0x000000,
-                'red' : 0x0000FF,
-                'blue' : 0xFF0000,
-                'green' : 0x00FF00
-            }
-        )
-        for _ in range(nbins):
-            idaapi.del_item_color(ea)
-            idaapi.set_item_color(ea, colors[c])
-            ea += idc.ItemSize(ea)
-    
-    def main():
-        f = open(idc.AskFile(0, '*.json', 'Where is the first JSON report you want to load ?'), 'r')
-        report = json.load(f)
-        l1 = report['basic_blocks_info']['list']
-    
-        f = open(idc.AskFile(0, '*.json', 'Where is the second JSON report you want to load ?'), 'r')
-        report = json.load(f)
-        l2 = report['basic_blocks_info']['list']
-        c = idc.AskStr('black', 'Which color do you want ?').lower()
-    
-        addresses_l1 = set(r['address'] for r in l1)    
-        addresses_l2 = set(r['address'] for r in l2)
-        dic_l2 = dict((k['address'], k['nbins']) for k in l2)
-    
-        diff = addresses_l2 - addresses_l1
-        print '%d bbls in the first execution' % len(addresses_l1)
-        print '%d bbls in the second execution' % len(addresses_l2)
-        print 'Differences between the two executions: %d bbls' % len(diff)
-        
-        assert(len(addresses_l1) < len(addresses_l2))
-    
-        funcs = defaultdict(list)
-        for i in diff:
-            try:
-                color(i, dic_l2[i], c)
-                funcs[get_func(i).startEA].append(i)
-            except Exception, e:
-                print 'fail %s' % str(e)
-    
-        print 'A total of %d different sub:' % len(funcs)
-        for s in funcs.keys():
-            print '%x' % s
-    
-        print 'done'    
-        return 1
-    
-    if __name__ == '__main__':
-        main()
+    assert(len(addresses_l1) < len(addresses_l2))
+
+    funcs = defaultdict(list)
+    for i in diff:
+        try:
+            color(i, dic_l2[i], c)
+            funcs[get_func(i).startEA].append(i)
+        except Exception, e:
+            print 'fail %s' % str(e)
+
+    print 'A total of %d different sub:' % len(funcs)
+    for s in funcs.keys():
+        print '%x' % s
+
+    print 'done'    
+    return 1
+
+if __name__ == '__main__':
+    main()
 ```
 
 By the way, you must keep in mind we are only talking about **deterministic** program (will always execute the same path if you give it the same inputs). If the same inputs aren't giving the exact same outputs **every time**, your program is not deterministic.
@@ -304,34 +304,34 @@ These tests have been done on my Windows 7 x64 laptop with Wow64 processes (4GB 
 ### Without instrumentation
 
 ```text
-    PS D:\> Measure-Command {start-process python.exe "-c 'quit()'" -Wait}
+PS D:\> Measure-Command {start-process python.exe "-c 'quit()'" -Wait}
 
-    TotalMilliseconds : 73,1953
+TotalMilliseconds : 73,1953
 ```
 
 ### With instrumentation and JSON report serialization
 
 ```text
-    PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- python.exe -c 'quit()'" -Wait} 
-    
-    TotalMilliseconds : 13122,4683
+PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- python.exe -c 'quit()'" -Wait} 
+
+TotalMilliseconds : 13122,4683
 ```
 
 ## VLC 2.0.8
 ### Without instrumentation
 
 ```text
-    PS D:\> Measure-Command {start-process vlc.exe "--play-and-exit hu" -Wait}
-    
-    TotalMilliseconds : 369,4677
+PS D:\> Measure-Command {start-process vlc.exe "--play-and-exit hu" -Wait}
+
+TotalMilliseconds : 369,4677
 ```
 
 ### With instrumentation and JSON report serialization
 
 ```text
-    PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu" -Wait}
-    
-    TotalMilliseconds : 60109,204
+PS D:\> Measure-Command {start-process pin.exe "-t pin-code-coverage-measure.dll -o test.json -- D:\vlc.exe --play-and-exit hu" -Wait}
+
+TotalMilliseconds : 60109,204
 ```
 
 To optimize the process you may want to blacklist some of the VLC plugins (there are a tons!), otherwise your VLC instrumented is 160 times slower than the normal one (and I didn't even try to launch the instrumentation when decoding x264 videos).

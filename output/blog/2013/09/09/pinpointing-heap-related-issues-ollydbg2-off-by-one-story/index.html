@@ -157,30 +157,30 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
 </div>
 <h1 id="the-crash">The crash</h1>
 <p>The first thing I did was to launch WinDbg to debug OllyDbg2 to debug my binary (yeah.). Once OllyDbg2 has been started up, I reproduced exactly the same steps as previously to trigger the bug and here is what WinDbg was telling me:</p>
-<div class="highlight"><pre><span></span><code>    HEAP[ollydbg.exe]: Heap block at 00987AB0 modified at 00987D88 past
-    requested size of 2d0
+<div class="highlight"><pre><span></span><code>HEAP[ollydbg.exe]: Heap block at 00987AB0 modified at 00987D88 past
+requested size of 2d0
 
-    (a60.12ac): Break instruction exception - code 80000003 (first chance)
-    eax=00987ab0 ebx=00987d88 ecx=76f30b42 edx=001898a5 esi=00987ab0 edi=000002d0
-    eip=76f90574 esp=00189aec ebp=00189aec iopl=0         nv up ei pl nz na po nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
-    ntdll!RtlpBreakPointHeap+0x23:
-    76f90574 cc              int     3
+(a60.12ac): Break instruction exception - code 80000003 (first chance)
+eax=00987ab0 ebx=00987d88 ecx=76f30b42 edx=001898a5 esi=00987ab0 edi=000002d0
+eip=76f90574 esp=00189aec ebp=00189aec iopl=0         nv up ei pl nz na po nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
+ntdll!RtlpBreakPointHeap+0x23:
+76f90574 cc              int     3
 </code></pre></div>
 
 
 <p>We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like <em>after</em>, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:</p>
-<div class="highlight"><pre><span></span><code>    0:000&gt; k
-    ChildEBP RetAddr  
-    00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
-    00189b04 76f52a8a ntdll!RtlpCheckBusyBlockTail+0x171
-    00189b24 76f915cf ntdll!RtlpValidateHeapEntry+0x116
-    00189b6c 76f4ac29 ntdll!RtlDebugFreeHeap+0x9a
-    00189c60 76ef34a2 ntdll!RtlpFreeHeap+0x5d
-    00189c80 75d8537d ntdll!RtlFreeHeap+0x142
-    00189cc8 00403cfc KERNELBASE!GlobalFree+0x27
-    00189cd4 004cefc0 ollydbg!Memfree+0x3c
-    ...
+<div class="highlight"><pre><span></span><code>0:000&gt; k
+ChildEBP RetAddr  
+00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
+00189b04 76f52a8a ntdll!RtlpCheckBusyBlockTail+0x171
+00189b24 76f915cf ntdll!RtlpValidateHeapEntry+0x116
+00189b6c 76f4ac29 ntdll!RtlDebugFreeHeap+0x9a
+00189c60 76ef34a2 ntdll!RtlpFreeHeap+0x5d
+00189c80 75d8537d ntdll!RtlFreeHeap+0x142
+00189cc8 00403cfc KERNELBASE!GlobalFree+0x27
+00189cd4 004cefc0 ollydbg!Memfree+0x3c
+...
 </code></pre></div>
 
 
@@ -202,39 +202,39 @@ Then, I relaunch my binary and try to reproduce the bug: same actions and <stron
 To enable it for <em>ollydbg.exe</em>, it's trivial. We just launch the <em>gflags.exe</em> binary (it's in Windbg's directory) and you tick the features you want to enable.</p>
 <p><center><img alt="gflags.png" src="/images/pinpointing_heap_related_issues__ollydbg2_off_by_one_story/gflags.png"></center>
 Now, you just have to relaunch your target in WinDbg, reproduce the bug and here is what I get now:</p>
-<div class="highlight"><pre><span></span><code>    (f48.1140): Access violation - code c0000005 (first chance)
-    First chance exceptions are reported before any exception handling.
-    This exception may be expected and handled.
+<div class="highlight"><pre><span></span><code>(f48.1140): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
 
-    eax=000000b4 ebx=0f919abc ecx=0f00ed30 edx=00000b73 esi=00188694 edi=005d203c
-    eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
-    ollydbg!Findfreehardbreakslot+0x21d9:
-    004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
+eax=000000b4 ebx=0f919abc ecx=0f00ed30 edx=00000b73 esi=00188694 edi=005d203c
+eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
+ollydbg!Findfreehardbreakslot+0x21d9:
+004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
 </code></pre></div>
 
 
 <p>Woot, this is very cool, because now we know <strong>exactly</strong> where something is going wrong. Let's get more information about the heap chunk now:</p>
-<div class="highlight"><pre><span></span><code>    0:000&gt; !heap -p -a ecx
-        address 0f00ed30 found in
-        _DPH_HEAP_ROOT @ 4f11000
-        in busy allocation
-        (  DPH_HEAP_BLOCK:  UserAddr  UserSize -  VirtAddr VirtSize)
-                  f6f1b2c:  f00ed30        2d0 -  f00e000  2000
+<div class="highlight"><pre><span></span><code>0:000&gt; !heap -p -a ecx
+    address 0f00ed30 found in
+    _DPH_HEAP_ROOT @ 4f11000
+    in busy allocation
+    (  DPH_HEAP_BLOCK:  UserAddr  UserSize -  VirtAddr VirtSize)
+              f6f1b2c:  f00ed30        2d0 -  f00e000  2000
 
-        6e858e89 verifier!AVrfDebugPageHeapAllocate+0x00000229
-        76f90d96 ntdll!RtlDebugAllocateHeap+0x00000030
-        76f4af0d ntdll!RtlpAllocateHeap+0x000000c4
-        76ef3cfe ntdll!RtlAllocateHeap+0x0000023a
-        75d84e55 KERNELBASE!GlobalAlloc+0x0000006e
-        00403bef ollydbg!Memalloc+0x00000033
-        004ce5ec ollydbg!Findfreehardbreakslot+0x0000205c
-        004cf1df ollydbg!Getsourceline+0x0000007f
-        00479e1b ollydbg!Getactivetab+0x0000241b
-        0047b341 ollydbg!Setcpu+0x000006e1
-        004570f4 ollydbg!Checkfordebugevent+0x00003f38
-        0040fc51 ollydbg!Setstatus+0x00006441
-        004ef9ef ollydbg!Pluginshowoptions+0x0001214f
+    6e858e89 verifier!AVrfDebugPageHeapAllocate+0x00000229
+    76f90d96 ntdll!RtlDebugAllocateHeap+0x00000030
+    76f4af0d ntdll!RtlpAllocateHeap+0x000000c4
+    76ef3cfe ntdll!RtlAllocateHeap+0x0000023a
+    75d84e55 KERNELBASE!GlobalAlloc+0x0000006e
+    00403bef ollydbg!Memalloc+0x00000033
+    004ce5ec ollydbg!Findfreehardbreakslot+0x0000205c
+    004cf1df ollydbg!Getsourceline+0x0000007f
+    00479e1b ollydbg!Getactivetab+0x0000241b
+    0047b341 ollydbg!Setcpu+0x000006e1
+    004570f4 ollydbg!Checkfordebugevent+0x00003f38
+    0040fc51 ollydbg!Setstatus+0x00006441
+    004ef9ef ollydbg!Pluginshowoptions+0x0001214f
 </code></pre></div>
 
 
@@ -248,50 +248,50 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
 <h1 id="looking-inside-ollydbg2">Looking inside OllyDbg2</h1>
 <p>We are kind of lucky, the routines involved with this bug are quite simple to reverse-engineer, and Hexrays works just like a charm. Here is the C code (the interesting part at least) of the buggy function:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">//ollydbg!buggy @ 0x004CE424</span>
-    <span class="kt">signed</span> <span class="kt">int</span> <span class="nf">buggy</span><span class="p">(</span><span class="n">struct_a1</span> <span class="o">*</span><span class="n">u</span><span class="p">)</span>
+<span class="kt">signed</span> <span class="kt">int</span> <span class="nf">buggy</span><span class="p">(</span><span class="n">struct_a1</span> <span class="o">*</span><span class="n">u</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">file_size</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">nbchar</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="o">*</span><span class="n">file_content</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nb_lines</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">idx</span><span class="p">;</span>
+
+  <span class="c1">// ...</span>
+  <span class="n">file_content</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="o">*</span><span class="p">)</span><span class="n">Readfile</span><span class="p">(</span><span class="o">&amp;</span><span class="n">u</span><span class="o">-&gt;</span><span class="n">sourcefile</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">file_size</span><span class="p">);</span>
+  <span class="c1">// ...</span>
+  <span class="n">nbchar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">nb_lines</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">while</span><span class="p">(</span><span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="c1">// doing stuff to count all the char, and all the lines in the file</span>
+    <span class="c1">// ...</span>
+  <span class="p">}</span>
+
+  <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">Memalloc</span><span class="p">(</span><span class="mi">12</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
+  <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem2</span> <span class="o">=</span> <span class="n">Memalloc</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span> <span class="o">&amp;&amp;</span> <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem2</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">nbchar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">nb_lines2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span> <span class="o">&amp;&amp;</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
     <span class="p">{</span>
-      <span class="kt">int</span> <span class="n">file_size</span><span class="p">;</span>
-      <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">nbchar</span><span class="p">;</span>
-      <span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="o">*</span><span class="n">file_content</span><span class="p">;</span>
-      <span class="kt">int</span> <span class="n">nb_lines</span><span class="p">;</span>
-      <span class="kt">int</span> <span class="n">idx</span><span class="p">;</span>
-
-      <span class="c1">// ...</span>
-      <span class="n">file_content</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kr">__int8</span> <span class="o">*</span><span class="p">)</span><span class="n">Readfile</span><span class="p">(</span><span class="o">&amp;</span><span class="n">u</span><span class="o">-&gt;</span><span class="n">sourcefile</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">file_size</span><span class="p">);</span>
-      <span class="c1">// ...</span>
-      <span class="n">nbchar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="n">nb_lines</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="k">while</span><span class="p">(</span><span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span><span class="p">)</span>
+      <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
+      <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span> <span class="p">)</span>
       <span class="p">{</span>
-        <span class="c1">// doing stuff to count all the char, and all the lines in the file</span>
-        <span class="c1">// ...</span>
-      <span class="p">}</span>
-
-      <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span> <span class="o">=</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="o">*</span><span class="p">)</span><span class="n">Memalloc</span><span class="p">(</span><span class="mi">12</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
-      <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem2</span> <span class="o">=</span> <span class="n">Memalloc</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="p">(</span><span class="n">nb_lines</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">);</span>
-      <span class="k">if</span> <span class="p">(</span> <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span> <span class="o">&amp;&amp;</span> <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem2</span> <span class="p">)</span>
-      <span class="p">{</span>
-        <span class="n">nbchar</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-        <span class="n">nb_lines2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-        <span class="k">while</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span> <span class="o">&amp;&amp;</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
+        <span class="k">while</span> <span class="p">(</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
         <span class="p">{</span>
-          <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
-          <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-          <span class="k">if</span> <span class="p">(</span> <span class="n">nbchar</span> <span class="o">&lt;</span> <span class="n">file_size</span> <span class="p">)</span>
-          <span class="p">{</span>
-            <span class="k">while</span> <span class="p">(</span> <span class="n">file_content</span><span class="p">[</span><span class="n">nbchar</span><span class="p">]</span> <span class="p">)</span>
-            <span class="p">{</span>
-                <span class="c1">// Consume a line, increment stuff until finding a &#39;\r&#39; or &#39;\n&#39; sequence</span>
-                <span class="c1">// ..</span>
-            <span class="p">}</span>
-          <span class="p">}</span>
-          <span class="o">++</span><span class="n">nb_lines2</span><span class="p">;</span>
+            <span class="c1">// Consume a line, increment stuff until finding a &#39;\r&#39; or &#39;\n&#39; sequence</span>
+            <span class="c1">// ..</span>
         <span class="p">}</span>
-        <span class="c1">// BOOM!</span>
-        <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
-        <span class="c1">// ...</span>
       <span class="p">}</span>
+      <span class="o">++</span><span class="n">nb_lines2</span><span class="p">;</span>
     <span class="p">}</span>
+    <span class="c1">// BOOM!</span>
+    <span class="n">u</span><span class="o">-&gt;</span><span class="n">mem1_ov</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nb_lines2</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbchar</span><span class="p">;</span>
+    <span class="c1">// ...</span>
+  <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 
 
@@ -303,8 +303,8 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
 * At line 10: "u-&gt;Sourcefile" is a string pointer on the path of your source code (found in the PDB database). The routine is just reading the whole file, giving you its size, and a pointer on the file content now stored memory.
 * From line 12 to 18: we have a loop counting the total number of lines in your source code.
 * At line 20: we have the allocation of our chunk. It allocates 12*(nb_lines + 1) bytes. We saw previously in WinDbg that the size of the chunk was 0x2d0: it should means we have exactly ((0x2d0 / 12) - 1) = 59 lines in our source code:</p>
-<div class="highlight"><pre><span></span><code>    D:\TODO\crashes\odb2-OOB-write-heap&gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
-    59 OOB-write-heap-OllyDbg2h-trigger.c
+<div class="highlight"><pre><span></span><code>D:\TODO\crashes\odb2-OOB-write-heap&gt;wc -l OOB-write-heap-OllyDbg2h-trigger.c
+59 OOB-write-heap-OllyDbg2h-trigger.c
 </code></pre></div>
 
 
@@ -314,36 +314,36 @@ Now, you just have to relaunch your target in WinDbg, reproduce the bug and here
 <li>At line 41: we have our bug. Somehow, we can manage to get out of the loop with "nb_lines2 = nb_lines + 1". That means the line 41 will try to write one cell outside of our buffer. In our case, if we have "nb_lines2 = 60" and our heap buffer starting at 0xf00ed30, it means we're going to try to write at (0xf00ed30+60<em>3</em>4)=0xf00f000. That's exactly what we saw earlier.</li>
 </ul>
 <p>At this point, we have fully explained the bug. If you want to do some dynamic analysis in order to follow important routines, I've made several breakpoints, here they are:</p>
-<div class="highlight"><pre><span></span><code>    bp 004CF1BF &quot;.printf \&quot;[Getsourceline] %mu\\n[Getsourceline] struct: 0x%x\&quot;, poi(esp + 4), eax ; .if(eax != 0){ .if(poi(eax + 0x218) == 0){ .printf \&quot; field: 0x%x\\n\&quot;, poi(eax + 0x218); gc }; } .else { .printf \&quot;\\n\\n\&quot; ; gc; };&quot;
-    bp 004CE5DD &quot;.printf \&quot;[buggy] Nbline: 0x%x \\n\&quot;, eax ; gc&quot;
-    bp 004CE5E7 &quot;.printf \&quot;[buggy] Nbbytes to alloc: 0x%x \\n\&quot;, poi(esp) ; gc&quot;
-    bp 004CE742 &quot;.printf \&quot;[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\&quot;, eax, poi(ebp - 1C), poi(ebp - 8) ; gc&quot;
-    bp 004CE769 &quot;.printf \&quot;[buggy] mov [0x%x + 0x%x], 0x%x\\n\&quot;, ecx, eax * 4, edx&quot;
+<div class="highlight"><pre><span></span><code>bp 004CF1BF &quot;.printf \&quot;[Getsourceline] %mu\\n[Getsourceline] struct: 0x%x\&quot;, poi(esp + 4), eax ; .if(eax != 0){ .if(poi(eax + 0x218) == 0){ .printf \&quot; field: 0x%x\\n\&quot;, poi(eax + 0x218); gc }; } .else { .printf \&quot;\\n\\n\&quot; ; gc; };&quot;
+bp 004CE5DD &quot;.printf \&quot;[buggy] Nbline: 0x%x \\n\&quot;, eax ; gc&quot;
+bp 004CE5E7 &quot;.printf \&quot;[buggy] Nbbytes to alloc: 0x%x \\n\&quot;, poi(esp) ; gc&quot;
+bp 004CE742 &quot;.printf \&quot;[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\&quot;, eax, poi(ebp - 1C), poi(ebp - 8) ; gc&quot;
+bp 004CE769 &quot;.printf \&quot;[buggy] mov [0x%x + 0x%x], 0x%x\\n\&quot;, ecx, eax * 4, edx&quot;
 </code></pre></div>
 
 
 <p>On my environment, it gives me something like:</p>
-<div class="highlight"><pre><span></span><code>    [Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
-    [Getsourceline] struct: 0x0
-    [...]
-    [Getsourceline] oob-write-heap-ollydbg2h-trigger.c
-    [Getsourceline] struct: 0xaf00238 field: 0x0
-    [buggy] Nbline: 0x3b 
-    [buggy] Nbbytes to alloc: 0x2d0 
-    [buggy] NbChar: 0x0 / 0xb73 - Idx: 0x0
-    [buggy] NbChar: 0x4 / 0xb73 - Idx: 0x1
-    [buggy] NbChar: 0x5a / 0xb73 - Idx: 0x2
-    [buggy] NbChar: 0xa4 / 0xb73 - Idx: 0x3
-    [buggy] NbChar: 0xee / 0xb73 - Idx: 0x4
-    [...]
-    [buggy] NbChar: 0xb73 / 0xb73 - Idx: 0x3c
-    [buggy] mov [0xb031d30 + 0x2d0], 0xb73
+<div class="highlight"><pre><span></span><code>[Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
+[Getsourceline] struct: 0x0
+[...]
+[Getsourceline] oob-write-heap-ollydbg2h-trigger.c
+[Getsourceline] struct: 0xaf00238 field: 0x0
+[buggy] Nbline: 0x3b 
+[buggy] Nbbytes to alloc: 0x2d0 
+[buggy] NbChar: 0x0 / 0xb73 - Idx: 0x0
+[buggy] NbChar: 0x4 / 0xb73 - Idx: 0x1
+[buggy] NbChar: 0x5a / 0xb73 - Idx: 0x2
+[buggy] NbChar: 0xa4 / 0xb73 - Idx: 0x3
+[buggy] NbChar: 0xee / 0xb73 - Idx: 0x4
+[...]
+[buggy] NbChar: 0xb73 / 0xb73 - Idx: 0x3c
+[buggy] mov [0xb031d30 + 0x2d0], 0xb73
 
-    eax=000000b4 ebx=12dfed04 ecx=0b031d30 edx=00000b73 esi=00188694 edi=005d203c
-    eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-    ollydbg!Findfreehardbreakslot+0x21d9:
-    004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
+eax=000000b4 ebx=12dfed04 ecx=0b031d30 edx=00000b73 esi=00188694 edi=005d203c
+eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+ollydbg!Findfreehardbreakslot+0x21d9:
+004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
 </code></pre></div>
 
 

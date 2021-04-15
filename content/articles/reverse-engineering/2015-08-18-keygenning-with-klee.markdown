@@ -33,31 +33,31 @@ Let me skip the first part, since it is not very interesting. You can find many 
 When I collected the most interesting functions, I tried to understand the high level flow and the simpler functions. Here are the main variables and types used in the validation process. As a note for the reader: most of them have been purged of uninteresting details, for the sake of simplicity.
 
 ```C
-    enum {
-        ERROR,
-        STANDARD,
-        PRO
-    } license_type = ERROR;
+enum {
+    ERROR,
+    STANDARD,
+    PRO
+} license_type = ERROR;
 ```
 
 Here we have a global variable providing the type of the license, used to enable and disable features of the application.
 
 ```C
-    enum result_t {
-        INVALID,
-        VALID,
-        VALID_IF_LAST_VERSION
-    };
+enum result_t {
+    INVALID,
+    VALID,
+    VALID_IF_LAST_VERSION
+};
 ```
 
 This is a convenient `enum` used as a result for the validation. `INVALID` and `VALID` values are pretty self-explanatory.  `VALID_IF_LAST_VERSION` tells that this registration is valid only if the current software version is the last available. The reasons for this strange possibility will be clear shortly.
 
 ```C
-    #define HEADER_SIZE 8192
-    struct {
-        int header[HEADER_SIZE];
-        int data[1000000];
-    } mail_digest_table;
+#define HEADER_SIZE 8192
+struct {
+    int header[HEADER_SIZE];
+    int data[1000000];
+} mail_digest_table;
 ```
 
 This is a data structure, containing digests of mail addresses of known registered users. This is a pretty big file embedded in the executable itself. During startup, a resource is extracted in a temporary file and its content copied into this struct. Each element of the `header` vector is an offset pointing inside the `data` vector.
@@ -65,28 +65,28 @@ This is a data structure, containing digests of mail addresses of known register
 Here we have a pseudo-C code for the registration check, that uses data types and variables explained above:
 
 ```C
-    enum result_t check_registration(int serial, int customer_num, const char* mail) {
-        // validate serial number
-        license_type = get_license_type(serial);
-        if (license_type == ERROR)
-            return INVALID;
-        
-        // validate customer number
-        int expected_customer = compute_customer_number(serial, mail);
-        if (expected_customer != customer_num)
-            return INVALID;
-        
-        // validate w.r.t. known registrations
-        int index = get_index_in_mail_table(serial);
-        if (index > HEADER_SIZE)
-            return VALID_IF_LAST_VERSION;
-        int mail_digest = compute_mail_digest(mail);
-        for (int i = 0; i < 3; ++i) {
-            if (mail_digest_table[index + i] == mail_digest)
-                return VALID;
-        }
+enum result_t check_registration(int serial, int customer_num, const char* mail) {
+    // validate serial number
+    license_type = get_license_type(serial);
+    if (license_type == ERROR)
         return INVALID;
+    
+    // validate customer number
+    int expected_customer = compute_customer_number(serial, mail);
+    if (expected_customer != customer_num)
+        return INVALID;
+    
+    // validate w.r.t. known registrations
+    int index = get_index_in_mail_table(serial);
+    if (index > HEADER_SIZE)
+        return VALID_IF_LAST_VERSION;
+    int mail_digest = compute_mail_digest(mail);
+    for (int i = 0; i < 3; ++i) {
+        if (mail_digest_table[index + i] == mail_digest)
+            return VALID;
     }
+    return INVALID;
+}
 ```
 
 The validation is divided in three main parts:
@@ -98,31 +98,31 @@ The validation is divided in three main parts:
 The last point is a little bit unusual. Let me restate it in this way: whenever a customer buys the software, the customer table gets updated with its data and become available in the *next* version of the software (because it is embedded in the binary and not downloaded trough the internet). This explains the `VALID_IF_LAST_VERSION` check: if you buy the software today, the current version does not contain your data. You are still allowed to get a "pro" version until a new version is released. In that moment you are forced to update to that new version, so the software can verify your registration with the updated table. Here is a pseudo-code of that check:
 
 ```C
-    switch (check_registration(serial, customer, mail)) {
-    case VALID:
-        // the registration is OK! activate functionalities
-        activate_pro_functionality();
-        break;
-    case VALID_IF_LAST_VERSION:
-        {
-            // check if the current version is the last, by
-            // using the internet.
-            int current_version = get_current_version();
-            int last_version = get_last_version();
-            if (current_version == last_version)
-                // OK for now: a new version is not available
-                activate_pro_functionality();
-            else
-                // else, force the user to download the new version
-                // before proceed
-                ask_download();
-        }
-        break;
-    case INVALID:
-        // registration is not valid
-        handle_invalid_registration();
-        break;
+switch (check_registration(serial, customer, mail)) {
+case VALID:
+    // the registration is OK! activate functionalities
+    activate_pro_functionality();
+    break;
+case VALID_IF_LAST_VERSION:
+    {
+        // check if the current version is the last, by
+        // using the internet.
+        int current_version = get_current_version();
+        int last_version = get_last_version();
+        if (current_version == last_version)
+            // OK for now: a new version is not available
+            activate_pro_functionality();
+        else
+            // else, force the user to download the new version
+            // before proceed
+            ask_download();
     }
+    break;
+case INVALID:
+    // registration is not valid
+    handle_invalid_registration();
+    break;
+}
 ```
 
 The version check is done by making an HTTP request to a specific page that returns a page having only the last version number of the software. Don't ask me why the protection is not completely server side but involves static tables, version checks and things like that. I don't know!
@@ -134,11 +134,11 @@ Symbolic execution is a way to execute programs using symbolic variables instead
 execute. For example:
 
 ```C
-    int v1 = SymVar_1, v2 = SymVar_2; // symbolic variables
-    if (v1 > 0)
-        v2 = 0;
-    if (v2 == 0 && v1 <= 0)
-       error();
+int v1 = SymVar_1, v2 = SymVar_2; // symbolic variables
+if (v1 > 0)
+    v2 = 0;
+if (v2 == 0 && v1 <= 0)
+    error();
 ```
 
 We want to check if `error` is reachable, by using symbolic variables `SymVar_1` and `SymVar_2`, assigned to the program's variables `v1` and `v2`. In line 2 we have the condition `v1 > 0` and so, the symbolic engine adds a constraint `SymVar_1 > 0` for the *true branch* or conversely `SymVar_1 <= 0` for the *false branch*. It then continues the execution trying with the first constraint. Whenever a new path condition is reached, new constraints are added to the symbolic state, until that condition is no more satisfiable. In that case, the engine backtracks and replaces some constraints with their negation, in order to reach other code paths. The execution engine tries to cover all code paths, by solving those constraints and their negations. For each portion of the code reached, the symbolic engine outputs a test case covering that part of the program, providing concrete values for the input variables. In the particular example given, the engine continues the execution, and finds the condition `v2 == 0 && v1 <= 0` at line 4. The path formula becomes so: `SymVar_1 > 0 && (SymVar_2 == 0 && SymVar_1 <= 0)`, that is not satisfiable. The symbolic engine provides then values for the variables that satisfies the previous formula (`SymVar_1 > 0`). For example `SymVar_1 = 1` and some random value for `SymVar_2`. The engine then backtrack to the previous branch and uses the negation of the constraint, that is `SymVar_1 <= 0`. It then adds the negation of the current constraint to cover the false branch, obtaining `SymVar_1 <= 0 && (SymVar_2 != 0 || SymVar_1 > 0)`. This is satisfiable with `SymVar_1 = -1` and `SymVar_2 = 0`. This concludes the analysis of the program paths, and our symbolic execution engine can output the following test cases:
@@ -173,79 +173,79 @@ Weaknesses:
 KLEE is a great example of a symbolic execution engine. It operates on [LLVM](http://llvm.org/) byte code, and it is used for software verification purposes. KLEE is capable to automatically generate test cases achieving high code coverage. KLEE is also able to find memory errors such as out of bound array accesses and many other common errors. To do that, it needs an LLVM byte code version of the program, symbolic variables and (optionally) assertions. I have also prepared a [Docker image](https://registry.hub.docker.com/u/mbrt/klee/) with `clang` and `klee` already configured and ready to use. So, you have no excuses to not try it out! Take this example function:
 
 ```C
-    #define FALSE 0
-    #define TRUE 1
-    typedef int BOOL;
-    
-    BOOL check_arg(int a) {
-        if (a > 10)
-            return FALSE;
-        else if (a <= 10)
-            return TRUE;
-        return FALSE; // not reachable
-    }
+#define FALSE 0
+#define TRUE 1
+typedef int BOOL;
+
+BOOL check_arg(int a) {
+    if (a > 10)
+        return FALSE;
+    else if (a <= 10)
+        return TRUE;
+    return FALSE; // not reachable
+}
 ```
 
 This is actually a silly example, I know, but let's pretend to verify this function with this main:
 
 ```C
-    #include <assert.h>
-    #include <klee/klee.h>
-    
-    int main() {
-        int input;
-        klee_make_symbolic(&input, sizeof(int), "input");
-        return check_arg(input);
-    }
+#include <assert.h>
+#include <klee/klee.h>
+
+int main() {
+    int input;
+    klee_make_symbolic(&input, sizeof(int), "input");
+    return check_arg(input);
+}
 ```
 
 In `main` we have a symbolic variable used as input for the function to be tested. We can also modify it to include an assertion:
 
 ```C
-    BOOL check_arg(int a) {
-        if (a > 10)
-            return FALSE;
-        else if (a <= 10)
-            return TRUE;
-        klee_assert(FALSE);
-        return FALSE; // not reachable
-    }
+BOOL check_arg(int a) {
+    if (a > 10)
+        return FALSE;
+    else if (a <= 10)
+        return TRUE;
+    klee_assert(FALSE);
+    return FALSE; // not reachable
+}
 ```
 
 We can now use `clang` to compile the program to the LLVM byte code and run the test generation with the `klee` command:
 
 ```text
-    clang -emit-llvm -g -o test.ll -c test.c
-    klee test.ll
+clang -emit-llvm -g -o test.ll -c test.c
+klee test.ll
 ```
 
 We get this output:
 
 ```text
-    KLEE: output directory is "/work/klee-out-0"
-    
-    KLEE: done: total instructions = 26
-    KLEE: done: completed paths = 2
-    KLEE: done: generated tests = 2
+KLEE: output directory is "/work/klee-out-0"
+
+KLEE: done: total instructions = 26
+KLEE: done: completed paths = 2
+KLEE: done: generated tests = 2
 ```
 
 KLEE will generate test cases for the `input` variable, trying to cover all the possible execution paths and to make the provided assertions to fail (if any given). In this case we have two execution paths and two generated test cases, covering them. Test cases are in the output directory (in this case `/work/klee-out-0`). The soft link `klee-last` is also provided for convenience, pointing to the last output directory. Inside that directory a bunch of files were created, including the two test cases named `test000001.ktest` and `test000002.ktest`. These are binary files, which can be examined with the `ktest-tool` utility. Let's try it:
 
 ```text
-    $ ktest-tool --write-ints klee-last/test000001.ktest 
-    ktest file : 'klee-last/test000001.ktest'
-    args       : ['test.ll']
-    num objects: 1
-    object    0: name: 'input'
-    object    0: size: 4
-    object    0: data: 2147483647
+$ ktest-tool --write-ints klee-last/test000001.ktest 
+ktest file : 'klee-last/test000001.ktest'
+args       : ['test.ll']
+num objects: 1
+object    0: name: 'input'
+object    0: size: 4
+object    0: data: 2147483647
 ```
 And the second one:
 
 ```text
-    $ ktest-tool --write-ints klee-last/test000002.ktest 
-    ...
-    object    0: data: 0
+$ ktest-tool --write-ints klee-last/test000002.ktest 
+...
+object    0: data: 0
 ```
 
 In these test files, KLEE reports the command line arguments, the symbolic objects along with their size and the value provided for the test. To cover the whole program, we need `input` variable to get a value greater than 10 and one below or equal. You can see that this is the case: in the first test case the value 2147483647 is used, covering the first branch, while 0 is provided for the second, covering the other branch.
@@ -253,45 +253,45 @@ In these test files, KLEE reports the command line arguments, the symbolic objec
 So far, so good. But what if we change the function in this way?
 
 ```C
-    BOOL check_arg(int a) {
-        if (a > 10)
-            return FALSE;
-        else if (a < 10)    // instead of <=
-            return TRUE;
-        klee_assert(FALSE);
-        return FALSE;       // now reachable
-    }
+BOOL check_arg(int a) {
+    if (a > 10)
+        return FALSE;
+    else if (a < 10)    // instead of <=
+        return TRUE;
+    klee_assert(FALSE);
+    return FALSE;       // now reachable
+}
 ```
 
 We get this output:
 
 ```text
-    $ klee test.ll 
-    KLEE: output directory is "/work/klee-out-2"
-    KLEE: ERROR: /work/test.c:9: ASSERTION FAIL: 0
-    KLEE: NOTE: now ignoring this error at this location
-    
-    KLEE: done: total instructions = 27
-    KLEE: done: completed paths = 3
-    KLEE: done: generated tests = 3
+$ klee test.ll 
+KLEE: output directory is "/work/klee-out-2"
+KLEE: ERROR: /work/test.c:9: ASSERTION FAIL: 0
+KLEE: NOTE: now ignoring this error at this location
+
+KLEE: done: total instructions = 27
+KLEE: done: completed paths = 3
+KLEE: done: generated tests = 3
 ```
 
 And this is the `klee-last` directory contents:
 
 ```text
-    $ ls klee-last/
-    assembly.ll   run.istats        test000002.assert.err  test000003.ktest
-    info          run.stats         test000002.ktest       warnings.txt
-    messages.txt  test000001.ktest  test000002.pc
+$ ls klee-last/
+assembly.ll   run.istats        test000002.assert.err  test000003.ktest
+info          run.stats         test000002.ktest       warnings.txt
+messages.txt  test000001.ktest  test000002.pc
 ```
 
 Note the `test000002.assert.err` file. If we examine its corresponding test file, we have:
 
 ```text
-    $ ktest-tool --write-ints klee-last/test000002.ktest 
-    ktest file : 'klee-last/test000002.ktest'
-    ...
-    object    0: data: 10
+$ ktest-tool --write-ints klee-last/test000002.ktest 
+ktest file : 'klee-last/test000002.ktest'
+...
+object    0: data: 10
 ```
 
 As we had expected, the assertion fails when `input` value is 10. So, as we now have three execution paths, we also have three test cases, and the whole program gets covered. KLEE provides also the possibility to replay the tests with the real program, but we are not interested in it now. You can see a usage example in this [KLEE tutorial](http://klee.github.io/tutorials/testing-function/#replaying-a-test-case).
@@ -307,59 +307,59 @@ As we have a powerful tool to find execution paths, we can use it to find the pa
 For a concrete example, let's suppose we have this function:
 
 ```C
-    int magic_computation(int input) {
-        for (int i = 0; i < 32; ++i)
-            input ^= 1 << i;
-        return input;
-    }
+int magic_computation(int input) {
+    for (int i = 0; i < 32; ++i)
+        input ^= 1 << i;
+    return input;
+}
 ```
 And we want to know for what input we get the output 253. A main that tests this could be:
 
 ```C
-    int main(int argc, char* argv[]) {
-        int input = atoi(argv[1]);
-        int output = magic_computation(input);
-        if (output == 253)
-            printf("You win!\n");
-        else
-            printf("You lose\n");
-        return 0;
-    }
+int main(int argc, char* argv[]) {
+    int input = atoi(argv[1]);
+    int output = magic_computation(input);
+    if (output == 253)
+        printf("You win!\n");
+    else
+        printf("You lose\n");
+    return 0;
+}
 ```
 
 KLEE can resolve this problem for us, if we provide symbolic inputs and actually an assert to trigger:
 
 ```C
-    int main(int argc, char* argv[]) {
-        int input, result;
-        klee_make_symbolic(&input, sizeof(int), "input");
-        result = magic_computation(input);
-        if (result == 253)
-            klee_assert(0);
-        return 0;
-    }
+int main(int argc, char* argv[]) {
+    int input, result;
+    klee_make_symbolic(&input, sizeof(int), "input");
+    result = magic_computation(input);
+    if (result == 253)
+        klee_assert(0);
+    return 0;
+}
 ```
 
 Run KLEE and print the result:
 
 ```text
-    $ clang -emit-llvm -g -o magic.ll -c magic.c
-    $ klee magic.ll
-    $ ktest-tool --write-ints klee-last/test000001.ktest
-    ktest file : 'klee-last/test000001.ktest'
-    args       : ['magic.ll']
-    num objects: 1
-    object    0: name: 'input'
-    object    0: size: 4
-    object    0: data: -254
+$ clang -emit-llvm -g -o magic.ll -c magic.c
+$ klee magic.ll
+$ ktest-tool --write-ints klee-last/test000001.ktest
+ktest file : 'klee-last/test000001.ktest'
+args       : ['magic.ll']
+num objects: 1
+object    0: name: 'input'
+object    0: size: 4
+object    0: data: -254
 ```
 
 The answer is -254. Let's test it:
 
 ```text
-    $ gcc magic.c
-    $ ./a.out -254
-    You win!
+$ gcc magic.c
+$ ./a.out -254
+You win!
 ```
 
 Yes!
@@ -369,23 +369,23 @@ Yes!
 Not all the functions are so simple. At least we could have calls to the C standard library such as `strlen`, `atoi`, and such. We cannot link our test code with the system available C library, as it is not inspectable by KLEE. For example:
 
 ```C
-    int main(int argc, char* argv[]) {
-        int input = atoi(argv[1]);
-        return input;
-    }
+int main(int argc, char* argv[]) {
+    int input = atoi(argv[1]);
+    return input;
+}
 ```
 
 If we run it with KLEE we get this error:
 
 ```text
-    $ clang -emit-llvm -g -o atoi.ll -c atoi.c
-    $ klee atoi.ll 
-    KLEE: output directory is "/work/klee-out-4"
-    KLEE: WARNING: undefined reference to function: atoi
-    KLEE: WARNING ONCE: calling external: atoi(0)
-    KLEE: ERROR: /work/atoi.c:5: failed external call: atoi
-    KLEE: NOTE: now ignoring this error at this location
-    ...
+$ clang -emit-llvm -g -o atoi.ll -c atoi.c
+$ klee atoi.ll 
+KLEE: output directory is "/work/klee-out-4"
+KLEE: WARNING: undefined reference to function: atoi
+KLEE: WARNING ONCE: calling external: atoi(0)
+KLEE: ERROR: /work/atoi.c:5: failed external call: atoi
+KLEE: NOTE: now ignoring this error at this location
+...
 ```
 
 To fix this we can use the KLEE uClibc and POSIX runtime. Taken from the help:
@@ -395,17 +395,17 @@ To fix this we can use the KLEE uClibc and POSIX runtime. Taken from the help:
 Let's try to use these facilities to test our `atoi` function:
 
 ```text
-    $ klee --optimize --libc=uclibc --posix-runtime atoi.ll --sym-args 0 1 3
-    KLEE: NOTE: Using klee-uclibc : /usr/local/lib/klee/runtime/klee-uclibc.bca
-    KLEE: NOTE: Using model: /usr/local/lib/klee/runtime/libkleeRuntimePOSIX.bca
-    KLEE: output directory is "/work/klee-out-5"
-    KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 70495424)
-    KLEE: ERROR: /tmp/klee-uclibc/libc/stdlib/stdlib.c:526: memory error: out of bound pointer
-    KLEE: NOTE: now ignoring this error at this location
-    
-    KLEE: done: total instructions = 5756
-    KLEE: done: completed paths = 68
-    KLEE: done: generated tests = 68
+$ klee --optimize --libc=uclibc --posix-runtime atoi.ll --sym-args 0 1 3
+KLEE: NOTE: Using klee-uclibc : /usr/local/lib/klee/runtime/klee-uclibc.bca
+KLEE: NOTE: Using model: /usr/local/lib/klee/runtime/libkleeRuntimePOSIX.bca
+KLEE: output directory is "/work/klee-out-5"
+KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 70495424)
+KLEE: ERROR: /tmp/klee-uclibc/libc/stdlib/stdlib.c:526: memory error: out of bound pointer
+KLEE: NOTE: now ignoring this error at this location
+
+KLEE: done: total instructions = 5756
+KLEE: done: completed paths = 68
+KLEE: done: generated tests = 68
 ```
 
 And KLEE founds the possible out of bound access in our program. Because you know, our program is bugged :) Before to jump and fix our code, let me briefly explain what these new flags did:
@@ -419,49 +419,49 @@ Note that adding `atoi` function to our code, adds 68 execution paths to the pro
 Let now make the program safe by adding a check to the command line argument length. Let's also add an assertion, because it is fun :)
 
 ```C
-    #include <stdlib.h>
-    #include <assert.h>
-    #include <klee/klee.h>
-    
-    int main(int argc, char* argv[]) {
-        int result = argc > 1 ? atoi(argv[1]) : 0;
-        if (result == 42)
-            klee_assert(0);
-        return result;
-    }
+#include <stdlib.h>
+#include <assert.h>
+#include <klee/klee.h>
+
+int main(int argc, char* argv[]) {
+    int result = argc > 1 ? atoi(argv[1]) : 0;
+    if (result == 42)
+        klee_assert(0);
+    return result;
+}
 ```
 
 We could also have written `klee_assert(result != 42)`, and get the same result. No matter what solution we adopt, now we have to run KLEE as before:
 
 ```text
-    $ clang -emit-llvm -g -o atoi2.ll -c atoi2.c
-    $ klee --optimize --libc=uclibc --posix-runtime atoi2.ll --sym-args 0 1 3
-    KLEE: NOTE: Using klee-uclibc : /usr/local/lib/klee/runtime/klee-uclibc.bca
-    KLEE: NOTE: Using model: /usr/local/lib/klee/runtime/libkleeRuntimePOSIX.bca
-    KLEE: output directory is "/work/klee-out-6"
-    KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 53243904)
-    KLEE: ERROR: /work/atoi2.c:8: ASSERTION FAIL: 0
-    KLEE: NOTE: now ignoring this error at this location
-    
-    KLEE: done: total instructions = 5962
-    KLEE: done: completed paths = 73
-    KLEE: done: generated tests = 69
+$ clang -emit-llvm -g -o atoi2.ll -c atoi2.c
+$ klee --optimize --libc=uclibc --posix-runtime atoi2.ll --sym-args 0 1 3
+KLEE: NOTE: Using klee-uclibc : /usr/local/lib/klee/runtime/klee-uclibc.bca
+KLEE: NOTE: Using model: /usr/local/lib/klee/runtime/libkleeRuntimePOSIX.bca
+KLEE: output directory is "/work/klee-out-6"
+KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 53243904)
+KLEE: ERROR: /work/atoi2.c:8: ASSERTION FAIL: 0
+KLEE: NOTE: now ignoring this error at this location
+
+KLEE: done: total instructions = 5962
+KLEE: done: completed paths = 73
+KLEE: done: generated tests = 69
 ```
 
 Here we go! We have fixed our bug. KLEE is also able to find an input to make the assertion fail:
 
 ```text
-    $ ls klee-last/ | grep err
-    test000016.assert.err
-    $ ktest-tool klee-last/test000016.ktest
-    ktest file : 'klee-last/test000016.ktest'
-    args       : ['atoi.ll', '--sym-args', '0', '1', '3']
-    num objects: 3
-    ...
-    object    1: name: 'arg0'
-    object    1: size: 4
-    object    1: data: '+42\x00'
-    ...
+$ ls klee-last/ | grep err
+test000016.assert.err
+$ ktest-tool klee-last/test000016.ktest
+ktest file : 'klee-last/test000016.ktest'
+args       : ['atoi.ll', '--sym-args', '0', '1', '3']
+num objects: 3
+...
+object    1: name: 'arg0'
+object    1: size: 4
+object    1: data: '+42\x00'
+...
 ```
 
 And the answer is the string "+42"... as we know.
@@ -480,28 +480,28 @@ Here is our plan:
 This is a possibility:
 
 ```C
-    // copy and paste of all the registration code
-    enum {
-        ERROR,
-        STANDARD,
-        PRO
-    } license_type = ERROR;
-    // ...
-    enum result_t check_registration(int serial, int customer_num, const char* mail);
-    // ...
-    
-    int main(int argc, char* argv[]) {
-        int serial, customer;
-        char mail[10];
-        enum result_t result;
-        klee_make_symbolic(&serial, sizeof(serial), "serial");
-        klee_make_symbolic(&customer, sizeof(customer), "customer");
-        klee_make_symbolic(&mail, sizeof(mail), "mail");
-    
-        valid = check_registration(serial, customer, mail);
-        valid &= license_type == PRO;
-        klee_assert(!valid);
-    }
+// copy and paste of all the registration code
+enum {
+    ERROR,
+    STANDARD,
+    PRO
+} license_type = ERROR;
+// ...
+enum result_t check_registration(int serial, int customer_num, const char* mail);
+// ...
+
+int main(int argc, char* argv[]) {
+    int serial, customer;
+    char mail[10];
+    enum result_t result;
+    klee_make_symbolic(&serial, sizeof(serial), "serial");
+    klee_make_symbolic(&customer, sizeof(customer), "customer");
+    klee_make_symbolic(&mail, sizeof(mail), "mail");
+
+    valid = check_registration(serial, customer, mail);
+    valid &= license_type == PRO;
+    klee_assert(!valid);
+}
 ```
 
 Super simple. Copy and paste everything, make the inputs symbolic and assert a certain result (negated, of course).
@@ -523,16 +523,16 @@ As you can imagine, the complete call graph becomes really big in the end.
 In the cleanup process I have done, a big bunch of functions removed is the one extracting and loading the table of valid mail addresses. To do this I stepped with the debugger until the table was completely loaded and then dumped the memory of the process. Then I've used a nice "export to C array" functionality of [HEX Workshop](http://www.hexworkshop.com/), to export the actual piece of memory of the mail table to actual code:
 
 ```C
-    uint16_t hashHeader[8192] =
-    {
-        0x0, 0x28, 0x12, 0x24, 0x2d, 0x2b, 0x2e, 0x23, 0x2b, 0x26,
-        // ...
-    };
-    int16_t hashData[1000000] =
-    {
-        15306, 18899, 18957, -24162, 63045, -26834, -21, -39653, 271441, -5588,
-        // ...
-    };
+uint16_t hashHeader[8192] =
+{
+    0x0, 0x28, 0x12, 0x24, 0x2d, 0x2b, 0x2e, 0x23, 0x2b, 0x26,
+    // ...
+};
+int16_t hashData[1000000] =
+{
+    15306, 18899, 18957, -24162, 63045, -26834, -21, -39653, 271441, -5588,
+    // ...
+};
 ```
 
 But, cutting out code is not the only problem I've found in this step. External constraints must be carefully considered. For example the [time](http://www.cplusplus.com/reference/ctime/time/) function can be handled by KLEE itself. KLEE tries to generate useful values even from that function. This is good if we want to test bugs related to a strange current time, but in our case, since the code will be executed by the program *at a particular time*, we are only interested in the value provided at that time. We don't want KLEE traits this function as symbolic; we only want the right time value. To solve that problem, I have replaced all the calls to `time` to a `my_time` function, returning a fixed value, defined in the source code.
@@ -542,14 +542,14 @@ Another problem comes from the extraction of the functions from their outer cont
 The solution to this latter problem is to provide those constraints to KLEE:
 
 ```C
-    char mail[10];
-    char c;
-    klee_make_symbolic(mail, sizeof(mail), "mail");
-    for (i = 0; i < sizeof(mail) - 1; ++i) {
-        c = mail[i];
-        klee_assume( (c >= '0' & c <= '9') | (c >= 'a' & c <= 'z') | c == '\0' );
-    }
-    klee_assume(mail[sizeof(mail) - 1] == '\0');
+char mail[10];
+char c;
+klee_make_symbolic(mail, sizeof(mail), "mail");
+for (i = 0; i < sizeof(mail) - 1; ++i) {
+    c = mail[i];
+    klee_assume( (c >= '0' & c <= '9') | (c >= 'a' & c <= 'z') | c == '\0' );
+}
+klee_assume(mail[sizeof(mail) - 1] == '\0');
 ```
 
 Logical operators inside `klee_assume` function are bitwise and not logical (i.e. `&` and `|` instead of `&&` and `||`) because they are simpler, since they do not add the extra branches required by lazy operators.
@@ -559,8 +559,8 @@ Logical operators inside `klee_assume` function are bitwise and not logical (i.e
 Having extracted all the needed functions and global data and solved all the issues with the code, we can now move on and run KLEE with our brand new test program:
 
 ```text
-    $ clang -emit-llvm -g -o attempt1.ll -c attempt1.c
-    $ klee --optimize --libc=uclibc --posix-runtime attempt1.ll
+$ clang -emit-llvm -g -o attempt1.ll -c attempt1.c
+$ klee --optimize --libc=uclibc --posix-runtime attempt1.ll
 ```
 
 And then wait for an answer.
@@ -588,47 +588,47 @@ Can we split them in different KLEE runs?
 Clearly the first one can be written as:
 
 ```C
-    #include <assert.h>
-    #include <klee/klee.h>
-    // include all the functions extracted from the program
-    #include "extracted_code.c"
-    
-    enum {
-        ERROR,
-        STANDARD,
-        PRO
-    } license_type = ERROR;
-    
-    int main(int argc, char* argv[]) {
-        int serial, valid;
-        klee_make_symbolic(&serial, sizeof(serial), "serial");
-        license_type = get_license_type(serial);
-        valid = (license_type == PRO);
-        klee_assert(!valid);
-    }
+#include <assert.h>
+#include <klee/klee.h>
+// include all the functions extracted from the program
+#include "extracted_code.c"
+
+enum {
+    ERROR,
+    STANDARD,
+    PRO
+} license_type = ERROR;
+
+int main(int argc, char* argv[]) {
+    int serial, valid;
+    klee_make_symbolic(&serial, sizeof(serial), "serial");
+    license_type = get_license_type(serial);
+    valid = (license_type == PRO);
+    klee_assert(!valid);
+}
 ```
 
 And let's see if KLEE can work with this single function:
 
 ```text
-    $ clang -emit-llvm -g -o serial_type.ll -c serial_type.c
-    $ klee --optimize --libc=uclibc --posix-runtime serial_type.ll
-    ...
-    KLEE: ERROR: /work/symbolic/serial_type.c:17: ASSERTION FAIL: !valid
-    ...
-    
-    $ ls klee-last/ | grep err
-    test000019.assert.err
-    $ ktest-tool --write-ints klee-last/test000019.ktest 
-    ktest file : 'klee-last/test000019.ktest'
-    args       : ['serial_type.ll']
-    num objects: 2
-    object    0: name: 'model_version'
-    object    0: size: 4
-    object    0: data: 1
-    object    1: name: 'serial'
-    object    1: size: 4
-    object    1: data: 102690141
+$ clang -emit-llvm -g -o serial_type.ll -c serial_type.c
+$ klee --optimize --libc=uclibc --posix-runtime serial_type.ll
+...
+KLEE: ERROR: /work/symbolic/serial_type.c:17: ASSERTION FAIL: !valid
+...
+
+$ ls klee-last/ | grep err
+test000019.assert.err
+$ ktest-tool --write-ints klee-last/test000019.ktest 
+ktest file : 'klee-last/test000019.ktest'
+args       : ['serial_type.ll']
+num objects: 2
+object    0: name: 'model_version'
+object    0: size: 4
+object    0: data: 1
+object    1: name: 'serial'
+object    1: size: 4
+object    1: data: 102690141
 ```
 
 Yes! we now have a serial number that is considered PRO by our target application.
@@ -636,71 +636,71 @@ Yes! we now have a serial number that is considered PRO by our target applicatio
 The third condition is less simple: we have a table in which are stored values matching mail addresses with serial numbers. The high level check is this:
 
 ```C
-    int check(int serial, char* mail) {
-        int index = get_index_in_mail_table(serial);
-        if (index > HEADER_SIZE)
-            return VALID_IF_LAST_VERSION;
-        int mail_digest = compute_mail_digest(mail);
-        for (int i = 0; i < 3; ++i) {
-            if (mail_digest_table[index + i] == mail_digest)
-                return VALID;
-        }
-        return INVALID;
+int check(int serial, char* mail) {
+    int index = get_index_in_mail_table(serial);
+    if (index > HEADER_SIZE)
+        return VALID_IF_LAST_VERSION;
+    int mail_digest = compute_mail_digest(mail);
+    for (int i = 0; i < 3; ++i) {
+        if (mail_digest_table[index + i] == mail_digest)
+            return VALID;
     }
+    return INVALID;
+}
 ```
 
 This piece of code imposes constraints on our mail address and serial number, but not on the customer number. We can rewrite the checks in two parts, the one checking the serial, and the one checking the mail address:
 
 ```C
-    int check_serial(int serial, char* mail) {
-        int index = get_index_in_mail_table(serial);
-        int valid = index <= HEADER_SIZE;
+int check_serial(int serial, char* mail) {
+    int index = get_index_in_mail_table(serial);
+    int valid = index <= HEADER_SIZE;
+}
+
+int check_mail(char* mail, int index) {
+    int mail_digest = compute_mail_digest(mail);
+    for (int i = 0; i < 3; ++i) {
+        if (mail_digest_table[index + i] == mail_digest)
+            return 1;
     }
-    
-    int check_mail(char* mail, int index) {
-        int mail_digest = compute_mail_digest(mail);
-        for (int i = 0; i < 3; ++i) {
-            if (mail_digest_table[index + i] == mail_digest)
-                return 1;
-        }
-        return 0;
-    }
+    return 0;
+}
 ```
 
 The `check_mail` function needs the index in the table as secondary input, so it is not completely independent from the other check function. However, `check_mail` can be incorporated by our successful test program used before:
 
 ```C
-    // ...
-    
-    int main(int argc, char* argv[]) {
-        int serial, valid, index;
-        klee_make_symbolic(&serial, sizeof(serial), "serial");
-        license_type = get_license_type(serial);
-        valid = (license_type == PRO);
-        // added just now
-        index = get_index_in_mail_table(serial);
-        valid &= index <= HEADER_SIZE;
-    
-        klee_assert(!valid);
-    }
+// ...
+
+int main(int argc, char* argv[]) {
+    int serial, valid, index;
+    klee_make_symbolic(&serial, sizeof(serial), "serial");
+    license_type = get_license_type(serial);
+    valid = (license_type == PRO);
+    // added just now
+    index = get_index_in_mail_table(serial);
+    valid &= index <= HEADER_SIZE;
+
+    klee_assert(!valid);
+}
 ```
 
 And if we run it, we get our revised serial number, that satisfies the additional constraint:
 
 ```text
-    $ clang -emit-llvm -g -o serial.ll -c serial.c
-    $ klee --optimize --libc=uclibc --posix-runtime serial.ll
-    ...
-    KLEE: ERROR: /work/symbolic/serial.c:21: ASSERTION FAIL: !valid
-    ...
-    
-    $ ls klee-last/ | grep err
-    test000032.assert.err
-    $ ktest-tool --write-ints klee-last/test000019.ktest 
-    ...
-    object    1: name: 'serial'
-    object    1: data: 120300641
-    ...
+$ clang -emit-llvm -g -o serial.ll -c serial.c
+$ klee --optimize --libc=uclibc --posix-runtime serial.ll
+...
+KLEE: ERROR: /work/symbolic/serial.c:21: ASSERTION FAIL: !valid
+...
+
+$ ls klee-last/ | grep err
+test000032.assert.err
+$ ktest-tool --write-ints klee-last/test000019.ktest 
+...
+object    1: name: 'serial'
+object    1: data: 120300641
+...
 ```
 
 For those who are wondering if `get_index_in_mail_table` could return a negative index, and so possibly crash the program I can answer that they are not alone. [@0vercl0k](https://twitter.com/0vercl0k) asked me the same question, and unfortunately I have to answer a no. I tried, because I am a lazy ass, by changing the assertion above to `klee_assert(index < 0)`, but it was not triggered by KLEE. I then manually checked the function's code and I saw a beautiful `if (result < 0) result = 0`. So, the answer is no! You have not found a vulnerability in the application :(
@@ -708,55 +708,55 @@ For those who are wondering if `get_index_in_mail_table` could return a negative
 For the `check_mail` solution we have to provide the index of a serial, but wait... we have it! We have now a serial, so, computing the index of the table is simple as executing this:
 
 ```C
-    int index = get_index_in_mail_table(serial);
+int index = get_index_in_mail_table(serial);
 ```
 
 Therefore, given a serial number, we can solve the mail address in this way:
 
 ```C
-    // ...
-    
-    int main(int argc, char* argv[]) {
-        int serial, valid, index;
-        char mail[10];
-    
-        // mail is symbolic
-        klee_make_symbolic(mail, sizeof(mail), "mail");
-        for (i = 0; i < sizeof(mail) - 1; ++i)
-        {
-            c = mail[i];
-            klee_assume( (c >= '0' & c <= '9') | (c >= 'a' & c <= 'z') | c == '\0' );
-        }
-        klee_assume(mail[sizeof(mail) - 1] == '\0');
-    
-        // get serial as external input
-        if (argc < 2)
-            return 1;
-        serial = atoi(argv[1]);
-    
-        // compute index
-        index = get_index_in_mail_table(serial);
-        // check validity
-        valid = check_mail(mail, index);
-        klee_assert(!valid);
+// ...
+
+int main(int argc, char* argv[]) {
+    int serial, valid, index;
+    char mail[10];
+
+    // mail is symbolic
+    klee_make_symbolic(mail, sizeof(mail), "mail");
+    for (i = 0; i < sizeof(mail) - 1; ++i)
+    {
+        c = mail[i];
+        klee_assume( (c >= '0' & c <= '9') | (c >= 'a' & c <= 'z') | c == '\0' );
     }
+    klee_assume(mail[sizeof(mail) - 1] == '\0');
+
+    // get serial as external input
+    if (argc < 2)
+        return 1;
+    serial = atoi(argv[1]);
+
+    // compute index
+    index = get_index_in_mail_table(serial);
+    // check validity
+    valid = check_mail(mail, index);
+    klee_assert(!valid);
+}
 ```
 
 We only have to run KLEE with the additional serial argument, providing the computed one by the previous step.
 
 ```text
-    $ clang -emit-llvm -g -o mail.ll -c mail.c
-    $ klee --optimize --libc=uclibc --posix-runtime mail.ll 120300641
-    ...
-    KLEE: ERROR: /work/symbolic/mail.c:34: ASSERTION FAIL: !valid
-    ...
-    $ ls klee-last/ | grep err
-    test000023.assert.err
-    $ ktest-tool klee-last/test000023.ktest 
-    ...
-    object    1: name: 'mail'
-    object    1: data: 'yrwt\x00\x00\x00\x00\x00\x00'
-    ...
+$ clang -emit-llvm -g -o mail.ll -c mail.c
+$ klee --optimize --libc=uclibc --posix-runtime mail.ll 120300641
+...
+KLEE: ERROR: /work/symbolic/mail.c:34: ASSERTION FAIL: !valid
+...
+$ ls klee-last/ | grep err
+test000023.assert.err
+$ ktest-tool klee-last/test000023.ktest 
+...
+object    1: name: 'mail'
+object    1: data: 'yrwt\x00\x00\x00\x00\x00\x00'
+...
 ```
 
 OK, the mail found by KLEE is "yrwt". This is not a mail, of course, but in the code there is not a proper validation imposing the presence of '@' and '.' chars, so we are fine with it :)
@@ -764,33 +764,33 @@ OK, the mail found by KLEE is "yrwt". This is not a mail, of course, but in the 
 The last piece of the puzzle we need is the customer number. Here is the check:
 
 ```C
-    int expected_customer = compute_customer_number(serial, mail);
-    if (expected_customer != customer_num)
-        return INVALID;
+int expected_customer = compute_customer_number(serial, mail);
+if (expected_customer != customer_num)
+    return INVALID;
 ```
 
 This is simpler than before, since we already have a serial and a mail, so the only thing missing is a customer number matching those. We can compute it directly, even without symbolic execution:
 
 ```C
-    int main(int argc, char* argv[])
-    {
-        if (argc < 3)
-            return 1;
-    
-        int serial = atoi(argv[1]);
-        char* mail = argv[2];
-        int customer_number = compute_customer_number(serial, mail);
-        printf("%d\n", customer_number);
-        return 0;
-    }
+int main(int argc, char* argv[])
+{
+    if (argc < 3)
+        return 1;
+
+    int serial = atoi(argv[1]);
+    char* mail = argv[2];
+    int customer_number = compute_customer_number(serial, mail);
+    printf("%d\n", customer_number);
+    return 0;
+}
 ```
 
 Let's execute it:
 
 ```text
-    $ gcc customer.c customer
-    $ ./customer 120300641 yrwt
-    1175211979
+$ gcc customer.c customer
+$ ./customer 120300641 yrwt
+1175211979
 ```
 
 Yeah! And if we try those numbers and mail address onto the real program, we are now legit and registered users :)
@@ -806,83 +806,83 @@ We have to add constraints to the serial generation, so that every time we can r
 This is the modified version of the serial generation:
 
 ```C
-    int main(int argc, char* argv[]) {
-        int serial, min_index, max_index, valid;
-    
-        // get chunk bounds as external inputs
-        if (argc < 3)
-            return 1;
-        min_index= atoi(argv[1]);
-        max_index= atoi(argv[2]);
-    
-        // check and assert
-        index = get_index_in_mail_table(serial);
-        valid = index >= min_index && index < max_index;
-        klee_assert(!valid);
-        return 0;
-    }
+int main(int argc, char* argv[]) {
+    int serial, min_index, max_index, valid;
+
+    // get chunk bounds as external inputs
+    if (argc < 3)
+        return 1;
+    min_index= atoi(argv[1]);
+    max_index= atoi(argv[2]);
+
+    // check and assert
+    index = get_index_in_mail_table(serial);
+    valid = index >= min_index && index < max_index;
+    klee_assert(!valid);
+    return 0;
+}
 ```
 
 We now need a script that runs KLEE and collect the results for all those chunks. Here it is:
 
 ```bash
-    #!/bin/bash
+#!/bin/bash
+
+MIN_INDEX=0
+MAX_INDEX=8033
+STEP=5
+
+echo "Index;License;Mail;Customer"
+
+for INDEX in $(seq $MIN_INDEX $STEP $MAX_INDEX); do
+    echo -n "$INDEX;"
+
+    CHUNK_MIN=$INDEX
+    CHUNK_MAX=$(( CHUNK_MIN + STEP ))
+    LICENSE=$(./solve.sh serial.ll $CHUNK_MIN $CHUNK_MAX)
+    if [ -z "$LICENSE" ]; then
+        echo ";;"
+        continue
+    fi
+    MAIL_ARRAY=$(./solve.sh mail.ll $LICENSE)
+    if [ -z "$MAIL_ARRAY" ]; then
+        echo ";;"
+        continue
+    fi
+    MAIL=$(sed 's/\\x00//g' <<< $MAIL_ARRAY | sed "s/'//g")
+    CUSTOMER=$(./customer $LICENSE $MAIL)
     
-    MIN_INDEX=0
-    MAX_INDEX=8033
-    STEP=5
-    
-    echo "Index;License;Mail;Customer"
-    
-    for INDEX in $(seq $MIN_INDEX $STEP $MAX_INDEX); do
-        echo -n "$INDEX;"
-    
-        CHUNK_MIN=$INDEX
-        CHUNK_MAX=$(( CHUNK_MIN + STEP ))
-        LICENSE=$(./solve.sh serial.ll $CHUNK_MIN $CHUNK_MAX)
-        if [ -z "$LICENSE" ]; then
-            echo ";;"
-            continue
-        fi
-        MAIL_ARRAY=$(./solve.sh mail.ll $LICENSE)
-        if [ -z "$MAIL_ARRAY" ]; then
-            echo ";;"
-            continue
-        fi
-        MAIL=$(sed 's/\\x00//g' <<< $MAIL_ARRAY | sed "s/'//g")
-        CUSTOMER=$(./customer $LICENSE $MAIL)
-        
-        echo "$LICENSE;$MAIL;$CUSTOMER"
-    done
+    echo "$LICENSE;$MAIL;$CUSTOMER"
+done
 ```
 
 This script uses the `solve.sh` script, that does the actual work and prints the result of KLEE runs:
 
 ```bash
-    #!/bin/bash
-    # do work
-    klee $@ >/dev/null 2>&1
-    # print result
-    ASSERT_FILE=$(ls klee-last | grep .assert.err)
-    TEST_FILE=$(basename klee-last/$ASSERT_FILE .assert.err)
-    OUTPUT=$(ktest-tool --write-ints klee-last/$TEST_FILE.ktest | grep data)
-    RESULT=$(sed 's/.*:.*: //' <<< $OUTPUT)
-    echo $RESULT
-    # cleanup
-    rm -rf $(readlink -f klee-last)
-    rm -f klee-last
+#!/bin/bash
+# do work
+klee $@ >/dev/null 2>&1
+# print result
+ASSERT_FILE=$(ls klee-last | grep .assert.err)
+TEST_FILE=$(basename klee-last/$ASSERT_FILE .assert.err)
+OUTPUT=$(ktest-tool --write-ints klee-last/$TEST_FILE.ktest | grep data)
+RESULT=$(sed 's/.*:.*: //' <<< $OUTPUT)
+echo $RESULT
+# cleanup
+rm -rf $(readlink -f klee-last)
+rm -f klee-last
 ```
 
 Here is the final run:
 
 ```text
-    $ ./keygen_all.sh
-    Index;License;Mail;Customer
-    ...
-    2400;;;
-    2405;115019227;4h79;1162863222
-    2410;112625605;7cxd;554797040
-    ...
+$ ./keygen_all.sh
+Index;License;Mail;Customer
+...
+2400;;;
+2405;115019227;4h79;1162863222
+2410;112625605;7cxd;554797040
+...
 ```
 
 Note that not all the serial numbers are solvable, but we are OK with that. We now have a bunch of solved registrations. We can put them in some simple GUI that exposes to the user one of them randomly.

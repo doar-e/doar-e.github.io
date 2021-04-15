@@ -26,31 +26,31 @@ In this post, I will show you how I've manage to pinpoint where the bug was, usi
 The first thing I did was to launch WinDbg to debug OllyDbg2 to debug my binary (yeah.). Once OllyDbg2 has been started up, I reproduced exactly the same steps as previously to trigger the bug and here is what WinDbg was telling me:
 
 ```text
-    HEAP[ollydbg.exe]: Heap block at 00987AB0 modified at 00987D88 past
-    requested size of 2d0
-    
-    (a60.12ac): Break instruction exception - code 80000003 (first chance)
-    eax=00987ab0 ebx=00987d88 ecx=76f30b42 edx=001898a5 esi=00987ab0 edi=000002d0
-    eip=76f90574 esp=00189aec ebp=00189aec iopl=0         nv up ei pl nz na po nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
-    ntdll!RtlpBreakPointHeap+0x23:
-    76f90574 cc              int     3
+HEAP[ollydbg.exe]: Heap block at 00987AB0 modified at 00987D88 past
+requested size of 2d0
+
+(a60.12ac): Break instruction exception - code 80000003 (first chance)
+eax=00987ab0 ebx=00987d88 ecx=76f30b42 edx=001898a5 esi=00987ab0 edi=000002d0
+eip=76f90574 esp=00189aec ebp=00189aec iopl=0         nv up ei pl nz na po nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200202
+ntdll!RtlpBreakPointHeap+0x23:
+76f90574 cc              int     3
 ```
 
 We got a debug message from the heap allocator informing us the process has written outside of its heap buffer. The thing is, this message and the breakpoint are not triggered when the faulty write is done but triggered like *after*, when another call to the allocator has been made. At this moment, the allocator is checking the chunks are OK and if it sees something weird, it outputs a message and breaks. The stack-trace should confirm that:
 
 ```text
-    0:000> k
-    ChildEBP RetAddr  
-    00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
-    00189b04 76f52a8a ntdll!RtlpCheckBusyBlockTail+0x171
-    00189b24 76f915cf ntdll!RtlpValidateHeapEntry+0x116
-    00189b6c 76f4ac29 ntdll!RtlDebugFreeHeap+0x9a
-    00189c60 76ef34a2 ntdll!RtlpFreeHeap+0x5d
-    00189c80 75d8537d ntdll!RtlFreeHeap+0x142
-    00189cc8 00403cfc KERNELBASE!GlobalFree+0x27
-    00189cd4 004cefc0 ollydbg!Memfree+0x3c
-    ...
+0:000> k
+ChildEBP RetAddr  
+00189aec 76f757c2 ntdll!RtlpBreakPointHeap+0x23
+00189b04 76f52a8a ntdll!RtlpCheckBusyBlockTail+0x171
+00189b24 76f915cf ntdll!RtlpValidateHeapEntry+0x116
+00189b6c 76f4ac29 ntdll!RtlDebugFreeHeap+0x9a
+00189c60 76ef34a2 ntdll!RtlpFreeHeap+0x5d
+00189c80 75d8537d ntdll!RtlFreeHeap+0x142
+00189cc8 00403cfc KERNELBASE!GlobalFree+0x27
+00189cd4 004cefc0 ollydbg!Memfree+0x3c
+...
 ```
 
 As we said just above, the message from the heap allocator has been probably triggered when OllyDbg2 wanted to free a chunk of memory.
@@ -77,40 +77,40 @@ To enable it for *ollydbg.exe*, it's trivial. We just launch the *gflags.exe* bi
 Now, you just have to relaunch your target in WinDbg, reproduce the bug and here is what I get now:
 
 ```text
-    (f48.1140): Access violation - code c0000005 (first chance)
-    First chance exceptions are reported before any exception handling.
-    This exception may be expected and handled.
-    
-    eax=000000b4 ebx=0f919abc ecx=0f00ed30 edx=00000b73 esi=00188694 edi=005d203c
-    eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
-    ollydbg!Findfreehardbreakslot+0x21d9:
-    004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
+(f48.1140): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+
+eax=000000b4 ebx=0f919abc ecx=0f00ed30 edx=00000b73 esi=00188694 edi=005d203c
+eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010246
+ollydbg!Findfreehardbreakslot+0x21d9:
+004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0f00f000=????????
 ```
 
 Woot, this is very cool, because now we know **exactly** where something is going wrong. Let's get more information about the heap chunk now:
 
 ```text
-    0:000> !heap -p -a ecx
-        address 0f00ed30 found in
-        _DPH_HEAP_ROOT @ 4f11000
-        in busy allocation
-        (  DPH_HEAP_BLOCK:  UserAddr  UserSize -  VirtAddr VirtSize)
-                  f6f1b2c:  f00ed30        2d0 -  f00e000  2000
-    
-        6e858e89 verifier!AVrfDebugPageHeapAllocate+0x00000229
-        76f90d96 ntdll!RtlDebugAllocateHeap+0x00000030
-        76f4af0d ntdll!RtlpAllocateHeap+0x000000c4
-        76ef3cfe ntdll!RtlAllocateHeap+0x0000023a
-        75d84e55 KERNELBASE!GlobalAlloc+0x0000006e
-        00403bef ollydbg!Memalloc+0x00000033
-        004ce5ec ollydbg!Findfreehardbreakslot+0x0000205c
-        004cf1df ollydbg!Getsourceline+0x0000007f
-        00479e1b ollydbg!Getactivetab+0x0000241b
-        0047b341 ollydbg!Setcpu+0x000006e1
-        004570f4 ollydbg!Checkfordebugevent+0x00003f38
-        0040fc51 ollydbg!Setstatus+0x00006441
-        004ef9ef ollydbg!Pluginshowoptions+0x0001214f
+0:000> !heap -p -a ecx
+    address 0f00ed30 found in
+    _DPH_HEAP_ROOT @ 4f11000
+    in busy allocation
+    (  DPH_HEAP_BLOCK:  UserAddr  UserSize -  VirtAddr VirtSize)
+              f6f1b2c:  f00ed30        2d0 -  f00e000  2000
+
+    6e858e89 verifier!AVrfDebugPageHeapAllocate+0x00000229
+    76f90d96 ntdll!RtlDebugAllocateHeap+0x00000030
+    76f4af0d ntdll!RtlpAllocateHeap+0x000000c4
+    76ef3cfe ntdll!RtlAllocateHeap+0x0000023a
+    75d84e55 KERNELBASE!GlobalAlloc+0x0000006e
+    00403bef ollydbg!Memalloc+0x00000033
+    004ce5ec ollydbg!Findfreehardbreakslot+0x0000205c
+    004cf1df ollydbg!Getsourceline+0x0000007f
+    00479e1b ollydbg!Getactivetab+0x0000241b
+    0047b341 ollydbg!Setcpu+0x000006e1
+    004570f4 ollydbg!Checkfordebugevent+0x00003f38
+    0040fc51 ollydbg!Setstatus+0x00006441
+    004ef9ef ollydbg!Pluginshowoptions+0x0001214f
 ```
 
 With this really handy command we got a lot of relevant information:
@@ -125,50 +125,50 @@ We are kind of lucky, the routines involved with this bug are quite simple to re
 
 ```c 
 //ollydbg!buggy @ 0x004CE424
-    signed int buggy(struct_a1 *u)
+signed int buggy(struct_a1 *u)
+{
+  int file_size;
+  unsigned int nbchar;
+  unsigned __int8 *file_content;
+  int nb_lines;
+  int idx;
+
+  // ...
+  file_content = (unsigned __int8 *)Readfile(&u->sourcefile, 0, &file_size);
+  // ...
+  nbchar = 0;
+  nb_lines = 0;
+  while(nbchar < file_size)
+  {
+    // doing stuff to count all the char, and all the lines in the file
+    // ...
+  }
+
+  u->mem1_ov = (unsigned int *)Memalloc(12 * (nb_lines + 1), 3);
+  u->mem2 = Memalloc(8 * (nb_lines + 1), 3);
+  if ( u->mem1_ov && u->mem2 )
+  {
+    nbchar = 0;
+    nb_lines2 = 0;
+    while ( nbchar < file_size && file_content[nbchar] )
     {
-      int file_size;
-      unsigned int nbchar;
-      unsigned __int8 *file_content;
-      int nb_lines;
-      int idx;
-    
-      // ...
-      file_content = (unsigned __int8 *)Readfile(&u->sourcefile, 0, &file_size);
-      // ...
-      nbchar = 0;
-      nb_lines = 0;
-      while(nbchar < file_size)
+      u->mem1_ov[3 * nb_lines2] = nbchar;
+      u->mem1_ov[3 * nb_lines2 + 1] = -1;
+      if ( nbchar < file_size )
       {
-        // doing stuff to count all the char, and all the lines in the file
-        // ...
-      }
-    
-      u->mem1_ov = (unsigned int *)Memalloc(12 * (nb_lines + 1), 3);
-      u->mem2 = Memalloc(8 * (nb_lines + 1), 3);
-      if ( u->mem1_ov && u->mem2 )
-      {
-        nbchar = 0;
-        nb_lines2 = 0;
-        while ( nbchar < file_size && file_content[nbchar] )
+        while ( file_content[nbchar] )
         {
-          u->mem1_ov[3 * nb_lines2] = nbchar;
-          u->mem1_ov[3 * nb_lines2 + 1] = -1;
-          if ( nbchar < file_size )
-          {
-            while ( file_content[nbchar] )
-            {
-                // Consume a line, increment stuff until finding a '\r' or '\n' sequence
-                // ..
-            }
-          }
-          ++nb_lines2;
+            // Consume a line, increment stuff until finding a '\r' or '\n' sequence
+            // ..
         }
-        // BOOM!
-        u->mem1_ov[3 * nb_lines2] = nbchar;
-        // ...
       }
+      ++nb_lines2;
     }
+    // BOOM!
+    u->mem1_ov[3 * nb_lines2] = nbchar;
+    // ...
+  }
+}
 ```
 
 So, let me explain what this routine does:
@@ -181,8 +181,8 @@ So, let me explain what this routine does:
 * At line 20: we have the allocation of our chunk. It allocates 12*(nb_lines + 1) bytes. We saw previously in WinDbg that the size of the chunk was 0x2d0: it should means we have exactly ((0x2d0 / 12) - 1) = 59 lines in our source code:
 
 ```text
-    D:\TODO\crashes\odb2-OOB-write-heap>wc -l OOB-write-heap-OllyDbg2h-trigger.c
-    59 OOB-write-heap-OllyDbg2h-trigger.c
+D:\TODO\crashes\odb2-OOB-write-heap>wc -l OOB-write-heap-OllyDbg2h-trigger.c
+59 OOB-write-heap-OllyDbg2h-trigger.c
 ```
 
 Good.
@@ -193,37 +193,37 @@ Good.
 At this point, we have fully explained the bug. If you want to do some dynamic analysis in order to follow important routines, I've made several breakpoints, here they are:
 
 ```text
-    bp 004CF1BF ".printf \"[Getsourceline] %mu\\n[Getsourceline] struct: 0x%x\", poi(esp + 4), eax ; .if(eax != 0){ .if(poi(eax + 0x218) == 0){ .printf \" field: 0x%x\\n\", poi(eax + 0x218); gc }; } .else { .printf \"\\n\\n\" ; gc; };"
-    bp 004CE5DD ".printf \"[buggy] Nbline: 0x%x \\n\", eax ; gc"
-    bp 004CE5E7 ".printf \"[buggy] Nbbytes to alloc: 0x%x \\n\", poi(esp) ; gc"
-    bp 004CE742 ".printf \"[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\", eax, poi(ebp - 1C), poi(ebp - 8) ; gc"
-    bp 004CE769 ".printf \"[buggy] mov [0x%x + 0x%x], 0x%x\\n\", ecx, eax * 4, edx"
+bp 004CF1BF ".printf \"[Getsourceline] %mu\\n[Getsourceline] struct: 0x%x\", poi(esp + 4), eax ; .if(eax != 0){ .if(poi(eax + 0x218) == 0){ .printf \" field: 0x%x\\n\", poi(eax + 0x218); gc }; } .else { .printf \"\\n\\n\" ; gc; };"
+bp 004CE5DD ".printf \"[buggy] Nbline: 0x%x \\n\", eax ; gc"
+bp 004CE5E7 ".printf \"[buggy] Nbbytes to alloc: 0x%x \\n\", poi(esp) ; gc"
+bp 004CE742 ".printf \"[buggy] NbChar: 0x%x / 0x%x - Idx: 0x%x\\n\", eax, poi(ebp - 1C), poi(ebp - 8) ; gc"
+bp 004CE769 ".printf \"[buggy] mov [0x%x + 0x%x], 0x%x\\n\", ecx, eax * 4, edx"
 ```
 
 On my environment, it gives me something like:
 
 ```text
-    [Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
-    [Getsourceline] struct: 0x0
-    [...]
-    [Getsourceline] oob-write-heap-ollydbg2h-trigger.c
-    [Getsourceline] struct: 0xaf00238 field: 0x0
-    [buggy] Nbline: 0x3b 
-    [buggy] Nbbytes to alloc: 0x2d0 
-    [buggy] NbChar: 0x0 / 0xb73 - Idx: 0x0
-    [buggy] NbChar: 0x4 / 0xb73 - Idx: 0x1
-    [buggy] NbChar: 0x5a / 0xb73 - Idx: 0x2
-    [buggy] NbChar: 0xa4 / 0xb73 - Idx: 0x3
-    [buggy] NbChar: 0xee / 0xb73 - Idx: 0x4
-    [...]
-    [buggy] NbChar: 0xb73 / 0xb73 - Idx: 0x3c
-    [buggy] mov [0xb031d30 + 0x2d0], 0xb73
-    
-    eax=000000b4 ebx=12dfed04 ecx=0b031d30 edx=00000b73 esi=00188694 edi=005d203c
-    eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
-    cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
-    ollydbg!Findfreehardbreakslot+0x21d9:
-    004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
+[Getsourceline] f:\dd\vctools\crt_bld\self_x86\crt\src\crt0.c
+[Getsourceline] struct: 0x0
+[...]
+[Getsourceline] oob-write-heap-ollydbg2h-trigger.c
+[Getsourceline] struct: 0xaf00238 field: 0x0
+[buggy] Nbline: 0x3b 
+[buggy] Nbbytes to alloc: 0x2d0 
+[buggy] NbChar: 0x0 / 0xb73 - Idx: 0x0
+[buggy] NbChar: 0x4 / 0xb73 - Idx: 0x1
+[buggy] NbChar: 0x5a / 0xb73 - Idx: 0x2
+[buggy] NbChar: 0xa4 / 0xb73 - Idx: 0x3
+[buggy] NbChar: 0xee / 0xb73 - Idx: 0x4
+[...]
+[buggy] NbChar: 0xb73 / 0xb73 - Idx: 0x3c
+[buggy] mov [0xb031d30 + 0x2d0], 0xb73
+
+eax=000000b4 ebx=12dfed04 ecx=0b031d30 edx=00000b73 esi=00188694 edi=005d203c
+eip=004ce769 esp=00187d60 ebp=00187d80 iopl=0         nv up ei pl zr na pe nc
+cs=0023  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00200246
+ollydbg!Findfreehardbreakslot+0x21d9:
+004ce769 891481          mov     dword ptr [ecx+eax*4],edx ds:002b:0b032000=????????
 ```
 
 # Repro@home

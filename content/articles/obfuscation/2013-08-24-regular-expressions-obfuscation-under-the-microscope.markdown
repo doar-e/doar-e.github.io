@@ -26,93 +26,93 @@ Now, if from that string representation we extract an FSM, we can have that one:
 Here is this automaton implemented in C:
 
 ```C
-    #include <stdio.h>
-    #include <string.h>
+#include <stdio.h>
+#include <string.h>
 
-    unsigned char checkinput(char* s)
+unsigned char checkinput(char* s)
+{
+    unsigned int state = 0, i = 0;
+    do
     {
-        unsigned int state = 0, i = 0;
-        do
+        switch(state)
         {
-            switch(state)
+            case 0:
             {
-                case 0:
-                {
-                    if(*s == 'H')
-                        state = 1;
+                if(*s == 'H')
+                    state = 1;
 
-                    break;
-                }
-
-                case 1:
-                {
-                    if(*s == 'i')
-                        state = 2;
-                    else
-                        return 0;
-
-                    break;
-                }
-
-                case 2:
-                {
-                    if(*s == '-')
-                        state = 3;
-                    else
-                        return 0;
-
-                    break;
-                }
-
-                case 3 ... 6:
-                {
-                    if(*s >= '0' && *s <= '9')
-                        state++;
-                    else
-                        return 0;
-
-                    break;
-                }
-
-                case 7:
-                    return 1;
+                break;
             }
-        } while(*s++);
 
+            case 1:
+            {
+                if(*s == 'i')
+                    state = 2;
+                else
+                    return 0;
+
+                break;
+            }
+
+            case 2:
+            {
+                if(*s == '-')
+                    state = 3;
+                else
+                    return 0;
+
+                break;
+            }
+
+            case 3 ... 6:
+            {
+                if(*s >= '0' && *s <= '9')
+                    state++;
+                else
+                    return 0;
+
+                break;
+            }
+
+            case 7:
+                return 1;
+        }
+    } while(*s++);
+
+    return 0;
+}
+
+int main(int argc, char *argv[])
+{
+    if(argc != 2)
+    {
+        printf("./fsm <string>\n");
         return 0;
     }
 
-    int main(int argc, char *argv[])
-    {
-        if(argc != 2)
-        {
-            printf("./fsm <string>\n");
-            return 0;
-        }
+    if(checkinput(argv[1]))
+        printf("Good boy.\n");
+    else
+        printf("Bad boy.\n");
 
-        if(checkinput(argv[1]))
-            printf("Good boy.\n");
-        else
-            printf("Bad boy.\n");
-
-        return 1;
-    }
+    return 1;
+}
 ```
 
 If we try to execute the program:
 
 ```text
-    > fsm_example.exe garbage-Hi-1337-garbage
-    Good boy.
-    
-    > fsm_example.exe garbage-Hi-1337
-    Good boy.
-    
-    > fsm_example.exe Hi-1337-garbage
-    Good boy.
-    
-    > fsm_example.exe Hi-dudies
-    Bad boy.
+> fsm_example.exe garbage-Hi-1337-garbage
+Good boy.
+
+> fsm_example.exe garbage-Hi-1337
+Good boy.
+
+> fsm_example.exe Hi-1337-garbage
+Good boy.
+
+> fsm_example.exe Hi-dudies
+Bad boy.
 ```
 
 The purpose of that trivial example was just to show you how a regex string representation can be compiled into something harder to analyze but also more efficient (it doesn't need a compilation step, that's the reason why you may encounter that kind of thing in real (?) softwares). Even if the code seems trivial at the first sight, when you look at it at the assembly level, it takes a bit of time to figure out it's a simple "Hi-[0-9]{4}" regex.

