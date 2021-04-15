@@ -326,7 +326,32 @@ else
 }
 ```
 
-The function does a lot more; it initializes several `Packet_t` fields but let's ignore that for now to avoid getting overwhelmed by complexity. Once the function returns back in `IppReceiveHeaderBatch`, it extracts a demuxer off the `Protocol` structure and invokes a parsing callback if the `NextHeader` is a valid extension header. The `Protocol` structure holds a fixed-size array where each item describes a "demuxer" (term used in the driver). The index in this array is the `NextHeader` byte that was populated earlier in `IppReceiveHeaderBatch`. If the demuxer is handling an extension header, then a callback is invoked to parse the header properly. This happens in a loop until the parsing hits the first part of the packet that isn't a header in which case it handles the next packet.
+The function does a lot more; it initializes several `Packet_t` fields but let's ignore that for now to avoid getting overwhelmed by complexity. Once the function returns back in `IppReceiveHeaderBatch`, it extracts a demuxer off the `Protocol_t` structure and invokes a parsing callback if the `NextHeader` is a valid extension header. The `Protocol_t` structure holds an array of `Demuxer_t` (term used in the driver).
+
+```C
+struct Demuxer_t
+{
+  void (__fastcall *Parse)(Packet_t *);
+  void *f0;
+  void *f1;
+  void *Size;
+  void *f3;
+  _BYTE IsExtensionHeader;
+  _BYTE gap[23];
+};
+
+struct Protocol_t
+{
+  // ...
+  Demuxer_t Demuxers[277];
+};
+```
+
+`NextHeader` (populated earlier in `IppReceiveHeaderBatch`) is the value used to index into this array.
+
+<center>![ida43](/images/reverse_engineering_tcpip/ida4.png)</center>
+
+If the demuxer is handling an extension header, then a callback is invoked to parse the header properly. This happens in a loop until the parsing hits the first part of the packet that isn't a header in which case it handles the next packet.
 
 ```C
 while ( ... )
@@ -363,7 +388,7 @@ It is easy to dump the demuxers and their associated `NextHeader` / `Parse` valu
 - nh = 60 -> Ipv6pReceiveDestinationOptions
 ```
 
-Demuxer can expose a callback routine for parsing which I called `Parse`. The `Parse` method receives a `Packet` and it is free to update its state; for example to grab the `NextHeader` that is needed to know how to parse the next layer. This is what `Ipv6pReceiveFragmentList` looks like (which is the `Parse` callback defined for the fragmentation header demuxer):
+Demuxer can expose a callback routine for parsing which I called `Parse`. The `Parse` method receives a `Packet` and it is free to update its state; for example to grab the `NextHeader` that is needed to know how to parse the next layer. This is what `Ipv6pReceiveFragmentList` looks like (`Ipv6FragmentDemux.Parse`):
 
 <center>![ida1](/images/reverse_engineering_tcpip/ida2.png)</center>
 
@@ -788,8 +813,6 @@ After trying and trying I started to think that I might have been headed in the 
 ## Manufacturing a packet of the death: leap of faith
 
 All right so I decided to start fresh again. Going back to the big picture, I've studied a bit more the reassembly algorithm, diffed again just in case I missed a clue somewhere, but nothing...
-
-I started to brainstorm and think at a higher level: ”I want to craft a packet with a very large header, but I can't send it because of the MTU”. I know the bug also requires to trigger reassembly so fragments need to be involved as well. 
 
 Could I maybe be able to fragment a packet that has a very large header and trick the stack into reassembling the reassembled packet? It honestly felt like a long leap forward, but based on my reverse-engineering effort I didn't really see anything that would prevent that. The idea was blurry but felt like it was worth a shot. How would it really work though?
 
