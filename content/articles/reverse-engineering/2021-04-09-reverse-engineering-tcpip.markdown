@@ -66,7 +66,7 @@ void Ipv6pReassembleDatagram(Packet_t *Packet, Reassembly_t *Reassembly, char Ol
   *Buffer = Reassembly->Ipv6;
 ```
 
-A fresh NetBufferList (abbreviated NBL) is allocated by `NetioAllocateAndReferenceNetBufferAndNetBufferList` and `NetioRetreatNetBuffer` allocates an MDL of `uint16_t(HeaderAndOptionsLength)`. This integer truncation from `uint32_t` is important.
+A fresh NetBufferList (abbreviated NBL) is allocated by `NetioAllocateAndReferenceNetBufferAndNetBufferList` and `NetioRetreatNetBuffer` allocates a Memory Descriptor List (abbreviated MDL) of `uint16_t(HeaderAndOptionsLength)` bytes. This integer truncation from `uint32_t` is important.
 
 Once the network buffer has been allocated, `NdisGetDataBuffer` is called to gain access to a contiguous block of data from the fresh network buffer. This time though, `HeaderAndOptionsLength` is not truncated which allows an attacker to trigger a special condition in `NdisGetDataBuffer` to make it fail. This condition is hit when `uint16_t(HeaderAndOptionsLength) != HeaderAndOptionsLength`. When the function fails, it returns NULL and `Ipv6pReassembleDatagram` blindly trusts this pointer and does a memory write, bugchecking the machine. To pull this off, you need to trick the network stack into receiving an IPv6 fragment with a very large amount of headers. Here is what the bugchecks look like:
 
@@ -203,7 +203,7 @@ As you might imagine, this is the part that's the most time consuming. I use a m
 
 ## High level overview
 
-Oftentimes, studying code / features in isolation in complex systems is not enough; it only takes you so far. Complex drivers like `tcpip.sys` are gigantic, carry a lot of state, and are hard to reason about, both in terms of execution and data flow. In this case, there is this sort of size integer, that seems to be related to something that got received and we want to set that to 0xffff. Unfortunately, just focusing on `Ipv6pReassembleDatagram` and `Ipv6pReceiveFragment` was not enough for me to make significant progress. It was worth a try though but time to switch gears.
+Oftentimes, studying code / features in isolation in complex systems is not enough; it only takes you so far. Complex drivers like `tcpip.sys` are gigantic, carry a lot of state, and are hard to reason about, both in terms of execution and data flow. In this case, there is this sort of size integer, that seems to be related to something that got received and we want to set that to `0xffff`. Unfortunately, just focusing on `Ipv6pReassembleDatagram` and `Ipv6pReceiveFragment` was not enough for me to make significant progress. It was worth a try though but time to switch gears.
 
 ### Zooming out
 
@@ -447,7 +447,7 @@ def frag6(target, frag_id, bytes, nh, frag_size = 1008):
     return frags
 ```
 
-Easy enough. The other important aspect of fragmentation in [the](https://www.geeksforgeeks.org/ipv6-fragmentation-header/) [literature](https://www.microsoftpressstore.com/articles/article.aspx?p=2225063&seqNum=4) is related to IPv6 headers and what is called the *unfragmentable* part of a packet. Here is how Microsoft describes the unfragmentable part: "This part consists of the IPv6 header, the Hop-by-Hop Options header, the Destination Options header for intermediate destinations, and the Routing header". It also is the part that precedes the fragmentation header. Obviously, if there is an unfragmentable part, there is a fragmentable part. Easy, the fragmentable part is what you are sending behind the fragmentation header. The reassembly process is the process of stitching together the unfragmentable part with the reassembled fragmentable part into one beautiful reassembled packet. Here is a diagram taken from [Understanding the IPv6 Header](https://www.microsoftpressstore.com/articles/article.aspx?p=2225063&seqNum=4) that sums it up pretty well:
+Easy enough. The other important aspect of fragmentation in [the literature](https://www.geeksforgeeks.org/ipv6-fragmentation-header/) is related to IPv6 headers and what is called the *unfragmentable* part of a packet. Here is how Microsoft describes the unfragmentable part: "This part consists of the IPv6 header, the Hop-by-Hop Options header, the Destination Options header for intermediate destinations, and the Routing header". It also is the part that precedes the fragmentation header. Obviously, if there is an unfragmentable part, there is a fragmentable part. Easy, the fragmentable part is what you are sending behind the fragmentation header. The reassembly process is the process of stitching together the unfragmentable part with the reassembled fragmentable part into one beautiful reassembled packet. Here is a diagram taken from [Understanding the IPv6 Header](https://www.microsoftpressstore.com/articles/article.aspx?p=2225063&seqNum=4) that sums it up pretty well:
 
 <center>![msftpress](/images/reverse_engineering_tcpip/msftpress0.png)</center>
 
@@ -806,7 +806,7 @@ Reassembly->Ipv6.length = __ROR2__(TotalLength, 8);
 *Buffer = Reassembly->Ipv6;
 ```
 
-My theory was that there might be code that would read this `Ipv6.length` (which is truncated as `__ROR2__` expects a `uint16_t`) and something bad might happen as a result. Although, the `length` would end up having a smaller value than the actual real size of the packet; it was hard for me to come up with a scenario where this would cause an issue but I still chased this theory as this was the only thing I had.
+My theory was that there might be some code that would read this `Ipv6.length` (which is truncated as `__ROR2__` expects a `uint16_t`) and something bad might happen as a result. Although, the `length` would end up having a smaller value than the actual real size of the packet; it was hard for me to come up with a scenario where this would cause an issue but I still chased this theory as this was the only thing I had.
 
 What I started to do at this point is to audit every demuxer that we saw earlier. I looked for ones that would use this `length` field somehow and looked for similar retreat / `NdisGetDataBuffer` patterns. Nothing. Thinking I might be missing something statically so I also heavily used WinDbg to verify my work. I used hardware breakpoints to track access to those two bytes but no hit. Ever. Frustrating.
 
