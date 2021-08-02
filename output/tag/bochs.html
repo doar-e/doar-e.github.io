@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Diary of a reverse-engineer - misc</title>
+    <title>Diary of a reverse-engineer - bochs</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="Axel '0vercl0k' Souchet">
@@ -75,7 +75,7 @@ gtag('config', 'G-MRPDMQ259W');
                       <i class="icon-folder-open icon-large"></i>exploitation
                     </a>
                 </li>
-                <li class="active">
+                <li >
                     <a href="../category/misc.html">
                       <i class="icon-folder-open icon-large"></i>misc
                     </a>
@@ -130,79 +130,6 @@ gtag('config', 'G-MRPDMQ259W');
                 <div class="summary"><h1 id="introduction">Introduction</h1>
 <p>It is January 2020 and it is this time of the year where I try to set goals for myself. I had just come back from spending Christmas with my family in France and felt fairly recharged. It always is an exciting time for me to think and plan …</p>
                         <a class="btn primary xsmall" href="../blog/2021/07/15/building-a-new-snapshot-fuzzer-fuzzing-ida/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="../blog/2017/08/05/binary-rewriting-with-syzygy/">Binary rewriting with syzygy, Pt. I</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2017-08-05T16:08:00-07:00">
-        <i class="icon-calendar"></i>Sat 05 August 2017
-</abbr>
-<span class="label">By</span>
-<a href="../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="../category/misc.html"><i class="icon-folder-open"></i>misc</a>
-
-
-<span class="label">Tags</span>
-	<a href="../tag/binary-rewriting.html"><i class="icon-tag"></i>binary rewriting</a>
-	<a href="../tag/syzygy.html"><i class="icon-tag"></i>syzygy</a>
-	<a href="../tag/program-analysis.html"><i class="icon-tag"></i>program analysis</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Binary instrumentation and analysis have been subjects that I have always found fascinating. At compile time via <a href="http://doar-e.github.io/blog/2016/11/27/clang-and-passes/">clang</a>, or at runtime with dynamic binary instrumentation frameworks like <a href="https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool">Pin</a> or <a href="http://www.dynamorio.org/">DynamoRIO</a>. One thing I have always looked for though, is a framework able to statically instrument a PE image. A …</p>
-                        <a class="btn primary xsmall" href="../blog/2017/08/05/binary-rewriting-with-syzygy/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="../blog/2016/11/27/clang-and-passes/">Token capture via an llvm-based analysis pass</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2016-11-27T20:43:00-08:00">
-        <i class="icon-calendar"></i>Sun 27 November 2016
-</abbr>
-<span class="label">By</span>
-<a href="../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="../category/misc.html"><i class="icon-folder-open"></i>misc</a>
-
-
-<span class="label">Tags</span>
-	<a href="../tag/fuzzing.html"><i class="icon-tag"></i>fuzzing</a>
-	<a href="../tag/clang.html"><i class="icon-tag"></i>clang</a>
-	<a href="../tag/llvm.html"><i class="icon-tag"></i>llvm</a>
-	<a href="../tag/analysis-pass.html"><i class="icon-tag"></i>analysis pass</a>
-	<a href="../tag/pass.html"><i class="icon-tag"></i>pass</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>About three years ago, the LLVM framework started to pique my interest for a lot of different reasons. This collection of industrial strength compiler technology, as <a href="http://llvm.org/pubs/2008-10-04-ACAT-LLVM-Intro.pdf">Latner</a> said in 2008, was designed in a very modular way. It also looked like it had a lot of interesting features that …</p>
-                        <a class="btn primary xsmall" href="../blog/2016/11/27/clang-and-passes/">more ...</a>
-                </div>
-        </div>
-        <hr />
-        <div class="article">
-                <h1><a href="../blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">Some thoughts about code-coverage measurement with Pin</a></h1>
-                <div class="well small"><footer class="post-info">
-<span class="label">Date</span>
-<abbr class="published" title="2013-08-31T18:57:00-07:00">
-        <i class="icon-calendar"></i>Sat 31 August 2013
-</abbr>
-<span class="label">By</span>
-<a href="../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
-<span class="label">Category</span>
-<a href="../category/misc.html"><i class="icon-folder-open"></i>misc</a>
-
-
-<span class="label">Tags</span>
-	<a href="../tag/reverse-engineering.html"><i class="icon-tag"></i>reverse-engineering</a>
-	<a href="../tag/dynamic-binary-instrumentation.html"><i class="icon-tag"></i>dynamic-binary-instrumentation</a>
-</footer><!-- /.post-info --></div>
-                <div class="summary"><h1 id="introduction">Introduction</h1>
-<p>Sometimes, when you are reverse-engineering binaries you need somehow to measure, or just to have an idea about how much "that" execution is covering the code of your target. It can be for fuzzing purpose, maybe you have a huge set of inputs (it can be files, network traffic …</p>
-                        <a class="btn primary xsmall" href="../blog/2013/08/31/some-thoughts-about-code-coverage-measurement-with-pin/">more ...</a>
                 </div>
         </div>
         <hr />
