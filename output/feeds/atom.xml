@@ -798,7 +798,7 @@ restore the original flow:&lt;/p&gt;
 &lt;li&gt;Upload our image using FTP,&lt;/li&gt;
 &lt;li&gt;Exploit the vulnerability with another payload reading the image and displaying it on the screen.&lt;/li&gt;
 &lt;/ol&gt;
-&lt;p&gt;You can find the script handling all this in the &lt;a href="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/exploit"&gt;exploit folder&lt;/a&gt; and you can see the exploit in action &lt;a href="https://youtu.be/rY4phaf7KEU?t=4242"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;You can find the script handling all this in the &lt;a href="/images/pwn2own_2021_canon_imageclass_mf644cdw_writeup/exploit.zip"&gt;exploit.zip&lt;/a&gt; and you can see the exploit in action &lt;a href="https://youtu.be/rY4phaf7KEU?t=4242"&gt;here&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;&lt;center&gt;
 &lt;iframe width="560" height="315" src="https://www.youtube.com/embed/rY4phaf7KEU?start=4242" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen&gt;&lt;/iframe&gt;
 &lt;/center&gt;&lt;/p&gt;
