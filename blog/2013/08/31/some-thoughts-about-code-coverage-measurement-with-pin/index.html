@@ -176,9 +176,9 @@ gtag('config', 'G-MRPDMQ259W');
 <li>doesn't instrument Windows APIs. We don't want to waste our CPU time being in the native libraries of the system ; it's part of our little "tricks" to improve the speed of our Pintool.</li>
 </ul>
 <p>I think it's time to code now: first, let's define several data structures in order to store the information we need:</p>
-<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">MODULE_BLACKLIST_T</span><span class="p">;</span>
-<span class="k">typedef</span> <span class="n">MODULE_BLACKLIST_T</span> <span class="n">MODULE_LIST_T</span><span class="p">;</span>
-<span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">UINT32</span><span class="o">&gt;</span> <span class="n">BASIC_BLOCKS_INFO_T</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span><span class="w"> </span><span class="n">ADDRINT</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MODULE_BLACKLIST_T</span><span class="p">;</span>
+<span class="k">typedef</span><span class="w"> </span><span class="n">MODULE_BLACKLIST_T</span><span class="w"> </span><span class="n">MODULE_LIST_T</span><span class="p">;</span>
+<span class="k">typedef</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span><span class="w"> </span><span class="n">UINT32</span><span class="o">&gt;</span><span class="w"> </span><span class="n">BASIC_BLOCKS_INFO_T</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -187,28 +187,28 @@ gtag('config', 'G-MRPDMQ259W');
 <ul>
 <li>one to know whenever a module is loaded in order to store its base/end address, one for the traces. You can set the callbacks using <em>IMG_AddInstrumentationFunction</em> and <em>TRACE_AddInstrumentationFunction</em>.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">image_instrumentation</span><span class="p">(</span><span class="n">IMG</span> <span class="n">img</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span><span class="w"> </span><span class="nf">image_instrumentation</span><span class="p">(</span><span class="n">IMG</span><span class="w"> </span><span class="n">img</span><span class="p">,</span><span class="w"> </span><span class="n">VOID</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">v</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="n">ADDRINT</span> <span class="n">module_low_limit</span> <span class="o">=</span> <span class="n">IMG_LowAddress</span><span class="p">(</span><span class="n">img</span><span class="p">),</span> <span class="n">module_high_limit</span> <span class="o">=</span> <span class="n">IMG_HighAddress</span><span class="p">(</span><span class="n">img</span><span class="p">);</span> 
+<span class="w">    </span><span class="n">ADDRINT</span><span class="w"> </span><span class="n">module_low_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IMG_LowAddress</span><span class="p">(</span><span class="n">img</span><span class="p">),</span><span class="w"> </span><span class="n">module_high_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IMG_HighAddress</span><span class="p">(</span><span class="n">img</span><span class="p">);</span><span class="w"> </span>
 
-    <span class="k">if</span><span class="p">(</span><span class="n">IMG_IsMainExecutable</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
-        <span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">IMG_IsMainExecutable</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
 
-    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">image_path</span> <span class="o">=</span> <span class="n">IMG_Name</span><span class="p">(</span><span class="n">img</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">image_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IMG_Name</span><span class="p">(</span><span class="n">img</span><span class="p">);</span>
 
-    <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span> <span class="n">ADDRINT</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">module_info</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-        <span class="n">image_path</span><span class="p">,</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-            <span class="n">module_low_limit</span><span class="p">,</span>
-            <span class="n">module_high_limit</span>
-        <span class="p">)</span>
-    <span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ADDRINT</span><span class="p">,</span><span class="w"> </span><span class="n">ADDRINT</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">module_info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+<span class="w">        </span><span class="n">image_path</span><span class="p">,</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+<span class="w">            </span><span class="n">module_low_limit</span><span class="p">,</span>
+<span class="w">            </span><span class="n">module_high_limit</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">    </span><span class="p">);</span>
 
-    <span class="n">module_list</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
-    <span class="n">module_counter</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="n">module_list</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
+<span class="w">    </span><span class="n">module_counter</span><span class="o">++</span><span class="p">;</span>
 
-    <span class="k">if</span><span class="p">(</span><span class="n">is_module_should_be_blacklisted</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
-        <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">is_module_should_be_blacklisted</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
+<span class="w">        </span><span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">module_info</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -217,85 +217,85 @@ gtag('config', 'G-MRPDMQ259W');
 <li>one to be able to insert calls before every basic blocks.</li>
 </ul>
 <p>The thing is: Pin doesn't have a <em>BBL_AddInstrumentationFunction</em>, so we have to instrument the traces, iterate through them to get the basic block. It's done really easily with <em>TRACE_BblHead</em>, <em>BBL_Valid</em> and <em>BBL_Next</em> functions. Of course, if the basic block address is in a blacklisted range address, we don't insert a call to our analysis function.</p>
-<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">trace_instrumentation</span><span class="p">(</span><span class="n">TRACE</span> <span class="n">trace</span><span class="p">,</span> <span class="n">VOID</span> <span class="o">*</span><span class="n">v</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span><span class="w"> </span><span class="nf">trace_instrumentation</span><span class="p">(</span><span class="n">TRACE</span><span class="w"> </span><span class="n">trace</span><span class="p">,</span><span class="w"> </span><span class="n">VOID</span><span class="w"> </span><span class="o">*</span><span class="n">v</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="k">for</span><span class="p">(</span><span class="n">BBL</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">TRACE_BblHead</span><span class="p">(</span><span class="n">trace</span><span class="p">);</span> <span class="n">BBL_Valid</span><span class="p">(</span><span class="n">bbl</span><span class="p">);</span> <span class="n">bbl</span> <span class="o">=</span> <span class="n">BBL_Next</span><span class="p">(</span><span class="n">bbl</span><span class="p">))</span>
-    <span class="p">{</span>
-        <span class="k">if</span><span class="p">(</span><span class="n">is_address_in_blacklisted_modules</span><span class="p">(</span><span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">)))</span>
-            <span class="k">continue</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="n">BBL</span><span class="w"> </span><span class="n">bbl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TRACE_BblHead</span><span class="p">(</span><span class="n">trace</span><span class="p">);</span><span class="w"> </span><span class="n">BBL_Valid</span><span class="p">(</span><span class="n">bbl</span><span class="p">);</span><span class="w"> </span><span class="n">bbl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BBL_Next</span><span class="p">(</span><span class="n">bbl</span><span class="p">))</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">is_address_in_blacklisted_modules</span><span class="p">(</span><span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">)))</span>
+<span class="w">            </span><span class="k">continue</span><span class="p">;</span>
 
-        <span class="n">BBL_InsertCall</span><span class="p">(</span>
-            <span class="n">bbl</span><span class="p">,</span>
-            <span class="n">IPOINT_ANYWHERE</span><span class="p">,</span>
-            <span class="p">(</span><span class="n">AFUNPTR</span><span class="p">)</span><span class="n">handle_basic_block</span><span class="p">,</span>
-            <span class="n">IARG_FAST_ANALYSIS_CALL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">BBL_InsertCall</span><span class="p">(</span>
+<span class="w">            </span><span class="n">bbl</span><span class="p">,</span>
+<span class="w">            </span><span class="n">IPOINT_ANYWHERE</span><span class="p">,</span>
+<span class="w">            </span><span class="p">(</span><span class="n">AFUNPTR</span><span class="p">)</span><span class="n">handle_basic_block</span><span class="p">,</span>
+<span class="w">            </span><span class="n">IARG_FAST_ANALYSIS_CALL</span><span class="p">,</span>
 
-            <span class="n">IARG_UINT32</span><span class="p">,</span>
-            <span class="n">BBL_NumIns</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
+<span class="w">            </span><span class="n">IARG_UINT32</span><span class="p">,</span>
+<span class="w">            </span><span class="n">BBL_NumIns</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
 
-            <span class="n">IARG_ADDRINT</span><span class="p">,</span>
-            <span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
+<span class="w">            </span><span class="n">IARG_ADDRINT</span><span class="p">,</span>
+<span class="w">            </span><span class="n">BBL_Address</span><span class="p">(</span><span class="n">bbl</span><span class="p">),</span>
 
-            <span class="n">IARG_END</span>
-        <span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">            </span><span class="n">IARG_END</span>
+<span class="w">        </span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
 
 <p>For efficiency reasons, we let decide Pin about where it puts its JITed call to the analysis function <em>handle_basic_block</em> ; we also use the fast linkage (it basically means the function will be called using the <a href="http://msdn.microsoft.com/en-us/library/6xa169sk.aspx">__fastcall</a> calling convention).</p>
 <p>The analysis function is also very trivial, we just need to store basic block addresses in a global variable. The method doesn't have any branch, it means Pin will most likely inlining the function, that's also cool for the efficiency.</p>
-<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="n">PIN_FAST_ANALYSIS_CALL</span> <span class="nf">handle_basic_block</span><span class="p">(</span><span class="n">UINT32</span> <span class="n">number_instruction_in_bb</span><span class="p">,</span> <span class="n">ADDRINT</span> <span class="n">address_bb</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span><span class="w"> </span><span class="n">PIN_FAST_ANALYSIS_CALL</span><span class="w"> </span><span class="n">handle_basic_block</span><span class="p">(</span><span class="n">UINT32</span><span class="w"> </span><span class="n">number_instruction_in_bb</span><span class="p">,</span><span class="w"> </span><span class="n">ADDRINT</span><span class="w"> </span><span class="n">address_bb</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="n">basic_blocks_info</span><span class="p">[</span><span class="n">address_bb</span><span class="p">]</span> <span class="o">=</span> <span class="n">number_instruction_in_bb</span><span class="p">;</span>
+<span class="w">    </span><span class="n">basic_blocks_info</span><span class="p">[</span><span class="n">address_bb</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">number_instruction_in_bb</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
 
 
 <p>Finally, just before the process ends we serialize our data in a simple JSON report thanks to <a href="http://www.digip.org/jansson/">jansson</a>. You may also want to use a binary serialization to have smaller report.</p>
-<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">save_instrumentation_infos</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span><span class="w"> </span><span class="nf">save_instrumentation_infos</span><span class="p">()</span>
 <span class="p">{</span>
-    <span class="c1">/// basic_blocks_info section</span>
-    <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-    <span class="n">json_t</span> <span class="o">*</span><span class="n">bbls_list</span> <span class="o">=</span> <span class="n">json_array</span><span class="p">();</span>
-    <span class="n">json_t</span> <span class="o">*</span><span class="n">bbl_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-    <span class="c1">// unique_count field</span>
-    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span> <span class="s">&quot;unique_count&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
-    <span class="c1">// list field</span>
-    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span> <span class="s">&quot;list&quot;</span><span class="p">,</span> <span class="n">bbls_list</span><span class="p">);</span>
-    <span class="k">for</span><span class="p">(</span><span class="n">BASIC_BLOCKS_INFO_T</span><span class="o">::</span><span class="n">const_iterator</span> <span class="n">it</span> <span class="o">=</span> <span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span> <span class="n">it</span> <span class="o">!=</span> <span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">it</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="n">bbl_info</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span> <span class="s">&quot;address&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">));</span>
-        <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span> <span class="s">&quot;nbins&quot;</span><span class="p">,</span> <span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">));</span>
-        <span class="n">json_array_append_new</span><span class="p">(</span><span class="n">bbls_list</span><span class="p">,</span> <span class="n">bbl_info</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="c1">/// basic_blocks_info section</span>
+<span class="w">    </span><span class="n">json_t</span><span class="w"> </span><span class="o">*</span><span class="n">bbls_info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json_object</span><span class="p">();</span>
+<span class="w">    </span><span class="n">json_t</span><span class="w"> </span><span class="o">*</span><span class="n">bbls_list</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json_array</span><span class="p">();</span>
+<span class="w">    </span><span class="n">json_t</span><span class="w"> </span><span class="o">*</span><span class="n">bbl_info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json_object</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// unique_count field</span>
+<span class="w">    </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;unique_count&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">json_integer</span><span class="p">(</span><span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
+<span class="w">    </span><span class="c1">// list field</span>
+<span class="w">    </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbls_info</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;list&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bbls_list</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="n">BASIC_BLOCKS_INFO_T</span><span class="o">::</span><span class="n">const_iterator</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">basic_blocks_info</span><span class="p">.</span><span class="n">end</span><span class="p">();</span><span class="w"> </span><span class="o">++</span><span class="n">it</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">bbl_info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json_object</span><span class="p">();</span>
+<span class="w">        </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;address&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">first</span><span class="p">));</span>
+<span class="w">        </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">bbl_info</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;nbins&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">json_integer</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">));</span>
+<span class="w">        </span><span class="n">json_array_append_new</span><span class="p">(</span><span class="n">bbls_list</span><span class="p">,</span><span class="w"> </span><span class="n">bbl_info</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="cm">/* .. same thing for blacklisted modules, and modules .. */</span>
-    <span class="c1">/// Building the tree</span>
-    <span class="n">json_t</span> <span class="o">*</span><span class="n">root</span> <span class="o">=</span> <span class="n">json_object</span><span class="p">();</span>
-    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;basic_blocks_info&quot;</span><span class="p">,</span> <span class="n">bbls_info</span><span class="p">);</span>
-    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;blacklisted_modules&quot;</span><span class="p">,</span> <span class="n">blacklisted_modules</span><span class="p">);</span>
-    <span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s">&quot;modules&quot;</span><span class="p">,</span> <span class="n">modules</span><span class="p">);</span>
+<span class="w">    </span><span class="cm">/* .. same thing for blacklisted modules, and modules .. */</span>
+<span class="w">    </span><span class="c1">/// Building the tree</span>
+<span class="w">    </span><span class="n">json_t</span><span class="w"> </span><span class="o">*</span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json_object</span><span class="p">();</span>
+<span class="w">    </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;basic_blocks_info&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bbls_info</span><span class="p">);</span>
+<span class="w">    </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;blacklisted_modules&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">blacklisted_modules</span><span class="p">);</span>
+<span class="w">    </span><span class="n">json_object_set_new</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;modules&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">modules</span><span class="p">);</span>
 
-    <span class="c1">/// Writing the report</span>
-    <span class="kt">FILE</span><span class="o">*</span> <span class="n">f</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">KnobOutputPath</span><span class="p">.</span><span class="n">Value</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span> <span class="s">&quot;w&quot;</span><span class="p">);</span>
-    <span class="n">json_dumpf</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">JSON_COMPACT</span> <span class="o">|</span> <span class="n">JSON_ENSURE_ASCII</span><span class="p">);</span>
-    <span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">/// Writing the report</span>
+<span class="w">    </span><span class="kt">FILE</span><span class="o">*</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">KnobOutputPath</span><span class="p">.</span><span class="n">Value</span><span class="p">().</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="s">&quot;w&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">json_dumpf</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">JSON_COMPACT</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">JSON_ENSURE_ASCII</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
 
 <p>If like me you are on a x64 Windows system, but you are instrumenting x86 processes you should directly blacklist the area where Windows keeps the <a href="http://www.nynaeve.net/?p=131">SystemCallStub</a> (you know the "JMP FAR"). To do that, we simply use the <em>__readfsdword</em> intrinsic in order to read the field <a href="http://msdn.moonsols.com/win7rtm_x64/TEB32.html">TEB32.WOW32Reserved</a> that holds the address of that stub. Like that you won't waste your CPU time every time your program is performing a system call.</p>
-<div class="highlight"><pre><span></span><code><span class="n">ADDRINT</span> <span class="n">wow64stub</span> <span class="o">=</span> <span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="n">ADDRINT</span><span class="w"> </span><span class="n">wow64stub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">__readfsdword</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">);</span>
 <span class="n">modules_blacklisted</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="s">&quot;wow64stub&quot;</span><span class="p">),</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
-            <span class="n">wow64stub</span><span class="p">,</span>
-            <span class="n">wow64stub</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="s">&quot;wow64stub&quot;</span><span class="p">),</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">make_pair</span><span class="p">(</span>
+<span class="w">            </span><span class="n">wow64stub</span><span class="p">,</span>
+<span class="w">            </span><span class="n">wow64stub</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">    </span><span class="p">)</span>
 <span class="p">);</span>
 </code></pre></div>
 
@@ -310,7 +310,7 @@ gtag('config', 'G-MRPDMQ259W');
 <span class="kn">import</span> <span class="nn">idaapi</span>
 
 <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
     <span class="n">colors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span>
             <span class="s1">&#39;black&#39;</span> <span class="p">:</span> <span class="mh">0x000000</span><span class="p">,</span>
             <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="mh">0x0000FF</span><span class="p">,</span>
@@ -366,7 +366,7 @@ A lot of software are built around a really annoying GUI (for the reverser at le
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
 <span class="k">def</span> <span class="nf">color</span><span class="p">(</span><span class="n">ea</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Color &#39;nbins&#39; instructions starting from ea&#39;&#39;&#39;</span>
     <span class="n">colors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">{</span>
             <span class="s1">&#39;black&#39;</span> <span class="p">:</span> <span class="mh">0x000000</span><span class="p">,</span>
             <span class="s1">&#39;red&#39;</span> <span class="p">:</span> <span class="mh">0x0000FF</span><span class="p">,</span>

@@ -172,10 +172,10 @@ gtag('config', 'G-MRPDMQ259W');
 <h2 id="compiling-and-baking">Compiling and ‘Baking’</h2>
 <p>In a rumpkernel application, we have a standard POSIX environment, minus anything involving multiple processes. Standard memory, file system, and networking calls all work as expected. The only differences lie in the multi-process related calls such as <code>fork()</code>, <code>signal()</code>, <code>pthread_create()</code>, etc. The scope of these differences can be found in the <a href="http://www.fixup.fi/misc/rumpkernel-book/rumpkernel-bookv2-20160802.pdf">The Design and Implementation of the Anykernel and Rump Kernels [pdf]</a>.</p>
 <p>From a super basic, standard ‘hello world’ program:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -197,13 +197,13 @@ gtag('config', 'G-MRPDMQ259W');
 <h2 id="reason-why-this-doesnt-work">Reason Why This Doesn’t Work</h2>
 <p>CVE-2013-2028 is a stack buffer overflow in the nginx handler for chunked requests. I thought this would be a good test as the user controls much of the data on the stack, however, various attempts to trigger the overflow failed. Running the VM in a debugger you could see the bug was not triggered despite the size value being large enough. In fact, the syscall returned an error.</p>
 <p>It turns out however that NetBSD has code to prevent against this inside the kernel:</p>
-<div class="highlight"><pre><span></span><code><span class="n">do_sys_recvmsg_so</span><span class="p">(</span><span class="k">struct</span> <span class="n">lwp</span> <span class="o">*</span><span class="n">l</span><span class="p">,</span> <span class="kt">int</span> <span class="n">s</span><span class="p">,</span> <span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">so</span><span class="p">,</span> <span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">mp</span><span class="p">,</span>
-        <span class="k">struct</span> <span class="n">mbuf</span> <span class="o">**</span><span class="n">from</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mbuf</span> <span class="o">**</span><span class="n">control</span><span class="p">,</span> <span class="n">register_t</span> <span class="o">*</span><span class="n">retsize</span><span class="p">)</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="n">do_sys_recvmsg_so</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">lwp</span><span class="w"> </span><span class="o">*</span><span class="n">l</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">socket</span><span class="w"> </span><span class="o">*</span><span class="n">so</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">msghdr</span><span class="w"> </span><span class="o">*</span><span class="n">mp</span><span class="p">,</span>
+<span class="w">        </span><span class="k">struct</span><span class="w"> </span><span class="nc">mbuf</span><span class="w"> </span><span class="o">**</span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">mbuf</span><span class="w"> </span><span class="o">**</span><span class="n">control</span><span class="p">,</span><span class="w"> </span><span class="n">register_t</span><span class="w"> </span><span class="o">*</span><span class="n">retsize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="c1">// …</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">tiov</span><span class="o">-&gt;</span><span class="n">iov_len</span> <span class="o">&gt;</span> <span class="n">SSIZE_MAX</span> <span class="o">||</span> <span class="n">auio</span><span class="p">.</span><span class="n">uio_resid</span> <span class="o">&gt;</span> <span class="n">SSIZE_MAX</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">error</span> <span class="o">=</span> <span class="n">EINVAL</span><span class="p">;</span>
-            <span class="k">goto</span> <span class="n">out</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tiov</span><span class="o">-&gt;</span><span class="n">iov_len</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">SSIZE_MAX</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">auio</span><span class="p">.</span><span class="n">uio_resid</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">SSIZE_MAX</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EINVAL</span><span class="p">;</span>
+<span class="w">            </span><span class="k">goto</span><span class="w"> </span><span class="n">out</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="c1">// …</span>
 </code></pre></div>
 

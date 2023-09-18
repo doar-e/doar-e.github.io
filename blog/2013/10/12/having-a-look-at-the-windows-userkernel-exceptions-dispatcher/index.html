@@ -387,39 +387,39 @@ Detours can work in two modes:</p>
 
 <p>To successfully hook a function you have to know its address of course, and you have to implement the hook function. Then, you have to call <em>DetourTransactionBegin</em>, <em>DetourUpdateThread</em>, <em>DetourTransactionCommit</em> and you're done, wonderful isn't it ?</p>
 <p>The only tricky thing, in our case, is that we want to hook <em>ntdll!KiUserExceptionDispatcher</em>, and that function has its own custom calling convention. Fortunately for us, in the <em>samples</em> directory of Detours you can find how you are supposed to deal with that specific case:</p>
-<div class="highlight"><pre><span></span><code><span class="n">VOID</span> <span class="nf">__declspec</span><span class="p">(</span><span class="kr">naked</span><span class="p">)</span> <span class="n">NTAPI</span> <span class="n">KiUserExceptionDispatcher</span><span class="p">(</span><span class="n">PEXCEPTION_RECORD</span> <span class="n">ExceptionRecord</span><span class="p">,</span> <span class="n">PCONTEXT</span> <span class="n">Context</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">VOID</span><span class="w"> </span><span class="nf">__declspec</span><span class="p">(</span><span class="kr">naked</span><span class="p">)</span><span class="w"> </span><span class="n">NTAPI</span><span class="w"> </span><span class="n">KiUserExceptionDispatcher</span><span class="p">(</span><span class="n">PEXCEPTION_RECORD</span><span class="w"> </span><span class="n">ExceptionRecord</span><span class="p">,</span><span class="w"> </span><span class="n">PCONTEXT</span><span class="w"> </span><span class="n">Context</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="cm">/* Taken from the Excep&#39;s detours sample */</span>
-    <span class="kr">__asm</span>
-    <span class="p">{</span>
-        <span class="n">xor</span>     <span class="n">eax</span><span class="p">,</span> <span class="n">eax</span>                <span class="p">;</span> <span class="c1">// Create fake return address on stack.</span>
-        <span class="n">push</span>    <span class="n">eax</span>                     <span class="p">;</span> <span class="c1">// (Generally, we are called by the kernel.)</span>
+<span class="w">    </span><span class="cm">/* Taken from the Excep&#39;s detours sample */</span>
+<span class="w">    </span><span class="kr">__asm</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">xor</span><span class="w">     </span><span class="n">eax</span><span class="p">,</span><span class="w"> </span><span class="n">eax</span><span class="w">                </span><span class="p">;</span><span class="w"> </span><span class="c1">// Create fake return address on stack.</span>
+<span class="w">        </span><span class="n">push</span><span class="w">    </span><span class="n">eax</span><span class="w">                     </span><span class="p">;</span><span class="w"> </span><span class="c1">// (Generally, we are called by the kernel.)</span>
 
-        <span class="n">push</span>    <span class="n">ebp</span>                     <span class="p">;</span> <span class="c1">// Prolog</span>
-        <span class="n">mov</span>     <span class="n">ebp</span><span class="p">,</span> <span class="n">esp</span>                <span class="p">;</span>
-        <span class="n">sub</span>     <span class="n">esp</span><span class="p">,</span> <span class="n">__LOCAL_SIZE</span>       <span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">        </span><span class="n">push</span><span class="w">    </span><span class="n">ebp</span><span class="w">                     </span><span class="p">;</span><span class="w"> </span><span class="c1">// Prolog</span>
+<span class="w">        </span><span class="n">mov</span><span class="w">     </span><span class="n">ebp</span><span class="p">,</span><span class="w"> </span><span class="n">esp</span><span class="w">                </span><span class="p">;</span>
+<span class="w">        </span><span class="n">sub</span><span class="w">     </span><span class="n">esp</span><span class="p">,</span><span class="w"> </span><span class="n">__LOCAL_SIZE</span><span class="w">       </span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="n">EnterCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">critical_section</span><span class="p">);</span>
-    <span class="n">log_exception</span><span class="p">(</span><span class="n">ExceptionRecord</span><span class="p">,</span> <span class="n">Context</span><span class="p">);</span>
-    <span class="n">LeaveCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">critical_section</span><span class="p">);</span>
+<span class="w">    </span><span class="n">EnterCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">critical_section</span><span class="p">);</span>
+<span class="w">    </span><span class="n">log_exception</span><span class="p">(</span><span class="n">ExceptionRecord</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="p">);</span>
+<span class="w">    </span><span class="n">LeaveCriticalSection</span><span class="p">(</span><span class="o">&amp;</span><span class="n">critical_section</span><span class="p">);</span>
 
-    <span class="kr">__asm</span>
-    <span class="p">{</span>
-        <span class="n">mov</span>     <span class="n">ebx</span><span class="p">,</span> <span class="n">ExceptionRecord</span>    <span class="p">;</span>
-        <span class="n">mov</span>     <span class="n">ecx</span><span class="p">,</span> <span class="n">Context</span>            <span class="p">;</span>
-        <span class="n">push</span>    <span class="n">ecx</span>                     <span class="p">;</span>
-        <span class="n">push</span>    <span class="n">ebx</span>                     <span class="p">;</span>
-        <span class="n">mov</span>     <span class="n">eax</span><span class="p">,</span> <span class="p">[</span><span class="n">TrueKiUserExceptionDispatcher</span><span class="p">];</span>
-        <span class="n">jmp</span>     <span class="n">eax</span>                     <span class="p">;</span>
-        <span class="c1">//</span>
-        <span class="c1">// The above code should never return.</span>
-        <span class="c1">//</span>
-        <span class="kt">int</span>     <span class="mi">3</span>                       <span class="p">;</span> <span class="c1">// Break!</span>
-        <span class="n">mov</span>     <span class="n">esp</span><span class="p">,</span> <span class="n">ebp</span>                <span class="p">;</span> <span class="c1">// Epilog</span>
-        <span class="n">pop</span>     <span class="n">ebp</span>                     <span class="p">;</span>
-        <span class="n">ret</span>                             <span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="kr">__asm</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">mov</span><span class="w">     </span><span class="n">ebx</span><span class="p">,</span><span class="w"> </span><span class="n">ExceptionRecord</span><span class="w">    </span><span class="p">;</span>
+<span class="w">        </span><span class="n">mov</span><span class="w">     </span><span class="n">ecx</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="w">            </span><span class="p">;</span>
+<span class="w">        </span><span class="n">push</span><span class="w">    </span><span class="n">ecx</span><span class="w">                     </span><span class="p">;</span>
+<span class="w">        </span><span class="n">push</span><span class="w">    </span><span class="n">ebx</span><span class="w">                     </span><span class="p">;</span>
+<span class="w">        </span><span class="n">mov</span><span class="w">     </span><span class="n">eax</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">TrueKiUserExceptionDispatcher</span><span class="p">];</span>
+<span class="w">        </span><span class="n">jmp</span><span class="w">     </span><span class="n">eax</span><span class="w">                     </span><span class="p">;</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// The above code should never return.</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="kt">int</span><span class="w">     </span><span class="mi">3</span><span class="w">                       </span><span class="p">;</span><span class="w"> </span><span class="c1">// Break!</span>
+<span class="w">        </span><span class="n">mov</span><span class="w">     </span><span class="n">esp</span><span class="p">,</span><span class="w"> </span><span class="n">ebp</span><span class="w">                </span><span class="p">;</span><span class="w"> </span><span class="c1">// Epilog</span>
+<span class="w">        </span><span class="n">pop</span><span class="w">     </span><span class="n">ebp</span><span class="w">                     </span><span class="p">;</span>
+<span class="w">        </span><span class="n">ret</span><span class="w">                             </span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -427,40 +427,40 @@ Detours can work in two modes:</p>
 <p>Here is what looks <em>ntdll!KiUserExceptionDispatcher</em> like in memory after the hook:</p>
 <p><center><img alt="hook.png" src="/images/ntdll.KiUserExceptionDispatcher/hook.png"></center>
 Disassembling some instructions pointed by the <em>CONTEXT.Eip</em> field is also really straightforward to do with <em>distorm_decode</em>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="p">(</span><span class="n">IsBadReadPtr</span><span class="p">((</span><span class="k">const</span> <span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="n">Context</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="p">,</span> <span class="n">SIZE_BIGGEST_X86_INSTR</span> <span class="o">*</span> <span class="n">MAX_INSTRUCTIONS</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="p">(</span><span class="n">IsBadReadPtr</span><span class="p">((</span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="n">Context</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="p">,</span><span class="w"> </span><span class="n">SIZE_BIGGEST_X86_INSTR</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">MAX_INSTRUCTIONS</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="n">_DecodeResult</span> <span class="n">res</span><span class="p">;</span>
-    <span class="n">_OffsetType</span> <span class="n">offset</span> <span class="o">=</span> <span class="n">Context</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="p">;</span>
-    <span class="n">_DecodedInst</span> <span class="n">decodedInstructions</span><span class="p">[</span><span class="n">MAX_INSTRUCTIONS</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">decodedInstructionsCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">_DecodeResult</span><span class="w"> </span><span class="n">res</span><span class="p">;</span>
+<span class="w">    </span><span class="n">_OffsetType</span><span class="w"> </span><span class="n">offset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Context</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="p">;</span>
+<span class="w">    </span><span class="n">_DecodedInst</span><span class="w"> </span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">MAX_INSTRUCTIONS</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">decodedInstructionsCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 
-    <span class="n">res</span> <span class="o">=</span> <span class="n">distorm_decode</span><span class="p">(</span>
-        <span class="n">offset</span><span class="p">,</span>
-        <span class="p">(</span><span class="k">const</span> <span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">Context</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="p">,</span>
-        <span class="n">MAX_INSTRUCTIONS</span> <span class="o">*</span> <span class="n">SIZE_BIGGEST_X86_INSTR</span><span class="p">,</span>
-        <span class="n">Decode32Bits</span><span class="p">,</span>
-        <span class="n">decodedInstructions</span><span class="p">,</span>
-        <span class="n">MAX_INSTRUCTIONS</span><span class="p">,</span>
-        <span class="o">&amp;</span><span class="n">decodedInstructionsCount</span>
-    <span class="p">);</span>
+<span class="w">    </span><span class="n">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">distorm_decode</span><span class="p">(</span>
+<span class="w">        </span><span class="n">offset</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">Context</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="p">,</span>
+<span class="w">        </span><span class="n">MAX_INSTRUCTIONS</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">SIZE_BIGGEST_X86_INSTR</span><span class="p">,</span>
+<span class="w">        </span><span class="n">Decode32Bits</span><span class="p">,</span>
+<span class="w">        </span><span class="n">decodedInstructions</span><span class="p">,</span>
+<span class="w">        </span><span class="n">MAX_INSTRUCTIONS</span><span class="p">,</span>
+<span class="w">        </span><span class="o">&amp;</span><span class="n">decodedInstructionsCount</span>
+<span class="w">    </span><span class="p">);</span>
 
-    <span class="k">if</span><span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="n">DECRES_SUCCESS</span> <span class="o">||</span> <span class="n">res</span> <span class="o">==</span> <span class="n">DECRES_MEMORYERR</span><span class="p">)</span>
-    <span class="p">{</span>
-    <span class="n">fprintf</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">Disassembly:</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-    <span class="k">for</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">decodedInstructionsCount</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span>
-        <span class="n">f</span><span class="p">,</span>
-        <span class="s">&quot;%.8I64x (%.2d) %-24s %s%s%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
-        <span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">offset</span><span class="p">,</span>
-        <span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">size</span><span class="p">,</span>
-        <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">instructionHex</span><span class="p">.</span><span class="n">p</span><span class="p">,</span>
-        <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">mnemonic</span><span class="p">.</span><span class="n">p</span><span class="p">,</span>
-        <span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">operands</span><span class="p">.</span><span class="n">length</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">?</span> <span class="s">&quot; &quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
-        <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">operands</span><span class="p">.</span><span class="n">p</span>
-        <span class="p">);</span>
-    <span class="p">}</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">res</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">DECRES_SUCCESS</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">res</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">DECRES_MEMORYERR</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">    </span><span class="n">fprintf</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">Disassembly:</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">decodedInstructionsCount</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fprintf</span><span class="p">(</span>
+<span class="w">        </span><span class="n">f</span><span class="p">,</span>
+<span class="w">        </span><span class="s">&quot;%.8I64x (%.2d) %-24s %s%s%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">offset</span><span class="p">,</span>
+<span class="w">        </span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">size</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">instructionHex</span><span class="p">.</span><span class="n">p</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">mnemonic</span><span class="p">.</span><span class="n">p</span><span class="p">,</span>
+<span class="w">        </span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">operands</span><span class="p">.</span><span class="n">length</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">decodedInstructions</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">operands</span><span class="p">.</span><span class="n">p</span>
+<span class="w">        </span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -477,24 +477,24 @@ total 4
 <h1 id="the-untold-story-win8-and-ntkifastfaildispatch">The untold story: Win8 and <em>nt!KiFastFailDispatch</em></h1>
 <h2 id="introduction_1">Introduction</h2>
 <p>When I was writing this little post I did also some tests on my personal machine: a Windows 8 host. But the test for the <em>/GS</em> thing we just talked about wasn't working at all as I said. So I started my investigation by looking at the code of <em>__report_gsfailure</em> (generated with a VS2012) and I saw this:</p>
-<div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="n">__usercall</span> <span class="nf">__report_gsfailure</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a1</span><span class="o">&lt;</span><span class="n">ebx</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a2</span><span class="o">&lt;</span><span class="n">edi</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a3</span><span class="o">&lt;</span><span class="n">esi</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">char</span> <span class="n">a4</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="n">__usercall</span><span class="w"> </span><span class="nf">__report_gsfailure</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">a1</span><span class="o">&lt;</span><span class="n">ebx</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">a2</span><span class="o">&lt;</span><span class="n">edi</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">a3</span><span class="o">&lt;</span><span class="n">esi</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">a4</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v4</span><span class="p">;</span> <span class="c1">// eax@1</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v5</span><span class="p">;</span> <span class="c1">// edx@1</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v6</span><span class="p">;</span> <span class="c1">// ecx@1</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v11</span><span class="p">;</span> <span class="c1">// [sp-4h] [bp-328h]@1</span>
-    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v12</span><span class="p">;</span> <span class="c1">// [sp+324h] [bp+0h]@0</span>
-    <span class="kt">void</span> <span class="o">*</span><span class="n">v13</span><span class="p">;</span> <span class="c1">// [sp+328h] [bp+4h]@3</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">v4</span><span class="p">;</span><span class="w"> </span><span class="c1">// eax@1</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">v5</span><span class="p">;</span><span class="w"> </span><span class="c1">// edx@1</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">v6</span><span class="p">;</span><span class="w"> </span><span class="c1">// ecx@1</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">v11</span><span class="p">;</span><span class="w"> </span><span class="c1">// [sp-4h] [bp-328h]@1</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">v12</span><span class="p">;</span><span class="w"> </span><span class="c1">// [sp+324h] [bp+0h]@0</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">v13</span><span class="p">;</span><span class="w"> </span><span class="c1">// [sp+328h] [bp+4h]@3</span>
 
-    <span class="n">v4</span> <span class="o">=</span> <span class="n">IsProcessorFeaturePresent</span><span class="p">(</span><span class="mh">0x17u</span><span class="p">);</span>
-    <span class="c1">// [...]</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">v4</span> <span class="p">)</span>
-    <span class="p">{</span>
-    <span class="n">v6</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
-    <span class="kr">__asm</span> <span class="p">{</span> <span class="kt">int</span>     <span class="mi">29</span><span class="n">h</span>             <span class="p">;</span> <span class="n">DOS</span> <span class="mi">2</span><span class="o">+</span> <span class="n">internal</span> <span class="o">-</span> <span class="n">FAST</span> <span class="n">PUTCHAR</span> <span class="p">}</span>
-    <span class="p">}</span>
-    <span class="p">[...]</span>
-    <span class="n">__raise_securityfailure</span><span class="p">(</span><span class="o">&amp;</span><span class="n">GS_ExceptionPointers</span><span class="p">);</span>
+<span class="w">    </span><span class="n">v4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IsProcessorFeaturePresent</span><span class="p">(</span><span class="mh">0x17u</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// [...]</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">v4</span><span class="w"> </span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">    </span><span class="n">v6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="kr">__asm</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">int</span><span class="w">     </span><span class="mi">29</span><span class="n">h</span><span class="w">             </span><span class="p">;</span><span class="w"> </span><span class="n">DOS</span><span class="w"> </span><span class="mi">2</span><span class="o">+</span><span class="w"> </span><span class="n">internal</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">FAST</span><span class="w"> </span><span class="n">PUTCHAR</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">[...]</span>
+<span class="w">    </span><span class="n">__raise_securityfailure</span><span class="p">(</span><span class="o">&amp;</span><span class="n">GS_ExceptionPointers</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -535,20 +535,20 @@ Dumping IDT: 80b95400
 
 
 <p>I've opened my favorite IDE and I wrote a bit of code to test if there was a different behavior between Win7 and Win8 regarding this exception handling:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;windows.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;windows.h&gt;</span>
 
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span>
 <span class="p">{</span>
-    <span class="kr">__try</span>
-    <span class="p">{</span>
-    <span class="kr">__asm</span> <span class="kt">int</span> <span class="mh">0x29</span>
-    <span class="p">}</span>
-    <span class="kr">__except</span><span class="p">(</span><span class="n">EXCEPTION_EXECUTE_HANDLER</span><span class="p">)</span>
-    <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;SEH catched the exception!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kr">__try</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">__asm</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="mh">0x29</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kr">__except</span><span class="p">(</span><span class="n">EXCEPTION_EXECUTE_HANDLER</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;SEH catched the exception!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -581,50 +581,50 @@ gs+0x2b39f:
 BUT the exception is going to be processed as a <strong>second-chance</strong> exception because of the way <em>nt!KiFastFailDispatch</em> calls the kernel mode exception dispatcher. And if we look at the source of <em>nt!KiDispatchException</em> in ReactOS we can see that this exception won't have the chance to reach back the userland as in Win7 :)):</p>
 <div class="highlight"><pre><span></span><code><span class="n">VOID</span>
 <span class="n">NTAPI</span>
-<span class="nf">KiDispatchException</span><span class="p">(</span><span class="n">IN</span> <span class="n">PEXCEPTION_RECORD</span> <span class="n">ExceptionRecord</span><span class="p">,</span>
-                    <span class="n">IN</span> <span class="n">PKEXCEPTION_FRAME</span> <span class="n">ExceptionFrame</span><span class="p">,</span>
-                    <span class="n">IN</span> <span class="n">PKTRAP_FRAME</span> <span class="n">TrapFrame</span><span class="p">,</span>
-                    <span class="n">IN</span> <span class="n">KPROCESSOR_MODE</span> <span class="n">PreviousMode</span><span class="p">,</span>
-                    <span class="n">IN</span> <span class="n">BOOLEAN</span> <span class="n">FirstChance</span><span class="p">)</span>
+<span class="n">KiDispatchException</span><span class="p">(</span><span class="n">IN</span><span class="w"> </span><span class="n">PEXCEPTION_RECORD</span><span class="w"> </span><span class="n">ExceptionRecord</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">IN</span><span class="w"> </span><span class="n">PKEXCEPTION_FRAME</span><span class="w"> </span><span class="n">ExceptionFrame</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">IN</span><span class="w"> </span><span class="n">PKTRAP_FRAME</span><span class="w"> </span><span class="n">TrapFrame</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">IN</span><span class="w"> </span><span class="n">KPROCESSOR_MODE</span><span class="w"> </span><span class="n">PreviousMode</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">IN</span><span class="w"> </span><span class="n">BOOLEAN</span><span class="w"> </span><span class="n">FirstChance</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="n">CONTEXT</span> <span class="n">Context</span><span class="p">;</span>
-    <span class="n">EXCEPTION_RECORD</span> <span class="n">LocalExceptRecord</span><span class="p">;</span>
+<span class="w">    </span><span class="n">CONTEXT</span><span class="w"> </span><span class="n">Context</span><span class="p">;</span>
+<span class="w">    </span><span class="n">EXCEPTION_RECORD</span><span class="w"> </span><span class="n">LocalExceptRecord</span><span class="p">;</span>
 
 <span class="c1">// [...]</span>
-    <span class="cm">/* Handle kernel-mode first, it&#39;s simpler */</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">PreviousMode</span> <span class="o">==</span> <span class="n">KernelMode</span><span class="p">)</span>
-    <span class="p">{</span>
+<span class="w">    </span><span class="cm">/* Handle kernel-mode first, it&#39;s simpler */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PreviousMode</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">KernelMode</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
 <span class="c1">// [...]</span>
-    <span class="p">}</span>
-    <span class="k">else</span>
-    <span class="p">{</span>
-        <span class="cm">/* User mode exception, was it first-chance? */</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">FirstChance</span><span class="p">)</span>
-        <span class="p">{</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="cm">/* User mode exception, was it first-chance? */</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">FirstChance</span><span class="p">)</span>
+<span class="w">        </span><span class="p">{</span>
 <span class="c1">// [...]</span>
 <span class="c1">// that&#39;s in this branch the kernel reaches back to the user mode exception dispatcher</span>
 <span class="c1">// but if FirstChance=0, we won&#39;t have that chance</span>
 
-            <span class="cm">/* Set EIP to the User-mode Dispatcher */</span>
-            <span class="n">TrapFrame</span><span class="o">-&gt;</span><span class="n">Eip</span> <span class="o">=</span> <span class="p">(</span><span class="n">ULONG</span><span class="p">)</span><span class="n">KeUserExceptionDispatcher</span><span class="p">;</span>
+<span class="w">            </span><span class="cm">/* Set EIP to the User-mode Dispatcher */</span>
+<span class="w">            </span><span class="n">TrapFrame</span><span class="o">-&gt;</span><span class="n">Eip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ULONG</span><span class="p">)</span><span class="n">KeUserExceptionDispatcher</span><span class="p">;</span>
 
-            <span class="cm">/* Dispatch exception to user-mode */</span>
-            <span class="n">_SEH2_YIELD</span><span class="p">(</span><span class="k">return</span><span class="p">);</span>
-        <span class="p">}</span>
+<span class="w">            </span><span class="cm">/* Dispatch exception to user-mode */</span>
+<span class="w">            </span><span class="n">_SEH2_YIELD</span><span class="p">(</span><span class="k">return</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
 
-        <span class="cm">/* Try second chance */</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">DbgkForwardException</span><span class="p">(</span><span class="n">ExceptionRecord</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">))</span>
-        <span class="p">{</span>
-            <span class="cm">/* Handled, get out */</span>
-            <span class="k">return</span><span class="p">;</span>
-        <span class="p">}</span>
-        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">DbgkForwardException</span><span class="p">(</span><span class="n">ExceptionRecord</span><span class="p">,</span> <span class="n">FALSE</span><span class="p">,</span> <span class="n">TRUE</span><span class="p">))</span>
-        <span class="p">{</span>
-            <span class="cm">/* Handled, get out */</span>
-            <span class="k">return</span><span class="p">;</span>
-        <span class="p">}</span>
+<span class="w">        </span><span class="cm">/* Try second chance */</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">DbgkForwardException</span><span class="p">(</span><span class="n">ExceptionRecord</span><span class="p">,</span><span class="w"> </span><span class="n">TRUE</span><span class="p">,</span><span class="w"> </span><span class="n">TRUE</span><span class="p">))</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="cm">/* Handled, get out */</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">DbgkForwardException</span><span class="p">(</span><span class="n">ExceptionRecord</span><span class="p">,</span><span class="w"> </span><span class="n">FALSE</span><span class="p">,</span><span class="w"> </span><span class="n">TRUE</span><span class="p">))</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="cm">/* Handled, get out */</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="c1">// [...]</span>
-    <span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
 
