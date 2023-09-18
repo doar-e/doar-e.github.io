@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Competiting in Pwn2Own 2022 Miami: Paracosme Beyond the Zenith</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="../../../../../theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="../../../../../theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="../../../../../feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="../../../../../feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-MRPDMQ259W'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-MRPDMQ259W');
+</script>
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="../../../../../index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="../../../../../archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="../../../../../category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="../../../../../category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="../../../../../pages/about.html">About</a></li>
+                <li><a href="../../../../../pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Competiting in Pwn2Own 2022 Miami: Paracosme Beyond the Zenith">
+                                        Competiting in Pwn2Own 2022 Miami: Paracosme Beyond the Zenith
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2022-03-26T08:00:00-07:00">
+        <i class="icon-calendar"></i>Sat 26 March 2022
+</abbr>
+<span class="label">By</span>
+<a href="../../../../../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="../../../../../category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+<span class="label">Tags</span>
+	<a href="../../../../../tag/pwn2own-miami.html"><i class="icon-tag"></i>Pwn2Own Miami</a>
+	<a href="../../../../../tag/pwn2own-2022.html"><i class="icon-tag"></i>Pwn2Own 2022</a>
+	<a href="../../../../../tag/ics.html"><i class="icon-tag"></i>ICS</a>
+	<a href="../../../../../tag/paracosme.html"><i class="icon-tag"></i>Paracosme</a>
+	<a href="../../../../../tag/iconics.html"><i class="icon-tag"></i>ICONICS</a>
+	<a href="../../../../../tag/iconics-genesis64.html"><i class="icon-tag"></i>ICONICS Genesis64</a>
+	<a href="../../../../../tag/genesis64.html"><i class="icon-tag"></i>Genesis64</a>
+	<a href="../../../../../tag/0-click-remote-code-execution.html"><i class="icon-tag"></i>0-click remote code execution</a>
+	<a href="../../../../../tag/cve-2022-33318.html"><i class="icon-tag"></i>CVE-2022-33318</a>
+	<a href="../../../../../tag/zdi-22-1041.html"><i class="icon-tag"></i>ZDI-22-1041</a>
+	<a href="../../../../../tag/icsa-22-202-04.html"><i class="icon-tag"></i>ICSA-22-202-04</a>
+	<a href="../../../../../tag/genbroker64exe.html"><i class="icon-tag"></i>GenBroker64.exe</a>
+	<a href="../../../../../tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+	<a href="../../../../../tag/memory-corruption.html"><i class="icon-tag"></i>memory-corruption</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p>After participating to Pwn2Own Austin in 2021 and failing to land my <a href="https://github.com/0vercl0k/zenith">remote kernel exploit Zenith</a>, which you can read about <a href="https://doar-e.github.io/blog/2022/03/26/competing-in-pwn2own-2021-austin-icarus-at-the-zenith/">here</a>, I was eager to try the experience again. It had been a lot of fun and it allowed me to look at things that I might not have if it wasn't for the competition. The one thing that I wasn't able to do at the Austin edition in 2021 was to fly on-site and soak in the full experience: getting a huge adrenaline rush on stage, socializing with the other competitor and just having fun.</p>
+<p>So when ZDI announced an in-person competition in <a href="https://www.zerodayinitiative.com/blog/2021/10/22/our-ics-themed-pwn2own-contest-returns-to-miami-in-2022">Miami in 2022</a>.. I was stoked. The only gotcha was that... I knew nothing about <a href="https://en.wikipedia.org/wiki/Industrial_control_system"><strong>I</strong>ndustrial <strong>C</strong>ontrol <strong>S</strong>ystem</a> software (I still don't to be honest 😅). After googling around, I realized that several of the targets actually ran on Windows 😮 which is the OS I am most familiar with so I should be able to at least poke at those software pretty easily.</p>
+<p>In this blogpost, I am going to walk you through my journey through participating &amp; demonstrating a winning entry on stage in Miami 🛬. I will share what I have done and how, the tools I have developped and the lessons I have learned along the way. Without further ado.. let's dive in!</p>
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#target-selection">Target selection</a></li>
+<li><a href="#vulnerability-research">Vulnerability research</a><ul>
+<li><a href="#understanding-the-target">Understanding the target</a></li>
+<li><a href="#harnessing-the-target">Harnessing the target</a></li>
+<li><a href="#triaging-findings">Triaging findings</a></li>
+</ul>
+</li>
+<li><a href="#building-paracosme">Building Paracosme</a><ul>
+<li><a href="#understanding-the-bug">Understanding the bug</a></li>
+<li><a href="#can-i-reclaim-the-chunk-with-controlled-data">Can I reclaim the chunk with controlled data?</a></li>
+<li><a href="#hijacking-control-flow">Hijacking control flow</a></li>
+<li><a href="#roping-to-get-arbitrary-native-code-execution">ROPing to get arbitrary native code execution</a></li>
+</ul>
+</li>
+<li><a href="#entering-the-contest">Entering the contest</a></li>
+<li><a href="#wrapping-up">Wrapping up</a></li>
+</ul>
+</div>
+<h1 id="target-selection">Target selection</h1>
+<p>All right, let me set the stage. It is November 2021 and I have decided that I want to try to participate to the Pwn2Own Miami contest originally happening at the end of January 2022 which gives me a bit less than three months to discover an exploitable vulnerability and write a reliable enough exploit for it. Honestly, I thought that timeline was a bit tight as I can only invest an hour or two on average per work day (probably double that for weekends). Obviously, this is also very dependent on how motivated you are, but it is hard for me to predict this as it fluctuates over time. Whatever, I'll do what I can with what I have. At worse, I don't get anywhere; after all I am very used to that.</p>
+<p>The one thing that did give me hope was the fact that I would pick a target that runs on Windows. This is an environment that I am very familiar with, and given the timeline I was relieved I would not have to fight with <a href="https://sourceware.org/gdb/">gdb</a> / <a href="https://lldb.llvm.org/">lldb</a> (🤢) and would be very comfortable writing custom tooling on that OS. Basically, lots of time saved that I can sink into understanding better the target; I was happy about that.</p>
+<p>But as I said in the introduction, I have no experience whatsoever with anything related to <a href="https://en.wikipedia.org/wiki/Industrial_control_system">ICS</a> software. I don't know what it's supposed to do, where and how. It felt a bit weird to not know much about those applications and how they are used in the real life but in the end </p>
+<h1 id="vulnerability-research">Vulnerability research</h1>
+<h2 id="understanding-the-target">Understanding the target</h2>
+<h2 id="harnessing-the-target">Harnessing the target</h2>
+<h2 id="triaging-findings">Triaging findings</h2>
+<h1 id="building-paracosme">Building Paracosme</h1>
+<h2 id="understanding-the-bug">Understanding the bug</h2>
+<h2 id="can-i-reclaim-the-chunk-with-controlled-data">Can I reclaim the chunk with controlled data?</h2>
+<h2 id="hijacking-control-flow">Hijacking control flow</h2>
+<h2 id="roping-to-get-arbitrary-native-code-execution">ROPing to get arbitrary native code execution</h2>
+<p>one module w/o aslr, ropping only here, no other aslr leak
+not that many gadgets, only importing loadlibrary</p>
+<h1 id="entering-the-contest">Entering the contest</h1>
+<p>decided to set up vmware; pro version of microsoft prevent anonymous log-in from the smb client stack; so payload delivery doesnt work
+stressed out, but after learning more about it, i realized this policy isnt on on certain Microsoft SKU
+caught a red eye from seattle, checked in my hotel
+demonstrated live, ip didnt work 5s before going live LOL
+met w/ zdi in a room, then the vendor, then declared win
+met w/ ppl, dinner by muffin &amp; steven
+hanged out</p>
+<h1 id="wrapping-up">Wrapping up</h1>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
+    <script src="../../../../../theme/js/bootstrap.min.js"></script>
+  </body>
+</html>

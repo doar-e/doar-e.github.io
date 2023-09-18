@@ -201,69 +201,69 @@ Apparently, the three tasks have already been <a href="https://twitter.com/Synac
 </ul>
 <h2 id="setting-up-a-proper-debugging-environment">Setting up a proper debugging environment</h2>
 <p>The answer to that question is <a href="http://wiki.qemu.org/Main_Page">Qemu</a>, as expected. You can even download already fully prepared &amp; working Debian images on <a href="https://people.debian.org/~aurel32/qemu/mipsel/">aurel32</a>'s website.</p>
-<div class="highlight"><pre><span></span><code>overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
-overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/vmlinux-3.2.0-4-4kc-malta
-overclok@wildout:~/chall/nsc2014$ cat start_vm.sh
-qemu-system-mipsel -M malta -kernel vmlinux-3.2.0-4-4kc-malta -hda debian_wheezy_mipsel_standard.qcow2 -vga none -append <span class="s2">&quot;root=/dev/sda1 console=tty0&quot;</span> -nographic
-overclok@wildout:~/chall/nsc2014$ ./start_vm.sh
-<span class="o">[</span>    <span class="m">0</span>.000000<span class="o">]</span> Initializing cgroup subsys cpuset
-<span class="o">[</span>    <span class="m">0</span>.000000<span class="o">]</span> Initializing cgroup subsys cpu
-<span class="o">[</span>    <span class="m">0</span>.000000<span class="o">]</span> Linux version <span class="m">3</span>.2.0-4-4kc-malta <span class="o">(</span>debian-kernel@lists.debian.org<span class="o">)</span> <span class="o">(</span>gcc version <span class="m">4</span>.6.3 <span class="o">(</span>Debian <span class="m">4</span>.6.3-14<span class="o">)</span> <span class="o">)</span> <span class="c1">#1 Debian 3.2.51-1</span>
+<div class="highlight"><pre><span></span><code>overclok@wildout:~/chall/nsc2014$<span class="w"> </span>wget<span class="w"> </span>https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
+overclok@wildout:~/chall/nsc2014$<span class="w"> </span>wget<span class="w"> </span>https://people.debian.org/~aurel32/qemu/mipsel/vmlinux-3.2.0-4-4kc-malta
+overclok@wildout:~/chall/nsc2014$<span class="w"> </span>cat<span class="w"> </span>start_vm.sh
+qemu-system-mipsel<span class="w"> </span>-M<span class="w"> </span>malta<span class="w"> </span>-kernel<span class="w"> </span>vmlinux-3.2.0-4-4kc-malta<span class="w"> </span>-hda<span class="w"> </span>debian_wheezy_mipsel_standard.qcow2<span class="w"> </span>-vga<span class="w"> </span>none<span class="w"> </span>-append<span class="w"> </span><span class="s2">&quot;root=/dev/sda1 console=tty0&quot;</span><span class="w"> </span>-nographic
+overclok@wildout:~/chall/nsc2014$<span class="w"> </span>./start_vm.sh
+<span class="o">[</span><span class="w">    </span><span class="m">0</span>.000000<span class="o">]</span><span class="w"> </span>Initializing<span class="w"> </span>cgroup<span class="w"> </span>subsys<span class="w"> </span>cpuset
+<span class="o">[</span><span class="w">    </span><span class="m">0</span>.000000<span class="o">]</span><span class="w"> </span>Initializing<span class="w"> </span>cgroup<span class="w"> </span>subsys<span class="w"> </span>cpu
+<span class="o">[</span><span class="w">    </span><span class="m">0</span>.000000<span class="o">]</span><span class="w"> </span>Linux<span class="w"> </span>version<span class="w"> </span><span class="m">3</span>.2.0-4-4kc-malta<span class="w"> </span><span class="o">(</span>debian-kernel@lists.debian.org<span class="o">)</span><span class="w"> </span><span class="o">(</span>gcc<span class="w"> </span>version<span class="w"> </span><span class="m">4</span>.6.3<span class="w"> </span><span class="o">(</span>Debian<span class="w"> </span><span class="m">4</span>.6.3-14<span class="o">)</span><span class="w"> </span><span class="o">)</span><span class="w"> </span><span class="c1">#1 Debian 3.2.51-1</span>
 <span class="o">[</span>...<span class="o">]</span>
-debian-mipsel login: root
+debian-mipsel<span class="w"> </span>login:<span class="w"> </span>root
 Password:
-Last login: Sat Oct <span class="m">11</span> <span class="m">00</span>:04:51 UTC <span class="m">2014</span> on ttyS0
-Linux debian-mipsel <span class="m">3</span>.2.0-4-4kc-malta <span class="c1">#1 Debian 3.2.51-1 mips</span>
+Last<span class="w"> </span>login:<span class="w"> </span>Sat<span class="w"> </span>Oct<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="m">00</span>:04:51<span class="w"> </span>UTC<span class="w"> </span><span class="m">2014</span><span class="w"> </span>on<span class="w"> </span>ttyS0
+Linux<span class="w"> </span>debian-mipsel<span class="w"> </span><span class="m">3</span>.2.0-4-4kc-malta<span class="w"> </span><span class="c1">#1 Debian 3.2.51-1 mips</span>
 
-The programs included with the Debian GNU/Linux system are free software<span class="p">;</span>
-the exact distribution terms <span class="k">for</span> each program are described in the
-individual files in /usr/share/doc/*/copyright.
+The<span class="w"> </span>programs<span class="w"> </span>included<span class="w"> </span>with<span class="w"> </span>the<span class="w"> </span>Debian<span class="w"> </span>GNU/Linux<span class="w"> </span>system<span class="w"> </span>are<span class="w"> </span>free<span class="w"> </span>software<span class="p">;</span>
+the<span class="w"> </span>exact<span class="w"> </span>distribution<span class="w"> </span>terms<span class="w"> </span><span class="k">for</span><span class="w"> </span>each<span class="w"> </span>program<span class="w"> </span>are<span class="w"> </span>described<span class="w"> </span><span class="k">in</span><span class="w"> </span>the
+individual<span class="w"> </span>files<span class="w"> </span><span class="k">in</span><span class="w"> </span>/usr/share/doc/*/copyright.
 
-Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
-permitted by applicable law.
-root@debian-mipsel:~# uname -a
-Linux debian-mipsel <span class="m">3</span>.2.0-4-4kc-malta <span class="c1">#1 Debian 3.2.51-1 mips GNU/Linux</span>
+Debian<span class="w"> </span>GNU/Linux<span class="w"> </span>comes<span class="w"> </span>with<span class="w"> </span>ABSOLUTELY<span class="w"> </span>NO<span class="w"> </span>WARRANTY,<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>extent
+permitted<span class="w"> </span>by<span class="w"> </span>applicable<span class="w"> </span>law.
+root@debian-mipsel:~#<span class="w"> </span>uname<span class="w"> </span>-a
+Linux<span class="w"> </span>debian-mipsel<span class="w"> </span><span class="m">3</span>.2.0-4-4kc-malta<span class="w"> </span><span class="c1">#1 Debian 3.2.51-1 mips GNU/Linux</span>
 </code></pre></div>
 
 
 <p>Feel free to install your essentials in the virtual environment, some tools might come handy (it should take a bit of time to install them though):</p>
-<div class="highlight"><pre><span></span><code>root@debian-mipsel:~# aptitude install strace gdb gcc python
-root@debian-mipsel:~# wget https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
-root@debian-mipsel:~# mv gdbinit-mips ~/.gdbinit
-root@debian-mipsel:~# gdb -q /home/user/crackmips
-Reading symbols from /home/user/crackmips...<span class="o">(</span>no debugging symbols found<span class="o">)</span>...done.
-<span class="o">(</span>gdb<span class="o">)</span> b *main
-Breakpoint <span class="m">1</span> at 0x402024
-<span class="o">(</span>gdb<span class="o">)</span> r <span class="s1">&#39;doar-e ftw&#39;</span>
-Starting program: /home/user/crackmips <span class="s1">&#39;doar-e ftw&#39;</span>
+<div class="highlight"><pre><span></span><code>root@debian-mipsel:~#<span class="w"> </span>aptitude<span class="w"> </span>install<span class="w"> </span>strace<span class="w"> </span>gdb<span class="w"> </span>gcc<span class="w"> </span>python
+root@debian-mipsel:~#<span class="w"> </span>wget<span class="w"> </span>https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
+root@debian-mipsel:~#<span class="w"> </span>mv<span class="w"> </span>gdbinit-mips<span class="w"> </span>~/.gdbinit
+root@debian-mipsel:~#<span class="w"> </span>gdb<span class="w"> </span>-q<span class="w"> </span>/home/user/crackmips
+Reading<span class="w"> </span>symbols<span class="w"> </span>from<span class="w"> </span>/home/user/crackmips...<span class="o">(</span>no<span class="w"> </span>debugging<span class="w"> </span>symbols<span class="w"> </span>found<span class="o">)</span>...done.
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>b<span class="w"> </span>*main
+Breakpoint<span class="w"> </span><span class="m">1</span><span class="w"> </span>at<span class="w"> </span>0x402024
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>r<span class="w"> </span><span class="s1">&#39;doar-e ftw&#39;</span>
+Starting<span class="w"> </span>program:<span class="w"> </span>/home/user/crackmips<span class="w"> </span><span class="s1">&#39;doar-e ftw&#39;</span>
 -----------------------------------------------------------------
 <span class="o">[</span>registers<span class="o">]</span>
-  V0: 7FFF6D30  V1: 77FEE000  A0: <span class="m">00000002</span>  A1: 7FFF6DF4
-  A2: 7FFF6E00  A3: 0000006C  T0: 77F611E4  T1: 0FFFFFFE
-  T2: 0000000A  T3: 77FF6ED0  T4: 77FE5590  T5: FFFFFFFF
-  T6: F0000000  T7: 7FFF6BE8  S0: <span class="m">00000000</span>  S1: <span class="m">00000000</span>
-  S2: <span class="m">00000000</span>  S3: <span class="m">00000000</span>  S4: 004FD268  S5: 004FD148
-  S6: 004D0000  S7: <span class="m">00000063</span>  T8: 77FD7A5C  T9: <span class="m">00402024</span>
-  GP: 77F67970  S8: 0000006C  HI: 000001A5  LO: 00005E17
-  SP: 7FFF6D18  PC: <span class="m">00402024</span>  RA: 77DF2208
+<span class="w">  </span>V0:<span class="w"> </span>7FFF6D30<span class="w">  </span>V1:<span class="w"> </span>77FEE000<span class="w">  </span>A0:<span class="w"> </span><span class="m">00000002</span><span class="w">  </span>A1:<span class="w"> </span>7FFF6DF4
+<span class="w">  </span>A2:<span class="w"> </span>7FFF6E00<span class="w">  </span>A3:<span class="w"> </span>0000006C<span class="w">  </span>T0:<span class="w"> </span>77F611E4<span class="w">  </span>T1:<span class="w"> </span>0FFFFFFE
+<span class="w">  </span>T2:<span class="w"> </span>0000000A<span class="w">  </span>T3:<span class="w"> </span>77FF6ED0<span class="w">  </span>T4:<span class="w"> </span>77FE5590<span class="w">  </span>T5:<span class="w"> </span>FFFFFFFF
+<span class="w">  </span>T6:<span class="w"> </span>F0000000<span class="w">  </span>T7:<span class="w"> </span>7FFF6BE8<span class="w">  </span>S0:<span class="w"> </span><span class="m">00000000</span><span class="w">  </span>S1:<span class="w"> </span><span class="m">00000000</span>
+<span class="w">  </span>S2:<span class="w"> </span><span class="m">00000000</span><span class="w">  </span>S3:<span class="w"> </span><span class="m">00000000</span><span class="w">  </span>S4:<span class="w"> </span>004FD268<span class="w">  </span>S5:<span class="w"> </span>004FD148
+<span class="w">  </span>S6:<span class="w"> </span>004D0000<span class="w">  </span>S7:<span class="w"> </span><span class="m">00000063</span><span class="w">  </span>T8:<span class="w"> </span>77FD7A5C<span class="w">  </span>T9:<span class="w"> </span><span class="m">00402024</span>
+<span class="w">  </span>GP:<span class="w"> </span>77F67970<span class="w">  </span>S8:<span class="w"> </span>0000006C<span class="w">  </span>HI:<span class="w"> </span>000001A5<span class="w">  </span>LO:<span class="w"> </span>00005E17
+<span class="w">  </span>SP:<span class="w"> </span>7FFF6D18<span class="w">  </span>PC:<span class="w"> </span><span class="m">00402024</span><span class="w">  </span>RA:<span class="w"> </span>77DF2208
 -----------------------------------------------------------------
 <span class="o">[</span>code<span class="o">]</span>
-<span class="o">=</span>&gt; 0x402024 &lt;main&gt;:     addiu   sp,sp,-72
-    0x402028 &lt;main+4&gt;:   sw      ra,68<span class="o">(</span>sp<span class="o">)</span>
-    0x40202c &lt;main+8&gt;:   sw      s8,64<span class="o">(</span>sp<span class="o">)</span>
-    0x402030 &lt;main+12&gt;:  move    s8,sp
-    0x402034 &lt;main+16&gt;:  sw      a0,72<span class="o">(</span>s8<span class="o">)</span>
-    0x402038 &lt;main+20&gt;:  sw      a1,76<span class="o">(</span>s8<span class="o">)</span>
-    0x40203c &lt;main+24&gt;:  lw      v1,72<span class="o">(</span>s8<span class="o">)</span>
-    0x402040 &lt;main+28&gt;:  li      v0,2
+<span class="o">=</span>&gt;<span class="w"> </span>0x402024<span class="w"> </span>&lt;main&gt;:<span class="w">     </span>addiu<span class="w">   </span>sp,sp,-72
+<span class="w">    </span>0x402028<span class="w"> </span>&lt;main+4&gt;:<span class="w">   </span>sw<span class="w">      </span>ra,68<span class="o">(</span>sp<span class="o">)</span>
+<span class="w">    </span>0x40202c<span class="w"> </span>&lt;main+8&gt;:<span class="w">   </span>sw<span class="w">      </span>s8,64<span class="o">(</span>sp<span class="o">)</span>
+<span class="w">    </span>0x402030<span class="w"> </span>&lt;main+12&gt;:<span class="w">  </span>move<span class="w">    </span>s8,sp
+<span class="w">    </span>0x402034<span class="w"> </span>&lt;main+16&gt;:<span class="w">  </span>sw<span class="w">      </span>a0,72<span class="o">(</span>s8<span class="o">)</span>
+<span class="w">    </span>0x402038<span class="w"> </span>&lt;main+20&gt;:<span class="w">  </span>sw<span class="w">      </span>a1,76<span class="o">(</span>s8<span class="o">)</span>
+<span class="w">    </span>0x40203c<span class="w"> </span>&lt;main+24&gt;:<span class="w">  </span>lw<span class="w">      </span>v1,72<span class="o">(</span>s8<span class="o">)</span>
+<span class="w">    </span>0x402040<span class="w"> </span>&lt;main+28&gt;:<span class="w">  </span>li<span class="w">      </span>v0,2
 </code></pre></div>
 
 
 <p>And finally you should be able to run the wild beast:</p>
-<div class="highlight"><pre><span></span><code>root@debian-mipsel:~# /home/user/crackmips
-usage: /home/user/crackmips password
-root@debian-mipsel:~# /home/user/crackmips <span class="s1">&#39;doar-e ftw&#39;</span>
-WRONG PASSWORD
+<div class="highlight"><pre><span></span><code>root@debian-mipsel:~#<span class="w"> </span>/home/user/crackmips
+usage:<span class="w"> </span>/home/user/crackmips<span class="w"> </span>password
+root@debian-mipsel:~#<span class="w"> </span>/home/user/crackmips<span class="w"> </span><span class="s1">&#39;doar-e ftw&#39;</span>
+WRONG<span class="w"> </span>PASSWORD
 </code></pre></div>
 
 
@@ -285,33 +285,33 @@ it works and what parts we will have to target to get the <em>good boy</em> mess
 </ol>
 <p>Basically, we need to find the 6 input <em>DWORD</em>s that are going to generate the following ones in <em>output</em>: <em>0x7953205b</em>, <em>0x6b63616e</em>, <em>0x20766974</em>, <em>0x534e202b</em>, <em>0x203d2043</em>, <em>0x5d20333c</em>. We also know that the father is going to interact with its son, so we need to study both codes to be sure to understand the challenge properly.
 If you prefer code, here is the big picture in C:</p>
-<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<div class="highlight"><pre><span></span><code><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
-    <span class="n">DWORD</span> <span class="n">serial_dwords</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">Usage</span><span class="p">();</span>
+<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="n">serial_dwords</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">argc</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span>
+<span class="w">        </span><span class="n">Usage</span><span class="p">();</span>
 
-    <span class="c1">// Conversion</span>
-    <span class="n">a2i</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">serial_dwords</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Conversion</span>
+<span class="w">    </span><span class="n">a2i</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">serial_dwords</span><span class="p">);</span>
 
-    <span class="kt">pid_t</span> <span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">();</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">pid</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="c1">// Father</span>
-        <span class="c1">// a lot of stuff going on here, we will see that later on</span>
-    <span class="p">}</span>
-    <span class="k">else</span>
-    <span class="p">{</span>
-        <span class="c1">// Son</span>
-        <span class="c1">// a lot of stuff going on here, we will see that later on</span>
+<span class="w">    </span><span class="kt">pid_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fork</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">pid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Father</span>
+<span class="w">        </span><span class="c1">// a lot of stuff going on here, we will see that later on</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Son</span>
+<span class="w">        </span><span class="c1">// a lot of stuff going on here, we will see that later on</span>
 
-        <span class="kt">char</span> <span class="o">*</span><span class="n">clear</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">serial_dwords</span><span class="p">;</span>
-        <span class="kt">bool</span> <span class="n">win</span> <span class="o">=</span> <span class="n">memcmp</span><span class="p">(</span><span class="n">clear</span><span class="p">,</span> <span class="s">&quot;[ Synacktiv + NSC = &lt;3 ]&quot;</span><span class="p">,</span> <span class="mi">48</span><span class="p">);</span>
-        <span class="k">if</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
-            <span class="n">GoodBoy</span><span class="p">();</span>
-        <span class="k">else</span>
-            <span class="n">BadBoy</span><span class="p">();</span>
-    <span class="p">}</span>
+<span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">clear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">serial_dwords</span><span class="p">;</span>
+<span class="w">        </span><span class="kt">bool</span><span class="w"> </span><span class="n">win</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">memcmp</span><span class="p">(</span><span class="n">clear</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;[ Synacktiv + NSC = &lt;3 ]&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">48</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
+<span class="w">            </span><span class="n">GoodBoy</span><span class="p">();</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span><span class="n">BadBoy</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -437,11 +437,11 @@ It usually works this way:</p>
 </ul>
 <p>To handle / convert those I created a bunch of dull / helper functions:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">_is_gpr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Is it a valid GPR name?&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Is it a valid GPR name?&#39;&#39;&#39;</span>
   <span class="k">return</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpr</span>
 
 <span class="k">def</span> <span class="nf">_is_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Is it a valid immediate?&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Is it a valid immediate?&#39;&#39;&#39;</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;loc_&#39;</span><span class="p">,</span> <span class="s1">&#39;0x&#39;</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -450,22 +450,22 @@ It usually works this way:</p>
     <span class="k">return</span> <span class="kc">False</span>
 
 <span class="k">def</span> <span class="nf">_to_imm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Get an integer from a string immediate&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Get an integer from a string immediate&#39;&#39;&#39;</span>
   <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_imm</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;loc_&#39;</span><span class="p">,</span> <span class="s1">&#39;0x&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
   <span class="k">return</span> <span class="kc">None</span>
 
 <span class="k">def</span> <span class="nf">_is_memderef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Is it a memory dereference?&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Is it a memory dereference?&#39;&#39;&#39;</span>
   <span class="k">return</span> <span class="s1">&#39;(&#39;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s1">&#39;)&#39;</span> <span class="ow">in</span> <span class="n">x</span>
 
 <span class="k">def</span> <span class="nf">is_stackvar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Is is a stack variable?&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Is is a stack variable?&#39;&#39;&#39;</span>
   <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;(fp)&#39;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s1">&#39;+&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;var_&#39;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s1">&#39;+&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">to_stackvar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Get the stack variable name&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Get the stack variable name&#39;&#39;&#39;</span>
   <span class="n">_</span><span class="p">,</span> <span class="n">var_name</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">var_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(fp)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 </code></pre></div>
@@ -474,7 +474,7 @@ It usually works this way:</p>
 <p>Finally, we have to handle every different instructions and their encodings. Of course, you need to implement only the instructions you want: most likely the ones that are used in the code you are interested int. In a nutshell, this is the core of the engine. You can also use it to output valid Python/C lines if you fancy having a decompiler in your sleeve ; might be handy right?</p>
 <p>This is what the core function looks like, it is really simple, dumb and so unoptimized ; but at least it's clear to me:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;This is the core of the engine -- you are supposed to implement the semantics</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;This is the core of the engine -- you are supposed to implement the semantics</span>
 <span class="sd">  of all the instructions you want to emulate here.&#39;&#39;&#39;</span>
   <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pc</span><span class="p">]</span>
   <span class="n">addr</span><span class="p">,</span> <span class="n">instr</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
@@ -575,7 +575,7 @@ It usually works this way:</p>
 
 <p>To workaround that I usually define my own <em>_LShR</em> function that does whatever is correct according to the operand types (yes we could also replace <em>z3.BitVecNumRef.__rshift__</em> by <em>LShR</em> directly):</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">_LShR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Useful hook function if you want to run the emulation</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Useful hook function if you want to run the emulation</span>
 <span class="sd">  with/without Z3 as LShR is different from &gt;&gt; in Z3&#39;&#39;&#39;</span>
   <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_z3</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
@@ -701,7 +701,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 
 <p>Then we have to prepare the environment of our engine: the two symbolic variables are stack-variables, so we have to insert them in the context of our virtual environment. The resulting formula is going to be in <em>$v0</em> at the end of the execution ; this the holy grail, the formula we are after.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_magic_value</span><span class="p">():</span>
-  <span class="sd">&#39;&#39;&#39;Here we do some magic to transform our mini MIPS emulator</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Here we do some magic to transform our mini MIPS emulator</span>
 <span class="sd">  into a symbolic execution engine ; the purpose is to extract</span>
 <span class="sd">  the formula of the function generating the 32-bits magic value&#39;&#39;&#39;</span>
 
@@ -724,7 +724,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 <p>You can now keep in memory the formula &amp; wrap this function in another one so that you can reuse it every time you need it:</p>
 <div class="highlight"><pre><span></span><code><span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span>
 <span class="k">def</span> <span class="nf">generate_magic_from_son_pc_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Generates the 32 bits magic value thanks to the output</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Generates the 32 bits magic value thanks to the output</span>
 <span class="sd">  of the symbolic execution engine: run the analysis once, extract</span>
 <span class="sd">  the complete equation &amp; reuse it as much as you want&#39;&#39;&#39;</span>
   <span class="k">global</span> <span class="n">var_magic</span><span class="p">,</span> <span class="n">var_n_break</span><span class="p">,</span> <span class="n">expr_magic</span>
@@ -828,7 +828,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 <h3 id="extracting-the-function-that-generates-the-new-program-counter-from-the-second-magic-value">Extracting the function that generates the new program counter from the second magic value</h3>
 <p>For the second big block of code, we can do exactly the same thing: copy the code, configure the virtual environment with our symbolic variables and wrap the function:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">extract_equation_of_function_that_generates_new_son_pc</span><span class="p">():</span>
-  <span class="sd">&#39;&#39;&#39;Extract the formula of the function generating the new son&#39;s $pc&#39;&#39;&#39;</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Extract the formula of the function generating the new son&#39;s $pc&#39;&#39;&#39;</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">mini_mips_symexec_engine</span><span class="o">.</span><span class="n">MiniMipsSymExecEngine</span><span class="p">(</span><span class="s1">&#39;function_that_generates_new_son_pc.log&#39;</span><span class="p">)</span>
   <span class="n">x</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">x</span><span class="o">.</span><span class="n">enable_z3</span> <span class="o">=</span> <span class="kc">True</span>
@@ -866,7 +866,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 
 <p>Now, we can build the whole function easily by combining all those pieces:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_new_pc_from_pc_son_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">):</span>
-  <span class="sd">&#39;&#39;&#39;Generate the new program counter from the address where the son SIGTRAP&#39;d and</span>
+<span class="w">  </span><span class="sd">&#39;&#39;&#39;Generate the new program counter from the address where the son SIGTRAP&#39;d and</span>
 <span class="sd">  the number of SIGTRAP the son encountered&#39;&#39;&#39;</span>
   <span class="n">loop_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_break</span> <span class="o">/</span> <span class="mi">101</span><span class="p">)</span>
   <span class="n">magic</span> <span class="o">=</span> <span class="n">generate_magic_from_son_pc_using_z3</span><span class="p">(</span><span class="n">pc_son</span><span class="p">,</span> <span class="n">n_break</span><span class="p">)</span>
@@ -900,7 +900,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 </ul>
 <p>Here is the function I used:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_son_code_reordered</span><span class="p">(</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;This functions puts in the right order the son&#39;s block of codes without</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;This functions puts in the right order the son&#39;s block of codes without</span>
 <span class="sd">    relying on the father to set a new $pc value when a break is executed in the son.</span>
 <span class="sd">    With this output we are good to go to create a nanomites-less binary:</span>
 <span class="sd">      - We don&#39;t need the father anymore (he was driving the son)</span>
@@ -1442,8 +1442,8 @@ IRDst = loc_00000000004022BC:0x004022bc
 
 <p>We've declared the valid solution, the list of 6 32-bit variables (<code>pwd</code>), pasted the algorithm, and ran the solver. We just need to be careful with the <code>&gt;&gt;</code> operation, since Z3 <a href="http://stackoverflow.com/a/25535854">treats</a> it as an arithmetic shift, and we want a logical one. So we replace it with a dirty hook.</p>
 <p>The solution should come almost instantly:</p>
-<div class="highlight"><pre><span></span><code>$ python sample_solver.py
-<span class="nv">KEY</span> <span class="o">=</span> 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>python<span class="w"> </span>sample_solver.py
+<span class="nv">KEY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
 </code></pre></div>
 
 

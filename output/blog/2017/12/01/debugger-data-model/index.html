@@ -309,34 +309,34 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 <div class="highlight"><pre><span></span><code><span class="c1">// Int64.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">Int64</span><span class="p">(</span><span class="mi">1337</span><span class="p">);</span>
-    <span class="kd">let</span> <span class="nx">aplusone</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="c1">// 53a</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">aplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-    <span class="kd">let</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">parseInt64</span><span class="p">(</span><span class="s1">&#39;0xdeadbeefbaadc0de&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
-    <span class="kd">let</span> <span class="nx">bplusone</span> <span class="o">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-    <span class="c1">// 0xdeadbeefbaadc0df</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">bplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-    <span class="kd">let</span> <span class="nx">bplusonenothrow</span> <span class="o">=</span> <span class="nx">b</span><span class="p">.</span><span class="nx">convertToNumber</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="c1">// 16045690984229355000</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">bplusonenothrow</span><span class="p">);</span>
-    <span class="k">try</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">bplusonethrow</span> <span class="o">=</span> <span class="nx">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// Error: 64 bit value loses precision on conversion to number</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="c1">// 1</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
-    <span class="c1">// 0</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1337</span><span class="p">));</span>
-    <span class="c1">// -1</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mi">1338</span><span class="p">));</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">Int64</span><span class="p">(</span><span class="mf">1337</span><span class="p">);</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">aplusone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 53a</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">aplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">parseInt64</span><span class="p">(</span><span class="s1">&#39;0xdeadbeefbaadc0de&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">16</span><span class="p">);</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">bplusone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">b</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="mf">1</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 0xdeadbeefbaadc0df</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">bplusone</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">bplusonenothrow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">b</span><span class="p">.</span><span class="nx">convertToNumber</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 16045690984229355000</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">bplusonenothrow</span><span class="p">);</span>
+<span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">bplusonethrow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Error: 64 bit value loses precision on conversion to number</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// 1</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mf">1</span><span class="p">));</span>
+<span class="w">    </span><span class="c1">// 0</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mf">1337</span><span class="p">));</span>
+<span class="w">    </span><span class="c1">// -1</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">compareTo</span><span class="p">(</span><span class="mf">1338</span><span class="p">));</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -349,22 +349,22 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 <div class="highlight"><pre><span></span><code><span class="c1">//readmemory.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">read_u64</span><span class="p">(</span><span class="nx">addr</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readMemoryValues</span><span class="p">(</span><span class="nx">addr</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">read_u64</span><span class="p">(</span><span class="nx">addr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readMemoryValues</span><span class="p">(</span><span class="nx">addr</span><span class="p">,</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">8</span><span class="p">)[</span><span class="mf">0</span><span class="p">];</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">a</span> <span class="o">=</span> <span class="nx">read_u64</span><span class="p">(</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rsp</span><span class="p">);</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-    <span class="kd">let</span> <span class="nx">WideStr</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">.</span><span class="nx">ProcessParameters</span><span class="p">.</span><span class="nx">ImagePathName</span><span class="p">.</span><span class="nx">Buffer</span><span class="p">;</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStr</span><span class="p">));</span>
-    <span class="kd">let</span> <span class="nx">WideStrAddress</span> <span class="o">=</span> <span class="nx">WideStr</span><span class="p">.</span><span class="nx">address</span><span class="p">;</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStrAddress</span><span class="p">));</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Regs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">read_u64</span><span class="p">(</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rsp</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">a</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">WideStr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">.</span><span class="nx">ProcessParameters</span><span class="p">.</span><span class="nx">ImagePathName</span><span class="p">.</span><span class="nx">Buffer</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStr</span><span class="p">));</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">WideStrAddress</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">WideStr</span><span class="p">.</span><span class="nx">address</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">readWideString</span><span class="p">(</span><span class="nx">WideStrAddress</span><span class="p">));</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -375,15 +375,15 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 <div class="highlight"><pre><span></span><code><span class="c1">//eval.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
-    <span class="k">for</span><span class="p">(</span><span class="kd">let</span> <span class="nx">Line</span> <span class="k">of</span> <span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;kp&#39;</span><span class="p">))</span> <span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Line: &#39;</span> <span class="o">+</span> <span class="nx">Line</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Control</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kd">let</span><span class="w"> </span><span class="nx">Line</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;kp&#39;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Line: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Line</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -396,39 +396,39 @@ Where            [Where(FilterMethod) - LINQ equivalent method which filters ele
 <div class="highlight"><pre><span></span><code><span class="c1">//breakpoint.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span> <span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-    <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">handle_bp</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Regs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Args</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span><span class="w"> </span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span><span class="w"> </span><span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span><span class="w"> </span><span class="p">];</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">ArgsS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">HeapHandle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ArgsS</span><span class="p">[</span><span class="mf">0</span><span class="p">];</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ArgsS</span><span class="p">[</span><span class="mf">1</span><span class="p">];</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ArgsS</span><span class="p">[</span><span class="mf">2</span><span class="p">];</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">HeapHandle</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, Flags: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Flags</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, Size: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Size</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
-        <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">OffsetExpression</span> <span class="o">==</span> <span class="s1">&#39;ntdll!RtlAllocateHeap+0x0&#39;</span>
-    <span class="p">);</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Control</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Regs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">CurrentProcess</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">BreakpointAlreadySet</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
+<span class="w">        </span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">OffsetExpression</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">&#39;ntdll!RtlAllocateHeap+0x0&#39;</span>
+<span class="w">    </span><span class="p">);</span>
 
-    <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Bp</span> <span class="o">=</span> <span class="nx">Control</span><span class="p">.</span><span class="nx">SetBreakpointAtOffset</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;ntdll&#39;</span><span class="p">);</span>
-        <span class="nx">Bp</span><span class="p">.</span><span class="nx">Command</span> <span class="o">=</span> <span class="s1">&#39;.echo doare; dx @$scriptContents.handle_bp(); gc&#39;</span><span class="p">;</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
-    <span class="c1">// let Lines = Control.ExecuteCommand(&#39;gc&#39;);</span>
-    <span class="c1">// for(let Line of Lines) {</span>
-    <span class="c1">//     logln(&#39;Line: &#39; + Line);</span>
-    <span class="c1">// }</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">Bp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Control</span><span class="p">.</span><span class="nx">SetBreakpointAtOffset</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;ntdll&#39;</span><span class="p">);</span>
+<span class="w">        </span><span class="nx">Bp</span><span class="p">.</span><span class="nx">Command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;.echo doare; dx @$scriptContents.handle_bp(); gc&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// let Lines = Control.ExecuteCommand(&#39;gc&#39;);</span>
+<span class="w">    </span><span class="c1">// for(let Line of Lines) {</span>
+<span class="w">    </span><span class="c1">//     logln(&#39;Line: &#39; + Line);</span>
+<span class="w">    </span><span class="c1">// }</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -461,41 +461,41 @@ RtlAllocateHeap: HeapHandle: 0x21b5dcd0000, Flags: 0x0, Size: 0x48
 <div class="highlight"><pre><span></span><code><span class="c1">//breakpoint2.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">handle_bp</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">Args</span> <span class="o">=</span> <span class="p">[</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span> <span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span><span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">ArgsS</span> <span class="o">=</span> <span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-    <span class="kd">let</span> <span class="nx">HeapHandle</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">Flags</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-    <span class="kd">let</span> <span class="nx">Size</span> <span class="o">=</span> <span class="nx">ArgsS</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span> <span class="o">+</span> <span class="nx">HeapHandle</span> <span class="o">+</span> <span class="s1">&#39;, Flags: &#39;</span> <span class="o">+</span> <span class="nx">Flags</span> <span class="o">+</span> <span class="s1">&#39;, Size: &#39;</span> <span class="o">+</span> <span class="nx">Size</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="nx">Args</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">compareTo</span><span class="p">(</span><span class="mh">0x100</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// stop execution if the allocation size is bigger than 0x100</span>
-        <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="c1">// keep the execution going if it&#39;s a small size</span>
-    <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">handle_bp</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Regs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Args</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rcx</span><span class="p">,</span><span class="w"> </span><span class="nx">Regs</span><span class="p">.</span><span class="nx">rdx</span><span class="p">,</span><span class="w"> </span><span class="nx">Regs</span><span class="p">.</span><span class="nx">r8</span><span class="p">];</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">ArgsS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Args</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">HeapHandle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ArgsS</span><span class="p">[</span><span class="mf">0</span><span class="p">];</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ArgsS</span><span class="p">[</span><span class="mf">1</span><span class="p">];</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ArgsS</span><span class="p">[</span><span class="mf">2</span><span class="p">];</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RtlAllocateHeap: HeapHandle: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">HeapHandle</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, Flags: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Flags</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, Size: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Size</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">Args</span><span class="p">[</span><span class="mf">2</span><span class="p">].</span><span class="nx">compareTo</span><span class="p">(</span><span class="mh">0x100</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// stop execution if the allocation size is bigger than 0x100</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// keep the execution going if it&#39;s a small size</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">Control</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">Regs</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">CurrentProcess</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">HeapAlloc</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">getModuleSymbolAddress</span><span class="p">(</span><span class="s1">&#39;ntdll&#39;</span><span class="p">,</span> <span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">);</span>
-    <span class="kd">let</span> <span class="nx">BreakpointAlreadySet</span> <span class="o">=</span> <span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
-        <span class="nx">c</span> <span class="p">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Address</span> <span class="o">==</span> <span class="nx">HeapAlloc</span>
-    <span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span> <span class="o">==</span> <span class="kc">false</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RltAllocateHeap @ &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-        <span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;bp /w &quot;@$scriptContents.handle_bp()&quot; &#39;</span> <span class="o">+</span> <span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">));</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Control</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namespace</span><span class="p">.</span><span class="nx">Debugger</span><span class="p">.</span><span class="nx">Utility</span><span class="p">.</span><span class="nx">Control</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">Regs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">.</span><span class="nx">Registers</span><span class="p">.</span><span class="nx">User</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">CurrentProcess</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentProcess</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">HeapAlloc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">getModuleSymbolAddress</span><span class="p">(</span><span class="s1">&#39;ntdll&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;RtlAllocateHeap&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">BreakpointAlreadySet</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">CurrentProcess</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Breakpoints</span><span class="p">.</span><span class="nx">Any</span><span class="p">(</span>
+<span class="w">        </span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">Address</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">HeapAlloc</span>
+<span class="w">    </span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">BreakpointAlreadySet</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;RltAllocateHeap @ &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">        </span><span class="nx">Control</span><span class="p">.</span><span class="nx">ExecuteCommand</span><span class="p">(</span><span class="s1">&#39;bp /w &quot;@$scriptContents.handle_bp()&quot; &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">HeapAlloc</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Breakpoint already set.&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="s1">&#39;Press &quot;g&quot; to run the target.&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -726,17 +726,17 @@ the initializeScript method.
 <div class="highlight"><pre><span></span><code><span class="c1">//extendmodel_1.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;hello from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">ProcessModelParent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;hello from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-        <span class="nx">ProcessModelParent</span><span class="p">,</span>
-        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-    <span class="p">)];</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">initializeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="ow">new</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+<span class="w">        </span><span class="nx">ProcessModelParent</span><span class="p">,</span>
+<span class="w">        </span><span class="s1">&#39;Debugger.Models.Process&#39;</span>
+<span class="w">    </span><span class="p">)];</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -760,35 +760,35 @@ the initializeScript method.
 <div class="highlight"><pre><span></span><code><span class="c1">//extendmodel_2.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Process</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Foo from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Bar from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">b</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">ProcessModelParent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-        <span class="nx">ProcessModelParent</span><span class="p">,</span>
-        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-    <span class="p">)];</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">initializeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="ow">new</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+<span class="w">        </span><span class="nx">ProcessModelParent</span><span class="p">,</span>
+<span class="w">        </span><span class="s1">&#39;Debugger.Models.Process&#39;</span>
+<span class="w">    </span><span class="p">)];</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -820,39 +820,39 @@ the initializeScript method.
 <div class="highlight"><pre><span></span><code><span class="c1">// extendmodel_2_1.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">process</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">process</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Foo from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Bar from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">b</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">ProcessModelParent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-        <span class="nx">ProcessModelParent</span><span class="p">,</span>
-        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-    <span class="p">)];</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">initializeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="ow">new</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+<span class="w">        </span><span class="nx">ProcessModelParent</span><span class="p">,</span>
+<span class="w">        </span><span class="s1">&#39;Debugger.Models.Process&#39;</span>
+<span class="w">    </span><span class="p">)];</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -883,39 +883,39 @@ the initializeScript method.
 <p>The last concept I wanted to touch on before moving on is how to add the <code>iterable</code> property on one of your data model classes. Let's say you have a class called <code>Attribute</code> that stores a key and a value, and let's also say you have another class called <code>Attributes</code> that is an <code>Attribute</code> store. The thing is, you might have noticed that one class instance usually corresponds to a node with its own properties in the data model view. This is not great for our <code>Attributes</code> class as it is basically an array of <code>Attribute</code> objects, meaning that we will have two copies of everything..</p>
 <p>If you want to have the debugger be able to iterate on your instance you can define a <code>*[Symbol.iterator]()</code> method like this:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// Attributes iterable</span>
-<span class="kr">class</span> <span class="nx">Attribute</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span> <span class="nx">Name</span><span class="p">,</span> <span class="nx">Value</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">=</span> <span class="nx">Name</span><span class="p">;</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">Value</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">Attribute</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span><span class="w"> </span><span class="nx">Name</span><span class="p">,</span><span class="w"> </span><span class="nx">Value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Process</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Value</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">S</span> <span class="o">=</span> <span class="s1">&#39;Process: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Name: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Value: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
-        <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">S</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Process: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, &#39;</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">S</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s1">&#39;Name: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, &#39;</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">S</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s1">&#39;Value: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">S</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">Attributes</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span> <span class="o">=</span> <span class="p">[];</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">Attributes</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="o">*</span><span class="p">[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span> <span class="p">{</span>
-        <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">Attr</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">yield</span> <span class="nx">Attr</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="o">*</span><span class="p">[</span><span class="nb">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">let</span><span class="w"> </span><span class="nx">Attr</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">yield</span><span class="w"> </span><span class="nx">Attr</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -924,103 +924,103 @@ the initializeScript method.
 <div class="highlight"><pre><span></span><code><span class="c1">// extendmodel.js</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kr">class</span> <span class="nx">Attribute</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span> <span class="nx">Name</span><span class="p">,</span> <span class="nx">Value</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">=</span> <span class="nx">Name</span><span class="p">;</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">Value</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">Attribute</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">,</span><span class="w"> </span><span class="nx">Name</span><span class="p">,</span><span class="w"> </span><span class="nx">Value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Process</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Value</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">S</span> <span class="o">=</span> <span class="s1">&#39;Process: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Name: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Name</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="p">;</span>
-        <span class="nx">S</span> <span class="o">+=</span> <span class="s1">&#39;Value: &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
-        <span class="k">return</span> <span class="nx">S</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">S</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;Process: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, &#39;</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">S</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s1">&#39;Name: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;, &#39;</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">S</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s1">&#39;Value: &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">Value</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">S</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">Attributes</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span> <span class="o">=</span> <span class="p">[];</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">Attributes</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Attr</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="o">*</span><span class="p">[</span><span class="nx">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span> <span class="p">{</span>
-        <span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">Attr</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span> <span class="p">{</span>
-            <span class="k">yield</span> <span class="nx">Attr</span><span class="p">;</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="o">*</span><span class="p">[</span><span class="nb">Symbol</span><span class="p">.</span><span class="nx">iterator</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">let</span><span class="w"> </span><span class="nx">Attr</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__attrs</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">yield</span><span class="w"> </span><span class="nx">Attr</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Attributes&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">Sub</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">Sub</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Process</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">SubFoo</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;SubFoo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">SubFoo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;SubFoo from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">SubBar</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;SubBar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">SubBar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;SubBar from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Attributes</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kd">let</span> <span class="nx">Attrs</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Attributes</span><span class="p">();</span>
-        <span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">new</span> <span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span> <span class="s1">&#39;attr0&#39;</span><span class="p">,</span> <span class="s1">&#39;value0&#39;</span><span class="p">));</span>
-        <span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="k">new</span> <span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span> <span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="s1">&#39;value0&#39;</span><span class="p">));</span>
-        <span class="k">return</span> <span class="nx">Attrs</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Attributes</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">Attrs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Attributes</span><span class="p">();</span>
+<span class="w">        </span><span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="ow">new</span><span class="w"> </span><span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;attr0&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;value0&#39;</span><span class="p">));</span>
+<span class="w">        </span><span class="nx">Attrs</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="ow">new</span><span class="w"> </span><span class="nx">Attribute</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;value0&#39;</span><span class="p">));</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">Attrs</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Sub module&#39;</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Sub module&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">DiaryOfAReverseEngineer</span> <span class="p">{</span>
-    <span class="nx">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="nx">__process</span> <span class="o">=</span> <span class="nx">Process</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kr">constructor</span><span class="p">(</span><span class="nx">Process</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Process</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Foo</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Foo from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Foo from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Bar</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Bar from &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Bar from &#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">.</span><span class="nx">Name</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">Add</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">b</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">get</span> <span class="nx">Sub</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="nx">Sub</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">Sub</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Sub</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">__process</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 
-    <span class="nx">toString</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nx">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s1">&#39;Diary of a reverse-engineer&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kr">class</span> <span class="nx">ProcessModelParent</span> <span class="p">{</span>
-    <span class="nx">get</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-    <span class="p">}</span>
+<span class="kd">class</span><span class="w"> </span><span class="nx">ProcessModelParent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">get</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">DiaryOfAReverseEngineer</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">initializeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">[</span><span class="k">new</span> <span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
-        <span class="nx">ProcessModelParent</span><span class="p">,</span>
-        <span class="s1">&#39;Debugger.Models.Process&#39;</span>
-    <span class="p">)];</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">initializeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="ow">new</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">namedModelParent</span><span class="p">(</span>
+<span class="w">        </span><span class="nx">ProcessModelParent</span><span class="p">,</span>
+<span class="w">        </span><span class="s1">&#39;Debugger.Models.Process&#39;</span>
+<span class="w">    </span><span class="p">)];</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1138,15 +1138,15 @@ Available Script Providers:
 <div class="highlight"><pre><span></span><code><span class="c1">// address property</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="kd">let</span> <span class="nx">CurrentThread</span> <span class="o">=</span> <span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">;</span>
-    <span class="kd">let</span> <span class="nx">TEB</span> <span class="o">=</span> <span class="nx">CurrentThread</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">;</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">);</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>  
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">CurrentThread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">currentThread</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">TEB</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">CurrentThread</span><span class="p">.</span><span class="nx">Environment</span><span class="p">.</span><span class="nx">EnvironmentBlock</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">TEB</span><span class="p">.</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span><span class="w">  </span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1167,23 +1167,23 @@ Available Script Providers:
 <div class="highlight"><pre><span></span><code><span class="c1">// host.evaluateExpression</span>
 <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
 
-<span class="kd">let</span> <span class="nx">logln</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">logln</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">host</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">.</span><span class="nx">debugLog</span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kd">function</span> <span class="nx">invokeScript</span><span class="p">()</span> <span class="p">{</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64)0&#39;</span><span class="p">));</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">));</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">);</span>
-    <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>
-    <span class="k">try</span><span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">).</span><span class="nx">dereference</span><span class="p">());</span>
-    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="c1">// not valid: @$ is not part of the language - logln(host.evaluateExpression(&#39;@$teb&#39;));</span>
-    <span class="c1">// not valid: @rsp is not part of the language - logln(host.evaluateExpression(&#39;(unsigned __int64)@rsp&#39;));</span>
-    <span class="c1">// not valid: &#39;!&#39; is not part of the language - logln(host.evaluateExpression(&#39;((ntdll!_TEB*)0)&#39;))</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">invokeScript</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64)0&#39;</span><span class="p">));</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">));</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(_TEB*)0xb87f4e4000&#39;</span><span class="p">).</span><span class="nx">FlsData</span><span class="p">.</span><span class="nx">address</span><span class="p">);</span>
+<span class="w">    </span><span class="k">try</span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="nx">host</span><span class="p">.</span><span class="nx">evaluateExpression</span><span class="p">(</span><span class="s1">&#39;(unsigned __int64*)0&#39;</span><span class="p">).</span><span class="nx">dereference</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logln</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// not valid: @$ is not part of the language - logln(host.evaluateExpression(&#39;@$teb&#39;));</span>
+<span class="w">    </span><span class="c1">// not valid: @rsp is not part of the language - logln(host.evaluateExpression(&#39;(unsigned __int64)@rsp&#39;));</span>
+<span class="w">    </span><span class="c1">// not valid: &#39;!&#39; is not part of the language - logln(host.evaluateExpression(&#39;((ntdll!_TEB*)0)&#39;))</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1223,21 +1223,21 @@ Frame 0x07: ntdll!RtlUserThreadStart+0x21 (00007ff8`3802efb1)
 
 <p>And here is the associated C code:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// except.c</span>
-<span class="kr">__declspec</span><span class="p">(</span><span class="n">noinline</span><span class="p">)</span> <span class="kt">void</span> <span class="n">Fault</span><span class="p">(</span><span class="kt">uintptr_t</span> <span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;I&#39;m about to fault!&quot;</span><span class="p">);</span>
-    <span class="o">*</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">x</span><span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="kr">__declspec</span><span class="p">(</span><span class="n">noinline</span><span class="p">)</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">Fault</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;I&#39;m about to fault!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">x</span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="kt">int</span> <span class="n">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">argv</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="kr">__try</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Yo!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-        <span class="n">Fault</span><span class="p">((</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">argc</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="kr">__except</span> <span class="p">(</span><span class="n">Filter</span><span class="p">())</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Exception!&quot;</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="w">    </span><span class="kr">__try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Yo!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Fault</span><span class="p">((</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">argc</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kr">__except</span><span class="w"> </span><span class="p">(</span><span class="n">Filter</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Exception!&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_SUCCESS</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
 

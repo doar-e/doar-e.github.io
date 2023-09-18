@@ -199,48 +199,48 @@ Out[4]: [
 
 <h2 id="the-virtual-machine">The virtual machine</h2>
 <p>The Python VM is fully implemented in the function <a href="https://github.com/python-git/python/blob/master/Python/ceval.c#L667">PyEval_EvalFrameEx</a> that you can find in the <a href="https://github.com/python-git/python/blob/master/Python/ceval.c">ceval.c</a> file. The machine is built with a simple loop handling opcodes one-by-one with a bunch of switch-cases:</p>
-<div class="highlight"><pre><span></span><code><span class="n">PyObject</span> <span class="o">*</span>
-<span class="nf">PyEval_EvalFrameEx</span><span class="p">(</span><span class="n">PyFrameObject</span> <span class="o">*</span><span class="n">f</span><span class="p">,</span> <span class="kt">int</span> <span class="n">throwflag</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">PyEval_EvalFrameEx</span><span class="p">(</span><span class="n">PyFrameObject</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">throwflag</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="c1">//...</span>
-  <span class="nl">fast_next_opcode</span><span class="p">:</span>
-  <span class="c1">//...</span>
-  <span class="cm">/* Extract opcode and argument */</span>
-  <span class="n">opcode</span> <span class="o">=</span> <span class="n">NEXTOP</span><span class="p">();</span>
-  <span class="n">oparg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">HAS_ARG</span><span class="p">(</span><span class="n">opcode</span><span class="p">))</span>
-    <span class="n">oparg</span> <span class="o">=</span> <span class="n">NEXTARG</span><span class="p">();</span>
-  <span class="c1">//...</span>
-  <span class="k">switch</span> <span class="p">(</span><span class="n">opcode</span><span class="p">)</span>
-  <span class="p">{</span>
-    <span class="k">case</span> <span class="nl">NOP</span><span class="p">:</span>
-      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">//...</span>
+<span class="w">  </span><span class="nl">fast_next_opcode</span><span class="p">:</span>
+<span class="w">  </span><span class="c1">//...</span>
+<span class="w">  </span><span class="cm">/* Extract opcode and argument */</span>
+<span class="w">  </span><span class="n">opcode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NEXTOP</span><span class="p">();</span>
+<span class="w">  </span><span class="n">oparg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">HAS_ARG</span><span class="p">(</span><span class="n">opcode</span><span class="p">))</span>
+<span class="w">    </span><span class="n">oparg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NEXTARG</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">//...</span>
+<span class="w">  </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">opcode</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">NOP</span><span class="p">:</span>
+<span class="w">      </span><span class="k">goto</span><span class="w"> </span><span class="n">fast_next_opcode</span><span class="p">;</span>
 
-    <span class="k">case</span> <span class="nl">LOAD_FAST</span><span class="p">:</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-        <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-        <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="n">format_exc_check_arg</span><span class="p">(</span><span class="n">PyExc_UnboundLocalError</span><span class="p">,</span>
-        <span class="n">UNBOUNDLOCAL_ERROR_MSG</span><span class="p">,</span>
-        <span class="n">PyTuple_GetItem</span><span class="p">(</span><span class="n">co</span><span class="o">-&gt;</span><span class="n">co_varnames</span><span class="p">,</span> <span class="n">oparg</span><span class="p">));</span>
-      <span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">LOAD_FAST</span><span class="p">:</span>
+<span class="w">      </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">        </span><span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">        </span><span class="k">goto</span><span class="w"> </span><span class="n">fast_next_opcode</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">format_exc_check_arg</span><span class="p">(</span><span class="n">PyExc_UnboundLocalError</span><span class="p">,</span>
+<span class="w">        </span><span class="n">UNBOUNDLOCAL_ERROR_MSG</span><span class="p">,</span>
+<span class="w">        </span><span class="n">PyTuple_GetItem</span><span class="p">(</span><span class="n">co</span><span class="o">-&gt;</span><span class="n">co_varnames</span><span class="p">,</span><span class="w"> </span><span class="n">oparg</span><span class="p">));</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
 
-    <span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
-      <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-      <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">LOAD_CONST</span><span class="p">:</span>
+<span class="w">      </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span><span class="w"> </span><span class="n">oparg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">      </span><span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">      </span><span class="k">goto</span><span class="w"> </span><span class="n">fast_next_opcode</span><span class="p">;</span>
 
-    <span class="k">case</span> <span class="nl">STORE_FAST</span><span class="p">:</span>
-      <span class="n">v</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
-      <span class="n">SETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">,</span> <span class="n">v</span><span class="p">);</span>
-      <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">STORE_FAST</span><span class="p">:</span>
+<span class="w">      </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">POP</span><span class="p">();</span>
+<span class="w">      </span><span class="n">SETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">);</span>
+<span class="w">      </span><span class="k">goto</span><span class="w"> </span><span class="n">fast_next_opcode</span><span class="p">;</span>
 
-    <span class="c1">//...</span>
-  <span class="p">}</span>
+<span class="w">    </span><span class="c1">//...</span>
+<span class="w">  </span><span class="p">}</span>
 </code></pre></div>
 
 
@@ -257,20 +257,20 @@ Out[4]: [
 
 <span class="cp">#define PyObject_VAR_HEAD               \</span>
 <span class="cp">  PyObject_HEAD                       \</span>
-<span class="cp">  Py_ssize_t ob_size; </span><span class="cm">/* Number of items in variable part */</span><span class="cp"></span>
+<span class="cp">  Py_ssize_t ob_size; </span><span class="cm">/* Number of items in variable part */</span>
 </code></pre></div>
 
 
 <ul>
 <li>The second one is the variable part that describes the specifics of your object. Here is for example <em>PyStringObject</em>:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-  <span class="n">PyObject_VAR_HEAD</span>
-  <span class="kt">long</span> <span class="n">ob_shash</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">ob_sstate</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">PyObject_VAR_HEAD</span>
+<span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="n">ob_shash</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">ob_sstate</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">char</span><span class="w"> </span><span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
 
-  <span class="cm">/* Invariants:</span>
+<span class="w">  </span><span class="cm">/* Invariants:</span>
 <span class="cm">    *     ob_sval contains space for &#39;ob_size+1&#39; elements.</span>
 <span class="cm">    *     ob_sval[ob_size] == 0.</span>
 <span class="cm">    *     ob_shash is the hash of the string or -1 if not computed yet.</span>
@@ -278,20 +278,20 @@ Out[4]: [
 <span class="cm">    *       &#39;interned&#39; dictionary; in this case the two references</span>
 <span class="cm">    *       from &#39;interned&#39; to this object are *not counted* in ob_refcnt.</span>
 <span class="cm">    */</span>
-<span class="p">}</span> <span class="n">PyStringObject</span><span class="p">;</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyStringObject</span><span class="p">;</span>
 </code></pre></div>
 
 
 <p>Now, some of you may ask themselves "How does Python know the type of an object when it receives a pointer ?". In fact, this is exactly the role of the field <em>ob_type</em>. Python exports a <em>_typeobject</em> static variable that describes the type of the object. Here is, for instance the <em>PyString_Type</em>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">PyTypeObject</span> <span class="n">PyString_Type</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">PyType_Type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="s">&quot;str&quot;</span><span class="p">,</span>
-  <span class="n">PyStringObject_SIZE</span><span class="p">,</span>
-  <span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">),</span>
-  <span class="n">string_dealloc</span><span class="p">,</span>                             <span class="cm">/* tp_dealloc */</span>
-  <span class="p">(</span><span class="n">printfunc</span><span class="p">)</span><span class="n">string_print</span><span class="p">,</span>                    <span class="cm">/* tp_print */</span>
-  <span class="mi">0</span><span class="p">,</span>                                          <span class="cm">/* tp_getattr */</span>
-  <span class="c1">// ...</span>
+<div class="highlight"><pre><span></span><code><span class="n">PyTypeObject</span><span class="w"> </span><span class="n">PyString_Type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">PyVarObject_HEAD_INIT</span><span class="p">(</span><span class="o">&amp;</span><span class="n">PyType_Type</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">  </span><span class="s">&quot;str&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="n">PyStringObject_SIZE</span><span class="p">,</span>
+<span class="w">  </span><span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span><span class="p">),</span>
+<span class="w">  </span><span class="n">string_dealloc</span><span class="p">,</span><span class="w">                             </span><span class="cm">/* tp_dealloc */</span>
+<span class="w">  </span><span class="p">(</span><span class="n">printfunc</span><span class="p">)</span><span class="n">string_print</span><span class="p">,</span><span class="w">                    </span><span class="cm">/* tp_print */</span>
+<span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">                                          </span><span class="cm">/* tp_getattr */</span>
+<span class="w">  </span><span class="c1">// ...</span>
 <span class="p">};</span>
 </code></pre></div>
 
@@ -309,9 +309,9 @@ Out[4]: [
 
 
 <p>With the previous tricks, and the <em>PyObject</em> type defined as follow, Python is able to handle in a generic-fashion the different objects:</p>
-<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_object</span> <span class="p">{</span>
-  <span class="n">PyObject_HEAD</span>
-<span class="p">}</span> <span class="n">PyObject</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">_object</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">PyObject_HEAD</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyObject</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -332,37 +332,37 @@ By the way, all the native objects are implemented in the <a href="https://githu
 
 
 <p>Now using the Python's <a href="http://docs.python.org/2/library/dis.html">dis</a> module, we can disassemble the function object <em>a</em>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">In</span> <span class="p">[</span><span class="mi">20</span><span class="p">]:</span> <span class="n">dis</span><span class="p">.</span><span class="n">dis</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-<span class="mi">2</span>   <span class="mi">0</span> <span class="n">LOAD_FAST</span>                <span class="mi">0</span> <span class="p">(</span><span class="n">b</span><span class="p">)</span>
-    <span class="mi">3</span> <span class="n">LOAD_FAST</span>                <span class="mi">1</span> <span class="p">(</span><span class="k">c</span><span class="p">)</span>
-    <span class="mi">6</span> <span class="n">BINARY_ADD</span>
-    <span class="mi">7</span> <span class="n">RETURN_VALUE</span>
-<span class="k">In</span> <span class="p">[</span><span class="mi">21</span><span class="p">]:</span> <span class="n">a</span><span class="p">.</span><span class="n">func_code</span><span class="p">.</span><span class="n">co_code</span>
-<span class="k">In</span> <span class="p">[</span><span class="mi">22</span><span class="p">]:</span> <span class="n">print</span> <span class="s1">&#39;&#39;</span><span class="p">.</span><span class="k">join</span><span class="p">(</span><span class="s1">&#39;\\x%.2x&#39;</span> <span class="o">%</span> <span class="n">ord</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="n">a</span><span class="p">.</span><span class="n">__code__</span><span class="p">.</span><span class="n">co_code</span><span class="p">)</span>
-<span class="err">\</span><span class="n">x7c</span><span class="err">\</span><span class="n">x00</span><span class="err">\</span><span class="n">x00</span><span class="err">\</span><span class="n">x7c</span><span class="err">\</span><span class="n">x01</span><span class="err">\</span><span class="n">x00</span><span class="err">\</span><span class="n">x17</span><span class="err">\</span><span class="n">x53</span>
+<div class="highlight"><pre><span></span><code><span class="nv">In</span><span class="w"> </span>[<span class="mi">20</span>]:<span class="w"> </span><span class="nv">dis</span>.<span class="nv">dis</span><span class="ss">(</span><span class="nv">a</span><span class="ss">)</span>
+<span class="mi">2</span><span class="w">   </span><span class="mi">0</span><span class="w"> </span><span class="nv">LOAD_FAST</span><span class="w">                </span><span class="mi">0</span><span class="w"> </span><span class="ss">(</span><span class="nv">b</span><span class="ss">)</span>
+<span class="w">    </span><span class="mi">3</span><span class="w"> </span><span class="nv">LOAD_FAST</span><span class="w">                </span><span class="mi">1</span><span class="w"> </span><span class="ss">(</span><span class="nv">c</span><span class="ss">)</span>
+<span class="w">    </span><span class="mi">6</span><span class="w"> </span><span class="nv">BINARY_ADD</span>
+<span class="w">    </span><span class="mi">7</span><span class="w"> </span><span class="nv">RETURN_VALUE</span>
+<span class="nv">In</span><span class="w"> </span>[<span class="mi">21</span>]:<span class="w"> </span><span class="nv">a</span>.<span class="nv">func_code</span>.<span class="nv">co_code</span>
+<span class="nv">In</span><span class="w"> </span>[<span class="mi">22</span>]:<span class="w"> </span><span class="nv">print</span><span class="w"> </span><span class="s1">&#39;&#39;</span>.<span class="nv">join</span><span class="ss">(</span><span class="s1">&#39;\\x%.2x&#39;</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="nv">ord</span><span class="ss">(</span><span class="nv">i</span><span class="ss">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="nv">in</span><span class="w"> </span><span class="nv">a</span>.<span class="nv">__code__</span>.<span class="nv">co_code</span><span class="ss">)</span>
+\<span class="nv">x7c</span>\<span class="nv">x00</span>\<span class="nv">x00</span>\<span class="nv">x7c</span>\<span class="nv">x01</span>\<span class="nv">x00</span>\<span class="nv">x17</span>\<span class="nv">x53</span>
 
-<span class="k">In</span> <span class="p">[</span><span class="mi">23</span><span class="p">]:</span> <span class="n">opcode</span><span class="p">.</span><span class="n">opname</span><span class="p">[</span><span class="mi">0</span><span class="n">x7c</span><span class="p">]</span>
-<span class="k">Out</span><span class="p">[</span><span class="mi">23</span><span class="p">]:</span> <span class="s1">&#39;LOAD_FAST&#39;</span>
-<span class="k">In</span> <span class="p">[</span><span class="mi">24</span><span class="p">]:</span> <span class="n">opcode</span><span class="p">.</span><span class="n">opname</span><span class="p">[</span><span class="mi">0</span><span class="n">x17</span><span class="p">]</span>
-<span class="k">Out</span><span class="p">[</span><span class="mi">24</span><span class="p">]:</span> <span class="s1">&#39;BINARY_ADD&#39;</span>
-<span class="k">In</span> <span class="p">[</span><span class="mi">25</span><span class="p">]:</span> <span class="n">opcode</span><span class="p">.</span><span class="n">opname</span><span class="p">[</span><span class="mi">0</span><span class="n">x53</span><span class="p">]</span>
-<span class="k">Out</span><span class="p">[</span><span class="mi">25</span><span class="p">]:</span> <span class="s1">&#39;RETURN_VALUE&#39;</span>
+<span class="nv">In</span><span class="w"> </span>[<span class="mi">23</span>]:<span class="w"> </span><span class="nv">opcode</span>.<span class="nv">opname</span>[<span class="mi">0</span><span class="nv">x7c</span>]
+<span class="nv">Out</span>[<span class="mi">23</span>]:<span class="w"> </span><span class="s1">&#39;LOAD_FAST&#39;</span>
+<span class="nv">In</span><span class="w"> </span>[<span class="mi">24</span>]:<span class="w"> </span><span class="nv">opcode</span>.<span class="nv">opname</span>[<span class="mi">0</span><span class="nv">x17</span>]
+<span class="nv">Out</span>[<span class="mi">24</span>]:<span class="w"> </span><span class="s1">&#39;BINARY_ADD&#39;</span>
+<span class="nv">In</span><span class="w"> </span>[<span class="mi">25</span>]:<span class="w"> </span><span class="nv">opcode</span>.<span class="nv">opname</span>[<span class="mi">0</span><span class="nv">x53</span>]
+<span class="nv">Out</span>[<span class="mi">25</span>]:<span class="w"> </span><span class="s1">&#39;RETURN_VALUE&#39;</span>
 </code></pre></div>
 
 
 <p>Keep in mind, as we said earlier, that everything is an object ; so a function is an object, and bytecode is an object as well:</p>
-<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-  <span class="n">PyObject_HEAD</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_code</span><span class="p">;</span>  <span class="cm">/* A code object */</span>
-  <span class="c1">// ...</span>
-<span class="p">}</span> <span class="n">PyFunctionObject</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">PyObject_HEAD</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_code</span><span class="p">;</span><span class="w">  </span><span class="cm">/* A code object */</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyFunctionObject</span><span class="p">;</span>
 <span class="cm">/* Bytecode object */</span>
-<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-    <span class="n">PyObject_HEAD</span>
-    <span class="c1">//...</span>
-    <span class="n">PyObject</span> <span class="o">*</span><span class="n">co_code</span><span class="p">;</span>    <span class="cm">/* instruction opcodes */</span>
-    <span class="c1">//...</span>
-<span class="p">}</span> <span class="n">PyCodeObject</span><span class="p">;</span>
+<span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject_HEAD</span>
+<span class="w">    </span><span class="c1">//...</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">co_code</span><span class="p">;</span><span class="w">    </span><span class="cm">/* instruction opcodes */</span>
+<span class="w">    </span><span class="c1">//...</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyCodeObject</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -396,7 +396,7 @@ python27!PyEval_EvalFrameEx+0x2b2:
 
 
 <p>In <em>ECX</em> we have a pointer onto the opcodes of the function being evaluated, our dummy function. <em>0x7c</em> is the value of the <em>LOAD_FAST</em> opcode as we can see:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">#define LOAD_FAST 124 </span><span class="cm">/* Local variable number */</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><code><span class="cp">#define LOAD_FAST 124 </span><span class="cm">/* Local variable number */</span>
 </code></pre></div>
 
 
@@ -440,15 +440,15 @@ After that the function dispatches the execution flow to the <em>LOAD_FAST</em> 
 <span class="cp">#define PUSH(v)                BASIC_PUSH(v)</span>
 <span class="cp">#define BASIC_PUSH(v)     (*stack_pointer++ = (v))</span>
 
-<span class="k">case</span> <span class="nl">LOAD_FAST</span><span class="p">:</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-    <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="c1">//...</span>
-  <span class="k">break</span><span class="p">;</span>
+<span class="k">case</span><span class="w"> </span><span class="no">LOAD_FAST</span><span class="p">:</span>
+<span class="w">  </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GETLOCAL</span><span class="p">(</span><span class="n">oparg</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">    </span><span class="k">goto</span><span class="w"> </span><span class="n">fast_next_opcode</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">//...</span>
+<span class="w">  </span><span class="k">break</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -480,12 +480,12 @@ python27!PyEval_EvalFrameEx+0x323:
 
 
 <p>Perfect, now according to the definition of <em>PyStringObject</em>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-    <span class="n">PyObject_VAR_HEAD</span>
-    <span class="kt">long</span> <span class="n">ob_shash</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">ob_sstate</span><span class="p">;</span>
-    <span class="kt">char</span> <span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
-<span class="p">}</span> <span class="n">PyStringObject</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject_VAR_HEAD</span>
+<span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">ob_shash</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">ob_sstate</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">ob_sval</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyStringObject</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -535,27 +535,27 @@ python27!PyEval_EvalFrameEx+0x2b2:
 The C code looks like this:</p>
 <div class="highlight"><pre><span></span><code><span class="cp">#define SET_TOP(v)        (stack_pointer[-1] = (v))</span>
 
-<span class="k">case</span> <span class="nl">BINARY_ADD</span><span class="p">:</span>
-  <span class="n">w</span> <span class="o">=</span> <span class="n">POP</span><span class="p">();</span>
-  <span class="n">v</span> <span class="o">=</span> <span class="n">TOP</span><span class="p">();</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
-    <span class="c1">// Not our case</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
-            <span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="p">{</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">string_concatenate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">next_instr</span><span class="p">);</span>
-      <span class="cm">/* string_concatenate consumed the ref to v */</span>
-      <span class="k">goto</span> <span class="n">skip_decref_vx</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="p">{</span>
-    <span class="c1">// Not our case</span>
-  <span class="p">}</span>
-  <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>
+<span class="k">case</span><span class="w"> </span><span class="no">BINARY_ADD</span><span class="p">:</span>
+<span class="w">  </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">POP</span><span class="p">();</span>
+<span class="w">  </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TOP</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">PyInt_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Not our case</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">            </span><span class="n">PyString_CheckExact</span><span class="p">(</span><span class="n">w</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">string_concatenate</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">next_instr</span><span class="p">);</span>
+<span class="w">      </span><span class="cm">/* string_concatenate consumed the ref to v */</span>
+<span class="w">      </span><span class="k">goto</span><span class="w"> </span><span class="n">skip_decref_vx</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Not our case</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">Py_DECREF</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>
 <span class="nl">skip_decref_vx</span><span class="p">:</span>
-  <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">w</span><span class="p">);</span>
-  <span class="n">SET_TOP</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
-  <span class="k">break</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Py_DECREF</span><span class="p">(</span><span class="n">w</span><span class="p">);</span>
+<span class="w">  </span><span class="n">SET_TOP</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">  </span><span class="k">break</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -636,14 +636,14 @@ python27!PyEval_EvalFrameEx+0x2b2:
 <span class="cp">#define GETITEM(v, i) PyTuple_GET_ITEM((PyTupleObject *)(v), (i))</span>
 <span class="cp">#else</span>
 <span class="c1">//...</span>
-<span class="cm">/* Macro, trading safety for speed &lt;-- LOL, :) */</span> 
+<span class="cm">/* Macro, trading safety for speed &lt;-- LOL, :) */</span><span class="w"> </span>
 <span class="cp">#define PyTuple_GET_ITEM(op, i) (((PyTupleObject *)(op))-&gt;ob_item[i])</span>
 
-<span class="k">case</span> <span class="nl">LOAD_CONST</span><span class="p">:</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
-  <span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-  <span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-  <span class="k">goto</span> <span class="n">fast_next_opcode</span><span class="p">;</span>
+<span class="k">case</span><span class="w"> </span><span class="no">LOAD_CONST</span><span class="p">:</span>
+<span class="w">  </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GETITEM</span><span class="p">(</span><span class="n">consts</span><span class="p">,</span><span class="w"> </span><span class="n">oparg</span><span class="p">);</span>
+<span class="w">  </span><span class="n">Py_INCREF</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">  </span><span class="n">PUSH</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">  </span><span class="k">goto</span><span class="w"> </span><span class="n">fast_next_opcode</span><span class="p">;</span>
 </code></pre></div>
 
 
@@ -751,70 +751,70 @@ Evaluate expression: 36308564 = 022a0654
 <p>Perfect, we control a part of the virtual stack :).</p>
 <h2 id="game-over-load_function">Game over, LOAD_FUNCTION</h2>
 <p>Once you control the virtual stack, the only limit is your imagination and the ability you have to find an interesting spot in the virtual machine. My idea was to use the <em>CALL_FUNCTION</em> opcode to craft a <em>PyFunctionObject</em> somehow, push it onto the virtual stack and to use the magic opcode. </p>
-<div class="highlight"><pre><span></span><code><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
-  <span class="n">PyObject_HEAD</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_code</span><span class="p">;</span>  <span class="cm">/* A code object */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_globals</span><span class="p">;</span> <span class="cm">/* A dictionary (other mappings won&#39;t do) */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_defaults</span><span class="p">;</span>  <span class="cm">/* NULL or a tuple */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_closure</span><span class="p">;</span> <span class="cm">/* NULL or a tuple of cell objects */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_doc</span><span class="p">;</span>   <span class="cm">/* The __doc__ attribute, can be anything */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_name</span><span class="p">;</span>  <span class="cm">/* The __name__ attribute, a string object */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_dict</span><span class="p">;</span>  <span class="cm">/* The __dict__ attribute, a dict or NULL */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_weakreflist</span><span class="p">;</span> <span class="cm">/* List of weak references */</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func_module</span><span class="p">;</span>  <span class="cm">/* The __module__ attribute, can be anything */</span>
-<span class="p">}</span> <span class="n">PyFunctionObject</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">PyObject_HEAD</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_code</span><span class="p">;</span><span class="w">  </span><span class="cm">/* A code object */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_globals</span><span class="p">;</span><span class="w"> </span><span class="cm">/* A dictionary (other mappings won&#39;t do) */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_defaults</span><span class="p">;</span><span class="w">  </span><span class="cm">/* NULL or a tuple */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_closure</span><span class="p">;</span><span class="w"> </span><span class="cm">/* NULL or a tuple of cell objects */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_doc</span><span class="p">;</span><span class="w">   </span><span class="cm">/* The __doc__ attribute, can be anything */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_name</span><span class="p">;</span><span class="w">  </span><span class="cm">/* The __name__ attribute, a string object */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_dict</span><span class="p">;</span><span class="w">  </span><span class="cm">/* The __dict__ attribute, a dict or NULL */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_weakreflist</span><span class="p">;</span><span class="w"> </span><span class="cm">/* List of weak references */</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func_module</span><span class="p">;</span><span class="w">  </span><span class="cm">/* The __module__ attribute, can be anything */</span>
+<span class="p">}</span><span class="w"> </span><span class="n">PyFunctionObject</span><span class="p">;</span>
 </code></pre></div>
 
 
 <p>The thing is, as we saw earlier, the virtual machine usually ensures the type of the object it handles. If the type checking fails, the function bails out and we are not happy, at all. It means we would need an information-leak to obtain a pointer to the PyFunction_Type static variable.</p>
 <p>Fortunately for us, the CALL_FUNCTION can still be abused without knowing that magic pointer to craft correctly our object. Let's go over the source code to illustrate my sayings:</p>
-<div class="highlight"><pre><span></span><code><span class="k">case</span> <span class="nl">CALL_FUNCTION</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="k">case</span><span class="w"> </span><span class="no">CALL_FUNCTION</span><span class="p">:</span>
 <span class="p">{</span>
-  <span class="n">PyObject</span> <span class="o">**</span><span class="n">sp</span><span class="p">;</span>
-  <span class="n">PCALL</span><span class="p">(</span><span class="n">PCALL_ALL</span><span class="p">);</span>
-  <span class="n">sp</span> <span class="o">=</span> <span class="n">stack_pointer</span><span class="p">;</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">call_function</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sp</span><span class="p">,</span> <span class="n">oparg</span><span class="p">);</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">**</span><span class="n">sp</span><span class="p">;</span>
+<span class="w">  </span><span class="n">PCALL</span><span class="p">(</span><span class="n">PCALL_ALL</span><span class="p">);</span>
+<span class="w">  </span><span class="n">sp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stack_pointer</span><span class="p">;</span>
+<span class="w">  </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">call_function</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sp</span><span class="p">,</span><span class="w"> </span><span class="n">oparg</span><span class="p">);</span>
 
-<span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
-<span class="nf">call_function</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oparg</span><span class="p">)</span>
+<span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="nf">call_function</span><span class="p">(</span><span class="n">PyObject</span><span class="w"> </span><span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">oparg</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">na</span> <span class="o">=</span> <span class="n">oparg</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nk</span> <span class="o">=</span> <span class="p">(</span><span class="n">oparg</span><span class="o">&gt;&gt;</span><span class="mi">8</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">na</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nk</span><span class="p">;</span>
-  <span class="n">PyObject</span> <span class="o">**</span><span class="n">pfunc</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">pp_stack</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span> <span class="o">=</span> <span class="o">*</span><span class="n">pfunc</span><span class="p">;</span>
-  <span class="n">PyObject</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">w</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">na</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">oparg</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xff</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">nk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">oparg</span><span class="o">&gt;&gt;</span><span class="mi">8</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xff</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">na</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nk</span><span class="p">;</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">**</span><span class="n">pfunc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">pp_stack</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">pfunc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">w</span><span class="p">;</span>
 
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">nk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">// ..Nope..</span>
-  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">PyMethod_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">PyMethod_GET_SELF</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-      <span class="c1">// ..Still Nope...</span>
-    <span class="p">}</span> <span class="k">else</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">PyFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
-      <span class="c1">// Nope!</span>
-    <span class="k">else</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">do_call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">pp_stack</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">nk</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">nk</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ..Nope..</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PyMethod_Check</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">PyMethod_GET_SELF</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ..Still Nope...</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PyFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
+<span class="w">      </span><span class="c1">// Nope!</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">      </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">do_call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span><span class="w"> </span><span class="n">pp_stack</span><span class="p">,</span><span class="w"> </span><span class="n">na</span><span class="p">,</span><span class="w"> </span><span class="n">nk</span><span class="p">);</span>
 
-<span class="k">static</span> <span class="n">PyObject</span> <span class="o">*</span>
-<span class="n">do_call</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">na</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nk</span><span class="p">)</span>
+<span class="k">static</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="n">do_call</span><span class="p">(</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func</span><span class="p">,</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">***</span><span class="n">pp_stack</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">na</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nk</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="c1">// ...</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span> <span class="p">{</span>
-    <span class="c1">// Nope</span>
-  <span class="p">}</span>
-  <span class="k">else</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">PyObject_Call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">callargs</span><span class="p">,</span> <span class="n">kwdict</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">PyCFunction_Check</span><span class="p">(</span><span class="n">func</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Nope</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PyObject_Call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span><span class="w"> </span><span class="n">callargs</span><span class="p">,</span><span class="w"> </span><span class="n">kwdict</span><span class="p">);</span>
 
-<span class="n">PyObject</span> <span class="o">*</span>
-<span class="n">PyObject_Call</span><span class="p">(</span><span class="n">PyObject</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="n">PyObject</span> <span class="o">*</span><span class="n">kw</span><span class="p">)</span>
+<span class="n">PyObject</span><span class="w"> </span><span class="o">*</span>
+<span class="n">PyObject_Call</span><span class="p">(</span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">func</span><span class="p">,</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">,</span><span class="w"> </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">kw</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="n">ternaryfunc</span> <span class="n">call</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ternaryfunc</span><span class="w"> </span><span class="n">call</span><span class="p">;</span>
 
-  <span class="k">if</span> <span class="p">((</span><span class="n">call</span> <span class="o">=</span> <span class="n">func</span><span class="o">-&gt;</span><span class="n">ob_type</span><span class="o">-&gt;</span><span class="n">tp_call</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">PyObject</span> <span class="o">*</span><span class="n">result</span><span class="p">;</span>
-    <span class="c1">// Yay an interesting call :)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">call</span><span class="p">)(</span><span class="n">func</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">kw</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">call</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">func</span><span class="o">-&gt;</span><span class="n">ob_type</span><span class="o">-&gt;</span><span class="n">tp_call</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">PyObject</span><span class="w"> </span><span class="o">*</span><span class="n">result</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Yay an interesting call :)</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">call</span><span class="p">)(</span><span class="n">func</span><span class="p">,</span><span class="w"> </span><span class="n">arg</span><span class="p">,</span><span class="w"> </span><span class="n">kw</span><span class="p">);</span>
 </code></pre></div>
 
 

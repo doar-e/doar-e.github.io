@@ -66,69 +66,69 @@ Apparently, the three tasks have already been &lt;a href="https://twitter.com/Sy
 &lt;/ul&gt;
 &lt;h2 id="setting-up-a-proper-debugging-environment"&gt;Setting up a proper debugging environment&lt;/h2&gt;
 &lt;p&gt;The answer to that question is &lt;a href="http://wiki.qemu.org/Main_Page"&gt;Qemu&lt;/a&gt;, as expected. You can even download already fully prepared &amp;amp; working Debian images on &lt;a href="https://people.debian.org/~aurel32/qemu/mipsel/"&gt;aurel32&lt;/a&gt;'s website.&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
-overclok@wildout:~/chall/nsc2014$ wget https://people.debian.org/~aurel32/qemu/mipsel/vmlinux-3.2.0-4-4kc-malta
-overclok@wildout:~/chall/nsc2014$ cat start_vm.sh
-qemu-system-mipsel -M malta -kernel vmlinux-3.2.0-4-4kc-malta -hda debian_wheezy_mipsel_standard.qcow2 -vga none -append &lt;span class="s2"&gt;&amp;quot;root=/dev/sda1 console=tty0&amp;quot;&lt;/span&gt; -nographic
-overclok@wildout:~/chall/nsc2014$ ./start_vm.sh
-&lt;span class="o"&gt;[&lt;/span&gt;    &lt;span class="m"&gt;0&lt;/span&gt;.000000&lt;span class="o"&gt;]&lt;/span&gt; Initializing cgroup subsys cpuset
-&lt;span class="o"&gt;[&lt;/span&gt;    &lt;span class="m"&gt;0&lt;/span&gt;.000000&lt;span class="o"&gt;]&lt;/span&gt; Initializing cgroup subsys cpu
-&lt;span class="o"&gt;[&lt;/span&gt;    &lt;span class="m"&gt;0&lt;/span&gt;.000000&lt;span class="o"&gt;]&lt;/span&gt; Linux version &lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta &lt;span class="o"&gt;(&lt;/span&gt;debian-kernel@lists.debian.org&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;gcc version &lt;span class="m"&gt;4&lt;/span&gt;.6.3 &lt;span class="o"&gt;(&lt;/span&gt;Debian &lt;span class="m"&gt;4&lt;/span&gt;.6.3-14&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;#1 Debian 3.2.51-1&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;overclok@wildout:~/chall/nsc2014$&lt;span class="w"&gt; &lt;/span&gt;wget&lt;span class="w"&gt; &lt;/span&gt;https://people.debian.org/~aurel32/qemu/mipsel/debian_wheezy_mipsel_standard.qcow2
+overclok@wildout:~/chall/nsc2014$&lt;span class="w"&gt; &lt;/span&gt;wget&lt;span class="w"&gt; &lt;/span&gt;https://people.debian.org/~aurel32/qemu/mipsel/vmlinux-3.2.0-4-4kc-malta
+overclok@wildout:~/chall/nsc2014$&lt;span class="w"&gt; &lt;/span&gt;cat&lt;span class="w"&gt; &lt;/span&gt;start_vm.sh
+qemu-system-mipsel&lt;span class="w"&gt; &lt;/span&gt;-M&lt;span class="w"&gt; &lt;/span&gt;malta&lt;span class="w"&gt; &lt;/span&gt;-kernel&lt;span class="w"&gt; &lt;/span&gt;vmlinux-3.2.0-4-4kc-malta&lt;span class="w"&gt; &lt;/span&gt;-hda&lt;span class="w"&gt; &lt;/span&gt;debian_wheezy_mipsel_standard.qcow2&lt;span class="w"&gt; &lt;/span&gt;-vga&lt;span class="w"&gt; &lt;/span&gt;none&lt;span class="w"&gt; &lt;/span&gt;-append&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;root=/dev/sda1 console=tty0&amp;quot;&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;-nographic
+overclok@wildout:~/chall/nsc2014$&lt;span class="w"&gt; &lt;/span&gt;./start_vm.sh
+&lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="m"&gt;0&lt;/span&gt;.000000&lt;span class="o"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;Initializing&lt;span class="w"&gt; &lt;/span&gt;cgroup&lt;span class="w"&gt; &lt;/span&gt;subsys&lt;span class="w"&gt; &lt;/span&gt;cpuset
+&lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="m"&gt;0&lt;/span&gt;.000000&lt;span class="o"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;Initializing&lt;span class="w"&gt; &lt;/span&gt;cgroup&lt;span class="w"&gt; &lt;/span&gt;subsys&lt;span class="w"&gt; &lt;/span&gt;cpu
+&lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="m"&gt;0&lt;/span&gt;.000000&lt;span class="o"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;Linux&lt;span class="w"&gt; &lt;/span&gt;version&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;debian-kernel@lists.debian.org&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;gcc&lt;span class="w"&gt; &lt;/span&gt;version&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;4&lt;/span&gt;.6.3&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;Debian&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;4&lt;/span&gt;.6.3-14&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;#1 Debian 3.2.51-1&lt;/span&gt;
 &lt;span class="o"&gt;[&lt;/span&gt;...&lt;span class="o"&gt;]&lt;/span&gt;
-debian-mipsel login: root
+debian-mipsel&lt;span class="w"&gt; &lt;/span&gt;login:&lt;span class="w"&gt; &lt;/span&gt;root
 Password:
-Last login: Sat Oct &lt;span class="m"&gt;11&lt;/span&gt; &lt;span class="m"&gt;00&lt;/span&gt;:04:51 UTC &lt;span class="m"&gt;2014&lt;/span&gt; on ttyS0
-Linux debian-mipsel &lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta &lt;span class="c1"&gt;#1 Debian 3.2.51-1 mips&lt;/span&gt;
+Last&lt;span class="w"&gt; &lt;/span&gt;login:&lt;span class="w"&gt; &lt;/span&gt;Sat&lt;span class="w"&gt; &lt;/span&gt;Oct&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;11&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00&lt;/span&gt;:04:51&lt;span class="w"&gt; &lt;/span&gt;UTC&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;2014&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;on&lt;span class="w"&gt; &lt;/span&gt;ttyS0
+Linux&lt;span class="w"&gt; &lt;/span&gt;debian-mipsel&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;#1 Debian 3.2.51-1 mips&lt;/span&gt;
 
-The programs included with the Debian GNU/Linux system are free software&lt;span class="p"&gt;;&lt;/span&gt;
-the exact distribution terms &lt;span class="k"&gt;for&lt;/span&gt; each program are described in the
-individual files in /usr/share/doc/*/copyright.
+The&lt;span class="w"&gt; &lt;/span&gt;programs&lt;span class="w"&gt; &lt;/span&gt;included&lt;span class="w"&gt; &lt;/span&gt;with&lt;span class="w"&gt; &lt;/span&gt;the&lt;span class="w"&gt; &lt;/span&gt;Debian&lt;span class="w"&gt; &lt;/span&gt;GNU/Linux&lt;span class="w"&gt; &lt;/span&gt;system&lt;span class="w"&gt; &lt;/span&gt;are&lt;span class="w"&gt; &lt;/span&gt;free&lt;span class="w"&gt; &lt;/span&gt;software&lt;span class="p"&gt;;&lt;/span&gt;
+the&lt;span class="w"&gt; &lt;/span&gt;exact&lt;span class="w"&gt; &lt;/span&gt;distribution&lt;span class="w"&gt; &lt;/span&gt;terms&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;for&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;each&lt;span class="w"&gt; &lt;/span&gt;program&lt;span class="w"&gt; &lt;/span&gt;are&lt;span class="w"&gt; &lt;/span&gt;described&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;in&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;the
+individual&lt;span class="w"&gt; &lt;/span&gt;files&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;in&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;/usr/share/doc/*/copyright.
 
-Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
-permitted by applicable law.
-root@debian-mipsel:~# uname -a
-Linux debian-mipsel &lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta &lt;span class="c1"&gt;#1 Debian 3.2.51-1 mips GNU/Linux&lt;/span&gt;
+Debian&lt;span class="w"&gt; &lt;/span&gt;GNU/Linux&lt;span class="w"&gt; &lt;/span&gt;comes&lt;span class="w"&gt; &lt;/span&gt;with&lt;span class="w"&gt; &lt;/span&gt;ABSOLUTELY&lt;span class="w"&gt; &lt;/span&gt;NO&lt;span class="w"&gt; &lt;/span&gt;WARRANTY,&lt;span class="w"&gt; &lt;/span&gt;to&lt;span class="w"&gt; &lt;/span&gt;the&lt;span class="w"&gt; &lt;/span&gt;extent
+permitted&lt;span class="w"&gt; &lt;/span&gt;by&lt;span class="w"&gt; &lt;/span&gt;applicable&lt;span class="w"&gt; &lt;/span&gt;law.
+root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;uname&lt;span class="w"&gt; &lt;/span&gt;-a
+Linux&lt;span class="w"&gt; &lt;/span&gt;debian-mipsel&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;3&lt;/span&gt;.2.0-4-4kc-malta&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;#1 Debian 3.2.51-1 mips GNU/Linux&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;Feel free to install your essentials in the virtual environment, some tools might come handy (it should take a bit of time to install them though):&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;root@debian-mipsel:~# aptitude install strace gdb gcc python
-root@debian-mipsel:~# wget https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
-root@debian-mipsel:~# mv gdbinit-mips ~/.gdbinit
-root@debian-mipsel:~# gdb -q /home/user/crackmips
-Reading symbols from /home/user/crackmips...&lt;span class="o"&gt;(&lt;/span&gt;no debugging symbols found&lt;span class="o"&gt;)&lt;/span&gt;...done.
-&lt;span class="o"&gt;(&lt;/span&gt;gdb&lt;span class="o"&gt;)&lt;/span&gt; b *main
-Breakpoint &lt;span class="m"&gt;1&lt;/span&gt; at 0x402024
-&lt;span class="o"&gt;(&lt;/span&gt;gdb&lt;span class="o"&gt;)&lt;/span&gt; r &lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
-Starting program: /home/user/crackmips &lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;aptitude&lt;span class="w"&gt; &lt;/span&gt;install&lt;span class="w"&gt; &lt;/span&gt;strace&lt;span class="w"&gt; &lt;/span&gt;gdb&lt;span class="w"&gt; &lt;/span&gt;gcc&lt;span class="w"&gt; &lt;/span&gt;python
+root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;wget&lt;span class="w"&gt; &lt;/span&gt;https://raw.githubusercontent.com/zcutlip/gdbinit-mips/master/gdbinit-mips
+root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;mv&lt;span class="w"&gt; &lt;/span&gt;gdbinit-mips&lt;span class="w"&gt; &lt;/span&gt;~/.gdbinit
+root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;gdb&lt;span class="w"&gt; &lt;/span&gt;-q&lt;span class="w"&gt; &lt;/span&gt;/home/user/crackmips
+Reading&lt;span class="w"&gt; &lt;/span&gt;symbols&lt;span class="w"&gt; &lt;/span&gt;from&lt;span class="w"&gt; &lt;/span&gt;/home/user/crackmips...&lt;span class="o"&gt;(&lt;/span&gt;no&lt;span class="w"&gt; &lt;/span&gt;debugging&lt;span class="w"&gt; &lt;/span&gt;symbols&lt;span class="w"&gt; &lt;/span&gt;found&lt;span class="o"&gt;)&lt;/span&gt;...done.
+&lt;span class="o"&gt;(&lt;/span&gt;gdb&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;b&lt;span class="w"&gt; &lt;/span&gt;*main
+Breakpoint&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;1&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;at&lt;span class="w"&gt; &lt;/span&gt;0x402024
+&lt;span class="o"&gt;(&lt;/span&gt;gdb&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;r&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
+Starting&lt;span class="w"&gt; &lt;/span&gt;program:&lt;span class="w"&gt; &lt;/span&gt;/home/user/crackmips&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
 -----------------------------------------------------------------
 &lt;span class="o"&gt;[&lt;/span&gt;registers&lt;span class="o"&gt;]&lt;/span&gt;
-  V0: 7FFF6D30  V1: 77FEE000  A0: &lt;span class="m"&gt;00000002&lt;/span&gt;  A1: 7FFF6DF4
-  A2: 7FFF6E00  A3: 0000006C  T0: 77F611E4  T1: 0FFFFFFE
-  T2: 0000000A  T3: 77FF6ED0  T4: 77FE5590  T5: FFFFFFFF
-  T6: F0000000  T7: 7FFF6BE8  S0: &lt;span class="m"&gt;00000000&lt;/span&gt;  S1: &lt;span class="m"&gt;00000000&lt;/span&gt;
-  S2: &lt;span class="m"&gt;00000000&lt;/span&gt;  S3: &lt;span class="m"&gt;00000000&lt;/span&gt;  S4: 004FD268  S5: 004FD148
-  S6: 004D0000  S7: &lt;span class="m"&gt;00000063&lt;/span&gt;  T8: 77FD7A5C  T9: &lt;span class="m"&gt;00402024&lt;/span&gt;
-  GP: 77F67970  S8: 0000006C  HI: 000001A5  LO: 00005E17
-  SP: 7FFF6D18  PC: &lt;span class="m"&gt;00402024&lt;/span&gt;  RA: 77DF2208
+&lt;span class="w"&gt;  &lt;/span&gt;V0:&lt;span class="w"&gt; &lt;/span&gt;7FFF6D30&lt;span class="w"&gt;  &lt;/span&gt;V1:&lt;span class="w"&gt; &lt;/span&gt;77FEE000&lt;span class="w"&gt;  &lt;/span&gt;A0:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00000002&lt;/span&gt;&lt;span class="w"&gt;  &lt;/span&gt;A1:&lt;span class="w"&gt; &lt;/span&gt;7FFF6DF4
+&lt;span class="w"&gt;  &lt;/span&gt;A2:&lt;span class="w"&gt; &lt;/span&gt;7FFF6E00&lt;span class="w"&gt;  &lt;/span&gt;A3:&lt;span class="w"&gt; &lt;/span&gt;0000006C&lt;span class="w"&gt;  &lt;/span&gt;T0:&lt;span class="w"&gt; &lt;/span&gt;77F611E4&lt;span class="w"&gt;  &lt;/span&gt;T1:&lt;span class="w"&gt; &lt;/span&gt;0FFFFFFE
+&lt;span class="w"&gt;  &lt;/span&gt;T2:&lt;span class="w"&gt; &lt;/span&gt;0000000A&lt;span class="w"&gt;  &lt;/span&gt;T3:&lt;span class="w"&gt; &lt;/span&gt;77FF6ED0&lt;span class="w"&gt;  &lt;/span&gt;T4:&lt;span class="w"&gt; &lt;/span&gt;77FE5590&lt;span class="w"&gt;  &lt;/span&gt;T5:&lt;span class="w"&gt; &lt;/span&gt;FFFFFFFF
+&lt;span class="w"&gt;  &lt;/span&gt;T6:&lt;span class="w"&gt; &lt;/span&gt;F0000000&lt;span class="w"&gt;  &lt;/span&gt;T7:&lt;span class="w"&gt; &lt;/span&gt;7FFF6BE8&lt;span class="w"&gt;  &lt;/span&gt;S0:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00000000&lt;/span&gt;&lt;span class="w"&gt;  &lt;/span&gt;S1:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00000000&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;S2:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00000000&lt;/span&gt;&lt;span class="w"&gt;  &lt;/span&gt;S3:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00000000&lt;/span&gt;&lt;span class="w"&gt;  &lt;/span&gt;S4:&lt;span class="w"&gt; &lt;/span&gt;004FD268&lt;span class="w"&gt;  &lt;/span&gt;S5:&lt;span class="w"&gt; &lt;/span&gt;004FD148
+&lt;span class="w"&gt;  &lt;/span&gt;S6:&lt;span class="w"&gt; &lt;/span&gt;004D0000&lt;span class="w"&gt;  &lt;/span&gt;S7:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00000063&lt;/span&gt;&lt;span class="w"&gt;  &lt;/span&gt;T8:&lt;span class="w"&gt; &lt;/span&gt;77FD7A5C&lt;span class="w"&gt;  &lt;/span&gt;T9:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00402024&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;GP:&lt;span class="w"&gt; &lt;/span&gt;77F67970&lt;span class="w"&gt;  &lt;/span&gt;S8:&lt;span class="w"&gt; &lt;/span&gt;0000006C&lt;span class="w"&gt;  &lt;/span&gt;HI:&lt;span class="w"&gt; &lt;/span&gt;000001A5&lt;span class="w"&gt;  &lt;/span&gt;LO:&lt;span class="w"&gt; &lt;/span&gt;00005E17
+&lt;span class="w"&gt;  &lt;/span&gt;SP:&lt;span class="w"&gt; &lt;/span&gt;7FFF6D18&lt;span class="w"&gt;  &lt;/span&gt;PC:&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="m"&gt;00402024&lt;/span&gt;&lt;span class="w"&gt;  &lt;/span&gt;RA:&lt;span class="w"&gt; &lt;/span&gt;77DF2208
 -----------------------------------------------------------------
 &lt;span class="o"&gt;[&lt;/span&gt;code&lt;span class="o"&gt;]&lt;/span&gt;
-&lt;span class="o"&gt;=&lt;/span&gt;&amp;gt; 0x402024 &amp;lt;main&amp;gt;:     addiu   sp,sp,-72
-    0x402028 &amp;lt;main+4&amp;gt;:   sw      ra,68&lt;span class="o"&gt;(&lt;/span&gt;sp&lt;span class="o"&gt;)&lt;/span&gt;
-    0x40202c &amp;lt;main+8&amp;gt;:   sw      s8,64&lt;span class="o"&gt;(&lt;/span&gt;sp&lt;span class="o"&gt;)&lt;/span&gt;
-    0x402030 &amp;lt;main+12&amp;gt;:  move    s8,sp
-    0x402034 &amp;lt;main+16&amp;gt;:  sw      a0,72&lt;span class="o"&gt;(&lt;/span&gt;s8&lt;span class="o"&gt;)&lt;/span&gt;
-    0x402038 &amp;lt;main+20&amp;gt;:  sw      a1,76&lt;span class="o"&gt;(&lt;/span&gt;s8&lt;span class="o"&gt;)&lt;/span&gt;
-    0x40203c &amp;lt;main+24&amp;gt;:  lw      v1,72&lt;span class="o"&gt;(&lt;/span&gt;s8&lt;span class="o"&gt;)&lt;/span&gt;
-    0x402040 &amp;lt;main+28&amp;gt;:  li      v0,2
+&lt;span class="o"&gt;=&lt;/span&gt;&amp;gt;&lt;span class="w"&gt; &lt;/span&gt;0x402024&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main&amp;gt;:&lt;span class="w"&gt;     &lt;/span&gt;addiu&lt;span class="w"&gt;   &lt;/span&gt;sp,sp,-72
+&lt;span class="w"&gt;    &lt;/span&gt;0x402028&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+4&amp;gt;:&lt;span class="w"&gt;   &lt;/span&gt;sw&lt;span class="w"&gt;      &lt;/span&gt;ra,68&lt;span class="o"&gt;(&lt;/span&gt;sp&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;0x40202c&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+8&amp;gt;:&lt;span class="w"&gt;   &lt;/span&gt;sw&lt;span class="w"&gt;      &lt;/span&gt;s8,64&lt;span class="o"&gt;(&lt;/span&gt;sp&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;0x402030&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+12&amp;gt;:&lt;span class="w"&gt;  &lt;/span&gt;move&lt;span class="w"&gt;    &lt;/span&gt;s8,sp
+&lt;span class="w"&gt;    &lt;/span&gt;0x402034&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+16&amp;gt;:&lt;span class="w"&gt;  &lt;/span&gt;sw&lt;span class="w"&gt;      &lt;/span&gt;a0,72&lt;span class="o"&gt;(&lt;/span&gt;s8&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;0x402038&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+20&amp;gt;:&lt;span class="w"&gt;  &lt;/span&gt;sw&lt;span class="w"&gt;      &lt;/span&gt;a1,76&lt;span class="o"&gt;(&lt;/span&gt;s8&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;0x40203c&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+24&amp;gt;:&lt;span class="w"&gt;  &lt;/span&gt;lw&lt;span class="w"&gt;      &lt;/span&gt;v1,72&lt;span class="o"&gt;(&lt;/span&gt;s8&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;0x402040&lt;span class="w"&gt; &lt;/span&gt;&amp;lt;main+28&amp;gt;:&lt;span class="w"&gt;  &lt;/span&gt;li&lt;span class="w"&gt;      &lt;/span&gt;v0,2
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
 &lt;p&gt;And finally you should be able to run the wild beast:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;root@debian-mipsel:~# /home/user/crackmips
-usage: /home/user/crackmips password
-root@debian-mipsel:~# /home/user/crackmips &lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
-WRONG PASSWORD
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;/home/user/crackmips
+usage:&lt;span class="w"&gt; &lt;/span&gt;/home/user/crackmips&lt;span class="w"&gt; &lt;/span&gt;password
+root@debian-mipsel:~#&lt;span class="w"&gt; &lt;/span&gt;/home/user/crackmips&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;doar-e ftw&amp;#39;&lt;/span&gt;
+WRONG&lt;span class="w"&gt; &lt;/span&gt;PASSWORD
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 
@@ -150,33 +150,33 @@ it works and what parts we will have to target to get the &lt;em&gt;good boy&lt;
 &lt;/ol&gt;
 &lt;p&gt;Basically, we need to find the 6 input &lt;em&gt;DWORD&lt;/em&gt;s that are going to generate the following ones in &lt;em&gt;output&lt;/em&gt;: &lt;em&gt;0x7953205b&lt;/em&gt;, &lt;em&gt;0x6b63616e&lt;/em&gt;, &lt;em&gt;0x20766974&lt;/em&gt;, &lt;em&gt;0x534e202b&lt;/em&gt;, &lt;em&gt;0x203d2043&lt;/em&gt;, &lt;em&gt;0x5d20333c&lt;/em&gt;. We also know that the father is going to interact with its son, so we need to study both codes to be sure to understand the challenge properly.
 If you prefer code, here is the big picture in C:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;
 &lt;span class="p"&gt;{&lt;/span&gt;
-    &lt;span class="n"&gt;DWORD&lt;/span&gt; &lt;span class="n"&gt;serial_dwords&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;};&lt;/span&gt;
-    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argc&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        &lt;span class="n"&gt;Usage&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="n"&gt;DWORD&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;serial_dwords&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;!=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="n"&gt;Usage&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
 
-    &lt;span class="c1"&gt;// Conversion&lt;/span&gt;
-    &lt;span class="n"&gt;a2i&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;serial_dwords&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="c1"&gt;// Conversion&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="n"&gt;a2i&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;serial_dwords&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
 
-    &lt;span class="kt"&gt;pid_t&lt;/span&gt; &lt;span class="n"&gt;pid&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;fork&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
-    &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="p"&gt;{&lt;/span&gt;
-        &lt;span class="c1"&gt;// Father&lt;/span&gt;
-        &lt;span class="c1"&gt;// a lot of stuff going on here, we will see that later on&lt;/span&gt;
-    &lt;span class="p"&gt;}&lt;/span&gt;
-    &lt;span class="k"&gt;else&lt;/span&gt;
-    &lt;span class="p"&gt;{&lt;/span&gt;
-        &lt;span class="c1"&gt;// Son&lt;/span&gt;
-        &lt;span class="c1"&gt;// a lot of stuff going on here, we will see that later on&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="kt"&gt;pid_t&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;fork&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pid&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;!=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="c1"&gt;// Father&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="c1"&gt;// a lot of stuff going on here, we will see that later on&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="k"&gt;else&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="c1"&gt;// Son&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="c1"&gt;// a lot of stuff going on here, we will see that later on&lt;/span&gt;
 
-        &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;clear&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;serial_dwords&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
-        &lt;span class="kt"&gt;bool&lt;/span&gt; &lt;span class="n"&gt;win&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;memcmp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;clear&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;[ Synacktiv + NSC = &amp;lt;3 ]&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;48&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
-        &lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;win&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-            &lt;span class="n"&gt;GoodBoy&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
-        &lt;span class="k"&gt;else&lt;/span&gt;
-            &lt;span class="n"&gt;BadBoy&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
-    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;clear&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;serial_dwords&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="kt"&gt;bool&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;win&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;memcmp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;clear&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;&amp;quot;[ Synacktiv + NSC = &amp;lt;3 ]&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;48&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="k"&gt;if&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;win&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;GoodBoy&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="w"&gt;        &lt;/span&gt;&lt;span class="k"&gt;else&lt;/span&gt;
+&lt;span class="w"&gt;            &lt;/span&gt;&lt;span class="n"&gt;BadBoy&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
 &lt;span class="p"&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
@@ -302,11 +302,11 @@ It usually works this way:&lt;/p&gt;
 &lt;/ul&gt;
 &lt;p&gt;To handle / convert those I created a bunch of dull / helper functions:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_is_gpr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is it a valid GPR name?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is it a valid GPR name?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;gpr&lt;/span&gt;
 
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_is_imm&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is it a valid immediate?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is it a valid immediate?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;loc_&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;0x&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="k"&gt;try&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
     &lt;span class="nb"&gt;int&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
@@ -315,22 +315,22 @@ It usually works this way:&lt;/p&gt;
     &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;
 
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_to_imm&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Get an integer from a string immediate&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Get an integer from a string immediate&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_is_imm&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
     &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;loc_&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;0x&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
     &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;int&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;
 
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_is_memderef&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is it a memory dereference?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is it a memory dereference?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;(&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;)&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;
 
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;is_stackvar&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is is a stack variable?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Is is a stack variable?&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;(fp)&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;+&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;var_&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;+&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;to_stackvar&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Get the stack variable name&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Get the stack variable name&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="n"&gt;_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;var_name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;+&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;var_name&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;(fp)&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
@@ -339,7 +339,7 @@ It usually works this way:&lt;/p&gt;
 &lt;p&gt;Finally, we have to handle every different instructions and their encodings. Of course, you need to implement only the instructions you want: most likely the ones that are used in the code you are interested int. In a nutshell, this is the core of the engine. You can also use it to output valid Python/C lines if you fancy having a decompiler in your sleeve ; might be handy right?&lt;/p&gt;
 &lt;p&gt;This is what the core function looks like, it is really simple, dumb and so unoptimized ; but at least it's clear to me:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;step&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;This is the core of the engine -- you are supposed to implement the semantics&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;This is the core of the engine -- you are supposed to implement the semantics&lt;/span&gt;
 &lt;span class="sd"&gt;  of all the instructions you want to emulate here.&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="n"&gt;line&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;code&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pc&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
   &lt;span class="n"&gt;addr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;instr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_parse_line&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;line&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
@@ -440,7 +440,7 @@ It usually works this way:&lt;/p&gt;
 
 &lt;p&gt;To workaround that I usually define my own &lt;em&gt;_LShR&lt;/em&gt; function that does whatever is correct according to the operand types (yes we could also replace &lt;em&gt;z3.BitVecNumRef.__rshift__&lt;/em&gt; by &lt;em&gt;LShR&lt;/em&gt; directly):&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;_LShR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;b&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Useful hook function if you want to run the emulation&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Useful hook function if you want to run the emulation&lt;/span&gt;
 &lt;span class="sd"&gt;  with/without Z3 as LShR is different from &amp;gt;&amp;gt; in Z3&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;enable_z3&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
     &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="nb"&gt;isinstance&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;long&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;isinstance&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;a&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;int&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
@@ -566,7 +566,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 
 &lt;p&gt;Then we have to prepare the environment of our engine: the two symbolic variables are stack-variables, so we have to insert them in the context of our virtual environment. The resulting formula is going to be in &lt;em&gt;$v0&lt;/em&gt; at the end of the execution ; this the holy grail, the formula we are after.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;extract_equation_of_function_that_generates_magic_value&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Here we do some magic to transform our mini MIPS emulator&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Here we do some magic to transform our mini MIPS emulator&lt;/span&gt;
 &lt;span class="sd"&gt;  into a symbolic execution engine ; the purpose is to extract&lt;/span&gt;
 &lt;span class="sd"&gt;  the formula of the function generating the 32-bits magic value&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
 
@@ -589,7 +589,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 &lt;p&gt;You can now keep in memory the formula &amp;amp; wrap this function in another one so that you can reuse it every time you need it:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;var_magic&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;var_n_break&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;expr_magic&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;
 &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;generate_magic_from_son_pc_using_z3&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pc_son&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Generates the 32 bits magic value thanks to the output&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Generates the 32 bits magic value thanks to the output&lt;/span&gt;
 &lt;span class="sd"&gt;  of the symbolic execution engine: run the analysis once, extract&lt;/span&gt;
 &lt;span class="sd"&gt;  the complete equation &amp;amp; reuse it as much as you want&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="k"&gt;global&lt;/span&gt; &lt;span class="n"&gt;var_magic&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;var_n_break&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;expr_magic&lt;/span&gt;
@@ -693,7 +693,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 &lt;h3 id="extracting-the-function-that-generates-the-new-program-counter-from-the-second-magic-value"&gt;Extracting the function that generates the new program counter from the second magic value&lt;/h3&gt;
 &lt;p&gt;For the second big block of code, we can do exactly the same thing: copy the code, configure the virtual environment with our symbolic variables and wrap the function:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;extract_equation_of_function_that_generates_new_son_pc&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Extract the formula of the function generating the new son&amp;#39;s $pc&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Extract the formula of the function generating the new son&amp;#39;s $pc&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="n"&gt;x&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;mini_mips_symexec_engine&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;MiniMipsSymExecEngine&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;function_that_generates_new_son_pc.log&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;debug&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;
   &lt;span class="n"&gt;x&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;enable_z3&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;
@@ -731,7 +731,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 
 &lt;p&gt;Now, we can build the whole function easily by combining all those pieces:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;generate_new_pc_from_pc_son_using_z3&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pc_son&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-  &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Generate the new program counter from the address where the son SIGTRAP&amp;#39;d and&lt;/span&gt;
+&lt;span class="w"&gt;  &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;Generate the new program counter from the address where the son SIGTRAP&amp;#39;d and&lt;/span&gt;
 &lt;span class="sd"&gt;  the number of SIGTRAP the son encountered&amp;#39;&amp;#39;&amp;#39;&lt;/span&gt;
   &lt;span class="n"&gt;loop_n&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;n_break&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mi"&gt;101&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
   &lt;span class="n"&gt;magic&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;generate_magic_from_son_pc_using_z3&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pc_son&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;n_break&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
@@ -765,7 +765,7 @@ Resulting value when `a` is 0xdeadb44: 0x98f42d24
 &lt;/ul&gt;
 &lt;p&gt;Here is the function I used:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;generate_son_code_reordered&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;debug&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-    &lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;This functions puts in the right order the son&amp;#39;s block of codes without&lt;/span&gt;
+&lt;span class="w"&gt;    &lt;/span&gt;&lt;span class="sd"&gt;&amp;#39;&amp;#39;&amp;#39;This functions puts in the right order the son&amp;#39;s block of codes without&lt;/span&gt;
 &lt;span class="sd"&gt;    relying on the father to set a new $pc value when a break is executed in the son.&lt;/span&gt;
 &lt;span class="sd"&gt;    With this output we are good to go to create a nanomites-less binary:&lt;/span&gt;
 &lt;span class="sd"&gt;      - We don&amp;#39;t need the father anymore (he was driving the son)&lt;/span&gt;
@@ -1307,8 +1307,8 @@ IRDst = loc_00000000004022BC:0x004022bc
 
 &lt;p&gt;We've declared the valid solution, the list of 6 32-bit variables (&lt;code&gt;pwd&lt;/code&gt;), pasted the algorithm, and ran the solver. We just need to be careful with the &lt;code&gt;&amp;gt;&amp;gt;&lt;/code&gt; operation, since Z3 &lt;a href="http://stackoverflow.com/a/25535854"&gt;treats&lt;/a&gt; it as an arithmetic shift, and we want a logical one. So we replace it with a dirty hook.&lt;/p&gt;
 &lt;p&gt;The solution should come almost instantly:&lt;/p&gt;
-&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;$ python sample_solver.py
-&lt;span class="nv"&gt;KEY&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; 322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;$&lt;span class="w"&gt; &lt;/span&gt;python&lt;span class="w"&gt; &lt;/span&gt;sample_solver.py
+&lt;span class="nv"&gt;KEY&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;322644EF941077AB1115AB575363AE87F58E6D9AFE5C62CC
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
 

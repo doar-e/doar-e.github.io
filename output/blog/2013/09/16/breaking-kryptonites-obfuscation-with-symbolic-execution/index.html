@@ -224,14 +224,14 @@ Out[9]: &#39;0xdeadbeefL&#39;
 <h2 id="the-disassembler">The disassembler</h2>
 <p>The first thing we have to do is to use IDA's API in order to have some inspection information about assembly instructions. The idea is just to have the mnemonic, the source and the destination operands easily ; here is the class I've designed toward that purpose:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">Disassembler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">=</span> <span class="n">start</span>
 
     <span class="k">def</span> <span class="nf">_decode_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
         <span class="n">mnem</span> <span class="o">=</span> <span class="n">GetMnem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
@@ -245,7 +245,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
         <span class="k">return</span> <span class="p">[</span><span class="n">mnem</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span>
 
     <span class="k">def</span> <span class="nf">get_next_instruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
 <span class="sd">        each instructions easily&#39;&#39;&#39;</span>
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
@@ -263,7 +263,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
 </ol>
 <p>Here is the PoC code:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">prove</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Taken from http://rise4fun.com/Z3Py/tutorialcontent/guide#h26&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Taken from http://rise4fun.com/Z3Py/tutorialcontent/guide#h26&#39;&#39;&#39;</span>
     <span class="n">s</span> <span class="o">=</span> <span class="n">Solver</span><span class="p">()</span>
     <span class="n">s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Not</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="o">==</span> <span class="n">unsat</span><span class="p">:</span>
@@ -271,7 +271,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
     <span class="k">return</span> <span class="kc">False</span>
 
 <span class="k">class</span> <span class="nc">SymbolicExecutionEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
 <span class="sd">    handle the symbolic execution. It will keep a track of the </span>
 <span class="sd">    different equations encountered, and the CPU context at each point of the program.</span>
 
@@ -339,7 +339,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
         <span class="bp">self</span><span class="o">.</span><span class="n">equations</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="nf">_check_if_reg32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span>
 
     <span class="k">def</span> <span class="nf">_push_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
@@ -360,7 +360,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]]</span>
 
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
         <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;mov&#39;</span><span class="p">:</span>
                 <span class="c1"># mov reg32, reg32</span>
@@ -440,7 +440,7 @@ Out[9]: &#39;0xdeadbeefL&#39;
 <h2 id="testing">Testing</h2>
 <p>OK, we just have to instantiate the engine giving him the start/end address of the routine and to ask him to give us the final equation holded in EAX.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-    <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
 <span class="sd">    I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
 
 <span class="sd">    The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
@@ -500,7 +500,7 @@ Concat(~(Concat(1073741823, Extract(1, 1, arg1)) |
 </ul>
 <p>To know what was the right answer, I used Z3Py's prove function in order to know if the equation was equivalent to a simple addition:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-    <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
 <span class="sd">    I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
 
 <span class="sd">    The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
@@ -520,7 +520,7 @@ Concat(~(Concat(1073741823, Extract(1, 1, arg1)) |
 <p>Fortunately for us, it printed <em>True</em> ; so our code is correct. But it also means, the simplify function, as is at least, isn't able to simplify that bunch of equations involving bit-vector arithmetics. I still haven't found a clean way to make Z3Py simplify my big equation, so if someone knows how I can do that please contact me. I've also exported the complete equation, and uploaded it <a href="/downloads/code/breaking_kryptonite_s_obfuscation_with_symbolic_execution/eq.txt">here</a> ; you are free to give it a try like this.</p>
 <p>The ugly trick I came up with is just to use Z3Py's prove function, to try to prove that the equation is in fact an addition and if this is the case it returns the simplified equation. Again, if someone manages to simplify the previous equation without that type of trick I'm really interested!</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
 <span class="sd">    expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
 <span class="sd">    and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
 <span class="sd">    equation.</span>
@@ -552,34 +552,34 @@ EAX=arg0 + arg1
 <p>We just successfully simplified two thousands of assembly into a simple addition, wonderful!</p>
 <h1 id="symbolic-execution-vs-kryptonite">Symbolic execution VS Kryptonite</h1>
 <p>OK, now we have a working engine able to break a small program (~two thousands instructions), let's see if we can do the same with a kryptonized-binary. Let's take a simple addition like in the previous parts:</p>
-<div class="highlight"><pre><span></span><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp"></span>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdlib.h&gt;</span>
 
-<span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">add</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span>
+<span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[])</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">argv</span><span class="p">[])</span>
 <span class="p">{</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">argc</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Result: %u</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">add</span><span class="p">(</span><span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">])));</span>
-    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Result: %u</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">add</span><span class="p">(</span><span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="w"> </span><span class="n">atoll</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">])));</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div>
 
 
 <p>Now, time for a kryptonization:</p>
-<div class="highlight"><pre><span></span><code>$ wget https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
-$ clang++ llvm-functionpass-kryptonite-obfuscater.cpp <span class="sb">`</span>llvm-config --cxxflags --ldflags --libs core<span class="sb">`</span> -shared -o llvm-functionpass-kryptonite-obfuscater.so
-$ clang -S -emit-llvm add.c -o add.ll
-$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
-$ opt -S -load ~/dev/llvm-functionpass-kryptonite-obfuscater.so -kryptonite -heavy-add-obfu add.ll -o add.opti.ll <span class="o">&amp;&amp;</span> mv add.opti.ll add.ll
-$ llc -O0 -filetype<span class="o">=</span>obj -march<span class="o">=</span>x86 add.ll -o add.o
-$ clang -static add.o -o kryptonite-add
-$ strip --strip-all ./kryptonite-add
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>wget<span class="w"> </span>https://raw.github.com/0vercl0k/stuffz/master/llvm-funz/kryptonite/llvm-functionpass-kryptonite-obfuscater.cpp
+$<span class="w"> </span>clang++<span class="w"> </span>llvm-functionpass-kryptonite-obfuscater.cpp<span class="w"> </span><span class="sb">`</span>llvm-config<span class="w"> </span>--cxxflags<span class="w"> </span>--ldflags<span class="w"> </span>--libs<span class="w"> </span>core<span class="sb">`</span><span class="w"> </span>-shared<span class="w"> </span>-o<span class="w"> </span>llvm-functionpass-kryptonite-obfuscater.so
+$<span class="w"> </span>clang<span class="w"> </span>-S<span class="w"> </span>-emit-llvm<span class="w"> </span>add.c<span class="w"> </span>-o<span class="w"> </span>add.ll
+$<span class="w"> </span>opt<span class="w"> </span>-S<span class="w"> </span>-load<span class="w"> </span>~/dev/llvm-functionpass-kryptonite-obfuscater.so<span class="w"> </span>-kryptonite<span class="w"> </span>-heavy-add-obfu<span class="w"> </span>add.ll<span class="w"> </span>-o<span class="w"> </span>add.opti.ll<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mv<span class="w"> </span>add.opti.ll<span class="w"> </span>add.ll
+$<span class="w"> </span>opt<span class="w"> </span>-S<span class="w"> </span>-load<span class="w"> </span>~/dev/llvm-functionpass-kryptonite-obfuscater.so<span class="w"> </span>-kryptonite<span class="w"> </span>-heavy-add-obfu<span class="w"> </span>add.ll<span class="w"> </span>-o<span class="w"> </span>add.opti.ll<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mv<span class="w"> </span>add.opti.ll<span class="w"> </span>add.ll
+$<span class="w"> </span>llc<span class="w"> </span>-O0<span class="w"> </span>-filetype<span class="o">=</span>obj<span class="w"> </span>-march<span class="o">=</span>x86<span class="w"> </span>add.ll<span class="w"> </span>-o<span class="w"> </span>add.o
+$<span class="w"> </span>clang<span class="w"> </span>-static<span class="w"> </span>add.o<span class="w"> </span>-o<span class="w"> </span>kryptonite-add
+$<span class="w"> </span>strip<span class="w"> </span>--strip-all<span class="w"> </span>./kryptonite-add
 </code></pre></div>
 
 
@@ -593,14 +593,14 @@ $ strip --strip-all ./kryptonite-add
         <span class="k">return</span> <span class="s1">&#39;EID:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
 
 <span class="k">class</span> <span class="nc">Disassembler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;A simple class to decode easily instruction in IDA&#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">=</span> <span class="n">start</span>
 
     <span class="k">def</span> <span class="nf">_decode_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Returns mnemonic, dst, src&#39;&#39;&#39;</span>
         <span class="n">mnem</span> <span class="o">=</span> <span class="n">GetMnem</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
@@ -614,14 +614,14 @@ $ strip --strip-all ./kryptonite-add
         <span class="k">return</span> <span class="p">[</span><span class="n">mnem</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span>
 
     <span class="k">def</span> <span class="nf">get_next_instruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;This is a convenient generator, you can iterator through</span>
 <span class="sd">        each instructions easily&#39;&#39;&#39;</span>
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_instr</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">eip</span> <span class="o">+=</span> <span class="n">ItemSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eip</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">SymbolicExecutionEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;The symbolic execution engine is the class that will</span>
 <span class="sd">    handle the symbolic execution. It will keep a track of the </span>
 <span class="sd">    different equations encountered, and the CPU context at each point of the program.</span>
 
@@ -694,7 +694,7 @@ $ strip --strip-all ./kryptonite-add
         <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">def</span> <span class="nf">_check_if_reg32</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;XXX: make a decorator?&#39;&#39;&#39;</span>
         <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span>
 
     <span class="k">def</span> <span class="nf">_push_equation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
@@ -719,7 +719,7 @@ $ strip --strip-all ./kryptonite-add
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">[</span><span class="n">r</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Run from start address to end address the engine&#39;&#39;&#39;</span>
         <span class="k">for</span> <span class="n">mnemonic</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">disass</span><span class="o">.</span><span class="n">get_next_instruction</span><span class="p">():</span>
             <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">%</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> instructions, </span><span class="si">%d</span><span class="s1"> equations so far...&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">equations</span><span class="p">))</span>
@@ -800,7 +800,7 @@ $ strip --strip-all ./kryptonite-add
             <span class="bp">self</span><span class="o">.</span><span class="n">ninstrs</span> <span class="o">+=</span> <span class="mi">1</span>
 
     <span class="k">def</span> <span class="nf">_simplify_additions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eq</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;The idea in this function is to help Z3 to simplify our big bitvec-arithmetic</span>
 <span class="sd">        expression. It&#39;s simple, in eq we have a big expression with two symbolic variables (arg0 &amp; arg1)</span>
 <span class="sd">        and a lot of bitvec arithmetic. Somehow, the simplify function is not clever enough to reduce the</span>
 <span class="sd">        equation.</span>
@@ -820,7 +820,7 @@ $ strip --strip-all ./kryptonite-add
 
 
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-    <span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Here we will try to attack the semantic-preserving obfuscations</span>
 <span class="sd">    I talked about in &quot;Obfuscation of steel: meet my Kryptonite.&quot; : http://0vercl0k.tuxfamily.org/bl0g/?p=260.</span>
 
 <span class="sd">    The idea is to defeat those obfuscations using a tiny symbolic execution engine.&#39;&#39;&#39;</span>
